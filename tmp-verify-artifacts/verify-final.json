@@ -1,0 +1,20 @@
+{
+  "listing": {
+    "vis1": 12,
+    "pageItems": 3,
+    "urlAfterEnter": "http://127.0.0.1:5500/html/new-posts.html?q=seed+1",
+    "urlAfterReset": "http://127.0.0.1:5500/html/new-posts.html"
+  },
+  "account": {
+    "firstHist": "Hist New",
+    "firstFav": "Fav New"
+  },
+  "authGate": {
+    "urlNonMember": "http://127.0.0.1:5500/html/new-posts.html?page=2",
+    "urlMember": "http://127.0.0.1:5500/html/new-posts.html?page=2"
+  },
+  "completed": {
+    "homeCompleted": 0,
+    "completedCount": 3
+  }
+}

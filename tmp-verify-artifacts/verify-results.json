@@ -1,0 +1,27 @@
+{
+  "flows": [
+    {
+      "name": "index_typography_dynamic",
+      "scNmFont": "18px",
+      "tnmFont": "18px",
+      "trendingItems": 6,
+      "screenshot": "E:\\web audio\\tmp-verify-artifacts\\index-home.png"
+    },
+    {
+      "name": "hashtag_and_filters",
+      "hasHashtag": 0,
+      "hashtagNavUrl": null,
+      "visibleCardsAfterHashtag": null,
+      "emptyVisibleAfterHashtag": null,
+      "summaryAfterHashtag": null,
+      "urlAfterReset": null,
+      "urlAfterEnter": null,
+      "screenshot": "E:\\web audio\\tmp-verify-artifacts\\new-posts-hashtag.png"
+    },
+    {
+      "name": "auth_gate_non_member",
+      "modalVisible": null,
+      "screenshot": "E:\\web audio\\tmp-verify-artifacts\\auth-gate-nonmember.png"
+    }
+  ]
+}

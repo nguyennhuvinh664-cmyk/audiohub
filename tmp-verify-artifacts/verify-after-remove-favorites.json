@@ -1,0 +1,19 @@
+{
+  "listing": {
+    "visible": 12,
+    "urlEnter": "http://127.0.0.1:5500/html/new-posts.html?q=Seed+1",
+    "urlReset": "http://127.0.0.1:5500/html/new-posts.html"
+  },
+  "authGate": {
+    "nonMemberFirst": "seed_1",
+    "memberFirst": "seed_13"
+  },
+  "account": {
+    "hasFavoritesSection": 0,
+    "historyCards": 1
+  },
+  "completed": {
+    "homeCompleted": 5,
+    "completedCount": 3
+  }
+}

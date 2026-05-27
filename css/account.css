@@ -1,0 +1,636 @@
+.account-page {
+  background:
+    radial-gradient(circle at top center, rgba(6,182,212,.08), transparent 22%),
+    linear-gradient(180deg, #09090f 0%, #09090f 46%, #080811 100%);
+}
+
+.account-main {
+  padding: 84px 0 84px;
+}
+
+.account-shell {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.account-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r3);
+  box-shadow: 0 16px 34px rgba(0,0,0,.18);
+}
+
+.account-sidebar {
+  padding: 24px;
+  position: sticky;
+  top: 86px;
+}
+
+.account-profile {
+  text-align: center;
+}
+
+.account-avatar-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.account-avatar {
+  width: 92px;
+  height: 92px;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-d);
+  font-size: 2rem;
+  font-weight: 800;
+  color: #111;
+  background: linear-gradient(135deg, var(--primary), #f97316);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 14px 28px rgba(245,158,11,.22);
+}
+
+.account-avatar-input {
+  display: none;
+}
+
+.account-avatar-edit {
+  border: 1px solid rgba(245,158,11,.35);
+  background: rgba(245,158,11,.12);
+  color: var(--primary);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-weight: 800;
+}
+
+.account-name {
+  font-family: var(--font-d);
+  font-size: 1.7rem;
+  line-height: 1.1;
+}
+
+.account-email {
+  color: var(--t2);
+  margin-top: 6px;
+}
+
+.account-badge {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(245,158,11,.12);
+  border: 1px solid rgba(245,158,11,.22);
+  color: var(--primary);
+  font-weight: 800;
+  font-size: .86rem;
+}
+
+.account-meta {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.account-meta li {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--t2);
+}
+
+.account-meta strong {
+  color: var(--t1);
+}
+
+.account-actions {
+  margin-top: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.account-content {
+  display: grid;
+  gap: 18px;
+}
+
+.account-hero {
+  padding: 26px 26px 22px;
+}
+
+.account-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(6,182,212,.1);
+  border: 1px solid rgba(6,182,212,.18);
+  color: var(--accent);
+  font-weight: 800;
+  font-size: .82rem;
+}
+
+.account-title {
+  font-family: var(--font-d);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+
+.account-subtitle {
+  color: var(--t2);
+  max-width: 720px;
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.account-stat,
+.account-card {
+  padding: 22px;
+}
+
+.account-stat strong {
+  display: block;
+  font-family: var(--font-d);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.account-stat span,
+.account-card p,
+.account-card li {
+  color: var(--t2);
+}
+
+.account-card h2 {
+  font-family: var(--font-d);
+  font-size: 1.45rem;
+  margin-bottom: 14px;
+}
+
+.account-list {
+  display: grid;
+  gap: 12px;
+}
+
+.account-list li {
+  list-style: none;
+  padding: 14px 16px;
+  border-radius: var(--r2);
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.03);
+}
+
+.account-list strong {
+  display: block;
+  color: var(--t1);
+  margin-bottom: 4px;
+}
+
+.account-list small {
+  color: var(--t3);
+}
+
+.account-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.account-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  color: var(--t1);
+  font-weight: 700;
+}
+
+.account-link:hover {
+  border-color: rgba(245,158,11,.22);
+  color: var(--primary);
+}
+
+.account-form {
+  display: grid;
+  gap: 16px;
+}
+
+.account-field {
+  display: grid;
+  gap: 8px;
+}
+
+.account-field label {
+  font-weight: 800;
+  color: var(--t1);
+}
+
+.account-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: var(--r1);
+  border: 1.5px solid var(--border);
+  background: rgba(255,255,255,.03);
+  color: var(--t1);
+  outline: none;
+  transition: var(--ease);
+}
+
+.account-field input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(245,158,11,.08);
+}
+
+.account-field input::placeholder {
+  color: var(--t3);
+}
+
+.account-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.account-note {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--r2);
+  background: rgba(6,182,212,.08);
+  border: 1px solid rgba(6,182,212,.16);
+  color: #cbd5e1;
+}
+
+.account-note ul {
+  margin-top: 8px;
+  margin-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.my-stories-scroll {
+  max-height: 760px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6,182,212,.7) rgba(255,255,255,.08);
+}
+
+.my-stories-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.my-stories-scroll::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.06);
+  border-radius: 999px;
+}
+
+.my-stories-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(6,182,212,.9), rgba(59,130,246,.9));
+  border-radius: 999px;
+}
+
+.my-stories-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(34,211,238,.95), rgba(96,165,250,.95));
+}
+
+.playlist-root {
+  display: grid;
+  gap: 12px;
+}
+
+.playlist-create {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.playlist-create input {
+  flex: 1;
+  min-width: 220px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: var(--r1);
+  border: 1.5px solid var(--border);
+  background: rgba(255,255,255,.03);
+  color: var(--t1);
+}
+
+.playlist-dropdown {
+  position: absolute;
+  min-width: 250px;
+  max-width: 320px;
+  background: #070a16;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.4);
+  padding: 8px;
+  z-index: 9999;
+}
+
+.playlist-dropdown__title {
+  padding: 8px 10px;
+  color: var(--t3);
+  font-size: .82rem;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  margin-bottom: 4px;
+}
+
+.playlist-dropdown__item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--t1);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.playlist-dropdown__item:hover {
+  background: rgba(255,255,255,.08);
+}
+
+.playlist-dropdown__meta {
+  display: block;
+  color: var(--t3);
+  font-size: .8rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.playlist-dropdown__empty {
+  padding: 10px 12px;
+  color: var(--t3);
+}
+
+.playlist-dropdown__close {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #fca5a5;
+  padding: 8px 12px;
+  text-align: left;
+  border-top: 1px solid rgba(255,255,255,.08);
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.playlist-dropdown__close:hover {
+  background: rgba(252,165,165,.08);
+  border-radius: 10px;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.playlist-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+}
+
+.playlist-list,
+.playlist-detail {
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: var(--r2);
+  background: rgba(255,255,255,.02);
+  padding: 12px;
+}
+
+.playlist-detail {
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6,182,212,.7) rgba(255,255,255,.08);
+}
+
+.playlist-detail[data-playlist-detail] {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.playlist-detail::-webkit-scrollbar {
+  width: 8px;
+}
+
+.playlist-detail::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.06);
+  border-radius: 999px;
+}
+
+.playlist-detail::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(6,182,212,.9), rgba(59,130,246,.9));
+  border-radius: 999px;
+}
+
+.playlist-detail::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(34,211,238,.95), rgba(96,165,250,.95));
+}
+
+@media (max-width: 980px) {
+  .playlist-detail {
+    max-height: none;
+    overflow: visible;
+    padding-right: 12px;
+  }
+}
+
+.playlist-item,
+.playlist-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.02);
+}
+
+.playlist-item + .playlist-item,
+.playlist-entry + .playlist-entry {
+  margin-top: 8px;
+}
+
+.playlist-item.is-active {
+  border-color: rgba(245,158,11,.25);
+  background: rgba(245,158,11,.08);
+}
+
+.playlist-name {
+  font-weight: 800;
+  color: var(--t1);
+}
+
+.playlist-meta,
+.playlist-entry small {
+  color: var(--t3);
+}
+
+.playlist-actions,
+.playlist-entry-actions {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.playlist-btn {
+  border: 1px solid rgba(255,255,255,.15);
+  background: transparent;
+  color: var(--t1);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-weight: 700;
+  font-size: .84rem;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.playlist-btn:hover {
+  border-color: rgba(245,158,11,.3);
+  color: var(--primary);
+}
+
+.playlist-status-wrap {
+  position: relative;
+  display: inline-grid;
+  gap: 4px;
+}
+
+.playlist-status-label {
+  color: var(--t3);
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.playlist-status-trigger {
+  min-width: 140px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(15,23,42,.9);
+  color: var(--t1);
+  padding: 0 10px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.playlist-status-trigger[aria-expanded="true"] {
+  border-color: rgba(245,158,11,.35);
+  box-shadow: 0 0 0 3px rgba(245,158,11,.12);
+}
+
+.playlist-status-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 140px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 10px;
+  background: #0b1020;
+  overflow: hidden;
+}
+
+.playlist-status-option {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--t1);
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
+.playlist-status-option:hover {
+  background: rgba(255,255,255,.08);
+}
+
+.playlist-status-menu.is-hidden {
+  display: none;
+}
+
+.playlist-empty {
+  color: var(--t3);
+  padding: 10px 0;
+}
+
+@media (max-width: 980px) {
+  .playlist-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .playlist-create {
+    flex-direction: column;
+  }
+
+  .playlist-create input {
+    min-width: 0;
+  }
+
+  .playlist-entry,
+  .playlist-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 980px) {
+  .account-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .account-sidebar {
+    position: static;
+  }
+
+  .account-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .account-main {
+    padding: 68px 0 72px;
+  }
+
+  .account-sidebar,
+  .account-hero,
+  .account-stat,
+  .account-card {
+    padding: 20px 18px;
+  }
+
+  .account-form__actions {
+    flex-direction: column;
+  }
+}

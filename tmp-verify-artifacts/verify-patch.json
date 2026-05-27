@@ -1,0 +1,12 @@
+{
+  "authGate": {
+    "nonMemberVisible": 12,
+    "nonMemberFirst": "seed_1",
+    "memberVisible": 12,
+    "memberFirst": "seed_13"
+  },
+  "completed": {
+    "homeCompleted": 5,
+    "completedPage": 3
+  }
+}

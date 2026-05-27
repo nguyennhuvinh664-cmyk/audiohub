@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum StoryVisibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+enum AudioStatus {
+  READY
+  PROCESSING
+  HIDDEN
+}
+
+enum MediaKind {
+  COVER
+  AUDIO
+}
+
+model User {
+  id                String            @id @default(cuid())
+  email             String            @unique
+  passwordHash      String            @map("password_hash")
+  displayName       String            @map("display_name")
+  avatarDataUrl     String?           @map("avatar_data_url")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  stories           Story[]
+  mediaAssets       MediaAsset[]
+  audioTrash        AudioTrash[]
+  storyListenEvents StoryListenEvent[]
+  playlists         Playlist[]
+
+  @@map("users")
+}
+
+model Story {
+  id               String            @id @default(cuid())
+  userId           String            @map("user_id")
+  title            String
+  author           String
+  genre            String
+  description      String            @default("")
+  readingText      String            @default("") @map("reading_text")
+  chapterTitle     String            @default("Chương 1") @map("chapter_title")
+  visibility       StoryVisibility   @default(PRIVATE)
+  audioStatus      AudioStatus       @default(READY) @map("audio_status")
+  status           String            @default("")
+  isCompleted      Boolean           @default(false) @map("is_completed")
+  coverKey         String?           @map("cover_key")
+  audioKey         String?           @map("audio_key")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  deletedAt        DateTime?         @map("deleted_at")
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listenEvents     StoryListenEvent[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("stories")
+}
+
+model StoryListenEvent {
+  id        String   @id @default(cuid())
+  storyId   String   @map("story_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("story_listen_events")
+}
+
+model MediaAsset {
+  key         String    @id
+  ownerUserId String    @map("owner_user_id")
+  kind        MediaKind
+  mimeType    String    @map("mime_type")
+  sizeBytes   Int       @map("size_bytes")
+  storagePath String    @map("storage_path")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  ownerUser User       @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  trash     AudioTrash?
+
+  @@map("media_assets")
+}
+
+model AudioTrash {
+  audioKey      String   @id @map("audio_key")
+  ownerUserId   String   @map("owner_user_id")
+  storySnapshot Json     @map("story_snapshot")
+  deletedAt     DateTime @default(now()) @map("deleted_at")
+
+  mediaAsset MediaAsset @relation(fields: [audioKey], references: [key], onDelete: Cascade)
+  ownerUser  User       @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId, deletedAt(sort: Desc)])
+  @@map("audio_trash")
+}
+
+model Playlist {
+  id        String         @id @default(cuid())
+  userId    String         @map("user_id")
+  name      String
+  status    String         @default("Đang ra")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items PlaylistItem[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("playlists")
+}
+
+model PlaylistItem {
+  id           String   @id @default(cuid())
+  playlistId   String   @map("playlist_id")
+  storyId      String   @map("story_id")
+  storyTitle   String   @map("story_title")
+  storyAuthor  String   @map("story_author")
+  chapterLabel String   @default("Chương 1") @map("chapter_label")
+  chapterIndex Int      @default(0) @map("chapter_index")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@index([playlistId, chapterIndex])
+  @@map("playlist_items")
+}
