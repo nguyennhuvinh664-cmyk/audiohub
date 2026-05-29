@@ -487,6 +487,8 @@
     } catch (error) {}
   }
 
+  var coverUrlByNode = new WeakMap();
+
   function bindStoryCover(story) {
     var coverNode = document.querySelector('.audio-cover');
     if (!coverNode) return;
@@ -497,10 +499,17 @@
     window.AudioHubStoryCover.get(coverKey)
       .then(function (blob) {
         if (!blob) return;
-        var coverUrl = URL.createObjectURL(blob);
-        coverNode.style.backgroundImage = 'url("' + coverUrl + '")';
-        coverNode.style.backgroundSize = 'cover';
-        coverNode.style.backgroundPosition = 'center';
+        try {
+          var prev = coverUrlByNode.get(coverNode);
+          if (prev) {
+            URL.revokeObjectURL(prev);
+          }
+          var coverUrl = URL.createObjectURL(blob);
+          coverUrlByNode.set(coverNode, coverUrl);
+          coverNode.style.backgroundImage = 'url("' + coverUrl + '")';
+          coverNode.style.backgroundSize = 'cover';
+          coverNode.style.backgroundPosition = 'center';
+        } catch (error) {}
       })
       .catch(function () {});
   }
@@ -586,11 +595,18 @@
         window.AudioHubStoryCover.get(key)
           .then(function (blob) {
             if (!blob) return;
-            var url = URL.createObjectURL(blob);
-            thumbNode.style.backgroundImage = 'url("' + url + '")';
-            thumbNode.style.backgroundSize = 'cover';
-            thumbNode.style.backgroundPosition = 'center';
-            thumbNode.textContent = '';
+            try {
+              var prev = coverUrlByNode.get(thumbNode);
+              if (prev) {
+                URL.revokeObjectURL(prev);
+              }
+              var url = URL.createObjectURL(blob);
+              coverUrlByNode.set(thumbNode, url);
+              thumbNode.style.backgroundImage = 'url("' + url + '")';
+              thumbNode.style.backgroundSize = 'cover';
+              thumbNode.style.backgroundPosition = 'center';
+              thumbNode.textContent = '';
+            } catch (error) {}
           })
           .catch(function () {});
       });
@@ -687,10 +703,17 @@
         window.AudioHubStoryCover.get(coverKey)
           .then(function (blob) {
             if (!blob) return;
-            var url = URL.createObjectURL(blob);
-            thumbNode.style.backgroundImage = 'url("' + url + '")';
-            thumbNode.style.backgroundSize = 'cover';
-            thumbNode.style.backgroundPosition = 'center';
+            try {
+              var prev = coverUrlByNode.get(thumbNode);
+              if (prev) {
+                URL.revokeObjectURL(prev);
+              }
+              var url = URL.createObjectURL(blob);
+              coverUrlByNode.set(thumbNode, url);
+              thumbNode.style.backgroundImage = 'url("' + url + '")';
+              thumbNode.style.backgroundSize = 'cover';
+              thumbNode.style.backgroundPosition = 'center';
+            } catch (error) {}
           })
           .catch(function () {});
       });
@@ -719,6 +742,8 @@
     }, true);
   }
 
+  var audioUrlByNode = new WeakMap();
+
   function bindStoryAudio(story) {
     var audioNode = document.querySelector('[data-story-audio]');
     var noteNode = document.querySelector('[data-story-audio-note]');
@@ -729,6 +754,14 @@
       noteNode.textContent = message;
       noteNode.classList.remove('is-hidden');
     }
+
+    try {
+      var prevAudio = audioUrlByNode.get(audioNode);
+      if (prevAudio) {
+        URL.revokeObjectURL(prevAudio);
+        audioUrlByNode.delete(audioNode);
+      }
+    } catch (error) {}
 
     audioNode.classList.add('is-hidden');
     audioNode.removeAttribute('src');
@@ -750,9 +783,14 @@
           showNote('Không tìm thấy file audio đã lưu.');
           return;
         }
-        var audioUrl = URL.createObjectURL(blob);
-        audioNode.src = audioUrl;
-        audioNode.classList.remove('is-hidden');
+        try {
+          var audioUrl = URL.createObjectURL(blob);
+          audioUrlByNode.set(audioNode, audioUrl);
+          audioNode.src = audioUrl;
+          audioNode.classList.remove('is-hidden');
+        } catch (error) {
+          showNote('Không thể tải file audio đã lưu.');
+        }
       })
       .catch(function () {
         showNote('Không thể tải file audio đã lưu.');
@@ -1936,10 +1974,6 @@
 
   initCommentAccess();
   initPlayer();
-
-  window.addEventListener('audiohub:stories-updated', function () {
-    initPlayer();
-  });
 
   if (window.AudioHubStories && typeof window.AudioHubStories.sync === 'function') {
     window.AudioHubStories.sync();

@@ -1131,7 +1131,12 @@
   }
 
   function refresh() {
-    renderStories(window.AudioHubStories.read());
+    var stories = window.AudioHubStories.read();
+    if (refresh._lastRaw === stories) {
+      return;
+    }
+    refresh._lastRaw = stories;
+    renderStories(stories);
     hydrateCovers(mount);
     updateStoriesBulkButtons();
   }

@@ -44,6 +44,24 @@
     );
   }
 
+  var coverUrlByNode = new WeakMap();
+
+  function applyCoverUrl(node, blob) {
+    if (!node || !blob) return;
+    try {
+      var prev = coverUrlByNode.get(node);
+      if (prev) {
+        URL.revokeObjectURL(prev);
+      }
+      var url = URL.createObjectURL(blob);
+      coverUrlByNode.set(node, url);
+      node.style.backgroundImage = 'url("' + url + '")';
+      node.style.backgroundSize = 'cover';
+      node.style.backgroundPosition = 'center';
+    } catch (error) {
+    }
+  }
+
   function hydrateCovers(container) {
     if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') {
       return;
@@ -61,13 +79,7 @@
           if (!blob) {
             return;
           }
-          try {
-            var url = URL.createObjectURL(blob);
-            node.style.backgroundImage = 'url("' + url + '")';
-            node.style.backgroundSize = 'cover';
-            node.style.backgroundPosition = 'center';
-          } catch (error) {
-          }
+          applyCoverUrl(node, blob);
         })
         .catch(function () {
         });
@@ -120,15 +132,30 @@
     return isNaN(time) ? 0 : time;
   }
 
+  var playlistsCache = { raw: null, parsed: [] };
+
+  function readLocalPlaylistsCached() {
+    try {
+      var raw = window.localStorage.getItem('audiohub-playlists-v1') || '';
+      if (playlistsCache.raw === raw) {
+        return playlistsCache.parsed;
+      }
+      var parsed = raw ? JSON.parse(raw) : [];
+      playlistsCache.raw = raw;
+      playlistsCache.parsed = Array.isArray(parsed) ? parsed : [];
+      return playlistsCache.parsed;
+    } catch (error) {
+      playlistsCache.raw = null;
+      playlistsCache.parsed = [];
+      return [];
+    }
+  }
+
   function pickCompletedStoriesFromPlaylists(publicStories, apiPlaylists) {
     try {
       var source = Array.isArray(apiPlaylists)
         ? apiPlaylists
-        : (function () {
-            var raw = window.localStorage.getItem('audiohub-playlists-v1');
-            var playlists = raw ? JSON.parse(raw) : [];
-            return Array.isArray(playlists) ? playlists : [];
-          })();
+        : readLocalPlaylistsCached();
 
       var picked = [];
       source.forEach(function (playlist) {
@@ -199,8 +226,35 @@
     return publicStories;
   }
 
+  function readSeedStoriesFromCards() {
+    var cards = Array.prototype.slice.call(root.querySelectorAll('a.story-card[data-title][data-author][data-genre]'));
+    return cards.map(function (card, index) {
+      var title = String(card.getAttribute('data-title') || '').trim();
+      var author = String(card.getAttribute('data-author') || '').trim();
+      var genre = String(card.getAttribute('data-genre') || '').trim();
+      if (!title) return null;
+      return {
+        id: 'seed-card-' + index,
+        title: title,
+        author: author || 'Ẩn danh',
+        genre: genre || 'Khác',
+        description: '',
+        visibility: 'Công khai',
+        coverKey: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        listenCount2d: 0,
+        listenCount7d: 0,
+        listenCount: 0
+      };
+    }).filter(Boolean);
+  }
+
   function renderStories() {
     var stories = window.AudioHubStories.read() || [];
+    if (!stories.length) {
+      stories = readSeedStoriesFromCards();
+    }
     var page = String(window.location.pathname || '').toLowerCase();
     var publicStories = stories.filter(function (story) {
       return String(story && story.visibility || '').trim() === 'Công khai';
@@ -219,12 +273,10 @@
               }
               root.innerHTML = fallbackLocal.map(buildStoryCard).join('');
               hydrateCovers(root);
-              window.dispatchEvent(new Event('audiohub:stories-updated'));
               return;
             }
             root.innerHTML = pickedFromApi.map(buildStoryCard).join('');
             hydrateCovers(root);
-            window.dispatchEvent(new Event('audiohub:stories-updated'));
           })
           .catch(function () {
             var fallbackLocal = pickCompletedStoriesFromPlaylists(publicStories);
@@ -234,7 +286,6 @@
             }
             root.innerHTML = fallbackLocal.map(buildStoryCard).join('');
             hydrateCovers(root);
-            window.dispatchEvent(new Event('audiohub:stories-updated'));
           });
         return;
       }
@@ -246,7 +297,6 @@
       }
       root.innerHTML = fallback.map(buildStoryCard).join('');
       hydrateCovers(root);
-      window.dispatchEvent(new Event('audiohub:stories-updated'));
       return;
     }
 
@@ -261,7 +311,6 @@
 
     root.innerHTML = picked.map(buildStoryCard).join('');
     hydrateCovers(root);
-    window.dispatchEvent(new Event('audiohub:stories-updated'));
   }
 
   root.addEventListener('click', function (event) {
@@ -273,14 +322,12 @@
     var href = String(card.getAttribute('href') || '');
     if (href === 'story-detail.html' || href.indexOf('story-detail.html?id=') < 0) {
       event.preventDefault();
-      renderStories();
       return;
     }
 
     var storyId = String(card.getAttribute('data-story-id') || '').trim();
     if (!storyId) {
       event.preventDefault();
-      renderStories();
       return;
     }
 
@@ -296,10 +343,6 @@
   });
 
   renderStories();
-
-  window.addEventListener('audiohub:stories-updated', function () {
-    renderStories();
-  });
 
   if (typeof window.AudioHubStories.sync === 'function') {
     window.AudioHubStories.sync();

@@ -250,6 +250,8 @@
     }
   }
 
+  var libraryCoverUrlByNode = new WeakMap();
+
   function hydrateLibraryThumbs(root) {
     if (!root || !window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') {
       return;
@@ -273,7 +275,12 @@
       window.AudioHubStoryCover.get(coverKey)
         .then(function (blob) {
           if (!blob) return;
+          var prev = libraryCoverUrlByNode.get(node);
+          if (prev) {
+            URL.revokeObjectURL(prev);
+          }
           var url = URL.createObjectURL(blob);
+          libraryCoverUrlByNode.set(node, url);
           node.style.backgroundImage = 'url("' + url + '")';
           node.style.backgroundSize = 'cover';
           node.style.backgroundPosition = 'center';

@@ -237,12 +237,28 @@
       applyFilters(true, 1);
     });
 
-    titleInput.addEventListener('input', function () {
+    function debounce(fn, waitMs) {
+      var timer = 0;
+      return function () {
+        var args = arguments;
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(function () {
+          timer = 0;
+          fn.apply(null, args);
+        }, waitMs);
+      };
+    }
+
+    var applyFiltersDebounced = debounce(function () {
       applyFilters(true, 1);
+    }, 180);
+
+    titleInput.addEventListener('input', function () {
+      applyFiltersDebounced();
     });
 
     authorInput.addEventListener('input', function () {
-      applyFilters(true, 1);
+      applyFiltersDebounced();
     });
 
     genreSelect.addEventListener('keydown', function (event) {
@@ -287,6 +303,7 @@
         author: normalize(authorInput.value),
         genre: normalize(genreSelect.value || initial.hashtag)
       };
+      var member = isMember();
 
       const cards = Array.from(root.querySelectorAll('.story-card'));
       const matchedCards = [];
@@ -321,7 +338,7 @@
         ? forcedPage
         : (Math.max(1, parseInt(currentParams.get('page') || String(initial.page || 1), 10) || 1));
       var page = Math.min(requestedPage, totalPages);
-      if (!isMember() && page > 1) {
+      if (!member && page > 1) {
         page = 1;
       }
       var start = (page - 1) * pageSize;
@@ -340,7 +357,7 @@
         : 'Tìm thấy ' + totalItems + ' truyện phù hợp.';
 
       if (pagination) {
-        pagination.classList.toggle('is-locked', !isMember());
+        pagination.classList.toggle('is-locked', !member);
         var maxButtons = 5;
         var startPage = Math.max(1, page - Math.floor(maxButtons / 2));
         var endPage = Math.min(totalPages, startPage + maxButtons - 1);

@@ -19,6 +19,8 @@
     return initials || 'AH';
   }
 
+  var coverUrlByNode = new WeakMap();
+
   function setThumbImage(thumb, story) {
     if (!thumb || !story || !story.coverKey) {
       return;
@@ -34,7 +36,12 @@
           return;
         }
         try {
+          var prev = coverUrlByNode.get(thumb);
+          if (prev) {
+            URL.revokeObjectURL(prev);
+          }
           var url = URL.createObjectURL(blob);
+          coverUrlByNode.set(thumb, url);
           thumb.style.backgroundImage = 'url("' + url + '")';
           thumb.style.backgroundSize = 'cover';
           thumb.style.backgroundPosition = 'center';
@@ -66,7 +73,11 @@
 
     var authorNode = card.querySelector('.sc__author');
     if (authorNode) {
-      authorNode.innerHTML = '<i class="fa-regular fa-user"></i> ' + (story.author || 'Ẩn danh');
+      authorNode.textContent = '';
+      var icon = document.createElement('i');
+      icon.className = 'fa-regular fa-user';
+      authorNode.appendChild(icon);
+      authorNode.appendChild(document.createTextNode(' ' + (story.author || 'Ẩn danh')));
     }
 
     var thumb = card.querySelector('.sc__th');
@@ -161,10 +172,28 @@
     return status === 'hoàn thành' || status === 'hoan thanh' || status === 'completed' || status === 'full';
   }
 
+  var playlistsCache = { raw: null, parsed: [] };
+
+  function readLocalPlaylistsCached() {
+    try {
+      var raw = window.localStorage.getItem('audiohub-playlists-v1') || '';
+      if (playlistsCache.raw === raw) {
+        return playlistsCache.parsed;
+      }
+      var parsed = raw ? JSON.parse(raw) : [];
+      playlistsCache.raw = raw;
+      playlistsCache.parsed = Array.isArray(parsed) ? parsed : [];
+      return playlistsCache.parsed;
+    } catch (error) {
+      playlistsCache.raw = null;
+      playlistsCache.parsed = [];
+      return [];
+    }
+  }
+
   function pickCompletedStories(stories) {
     try {
-      var raw = window.localStorage.getItem('audiohub-playlists-v1');
-      var playlists = raw ? JSON.parse(raw) : [];
+      var playlists = readLocalPlaylistsCached();
       if (!Array.isArray(playlists)) return [];
       var storyMap = {};
       (stories || []).forEach(function (story) {
