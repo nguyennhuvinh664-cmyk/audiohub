@@ -21,6 +21,39 @@
   var audioZone = document.querySelector('[data-upload-audio]');
   var readingZone = document.querySelector('[data-upload-reading]');
   var hashtagsInput = null;
+  var AUTH_STORAGE_KEY = 'audiohub-demo-auth';
+
+  function readAuthProfile() {
+    try {
+      var raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || !parsed.isLoggedIn) {
+        return null;
+      }
+      return {
+        name: String(parsed.name || '').trim(),
+        email: String(parsed.email || '').trim()
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function lockAuthorFromAccount() {
+    if (!authorInput) {
+      return;
+    }
+    var profile = readAuthProfile();
+    if (!profile || !profile.name) {
+      return;
+    }
+    authorInput.value = profile.name;
+    authorInput.readOnly = true;
+    authorInput.setAttribute('aria-readonly', 'true');
+    authorInput.title = 'Tác giả được lấy theo tài khoản đăng nhập';
+  }
+
+  lockAuthorFromAccount();
 
   function normalizeHashtagToken(value) {
     return String(value || '').trim().replace(/^#+/, '').replace(/\s+/g, '-').toLowerCase();
