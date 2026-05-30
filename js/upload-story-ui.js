@@ -581,11 +581,28 @@
     mediaNote.classList.add('is-empty');
   }
 
+  function getEffectiveAuthorName() {
+    var fromSession = resolveAuthorName();
+    if (fromSession) {
+      return fromSession;
+    }
+    return authorInput ? String(authorInput.value || '').trim() : '';
+  }
+
   function render() {
     var title = titleInput ? titleInput.value.trim() : '';
     var description = descriptionInput ? descriptionInput.value.trim() : '';
-    var author = authorInput ? authorInput.value.trim() : '';
+    var author = getEffectiveAuthorName();
     var genre = genreSelect ? genreSelect.value : '';
+
+    if (authorInput && authorInput.value !== author) {
+      authorInput.value = author;
+    }
+
+    if (authorInput) {
+      authorInput.readOnly = true;
+      authorInput.setAttribute('aria-readonly', 'true');
+    }
 
     if (titleCount && titleInput) {
       titleCount.textContent = titleInput.value.length + ' / 120';
@@ -919,7 +936,7 @@
       story = window.AudioHubStories.upsert({
         title: titleInput ? titleInput.value.trim() : '',
         description: descriptionInput ? descriptionInput.value.trim() : '',
-        author: authorInput ? authorInput.value.trim() : '',
+        author: getEffectiveAuthorName(),
         genre: genreSelect ? genreSelect.value : '',
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
         visibility: state.visibility,
