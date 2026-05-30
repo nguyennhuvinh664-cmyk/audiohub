@@ -443,7 +443,7 @@ body.no-scroll { overflow:hidden; }
 
 /* ── Tablet  ≤ 900px ── */
 @media (max-width:900px) {
-  .cgrid  { grid-template-columns:repeat(4,1fr); }
+  .cgrid  { grid-template-columns:repeat(4,1fr) !important; }
   .ggrid  { grid-template-columns:repeat(5,1fr); }
   .tbar   { display:none; }
   .ft-grid { grid-template-columns:1fr 1fr 1fr; }
