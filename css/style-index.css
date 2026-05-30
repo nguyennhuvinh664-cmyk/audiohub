@@ -525,7 +525,7 @@ body.no-scroll { overflow:hidden; }
   }
 
   /* Sections */
-  .cgrid { grid-template-columns:repeat(3,1fr); gap:10px; }
+  .cgrid { grid-template-columns:repeat(4,1fr) !important; gap:10px; }
   .ggrid { grid-template-columns:repeat(4,1fr); gap:9px; }
 
   /* Leaderboard */
