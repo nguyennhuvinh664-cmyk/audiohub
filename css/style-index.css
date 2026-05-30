@@ -646,6 +646,12 @@ body.no-scroll { overflow:hidden; }
   .gi    { padding:8px 4px; }
 }
 
+@media (min-width:901px) {
+  .cgrid {
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  }
+}
+
 /* ── Touch devices — remove hover lifts ── */
 @media (hover:none) and (pointer:coarse) {
   .sc:hover,.gi:hover,.ti:hover { transform:none; }
