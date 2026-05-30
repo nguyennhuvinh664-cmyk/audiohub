@@ -39,47 +39,88 @@
     }
   }
 
-  function readNameFromHeader() {
+  function readHeaderName() {
     var node = document.querySelector('.auth-menu__label');
     return node ? String(node.textContent || '').trim() : '';
   }
 
-  function resolveAuthorName() {
+  function getAuthorFromSession() {
     var profile = readAuthProfile();
     if (profile && profile.name) return profile.name;
-    return readNameFromHeader();
+    return readHeaderName();
   }
 
-  function applyAuthorLock() {
+  function syncAuthorInput() {
     if (!authorInput) return '';
-    var name = resolveAuthorName();
-    authorInput.value = name;
+    var authorName = getAuthorFromSession();
+    authorInput.value = authorName || '';
     authorInput.readOnly = true;
     authorInput.setAttribute('readonly', 'readonly');
     authorInput.setAttribute('aria-readonly', 'true');
     authorInput.placeholder = 'Tự động theo tài khoản đăng nhập';
-    authorInput.title = name ? 'Tác giả được lấy theo tài khoản đăng nhập' : 'Vui lòng đăng nhập để tự động điền tác giả';
-    return name;
+    authorInput.title = authorName ? 'Tác giả được lấy theo tài khoản đăng nhập' : 'Vui lòng đăng nhập để tự động điền tác giả';
+    return authorName;
   }
 
-  applyAuthorLock();
-  window.setTimeout(applyAuthorLock, 0);
-  window.setTimeout(applyAuthorLock, 400);
-  window.setTimeout(applyAuthorLock, 1200);
-  window.addEventListener('focus', applyAuthorLock);
-  window.addEventListener('pageshow', applyAuthorLock);
-  window.addEventListener('audiohub:auth-updated', applyAuthorLock);
+  syncAuthorInput();
+  window.setTimeout(syncAuthorInput, 0);
+  window.setTimeout(syncAuthorInput, 300);
+  window.setTimeout(syncAuthorInput, 1000);
+  window.addEventListener('focus', syncAuthorInput);
+  window.addEventListener('pageshow', syncAuthorInput);
+  window.addEventListener('audiohub:auth-updated', syncAuthorInput);
   window.addEventListener('storage', function (event) {
     if (event && event.key && event.key !== AUTH_STORAGE_KEY) return;
-    applyAuthorLock();
+    syncAuthorInput();
   });
 
   if (authorInput) {
     authorInput.addEventListener('beforeinput', function (event) { event.preventDefault(); });
-    authorInput.addEventListener('input', applyAuthorLock);
+    authorInput.addEventListener('input', function () { syncAuthorInput(); });
     authorInput.addEventListener('paste', function (event) { event.preventDefault(); });
     authorInput.addEventListener('drop', function (event) { event.preventDefault(); });
   }
+
+  var authorSyncTimer = window.setInterval(function () {
+    var name = syncAuthorInput();
+    if (name) window.clearInterval(authorSyncTimer);
+  }, 500);
+  window.setTimeout(function () { window.clearInterval(authorSyncTimer); }, 15000);
+
+  if (window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function' && typeof window.AudioHubApi.request === 'function') {
+    var token = window.AudioHubApi.getToken();
+    if (token && !getAuthorFromSession()) {
+      window.AudioHubApi.request('/auth/me', { method: 'GET' })
+        .then(function (user) {
+          var name = user && user.displayName ? String(user.displayName).trim() : '';
+          var email = user && user.email ? String(user.email).trim() : '';
+          if (!name) return;
+          try {
+            window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+              isLoggedIn: true,
+              name: name,
+              email: email
+            }));
+          } catch (error) {}
+          syncAuthorInput();
+          render();
+        })
+        .catch(function () {});
+    }
+  }
+
+  function getEffectiveAuthorName() {
+    var authorName = getAuthorFromSession();
+    if (authorName) return authorName;
+    return authorInput ? String(authorInput.value || '').trim() : '';
+  }
+
+  window.AudioHubUploadAuthor = {
+    getAuthorFromSession: getAuthorFromSession,
+    syncAuthorInput: syncAuthorInput
+  };
+
+  syncAuthorInput();
 
   function normalizeHashtagToken(value) {
     return String(value || '').trim().replace(/^#+/, '').replace(/\s+/g, '-').toLowerCase();
@@ -361,14 +402,6 @@
     mediaNote.classList.add('is-empty');
   }
 
-  function getEffectiveAuthorName() {
-    var fromSession = resolveAuthorName();
-    if (fromSession) {
-      return fromSession;
-    }
-    return authorInput ? String(authorInput.value || '').trim() : '';
-  }
-
   function render() {
     var title = titleInput ? titleInput.value.trim() : '';
     var description = descriptionInput ? descriptionInput.value.trim() : '';
@@ -378,11 +411,7 @@
     if (authorInput && authorInput.value !== author) {
       authorInput.value = author;
     }
-
-    if (authorInput) {
-      authorInput.readOnly = true;
-      authorInput.setAttribute('aria-readonly', 'true');
-    }
+    syncAuthorInput();
 
     if (titleCount && titleInput) {
       titleCount.textContent = titleInput.value.length + ' / 120';
