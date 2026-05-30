@@ -11,6 +11,12 @@
   <link rel="stylesheet" href="../css/style-index.css" />
   <link rel="stylesheet" href="../css/header-enhancements.css" />
   <link rel="stylesheet" href="../css/auth-state.css" />
+  <style>
+    .cgrid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    @media (max-width: 480px) {
+      .cgrid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
