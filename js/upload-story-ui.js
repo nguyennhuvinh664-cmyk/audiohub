@@ -39,24 +39,209 @@
     }
   }
 
-  function lockAuthorFromAccount() {
-    if (!authorInput) {
-      return null;
+  function readNameFromHeader() {
+    try {
+      var node = document.querySelector('.auth-menu__label');
+      var name = node ? String(node.textContent || '').trim() : '';
+      return name || '';
+    } catch (error) {
+      return '';
     }
-    var profile = readAuthProfile();
-    if (!profile || !profile.name) {
-      authorInput.readOnly = false;
-      authorInput.removeAttribute('aria-readonly');
-      authorInput.title = 'Hãy đăng nhập để tự động điền tác giả';
-      return null;
-    }
-    authorInput.value = profile.name;
-    authorInput.readOnly = true;
-    authorInput.setAttribute('aria-readonly', 'true');
-    authorInput.title = 'Tác giả được lấy theo tài khoản đăng nhập';
-    return profile;
   }
 
+  function resolveAuthorName() {
+    var profile = readAuthProfile();
+    if (profile && profile.name) {
+      return profile.name;
+    }
+    var headerName = readNameFromHeader();
+    if (headerName) {
+      return headerName;
+    }
+    return '';
+  }
+
+  function lockAuthorFromAccount() {
+    if (!authorInput) {
+      return '';
+    }
+    var name = resolveAuthorName();
+    authorInput.value = name;
+    authorInput.readOnly = true;
+    authorInput.setAttribute('aria-readonly', 'true');
+    authorInput.title = name ? 'Tác giả được lấy theo tài khoản đăng nhập' : 'Vui lòng đăng nhập để tự động điền tác giả';
+    return name;
+  }
+
+  if (authorInput) {
+    authorInput.placeholder = 'Tự động theo tài khoản đăng nhập';
+  }
+
+  lockAuthorFromAccount();
+  window.setTimeout(lockAuthorFromAccount, 0);
+  window.setTimeout(lockAuthorFromAccount, 400);
+  window.setTimeout(lockAuthorFromAccount, 1200);
+  window.addEventListener('focus', lockAuthorFromAccount);
+  window.addEventListener('storage', function (event) {
+    if (event && event.key && event.key !== AUTH_STORAGE_KEY) {
+      return;
+    }
+    lockAuthorFromAccount();
+  });
+
+  if (authorInput) {
+    authorInput.addEventListener('input', function () {
+      var fixedName = resolveAuthorName();
+      authorInput.value = fixedName;
+    });
+  }
+
+  window.addEventListener('audiohub:auth-updated', lockAuthorFromAccount);
+
+  var authorSyncAttempts = 0;
+  var authorSyncTimer = window.setInterval(function () {
+    authorSyncAttempts += 1;
+    var name = lockAuthorFromAccount();
+    if (name) {
+      window.clearInterval(authorSyncTimer);
+      return;
+    }
+    if (authorSyncAttempts >= 25) {
+      window.clearInterval(authorSyncTimer);
+    }
+  }, 250);
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      lockAuthorFromAccount();
+    }
+  });
+
+  window.addEventListener('pageshow', lockAuthorFromAccount);
+
+  window.AudioHubUploadAuthor = {
+    resolve: resolveAuthorName,
+    sync: lockAuthorFromAccount
+  };
+
+  lockAuthorFromAccount();
+
+  window.addEventListener('focus', lockAuthorFromAccount);
+  window.addEventListener('storage', function (event) {
+    if (event && event.key && event.key !== AUTH_STORAGE_KEY) {
+      return;
+    }
+    lockAuthorFromAccount();
+  });
+
+  if (authorInput) {
+    authorInput.addEventListener('input', function () {
+      var profile = readAuthProfile();
+      if (profile && profile.name && authorInput.value !== profile.name) {
+        authorInput.value = profile.name;
+      }
+    });
+  }
+
+  window.addEventListener('audiohub:auth-updated', lockAuthorFromAccount);
+
+  function enforceAuthorFromSession() {
+    lockAuthorFromAccount();
+  }
+
+  enforceAuthorFromSession();
+  window.addEventListener('focus', enforceAuthorFromSession);
+  window.addEventListener('storage', function (event) {
+    if (event && event.key && event.key !== AUTH_STORAGE_KEY) {
+      return;
+    }
+    enforceAuthorFromSession();
+  });
+
+  var authorSyncAttempts2 = 0;
+  var authorSyncTimer2 = window.setInterval(function () {
+    authorSyncAttempts2 += 1;
+    enforceAuthorFromSession();
+    if (authorInput && authorInput.value) {
+      window.clearInterval(authorSyncTimer2);
+      return;
+    }
+    if (authorSyncAttempts2 >= 20) {
+      window.clearInterval(authorSyncTimer2);
+    }
+  }, 300);
+
+  if (authorInput) {
+    authorInput.addEventListener('input', function () {
+      var fixedName = resolveAuthorName();
+      if (fixedName && authorInput.value !== fixedName) {
+        authorInput.value = fixedName;
+      }
+    });
+  }
+
+  window.addEventListener('audiohub:auth-updated', enforceAuthorFromSession);
+
+  function readNameFromHeader() {
+    try {
+      var node = document.querySelector('.auth-menu__label');
+      var name = node ? String(node.textContent || '').trim() : '';
+      return name || '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function enforceAuthorFromSession() {
+    if (!authorInput) return;
+    var profile = lockAuthorFromAccount();
+    if (profile && profile.name) {
+      return;
+    }
+    var headerName = readNameFromHeader();
+    if (headerName) {
+      authorInput.value = headerName;
+      authorInput.readOnly = true;
+      authorInput.setAttribute('aria-readonly', 'true');
+      authorInput.title = 'Tác giả được lấy theo tài khoản đăng nhập';
+    }
+  }
+
+  enforceAuthorFromSession();
+  window.addEventListener('focus', enforceAuthorFromSession);
+  window.addEventListener('storage', function (event) {
+    if (event && event.key && event.key !== AUTH_STORAGE_KEY) {
+      return;
+    }
+    enforceAuthorFromSession();
+  });
+
+  var authorSyncAttempts = 0;
+  var authorSyncTimer = window.setInterval(function () {
+    authorSyncAttempts += 1;
+    enforceAuthorFromSession();
+    if (authorInput && authorInput.readOnly) {
+      window.clearInterval(authorSyncTimer);
+      return;
+    }
+    if (authorSyncAttempts >= 20) {
+      window.clearInterval(authorSyncTimer);
+    }
+  }, 300);
+
+  if (authorInput) {
+    authorInput.addEventListener('input', function () {
+      var profile = readAuthProfile();
+      var fixedName = profile && profile.name ? profile.name : readNameFromHeader();
+      if (fixedName && authorInput.value !== fixedName) {
+        authorInput.value = fixedName;
+      }
+    });
+  }
+
+  window.addEventListener('audiohub:auth-updated', enforceAuthorFromSession);
+
+  function normalizeHashtagToken(value) {
   function readNameFromHeader() {
     try {
       var node = document.querySelector('.auth-menu__label');
