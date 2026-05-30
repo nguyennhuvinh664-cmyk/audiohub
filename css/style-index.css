@@ -274,7 +274,7 @@ body.no-scroll { overflow:hidden; }
 .sec__more:hover { gap:9px; }
 
 /* ── CARD GRID ──────────────────────────────────────────── */
-.cgrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(12px,1.8vw,18px); }
+.cgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(12px,1.8vw,18px); }
 
 .sc { cursor:pointer; transition:var(--ease); }
 .sc:hover { transform:translateY(-4px); }
@@ -505,6 +505,24 @@ body.no-scroll { overflow:hidden; }
   .hero__sub  { margin:0 auto 22px; }
   .filters    { justify-content:center; }
   .hstats     { justify-content:center; }
+  .genre-dd__trigger,
+  .filters select {
+    height:46px !important;
+    min-height:46px !important;
+    line-height:46px;
+    box-sizing:border-box;
+  }
+  .filters select {
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  .filters .btn--primary {
+    height:46px;
+  }
+  .filters select[data-home-status-select] {
+    height:46px !important;
+    min-height:46px !important;
+  }
 
   /* Sections */
   .cgrid { grid-template-columns:repeat(3,1fr); gap:10px; }
@@ -565,8 +583,46 @@ body.no-scroll { overflow:hidden; }
   .gi i  { font-size:17px; }
 
   /* Hero filter stack */
-  .filters { flex-direction:column; }
-  .filters select,.btn--primary { width:100%; }
+  .search-wrap { margin-bottom:24px; }
+  .sbox { padding:5px; border-radius:14px; margin-bottom:10px; }
+  .sbox input { font-size:14px; }
+  .sbox button { height:42px; padding:0 14px; border-radius:10px; font-size:14px; }
+
+  .filters {
+    flex-direction:column;
+    gap:8px;
+    background:rgba(15,15,30,.6);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:10px;
+  }
+  .genre-dd,
+  .filters select,
+  .filters .btn {
+    width:100%;
+    min-width:0;
+  }
+  .genre-dd__trigger,
+  .filters select {
+    height:46px;
+    border-radius:10px;
+    font-size:14px;
+    color:var(--t1);
+    padding:0 16px;
+  }
+  .genre-dd__trigger {
+    background:rgba(11,11,20,.95);
+  }
+  .filters select {
+    background:rgba(11,11,20,.95);
+  }
+  .filters .btn--primary {
+    height:42px;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:800;
+    margin-top:2px;
+  }
 
   /* Leaderboard */
   .lb-box { padding:18px 15px; }

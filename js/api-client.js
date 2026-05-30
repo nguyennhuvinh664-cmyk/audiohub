@@ -30,23 +30,54 @@
   }
 
   function isEnabled() {
-    return !!getToken();
+    var token = getToken();
+    if (!token) {
+      return false;
+    }
+    // Demo mode token should not hit real backend endpoints.
+    if (token === 'demo-local-token') {
+      return false;
+    }
+    return true;
+  }
+
+  function isFormData(value) {
+    return typeof FormData !== 'undefined' && value instanceof FormData;
+  }
+
+  function isPlainObject(value) {
+    return value && Object.prototype.toString.call(value) === '[object Object]';
   }
 
   function request(path, options) {
     var opts = options || {};
-    var headers = opts.headers || {};
+    var headers = Object.assign({}, opts.headers || {});
     var token = getToken();
     var url = getBaseUrl() + path;
+    var body = opts.body;
+    var hasBody = typeof body !== 'undefined' && body !== null;
+    var isJsonLikeBody = hasBody && (isPlainObject(body) || Array.isArray(body));
 
     if (token) {
       headers.Authorization = 'Bearer ' + token;
     }
 
+    if (isJsonLikeBody) {
+      body = JSON.stringify(body);
+      if (!headers['Content-Type'] && !headers['content-type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+    }
+
+    if (isFormData(body)) {
+      delete headers['Content-Type'];
+      delete headers['content-type'];
+    }
+
     return fetch(url, {
       method: opts.method || 'GET',
       headers: headers,
-      body: opts.body
+      body: body
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (json) {
         if (!res.ok || json.success === false) {
