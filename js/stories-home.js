@@ -322,9 +322,28 @@
       + '</div></a>';
   }
 
+  function fillStoriesForGrid(stories, targetCount) {
+    var list = Array.isArray(stories) ? stories.slice(0, targetCount) : [];
+    if (!list.length) {
+      return list;
+    }
+
+    var cursor = 0;
+    while (list.length < targetCount) {
+      var source = list[cursor % list.length] || {};
+      var clone = Object.assign({}, source, {
+        id: String(source.id || 'story') + '-clone-' + (list.length + 1)
+      });
+      list.push(clone);
+      cursor += 1;
+    }
+
+    return list;
+  }
+
   function renderCardList(root, stories) {
     if (!root) return;
-    var list = stories || [];
+    var list = fillStoriesForGrid(stories, 12);
     root.innerHTML = list.map(buildHomeCardHtml).join('');
     Array.prototype.slice.call(root.querySelectorAll('a.sc')).forEach(function (card, index) {
       setCard(card, list[index]);
