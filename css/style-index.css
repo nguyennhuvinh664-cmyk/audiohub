@@ -274,7 +274,7 @@ body.no-scroll { overflow:hidden; }
 .sec__more:hover { gap:9px; }
 
 /* ── CARD GRID ──────────────────────────────────────────── */
-.cgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(12px,1.8vw,18px); }
+.cgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:clamp(12px,1.8vw,18px); }
 
 .sc { cursor:pointer; transition:var(--ease); }
 .sc:hover { transform:translateY(-4px); }
