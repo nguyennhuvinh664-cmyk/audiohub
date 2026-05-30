@@ -376,9 +376,36 @@
     });
   }
 
+  function buildFallbackStories(count) {
+    var total = Math.max(1, Number(count || 12));
+    var genres = ['Tiên Hiệp', 'Kiếm Hiệp', 'Ngôn Tình', 'Huyền Huyễn', 'Đô Thị', 'Xuyên Không'];
+    var list = [];
+    for (var i = 0; i < total; i += 1) {
+      list.push({
+        id: 'fallback-home-' + (i + 1),
+        title: 'Truyện gợi ý ' + (i + 1),
+        genre: genres[i % genres.length],
+        author: 'AudioHub',
+        visibility: 'Công khai',
+        coverKey: '',
+        listenCount2d: 0,
+        listenCount7d: 0,
+        listenCount: 0,
+        createdAt: new Date(2026, 0, 1).toISOString(),
+        updatedAt: new Date(2026, 0, 1).toISOString()
+      });
+    }
+    return list;
+  }
+
   function renderHomeStories() {
     var stories = window.AudioHubStories.read();
     if (!stories || !stories.length) {
+      var fallbackStories = buildFallbackStories(12);
+      renderCardList(document.querySelector('.cgrid'), fallbackStories);
+      renderTrendingList(document.querySelector('[data-home-trending-list]'), fallbackStories.slice(0, 12));
+      renderCardList(document.querySelector('[data-home-popular-grid]'), fallbackStories);
+      renderCardList(document.querySelector('[data-home-completed-grid]'), fallbackStories);
       return;
     }
 
