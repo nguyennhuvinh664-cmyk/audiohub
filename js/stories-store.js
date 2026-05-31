@@ -127,11 +127,20 @@
     return 'Tài khoản AudioHub';
   }
 
+  function sanitizeAuthor(value) {
+    var text = String(value || '').trim();
+    if (!text) return '';
+    var lower = text.toLowerCase();
+    if (lower === 'ẩn danh' || lower === 'an danh' || lower === 'anonymous') return '';
+    return text;
+  }
+
   function normalizeStory(story) {
+    var cleanedAuthor = sanitizeAuthor(story && story.author);
     return {
       id: story && story.id ? String(story.id) : makeId(),
       title: normalize(story && story.title, 'Truyện mới'),
-      author: normalize(story && story.author, resolveAuthorFallback()),
+      author: normalize(cleanedAuthor, resolveAuthorFallback()),
       genre: normalize(story && story.genre, 'Truyện audio'),
       description: normalize(story && story.description, ''),
       readingText: normalize(story && story.readingText, ''),
@@ -237,7 +246,7 @@
   function mapStoryPayload(story) {
     return {
       title: normalize(story && story.title, 'Truyện mới'),
-      author: normalize(story && story.author, 'Ẩn danh'),
+      author: normalize(sanitizeAuthor(story && story.author), resolveAuthorFallback()),
       genre: normalize(story && story.genre, 'Truyện audio'),
       description: normalize(story && story.description, ''),
       readingText: normalize(story && story.readingText, ''),
