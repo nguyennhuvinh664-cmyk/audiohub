@@ -430,6 +430,28 @@
       });
   }
 
+  function migrateAnonymousAuthors() {
+    var fallbackAuthor = resolveAuthorFallback();
+    if (!fallbackAuthor) return;
+
+    var stories = readLocalStories();
+    var changed = false;
+    var nextStories = stories.map(function (story) {
+      var current = sanitizeAuthor(story && story.author);
+      if (current) return story;
+      changed = true;
+      var updated = Object.assign({}, story);
+      updated.author = fallbackAuthor;
+      updated.updatedAt = new Date().toISOString();
+      return normalizeStory(updated);
+    });
+
+    if (changed) {
+      writeLocalStories(nextStories);
+      notifyStoriesUpdated();
+    }
+  }
+
   function removeStory(id) {
     var removed = removeLocalStory(id);
     if (removed && canUseApi() && id && !String(id).startsWith('s_')) {
@@ -447,5 +469,8 @@
     trackListen: trackListen
   };
 
-  syncFromApi();
+  migrateAnonymousAuthors();
+  syncFromApi().then(function () {
+    migrateAnonymousAuthors();
+  });
 })();
