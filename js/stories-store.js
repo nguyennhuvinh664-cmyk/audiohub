@@ -114,11 +114,24 @@
     });
   }
 
+  function resolveAuthorFallback() {
+    try {
+      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var parsed = raw ? JSON.parse(raw) : null;
+      var name = parsed && parsed.isLoggedIn ? String(parsed.name || '').trim() : '';
+      if (name) return name;
+      var email = parsed && parsed.isLoggedIn ? String(parsed.email || '').trim() : '';
+      if (email && email.indexOf('@') > 0) return email.split('@')[0];
+    } catch (error) {
+    }
+    return 'Tài khoản AudioHub';
+  }
+
   function normalizeStory(story) {
     return {
       id: story && story.id ? String(story.id) : makeId(),
       title: normalize(story && story.title, 'Truyện mới'),
-      author: normalize(story && story.author, 'Ẩn danh'),
+      author: normalize(story && story.author, resolveAuthorFallback()),
       genre: normalize(story && story.genre, 'Truyện audio'),
       description: normalize(story && story.description, ''),
       readingText: normalize(story && story.readingText, ''),
