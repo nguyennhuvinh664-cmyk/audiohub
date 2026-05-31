@@ -415,6 +415,11 @@
     });
 
     if (!publicStories.length) {
+      var noPublicFallback = buildFallbackStories(12);
+      renderCardList(document.querySelector('.cgrid'), noPublicFallback);
+      renderTrendingList(document.querySelector('[data-home-trending-list]'), noPublicFallback.slice(0, 12));
+      renderCardList(document.querySelector('[data-home-popular-grid]'), noPublicFallback);
+      renderCardList(document.querySelector('[data-home-completed-grid]'), noPublicFallback);
       return;
     }
 
