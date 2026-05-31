@@ -379,6 +379,13 @@
     if (!merged.coverKey && localEntry.coverKey) merged.coverKey = String(localEntry.coverKey);
     if (!merged.audioKey && localEntry.audioKey) merged.audioKey = String(localEntry.audioKey);
     if (!merged.readingText && localEntry.readingText) merged.readingText = String(localEntry.readingText);
+
+    var mergedAuthor = sanitizeAuthor(merged.author);
+    var localAuthor = sanitizeAuthor(localEntry && localEntry.author);
+    if (!mergedAuthor && localAuthor) {
+      merged.author = localAuthor;
+    }
+
     return merged;
   }
 
