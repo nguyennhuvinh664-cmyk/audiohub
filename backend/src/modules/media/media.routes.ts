@@ -85,4 +85,32 @@ router.post('/stories/:id/audio', upload.single('audio'), async (req: AuthReques
   return ok(res, { audioKey: key }, 201);
 });
 
+router.get('/media/audio/:key', async (req: AuthRequest, res) => {
+  const key = String(req.params.key || '');
+  if (!key) {
+    return fail(res, 'Missing audio key', 400);
+  }
+
+  const asset = await prisma.mediaAsset.findFirst({
+    where: {
+      key,
+      ownerUserId: req.auth!.userId,
+      kind: MediaKind.AUDIO
+    }
+  });
+
+  if (!asset) {
+    return fail(res, 'Audio not found', 404);
+  }
+
+  try {
+    const buffer = await fs.readFile(asset.storagePath);
+    res.setHeader('Content-Type', asset.mimeType || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    return res.status(200).send(buffer);
+  } catch {
+    return fail(res, 'Audio file is missing on storage', 404);
+  }
+});
+
 export default router;
