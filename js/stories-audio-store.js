@@ -94,10 +94,26 @@
     });
   }
 
+  function getAudioFromApi(key) {
+    if (!key || !canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
+      return Promise.resolve(null);
+    }
+
+    return window.AudioHubApi.requestBlob('/media/audio/' + encodeURIComponent(String(key)), {
+      method: 'GET'
+    }).then(function (blob) {
+      return blob || null;
+    }).catch(function () {
+      return null;
+    });
+  }
+
   function getAudio(key) {
     if (!key) {
       return Promise.resolve(null);
     }
+
+    key = String(key);
 
     return openDb().then(function (db) {
       return new Promise(function (resolve, reject) {
@@ -107,11 +123,18 @@
 
         request.onsuccess = function () {
           var value = request.result;
+          var localBlob = value && value.blob ? value.blob : null;
           try {
             db.close();
           } catch (error) {
           }
-          resolve(value && value.blob ? value.blob : null);
+
+          if (localBlob) {
+            resolve(localBlob);
+            return;
+          }
+
+          getAudioFromApi(key).then(resolve);
         };
 
         request.onerror = function () {
@@ -122,6 +145,8 @@
           reject(request.error || new Error('Failed to load audio'));
         };
       });
+    }).catch(function () {
+      return getAudioFromApi(key);
     });
   }
 

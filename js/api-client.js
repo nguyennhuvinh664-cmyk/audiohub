@@ -57,6 +57,7 @@
     var body = opts.body;
     var hasBody = typeof body !== 'undefined' && body !== null;
     var isJsonLikeBody = hasBody && (isPlainObject(body) || Array.isArray(body));
+    var responseType = String(opts.responseType || 'json').toLowerCase();
 
     if (token) {
       headers.Authorization = 'Bearer ' + token;
@@ -79,6 +80,13 @@
       headers: headers,
       body: body
     }).then(function (res) {
+      if (responseType === 'blob') {
+        if (!res.ok) {
+          throw new Error('Request failed: ' + res.status);
+        }
+        return res.blob();
+      }
+
       return res.json().catch(function () { return {}; }).then(function (json) {
         if (!res.ok || json.success === false) {
           var message = (json && json.message) ? json.message : ('Request failed: ' + res.status);
@@ -94,12 +102,19 @@
     });
   }
 
+  function requestBlob(path, options) {
+    var opts = Object.assign({}, options || {});
+    opts.responseType = 'blob';
+    return request(path, opts);
+  }
+
   window.AudioHubApi = {
     getBaseUrl: getBaseUrl,
     setBaseUrl: setBaseUrl,
     getToken: getToken,
     setToken: setToken,
     isEnabled: isEnabled,
-    request: request
+    request: request,
+    requestBlob: requestBlob
   };
 })();
