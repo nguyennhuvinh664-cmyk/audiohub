@@ -724,6 +724,27 @@
       return;
     }
 
+    var resolvedAuthor = getEffectiveAuthorName();
+    if (!resolvedAuthor || resolvedAuthor === 'Tài khoản AudioHub') {
+      showBanner('Chưa lấy được tên tác giả từ tài khoản. Vui lòng đăng nhập lại.', false);
+      return;
+    }
+
+    if (published) {
+      state.visibility = 'Công khai';
+      if (visibilitySelect) {
+        visibilitySelect.value = 'Công khai';
+      }
+      syncVisibilityButtons();
+    }
+
+    if (authorInput) {
+      authorInput.value = resolvedAuthor;
+      authorInput.readOnly = true;
+    }
+
+    render();
+
     if (!window.AudioHubStories) {
       showBanner('Chưa thể lưu vì thiếu stories-store.js.', false);
       return;
