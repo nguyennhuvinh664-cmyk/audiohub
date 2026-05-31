@@ -7,7 +7,7 @@
     if (configured) {
       return configured;
     }
-    return 'http://localhost:4000/api/v1';
+    return 'https://audiohub-276v.onrender.com/api/v1';
   }
 
   function setBaseUrl(baseUrl) {
