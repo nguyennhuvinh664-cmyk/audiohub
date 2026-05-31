@@ -341,6 +341,21 @@
     return list;
   }
 
+  function ensureGridHasCards(root, targetCount) {
+    if (!root) return;
+    var cards = Array.prototype.slice.call(root.querySelectorAll('a.sc'));
+    if (!cards.length) return;
+    while (cards.length < targetCount) {
+      var source = cards[cards.length % cards.length];
+      var clone = source.cloneNode(true);
+      var cloneId = String(clone.getAttribute('data-story-id') || 'story') + '-clone-' + (cards.length + 1);
+      clone.setAttribute('data-story-id', cloneId);
+      clone.setAttribute('href', 'story-detail.html?id=' + encodeURIComponent(cloneId));
+      root.appendChild(clone);
+      cards.push(clone);
+    }
+  }
+
   function renderCardList(root, stories) {
     if (!root) return;
     var list = fillStoriesForGrid(stories, 12);
@@ -348,8 +363,54 @@
     Array.prototype.slice.call(root.querySelectorAll('a.sc')).forEach(function (card, index) {
       setCard(card, list[index]);
     });
+    ensureGridHasCards(root, 12);
   }
 
+  function forceHomeSectionGrids() {
+    ensureGridHasCards(document.querySelector('.cgrid'), 12);
+    ensureGridHasCards(document.querySelector('[data-home-popular-grid]'), 12);
+    ensureGridHasCards(document.querySelector('[data-home-completed-grid]'), 12);
+  }
+
+  window.setTimeout(forceHomeSectionGrids, 0);
+  window.setTimeout(forceHomeSectionGrids, 500);
+  window.setTimeout(forceHomeSectionGrids, 1500);
+  window.addEventListener('focus', forceHomeSectionGrids);
+  window.addEventListener('pageshow', forceHomeSectionGrids);
+
+  window.AudioHubHomeGridFix = {
+    force: forceHomeSectionGrids
+  };
+
+  forceHomeSectionGrids();
+
+  function renderTrendingList(root, stories) {
+    if (!root) return;
+    var list = stories || [];
+    if (!list.length) {
+      root.innerHTML = '';
+      return;
+    }
+
+    var maxScore = Number(list[0].listenCount2d || 0);
+    root.innerHTML = list.map(function (story, index) {
+      var rank = index + 1;
+      var score = Number(story.listenCount2d || 0);
+      var width = maxScore > 0 ? Math.max(10, Math.round(score * 100 / maxScore)) : 10;
+      var rankClass = rank === 1 ? ' gold' : (rank === 2 ? ' silver' : (rank === 3 ? ' bronze' : ''));
+      return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
+        + '<span class="trk' + rankClass + '">' + rank + '</span>'
+        + '<div class="tth">' + makeInitials(story.title) + '</div>'
+        + '<div class="tin"><p class="tnm">' + String(story.title || 'Truyện mới') + '</p><p class="tmt">' + String(story.genre || 'Khác') + ' • ' + score + ' lượt nghe (2 ngày)</p></div>'
+        + '<div class="tbar"><div class="tfill" style="width:' + width + '%"></div></div></a>';
+    }).join('');
+
+    Array.prototype.slice.call(root.querySelectorAll('a.ti')).forEach(function (item, idx) {
+      setTrendingItem(item, list[idx], idx + 1, maxScore);
+    });
+  }
+
+  function buildFallbackStories(count) {
   function renderTrendingList(root, stories) {
     if (!root) return;
     var list = stories || [];
