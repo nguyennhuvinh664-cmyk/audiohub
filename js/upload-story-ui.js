@@ -112,7 +112,17 @@
   function getEffectiveAuthorName() {
     var authorName = getAuthorFromSession();
     if (authorName) return authorName;
-    return authorInput ? String(authorInput.value || '').trim() : '';
+
+    var profile = readAuthProfile();
+    var email = profile && profile.email ? String(profile.email).trim() : '';
+    if (email && email.indexOf('@') > 0) {
+      return email.split('@')[0];
+    }
+
+    var rawValue = authorInput ? String(authorInput.value || '').trim() : '';
+    if (rawValue) return rawValue;
+
+    return 'Tài khoản AudioHub';
   }
 
   window.AudioHubUploadAuthor = {
@@ -746,6 +756,7 @@
         title: titleInput ? titleInput.value.trim() : '',
         description: descriptionInput ? descriptionInput.value.trim() : '',
         author: getEffectiveAuthorName(),
+        channelName: getEffectiveAuthorName(),
         genre: genreSelect ? genreSelect.value : '',
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
         visibility: state.visibility,
