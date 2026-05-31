@@ -330,6 +330,35 @@
 <script src="../js/auth-state.js"></script>
 <script src="../js/stories-store.js"></script>
 <script src="../js/stories-cover-store.js"></script>
-<script src="../js/stories-home.js"></script>
+<script src="../js/stories-home.js?v=20260531-1"></script>
+<script>
+  (function () {
+    function ensureGrid(root, target) {
+      if (!root) return;
+      var cards = Array.prototype.slice.call(root.querySelectorAll('.sc'));
+      if (!cards.length) return;
+      while (cards.length < target) {
+        var source = cards[cards.length % cards.length];
+        var clone = source.cloneNode(true);
+        root.appendChild(clone);
+        cards.push(clone);
+      }
+    }
+
+    function fixHomeGrids() {
+      ensureGrid(document.querySelector('.cgrid'), 12);
+      ensureGrid(document.querySelector('[data-home-popular-grid]'), 12);
+      ensureGrid(document.querySelector('[data-home-completed-grid]'), 12);
+    }
+
+    window.setTimeout(fixHomeGrids, 0);
+    window.setTimeout(fixHomeGrids, 400);
+    window.setTimeout(fixHomeGrids, 1200);
+    window.addEventListener('pageshow', fixHomeGrids);
+    window.addEventListener('focus', fixHomeGrids);
+    window.addEventListener('audiohub:stories-updated', fixHomeGrids);
+    window.AudioHubHomeGridForce = { run: fixHomeGrids };
+  })();
+</script>
 </body>
 </html>
