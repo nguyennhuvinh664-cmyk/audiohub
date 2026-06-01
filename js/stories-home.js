@@ -19,8 +19,6 @@
     return initials || 'AH';
   }
 
-  var coverUrlByNode = new WeakMap();
-
   function setThumbImage(thumb, story) {
     if (!thumb || !story || !story.coverKey) {
       return;
@@ -36,12 +34,7 @@
           return;
         }
         try {
-          var prev = coverUrlByNode.get(thumb);
-          if (prev) {
-            URL.revokeObjectURL(prev);
-          }
           var url = URL.createObjectURL(blob);
-          coverUrlByNode.set(thumb, url);
           thumb.style.backgroundImage = 'url("' + url + '")';
           thumb.style.backgroundSize = 'cover';
           thumb.style.backgroundPosition = 'center';
@@ -73,11 +66,7 @@
 
     var authorNode = card.querySelector('.sc__author');
     if (authorNode) {
-      authorNode.textContent = '';
-      var icon = document.createElement('i');
-      icon.className = 'fa-regular fa-user';
-      authorNode.appendChild(icon);
-      authorNode.appendChild(document.createTextNode(' ' + (story.author || 'Ẩn danh')));
+      authorNode.innerHTML = '<i class="fa-regular fa-user"></i> ' + (story.author || 'Ẩn danh');
     }
 
     var thumb = card.querySelector('.sc__th');
@@ -172,28 +161,10 @@
     return status === 'hoàn thành' || status === 'hoan thanh' || status === 'completed' || status === 'full';
   }
 
-  var playlistsCache = { raw: null, parsed: [] };
-
-  function readLocalPlaylistsCached() {
-    try {
-      var raw = window.localStorage.getItem('audiohub-playlists-v1') || '';
-      if (playlistsCache.raw === raw) {
-        return playlistsCache.parsed;
-      }
-      var parsed = raw ? JSON.parse(raw) : [];
-      playlistsCache.raw = raw;
-      playlistsCache.parsed = Array.isArray(parsed) ? parsed : [];
-      return playlistsCache.parsed;
-    } catch (error) {
-      playlistsCache.raw = null;
-      playlistsCache.parsed = [];
-      return [];
-    }
-  }
-
   function pickCompletedStories(stories) {
     try {
-      var playlists = readLocalPlaylistsCached();
+      var raw = window.localStorage.getItem('audiohub-playlists-v1');
+      var playlists = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(playlists)) return [];
       var storyMap = {};
       (stories || []).forEach(function (story) {
@@ -267,15 +238,12 @@
     }
 
     return fetchPublicStories().then(function (publicStories) {
-      if (publicStories.length) {
-        return publicStories;
-      }
-      return localStories;
+      return publicStories.length ? publicStories : localStories;
     });
   }
 
-  function renderFallbackSections(items) {
-    var fallbackStories = Array.isArray(items) && items.length ? items : buildFallbackStories(12);
+  function renderFallbackSections() {
+    var fallbackStories = buildFallbackStories(12);
     renderCardList(document.querySelector('.cgrid'), fallbackStories);
     renderTrendingList(document.querySelector('[data-home-trending-list]'), fallbackStories.slice(0, 12));
     renderCardList(document.querySelector('[data-home-popular-grid]'), fallbackStories);
@@ -345,37 +313,53 @@
     });
   }
 
-  function renderHomeStoriesLegacy() {
-
   function normalizePlaylistStatus(value) {
     return String(value || '').trim() === 'Đã hoàn thành' ? 'Đã hoàn thành' : 'Đang ra';
   }
 
   function deriveCompletedStoriesFromPlaylists(stories, playlists) {
+    var storyMap = {};
+    (stories || []).forEach(function (story) {
+      if (story && story.id) storyMap[String(story.id)] = story;
+    });
+
     var firstChapterStories = [];
     (Array.isArray(playlists) ? playlists : []).forEach(function (playlist) {
       if (normalizePlaylistStatus(playlist && playlist.status) !== 'Đã hoàn thành') return;
       var items = Array.isArray(playlist && playlist.items) ? playlist.items : [];
       if (!items.length) return;
-      var firstItem = items[0] || {};
-      var storyId = firstItem.storyId ? String(firstItem.storyId).trim() : '';
+      var firstItem = items[0];
+      var storyId = firstItem && firstItem.storyId ? String(firstItem.storyId).trim() : '';
+      var matchedStory = storyId ? storyMap[storyId] : null;
+      if (!matchedStory) {
+        var firstTitle = String(firstItem && firstItem.storyTitle || '').trim().toLowerCase();
+        if (firstTitle) {
+          matchedStory = (stories || []).find(function (story) {
+            return String(story && story.title || '').trim().toLowerCase() === firstTitle;
+          }) || null;
+        }
+      }
       var playlistName = String(playlist && playlist.name || '').trim();
-      var fallbackTitle = playlistName || String(firstItem.storyTitle || 'Playlist hoàn thành').trim();
-      var fallbackAuthor = String(firstItem.storyAuthor || 'AudioHub').trim();
-      var updatedAt = String(playlist && playlist.updatedAt || playlist && playlist.createdAt || new Date().toISOString());
-
-      firstChapterStories.push({
-        id: storyId || ('playlist-' + String(playlist && playlist.id || 'x')),
-        title: fallbackTitle,
-        author: fallbackAuthor,
-        genre: 'Playlist',
-        coverKey: '',
-        visibility: 'Công khai',
-        listenCount7d: 0,
-        listenCount: 0,
-        createdAt: updatedAt,
-        updatedAt: updatedAt
-      });
+      if (!matchedStory) {
+        var fallbackTitle = playlistName || String(firstItem && firstItem.storyTitle || 'Playlist hoàn thành').trim();
+        var fallbackAuthor = String(firstItem && firstItem.storyAuthor || 'AudioHub').trim();
+        firstChapterStories.push({
+          id: storyId || ('playlist-' + String(playlist && playlist.id || 'x')),
+          title: fallbackTitle,
+          author: fallbackAuthor,
+          genre: 'Playlist',
+          coverKey: '',
+          visibility: 'Công khai',
+          listenCount7d: 0,
+          listenCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        return;
+      }
+      var displayStory = Object.assign({}, matchedStory);
+      if (playlistName) displayStory.title = playlistName;
+      firstChapterStories.push(displayStory);
     });
 
     return firstChapterStories.sort(function (a, b) {
@@ -413,7 +397,7 @@
   }
 
   function buildHomeCardHtml(story) {
-    var href = 'story-detail?id=' + encodeURIComponent(story.id);
+    var href = 'story-detail.html?id=' + encodeURIComponent(story.id);
     var title = String(story.title || 'Truyện mới');
     var genre = String(story.genre || 'Khác');
     var author = String(story.author || 'Ẩn danh');
@@ -433,67 +417,14 @@
       + '</div></a>';
   }
 
-  function fillStoriesForGrid(stories, targetCount) {
-    var list = Array.isArray(stories) ? stories.slice(0, targetCount) : [];
-    if (!list.length) {
-      return list;
-    }
-
-    var cursor = 0;
-    while (list.length < targetCount) {
-      var source = list[cursor % list.length] || {};
-      var clone = Object.assign({}, source, {
-        id: String(source.id || 'story') + '-clone-' + (list.length + 1)
-      });
-      list.push(clone);
-      cursor += 1;
-    }
-
-    return list;
-  }
-
-  function ensureGridHasCards(root, targetCount) {
-    if (!root) return;
-    var cards = Array.prototype.slice.call(root.querySelectorAll('a.sc'));
-    if (!cards.length) return;
-    while (cards.length < targetCount) {
-      var source = cards[cards.length % cards.length];
-      var clone = source.cloneNode(true);
-      var cloneId = String(clone.getAttribute('data-story-id') || 'story') + '-clone-' + (cards.length + 1);
-      clone.setAttribute('data-story-id', cloneId);
-      clone.setAttribute('href', 'story-detail?id=' + encodeURIComponent(cloneId));
-      root.appendChild(clone);
-      cards.push(clone);
-    }
-  }
-
   function renderCardList(root, stories) {
     if (!root) return;
-    var list = fillStoriesForGrid(stories, 12);
+    var list = stories || [];
     root.innerHTML = list.map(buildHomeCardHtml).join('');
     Array.prototype.slice.call(root.querySelectorAll('a.sc')).forEach(function (card, index) {
       setCard(card, list[index]);
     });
-    ensureGridHasCards(root, 12);
   }
-
-  function forceHomeSectionGrids() {
-    ensureGridHasCards(document.querySelector('.cgrid'), 12);
-    ensureGridHasCards(document.querySelector('[data-home-popular-grid]'), 12);
-    ensureGridHasCards(document.querySelector('[data-home-completed-grid]'), 12);
-  }
-
-  window.setTimeout(forceHomeSectionGrids, 0);
-  window.setTimeout(forceHomeSectionGrids, 500);
-  window.setTimeout(forceHomeSectionGrids, 1500);
-  window.addEventListener('focus', forceHomeSectionGrids);
-  window.addEventListener('pageshow', forceHomeSectionGrids);
-
-  window.AudioHubHomeGridFix = {
-    force: forceHomeSectionGrids
-  };
-
-  forceHomeSectionGrids();
 
   function renderTrendingList(root, stories) {
     if (!root) return;
@@ -509,7 +440,7 @@
       var score = Number(story.listenCount2d || 0);
       var width = maxScore > 0 ? Math.max(10, Math.round(score * 100 / maxScore)) : 10;
       var rankClass = rank === 1 ? ' gold' : (rank === 2 ? ' silver' : (rank === 3 ? ' bronze' : ''));
-      return '<a href="story-detail?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
+      return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
         + '<span class="trk' + rankClass + '">' + rank + '</span>'
         + '<div class="tth">' + makeInitials(story.title) + '</div>'
         + '<div class="tin"><p class="tnm">' + String(story.title || 'Truyện mới') + '</p><p class="tmt">' + String(story.genre || 'Khác') + ' • ' + score + ' lượt nghe (2 ngày)</p></div>'
@@ -521,63 +452,9 @@
     });
   }
 
-  function buildFallbackStories(count) {
-  function renderTrendingList(root, stories) {
-    if (!root) return;
-    var list = stories || [];
-    if (!list.length) {
-      root.innerHTML = '';
-      return;
-    }
-
-    var maxScore = Number(list[0].listenCount2d || 0);
-    root.innerHTML = list.map(function (story, index) {
-      var rank = index + 1;
-      var score = Number(story.listenCount2d || 0);
-      var width = maxScore > 0 ? Math.max(10, Math.round(score * 100 / maxScore)) : 10;
-      var rankClass = rank === 1 ? ' gold' : (rank === 2 ? ' silver' : (rank === 3 ? ' bronze' : ''));
-      return '<a href="story-detail?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
-        + '<span class="trk' + rankClass + '">' + rank + '</span>'
-        + '<div class="tth">' + makeInitials(story.title) + '</div>'
-        + '<div class="tin"><p class="tnm">' + String(story.title || 'Truyện mới') + '</p><p class="tmt">' + String(story.genre || 'Khác') + ' • ' + score + ' lượt nghe (2 ngày)</p></div>'
-        + '<div class="tbar"><div class="tfill" style="width:' + width + '%"></div></div></a>';
-    }).join('');
-
-    Array.prototype.slice.call(root.querySelectorAll('a.ti')).forEach(function (item, idx) {
-      setTrendingItem(item, list[idx], idx + 1, maxScore);
-    });
-  }
-
-  function buildFallbackStories(count) {
-    var total = Math.max(1, Number(count || 12));
-    var genres = ['Tiên Hiệp', 'Kiếm Hiệp', 'Ngôn Tình', 'Huyền Huyễn', 'Đô Thị', 'Xuyên Không'];
-    var list = [];
-    for (var i = 0; i < total; i += 1) {
-      list.push({
-        id: 'fallback-home-' + (i + 1),
-        title: 'Truyện gợi ý ' + (i + 1),
-        genre: genres[i % genres.length],
-        author: 'AudioHub',
-        visibility: 'Công khai',
-        coverKey: '',
-        listenCount2d: 0,
-        listenCount7d: 0,
-        listenCount: 0,
-        createdAt: new Date(2026, 0, 1).toISOString(),
-        updatedAt: new Date(2026, 0, 1).toISOString()
-      });
-    }
-    return list;
-  }
-
-  function renderHomeStoriesLegacyOld() {
+  function renderHomeStories() {
     var stories = window.AudioHubStories.read();
     if (!stories || !stories.length) {
-      var fallbackStories = buildFallbackStories(12);
-      renderCardList(document.querySelector('.cgrid'), fallbackStories);
-      renderTrendingList(document.querySelector('[data-home-trending-list]'), fallbackStories.slice(0, 12));
-      renderCardList(document.querySelector('[data-home-popular-grid]'), fallbackStories);
-      renderCardList(document.querySelector('[data-home-completed-grid]'), fallbackStories);
       return;
     }
 
@@ -587,11 +464,6 @@
     });
 
     if (!publicStories.length) {
-      var noPublicFallback = buildFallbackStories(12);
-      renderCardList(document.querySelector('.cgrid'), noPublicFallback);
-      renderTrendingList(document.querySelector('[data-home-trending-list]'), noPublicFallback.slice(0, 12));
-      renderCardList(document.querySelector('[data-home-popular-grid]'), noPublicFallback);
-      renderCardList(document.querySelector('[data-home-completed-grid]'), noPublicFallback);
       return;
     }
 
@@ -620,17 +492,17 @@
       completedStories = pickPopularStories(publicStories);
     }
 
-    renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 12));
-    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 12));
-    renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
-    renderCardList(document.querySelector('[data-home-completed-grid]'), completedStories.slice(0, 12));
+    renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 6));
+    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 6));
+    renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 6));
+    renderCardList(document.querySelector('[data-home-completed-grid]'), completedStories.slice(0, 6));
 
     if (canUsePlaylistApi()) {
       window.AudioHubApi.request('/playlists', { method: 'GET' })
         .then(function (rows) {
           var derived = deriveCompletedStoriesFromPlaylists(publicStories, rows);
           if (derived.length) {
-            renderCardList(document.querySelector('[data-home-completed-grid]'), derived.slice(0, 12));
+            renderCardList(document.querySelector('[data-home-completed-grid]'), derived.slice(0, 6));
           }
         })
         .catch(function () {});
@@ -666,7 +538,7 @@
       + '<div class="auth-required-modal__icon"><i class="fa-solid fa-lock"></i></div>'
       + '<h3 id="auth-required-title-inline">Yêu cầu đăng nhập</h3>'
       + '<p>Bạn cần đăng nhập tài khoản để nghe chương này.</p>'
-      + '<a href="login" class="auth-required-modal__primary">Đăng nhập ngay</a>'
+      + '<a href="login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>'
       + '<button type="button" class="auth-required-modal__secondary" data-auth-required-close>Đóng lại</button>'
       + '</div>';
 
@@ -685,7 +557,7 @@
     if (!card) return;
 
     var href = String(card.getAttribute('href') || '');
-    if (href === 'story-detail.html' || href.indexOf('story-detail?id=') < 0) {
+    if (href === 'story-detail.html' || href.indexOf('story-detail.html?id=') < 0) {
       event.preventDefault();
       renderHomeStories();
     }
@@ -701,7 +573,7 @@
 
     if (storyId) {
       event.preventDefault();
-      window.location.href = 'story-detail?id=' + encodeURIComponent(storyId);
+      window.location.href = 'story-detail.html?id=' + encodeURIComponent(storyId);
       return;
     }
 
