@@ -21,7 +21,7 @@
     var title = escapeHtml(story.title);
     var author = escapeHtml(story.author);
     var genre = escapeHtml(story.genre);
-    var href = 'story-detail.html?id=' + encodeURIComponent(story.id);
+    var href = 'story-detail?id=' + encodeURIComponent(story.id);
 
     var note = story.visibility ? ('Visibility: ' + story.visibility) : 'Truyện demo từ AudioHub Studio.';
 
@@ -355,7 +355,7 @@
     if (!card) return;
 
     var href = String(card.getAttribute('href') || '');
-    if (href === 'story-detail.html' || href.indexOf('story-detail.html?id=') < 0) {
+    if (href === 'story-detail' || href.indexOf('story-detail?id=') < 0) {
       event.preventDefault();
       return;
     }
