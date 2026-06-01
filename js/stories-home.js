@@ -236,6 +236,117 @@
     return !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function' && window.AudioHubApi.isEnabled && window.AudioHubApi.isEnabled());
   }
 
+  function canReadPublicStoriesApi() {
+    return !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
+  }
+
+  function fetchPublicStories() {
+    if (!canReadPublicStoriesApi()) {
+      return Promise.resolve([]);
+    }
+
+    return window.AudioHubApi.request('/stories/public', { method: 'GET' })
+      .then(function (rows) {
+        return Array.isArray(rows) ? rows : [];
+      })
+      .catch(function () {
+        return [];
+      });
+  }
+
+  function isPublicVisibility(story) {
+    var visibility = String(story && story.visibility || '').trim().toLowerCase();
+    return !visibility || visibility === 'công khai' || visibility === 'public';
+  }
+
+  function loadStoriesForHome() {
+    var localStories = window.AudioHubStories.read() || [];
+    var localPublic = localStories.filter(function (story) { return isPublicVisibility(story); });
+    if (localPublic.length) {
+      return Promise.resolve(localStories);
+    }
+
+    return fetchPublicStories().then(function (publicStories) {
+      if (publicStories.length) {
+        return publicStories;
+      }
+      return localStories;
+    });
+  }
+
+  function renderFallbackSections(items) {
+    var fallbackStories = Array.isArray(items) && items.length ? items : buildFallbackStories(12);
+    renderCardList(document.querySelector('.cgrid'), fallbackStories);
+    renderTrendingList(document.querySelector('[data-home-trending-list]'), fallbackStories.slice(0, 12));
+    renderCardList(document.querySelector('[data-home-popular-grid]'), fallbackStories);
+    renderCardList(document.querySelector('[data-home-completed-grid]'), fallbackStories);
+  }
+
+  function renderHomeStoriesFrom(stories) {
+    if (!stories || !stories.length) {
+      renderFallbackSections();
+      return;
+    }
+
+    var publicStories = stories.filter(function (story) {
+      return isPublicVisibility(story);
+    });
+
+    if (!publicStories.length) {
+      renderFallbackSections();
+      return;
+    }
+
+    var selectedGenre = genreSelect ? String(genreSelect.value || '').trim() : '';
+    var newStoriesBase = publicStories.slice().sort(function (a, b) {
+      return parseTime(b.createdAt) - parseTime(a.createdAt);
+    });
+
+    var newStories = selectedGenre
+      ? newStoriesBase.filter(function (story) { return String(story && story.genre || '').trim() === selectedGenre; })
+      : newStoriesBase;
+
+    if (!newStories.length) {
+      newStories = newStoriesBase;
+    }
+
+    var completedStories = pickCompletedStories(publicStories);
+    if (!completedStories.length) {
+      completedStories = publicStories.filter(isCompletedStory).sort(function (a, b) {
+        var diff7d = Number(b.listenCount7d || 0) - Number(a.listenCount7d || 0);
+        if (diff7d !== 0) return diff7d;
+        return parseTime(b.updatedAt || b.createdAt) - parseTime(a.updatedAt || a.createdAt);
+      });
+    }
+    if (!completedStories.length) {
+      completedStories = pickPopularStories(publicStories);
+    }
+
+    renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 12));
+    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 12));
+    renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
+    renderCardList(document.querySelector('[data-home-completed-grid]'), completedStories.slice(0, 12));
+
+    if (canUsePlaylistApi()) {
+      window.AudioHubApi.request('/playlists', { method: 'GET' })
+        .then(function (rows) {
+          var derived = deriveCompletedStoriesFromPlaylists(publicStories, rows);
+          if (derived.length) {
+            renderCardList(document.querySelector('[data-home-completed-grid]'), derived.slice(0, 12));
+          }
+        })
+        .catch(function () {});
+    }
+  }
+
+  function renderHomeStories() {
+    loadStoriesForHome().then(function (stories) {
+      renderHomeStoriesFrom(stories);
+    });
+  }
+
+  function renderHomeStoriesLegacy() {
+
   function normalizePlaylistStatus(value) {
     return String(value || '').trim() === 'Đã hoàn thành' ? 'Đã hoàn thành' : 'Đang ra';
   }
@@ -459,7 +570,7 @@
     return list;
   }
 
-  function renderHomeStories() {
+  function renderHomeStoriesLegacyOld() {
     var stories = window.AudioHubStories.read();
     if (!stories || !stories.length) {
       var fallbackStories = buildFallbackStories(12);
