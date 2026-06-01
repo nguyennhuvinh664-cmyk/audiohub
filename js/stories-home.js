@@ -556,12 +556,6 @@
     var card = target.closest('a.sc, a.ti');
     if (!card) return;
 
-    var href = String(card.getAttribute('href') || '');
-    if (href === 'story-detail.html' || href.indexOf('story-detail.html?id=') < 0) {
-      event.preventDefault();
-      renderHomeStories();
-    }
-
     var visibility = String(card.getAttribute('data-story-visibility') || '').trim();
     if (visibility === 'Không công khai' && !isMember()) {
       event.preventDefault();
@@ -569,16 +563,15 @@
       return;
     }
 
-    var storyId = String(card.getAttribute('data-story-id') || '').trim();
-
-    if (storyId) {
-      event.preventDefault();
-      window.location.href = 'story-detail.html?id=' + encodeURIComponent(storyId);
-      return;
+    var href = String(card.getAttribute('href') || '').trim();
+    if (!href || href === 'story-detail.html' || href.indexOf('story-detail.html?id=') < 0) {
+      var storyId = String(card.getAttribute('data-story-id') || '').trim();
+      if (storyId) {
+        card.setAttribute('href', 'story-detail.html?id=' + encodeURIComponent(storyId));
+      } else {
+        event.preventDefault();
+      }
     }
-
-    event.preventDefault();
-    renderHomeStories();
   });
 
   bindHomeGenreDropdown();
