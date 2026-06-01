@@ -214,6 +214,24 @@
     return !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function' && window.AudioHubApi.isEnabled && window.AudioHubApi.isEnabled());
   }
 
+  function canReadPublicStoriesApi() {
+    return !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
+  }
+
+  function fetchPublicStories() {
+    if (!canReadPublicStoriesApi()) {
+      return Promise.resolve([]);
+    }
+
+    return window.AudioHubApi.request('/stories/public', { method: 'GET' })
+      .then(function (rows) {
+        return Array.isArray(rows) ? rows : [];
+      })
+      .catch(function () {
+        return [];
+      });
+  }
+
   function pickByPage(stories) {
     var page = String(window.location.pathname || '').toLowerCase();
     var publicStories = stories.filter(function (story) {
@@ -267,8 +285,8 @@
     }).filter(Boolean);
   }
 
-  function renderStories() {
-    var stories = window.AudioHubStories.read() || [];
+  function renderStories(sourceStories) {
+    var stories = Array.isArray(sourceStories) ? sourceStories : (window.AudioHubStories.read() || []);
     if (!stories.length) {
       stories = readSeedStoriesFromCards();
     }
@@ -359,10 +377,30 @@
     }
   });
 
-  renderStories();
+  function loadAndRenderStories() {
+    var localStories = window.AudioHubStories.read() || [];
+    var localPublic = localStories.filter(function (story) {
+      return isPublicVisibility(story);
+    });
+
+    if (localPublic.length) {
+      renderStories(localStories);
+      return;
+    }
+
+    fetchPublicStories().then(function (publicStories) {
+      if (publicStories.length) {
+        renderStories(publicStories);
+        return;
+      }
+      renderStories(localStories);
+    });
+  }
+
+  loadAndRenderStories();
 
   window.addEventListener('audiohub:stories-updated', function () {
-    renderStories();
+    loadAndRenderStories();
   });
 
   if (typeof window.AudioHubStories.sync === 'function') {

@@ -151,6 +151,19 @@ const patchSchema = z.object({
   coverKey: z.string().nullable().optional(),
   audioKey: z.string().nullable().optional()
 });
+
+router.get('/public', async (_req, res) => {
+  const stories = await prisma.story.findMany({
+    where: { visibility: StoryVisibility.PUBLIC, deletedAt: null },
+    orderBy: { updatedAt: 'desc' },
+    take: 100
+  });
+
+  const mapped = await Promise.all(stories.map(toStoryResponse));
+  mapped.sort(sortByRecent);
+  return ok(res, mapped);
+});
+
 router.use(requireAuth);
 
 router.post('/', async (req: AuthRequest, res) => {
