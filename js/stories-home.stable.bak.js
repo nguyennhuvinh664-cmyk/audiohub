@@ -386,17 +386,17 @@
       completedStories = pickPopularStories(publicStories);
     }
 
-    renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 6));
-    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 6));
-    renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 6));
-    renderCardList(document.querySelector('[data-home-completed-grid]'), completedStories.slice(0, 6));
+    renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 12));
+    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 12));
+    renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
+    renderCardList(document.querySelector('[data-home-completed-grid]'), completedStories.slice(0, 12));
 
     if (canUsePlaylistApi()) {
       window.AudioHubApi.request('/playlists', { method: 'GET' })
         .then(function (rows) {
           var derived = deriveCompletedStoriesFromPlaylists(publicStories, rows);
           if (derived.length) {
-            renderCardList(document.querySelector('[data-home-completed-grid]'), derived.slice(0, 6));
+            renderCardList(document.querySelector('[data-home-completed-grid]'), derived.slice(0, 12));
           }
         })
         .catch(function () {});
