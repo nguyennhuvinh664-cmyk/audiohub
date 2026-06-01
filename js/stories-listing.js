@@ -132,6 +132,23 @@
     return isNaN(time) ? 0 : time;
   }
 
+  function normalizeVisibility(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function isPublicVisibility(story) {
+    var raw = String(story && story.visibility || '').trim();
+    if (!raw) {
+      return true;
+    }
+    var normalized = normalizeVisibility(raw);
+    return normalized === 'công khai' || normalized === 'public';
+  }
+
+  function isUnlistedVisibility(story) {
+    return normalizeVisibility(story && story.visibility) === 'không công khai';
+  }
+
   var playlistsCache = { raw: null, parsed: [] };
 
   function readLocalPlaylistsCached() {
@@ -200,7 +217,7 @@
   function pickByPage(stories) {
     var page = String(window.location.pathname || '').toLowerCase();
     var publicStories = stories.filter(function (story) {
-      return String(story && story.visibility || '').trim() === 'Công khai';
+      return isPublicVisibility(story);
     });
 
     if (page.indexOf('trending.html') >= 0) {
@@ -257,7 +274,7 @@
     }
     var page = String(window.location.pathname || '').toLowerCase();
     var publicStories = stories.filter(function (story) {
-      return String(story && story.visibility || '').trim() === 'Công khai';
+      return isPublicVisibility(story);
     });
 
     if (page.indexOf('completed.html') >= 0) {
@@ -336,7 +353,7 @@
       return String(story && story.id || '').trim() === storyId;
     });
 
-    if (matched && String(matched.visibility || '').trim() === 'Không công khai' && !isMember()) {
+    if (matched && isUnlistedVisibility(matched) && !isMember()) {
       event.preventDefault();
       showLoginRequiredModal();
     }
