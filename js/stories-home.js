@@ -50,7 +50,7 @@
       return;
     }
 
-    card.href = 'story-detail?id=' + encodeURIComponent(story.id);
+    card.href = 'story-detail.html?id=' + encodeURIComponent(story.id);
     card.setAttribute('data-story-id', String(story.id || ''));
     card.setAttribute('data-story-visibility', String(story.visibility || ''));
 
@@ -369,7 +369,7 @@
 
   function setTrendingItem(item, story, rank, maxScore) {
     if (!item || !story) return;
-    item.href = 'story-detail?id=' + encodeURIComponent(story.id);
+    item.href = 'story-detail.html?id=' + encodeURIComponent(story.id);
     item.setAttribute('data-story-id', String(story.id || ''));
     item.setAttribute('data-story-visibility', String(story.visibility || ''));
 

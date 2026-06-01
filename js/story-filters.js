@@ -475,7 +475,7 @@
       if (genreValue) params.set('genre', genreValue);
       if (statusValue) params.set('status', statusValue);
 
-      const url = 'new-posts' + (params.toString() ? '?' + params.toString() : '');
+      const url = 'new-posts.html' + (params.toString() ? '?' + params.toString() : '');
       window.location.href = url;
     });
   }

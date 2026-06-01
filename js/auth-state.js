@@ -227,7 +227,7 @@
 
   function switchAccountRedirect() {
     clearAuth();
-    window.location.href = 'login';
+    window.location.href = 'login.html';
   }
 
   function loginDemo(overrides) {
@@ -247,16 +247,16 @@
 
   function buildGuestActions(container) {
     if (container.dataset.authVariant === 'mobile') {
-      container.innerHTML = '<a href="login" class="btn btn--outline btn--blk">Đăng Nhập</a><a href="register" class="btn btn--primary btn--blk"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>';
+      container.innerHTML = '<a href="login.html" class="btn btn--outline btn--blk">Đăng Nhập</a><a href="register" class="btn btn--primary btn--blk"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>';
       return;
     }
 
     if (container.dataset.authVariant === 'home') {
-      container.innerHTML = '<a href="login" class="btn btn--outline"><i class="fa-regular fa-user"></i> Đăng Nhập</a><a href="register" class="btn btn--primary"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>';
+      container.innerHTML = '<a href="login.html" class="btn btn--outline"><i class="fa-regular fa-user"></i> Đăng Nhập</a><a href="register" class="btn btn--primary"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>';
       return;
     }
 
-    container.innerHTML = '<a href="login" class="btn btn--outline">Đăng Nhập</a><a href="register" class="btn btn--primary">Đăng Ký</a>';
+    container.innerHTML = '<a href="login.html" class="btn btn--outline">Đăng Nhập</a><a href="register" class="btn btn--primary">Đăng Ký</a>';
   }
 
   function readAvatarDataUrl() {
