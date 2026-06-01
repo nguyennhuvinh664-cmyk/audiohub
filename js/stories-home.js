@@ -397,7 +397,8 @@
   }
 
   function buildHomeCardHtml(story) {
-    var href = 'story-detail.html?id=' + encodeURIComponent(story.id);
+    var storyId = String(story && story.id || '').trim();
+    var href = storyId ? ('story-detail.html?id=' + encodeURIComponent(storyId)) : '#';
     var title = String(story.title || 'Truyện mới');
     var genre = String(story.genre || 'Khác');
     var author = String(story.author || 'Ẩn danh');
@@ -419,7 +420,9 @@
 
   function renderCardList(root, stories) {
     if (!root) return;
-    var list = stories || [];
+    var list = (stories || []).filter(function (story) {
+      return !!String(story && story.id || '').trim();
+    });
     root.innerHTML = list.map(buildHomeCardHtml).join('');
     Array.prototype.slice.call(root.querySelectorAll('a.sc')).forEach(function (card, index) {
       setCard(card, list[index]);
@@ -428,7 +431,9 @@
 
   function renderTrendingList(root, stories) {
     if (!root) return;
-    var list = stories || [];
+    var list = (stories || []).filter(function (story) {
+      return !!String(story && story.id || '').trim();
+    });
     if (!list.length) {
       root.innerHTML = '';
       return;

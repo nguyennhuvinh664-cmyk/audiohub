@@ -1065,7 +1065,9 @@
       return;
     }
 
-    var cards = uniqueStories.map(function (story) {
+    var cards = uniqueStories.filter(function (story) {
+      return !!String(story && story.id || '').trim();
+    }).map(function (story) {
       var title = escapeHtml(story.title);
       var meta = [story.author, story.genre, story.visibility, story.audioStatus].filter(Boolean).map(escapeHtml).join(' · ');
       var updated = formatTime(story.updatedAt);
@@ -1076,7 +1078,7 @@
         '<label class="demo-story-check"><input type="checkbox" data-story-select value="' + escapeHtml(story.id) + '" /></label>' +
         '<div class="demo-story-item-wrap">' +
         '<div class="story-row-header">' +
-        '<a class="demo-story-item" href="story-detail.html?id=' + encodeURIComponent(story.id) + '">' +
+        '<a class="demo-story-item" href="' + (story && story.id ? ('story-detail.html?id=' + encodeURIComponent(story.id)) : '#') + '">' +
         '<span class="demo-story-thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '"></span>' +
         '<span class="demo-story-body">' +
         '<strong>' + title + '</strong>' +

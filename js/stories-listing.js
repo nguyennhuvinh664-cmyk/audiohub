@@ -355,15 +355,14 @@
     if (!card) return;
 
     var href = String(card.getAttribute('href') || '');
-    if (href === 'story-detail' || href.indexOf('story-detail.html?id=') < 0) {
-      event.preventDefault();
-      return;
-    }
-
     var storyId = String(card.getAttribute('data-story-id') || '').trim();
     if (!storyId) {
       event.preventDefault();
       return;
+    }
+
+    if (href === 'story-detail' || href.indexOf('story-detail.html?id=') < 0) {
+      card.setAttribute('href', 'story-detail.html?id=' + encodeURIComponent(storyId));
     }
 
     var stories = window.AudioHubStories.read() || [];
