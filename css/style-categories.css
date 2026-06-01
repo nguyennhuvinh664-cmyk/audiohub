@@ -618,6 +618,32 @@ button { font:inherit; }
   color:var(--t2);
   margin-bottom:12px;
 }
+
+.detail-copy,
+.detail-copy * {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.detail-copy {
+  overflow-x: hidden;
+}
+
+.chapter-copy,
+.chapter-copy * {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.detail-layout > *,
+.detail-content,
+.detail-sidebar,
+.story-overview,
+.chapter-reading {
+  min-width: 0;
+}
 .audio-top {
   display:flex;
   align-items:center;
