@@ -361,6 +361,10 @@
 
   renderStories();
 
+  window.addEventListener('audiohub:stories-updated', function () {
+    renderStories();
+  });
+
   if (typeof window.AudioHubStories.sync === 'function') {
     window.AudioHubStories.sync();
   }
