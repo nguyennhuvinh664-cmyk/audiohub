@@ -394,7 +394,7 @@
     params.set('playlistId', context.playlistId);
     params.set('chapter', context.chapterLabel);
     params.set('chapterIndex', String(context.chapterIndex));
-    window.location.href = '/html/story-detail.html?' + params.toString();
+    window.location.href = 'story-detail.html?' + params.toString();
   }
 
   function renderPlaylists() {
@@ -1078,7 +1078,7 @@
         '<label class="demo-story-check"><input type="checkbox" data-story-select value="' + escapeHtml(story.id) + '" /></label>' +
         '<div class="demo-story-item-wrap">' +
         '<div class="story-row-header">' +
-        '<a class="demo-story-item" href="' + (story && story.id ? ('/html/story-detail.html?id=' + encodeURIComponent(story.id)) : '#') + '">' +
+        '<a class="demo-story-item" href="' + (story && story.id ? ('story-detail.html?id=' + encodeURIComponent(story.id)) : '#') + '">' +
         '<span class="demo-story-thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '"></span>' +
         '<span class="demo-story-body">' +
         '<strong>' + title + '</strong>' +

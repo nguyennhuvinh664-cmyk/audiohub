@@ -804,7 +804,7 @@
     showBanner(statusLabel + ' Đã lưu vào danh sách demo.', published);
 
     if (published && story && story.id) {
-      window.location.href = '/html/story-detail.html?id=' + encodeURIComponent(story.id);
+      window.location.href = 'story-detail.html?id=' + encodeURIComponent(story.id);
     }
   }
 
