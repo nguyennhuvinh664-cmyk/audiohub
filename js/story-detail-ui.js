@@ -63,7 +63,7 @@
   function buildHashtagLink(tag) {
     var cleanTag = String(tag || '').trim().toLowerCase();
     if (!cleanTag) return '';
-    var href = '/html/new-posts.html?hashtag=' + encodeURIComponent(cleanTag);
+    var href = 'new-posts.html?hashtag=' + encodeURIComponent(cleanTag);
     return '<a class="story-hashtag" href="' + href + '">#' + escapeHtml(cleanTag) + '</a>';
   }
 
@@ -583,7 +583,7 @@
 
     if (story.genre) {
       var crumb = document.querySelector('.breadcrumb');
-      if (crumb) crumb.innerHTML = '<a href="/html/index.html">Home</a> <span>/</span> <a href="/html/categories.html">' + story.genre + '</a> <span>/</span> <a href="/html/new-posts.html">' + (story.title || 'Chi tiết truyện') + '</a>';
+      if (crumb) crumb.innerHTML = '<a href="index.html">Home</a> <span>/</span> <a href="categories.html">' + story.genre + '</a> <span>/</span> <a href="new-posts.html">' + (story.title || 'Chi tiết truyện') + '</a>';
     }
 
     var meta = storyNode.querySelector('.detail-meta');
