@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#09090f" />
+  <title>Đăng Truyện | AudioHub Studio</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/style-categories.css" />
+  <link rel="stylesheet" href="./css/header-enhancements.css" />
+  <link rel="stylesheet" href="./css/auth-state.css" />
+  <link rel="stylesheet" href="./css/upload-story.css" />
+</head>
+<body class="upload-page listing-page">
+  <header class="site-header">
+    <div class="container header__inner">
+      <a href="index.html" class="logo"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></a>
+      <nav class="site-nav" aria-label="Điều hướng chính">
+        <a href="index.html">Trang Chủ</a>
+        <a href="categories.html">Thể Loại</a>
+        <a href="new-posts.html">Mới Đăng</a>
+        <a href="hall-of-fame.html">Vinh Danh</a>
+      </nav>
+      <div class="header__actions" data-auth-container data-auth-variant="inner">
+        <a href="login.html" class="btn btn--outline">Đăng Nhập</a>
+        <a href="register.html" class="btn btn--primary">Đăng Ký</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="upload-main">
+    <section class="upload-hero">
+      <div class="container upload-hero__inner">
+        <div>
+          <span class="upload-kicker"><i class="fa-solid fa-circle-play"></i> AudioHub Studio</span>
+          <h1 class="upload-title">Đăng truyện mới</h1>
+          <p class="upload-subtitle">Tạo metadata, thêm ảnh bìa, chuẩn bị audio demo và chọn quyền hiển thị trong một màn hình creator gọn gàng.</p>
+        </div>
+        <div class="upload-hero__actions">
+          <button type="button" class="btn btn--outline" data-upload-preview>Xem trước</button>
+          <button type="button" class="btn btn--outline" data-upload-draft>Lưu nháp</button>
+          <button type="button" class="btn btn--primary" data-upload-publish>Đăng truyện</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+      <div class="upload-shell">
+        <section class="upload-editor">
+          <div class="upload-card upload-card--headline">
+            <div>
+              <span class="upload-card__eyebrow">Chi tiết</span>
+              <h2 class="upload-card__title">Thông tin cơ bản</h2>
+            </div>
+            <div class="upload-banner is-hidden" data-upload-banner></div>
+          </div>
+
+          <form class="upload-form" data-upload-form>
+            <article class="upload-card">
+              <div class="upload-card__heading">
+                <div>
+                  <h3 class="upload-card__title">Metadata truyện</h3>
+                </div>
+              </div>
+              <div class="upload-grid">
+                <label class="upload-field"><span>Tên truyện</span><input type="text" placeholder="Nhập tên truyện" data-upload-title /></label>
+                <label class="upload-field"><span>Tác giả</span><input type="text" placeholder="Tự động theo tài khoản đăng nhập" data-upload-author readonly aria-readonly="true" /></label>
+                <label class="upload-field"><span>Thể loại</span><select data-upload-genre><option value="">Chọn thể loại</option><option>Cổ Đại</option><option>Cổ Tích</option><option>Đam Mỹ</option><option>Dị Năng</option><option>Fanfic</option><option>Hệ Thống</option><option>Hiện Đại</option><option>Hoàng Đế</option><option>Huyền Huyễn</option><option>Không Gian</option><option>Kiếm Hiệp</option><option>Linh Dị</option><option>Mạt Thế</option><option>Ngôn Tình</option><option>Ngọt Sủng</option><option>Nữ Cường</option><option>Quân Nhân</option><option>Sát Thủ</option><option>Sủng Thú</option><option>Tận Thế</option><option>Thập Niên</option><option>Thú Nhân</option><option>Tinh Tế</option><option>Trọng Sinh</option><option>Tiên Hiệp</option><option>Xuyên Không</option><option>Đô Thị</option></select></label>
+                <label class="upload-field"><span>Tên chương</span><input type="text" placeholder="Ví dụ: Chương 1 - Khai màn" data-upload-chapter /></label>
+              </div>
+              <label class="upload-field"><span>Mô tả truyện</span><textarea placeholder="Mô tả ngắn nội dung truyện" data-upload-description></textarea><small>Tối đa 1.000 ký tự</small></label>
+            </article>
+
+            <article class="upload-card">
+              <div class="upload-card__heading">
+                <div>
+                  <h3 class="upload-card__title">Media</h3>
+                </div>
+              </div>
+              <div class="upload-media-grid">
+                <label class="upload-dropzone" data-upload-cover>
+                  <input class="upload-dropzone__input" type="file" accept="image/*" data-upload-cover-input />
+                  <div class="upload-dropzone__icon"><i class="fa-regular fa-image"></i></div>
+                  <strong data-upload-cover-label>Thêm ảnh bìa</strong>
+                  <small data-upload-cover-hint>PNG/JPG • Tối đa 5MB</small>
+                </label>
+                <label class="upload-dropzone upload-dropzone--audio" data-upload-audio>
+                  <input class="upload-dropzone__input" type="file" accept="audio/*" data-upload-audio-input />
+                  <div class="upload-dropzone__icon"><i class="fa-solid fa-wave-square"></i></div>
+                  <strong data-upload-audio-label>Thêm file audio demo</strong>
+                  <small data-upload-audio-hint>MP3/WAV • Tối đa 50MB</small>
+                </label>
+                <label class="upload-dropzone" data-upload-reading>
+                  <input class="upload-dropzone__input" type="file" accept=".txt,text/plain,.md,text/markdown" data-upload-reading-input />
+                  <div class="upload-dropzone__icon"><i class="fa-regular fa-file-lines"></i></div>
+                  <strong data-upload-reading-label>Thêm file truyện chữ</strong>
+                  <small data-upload-reading-hint>TXT/MD • Tối đa 2MB</small>
+                </label>
+              </div>
+              <p class="upload-media-note" data-upload-media-note>Chưa có file nào được tải lên.</p>
+              <div class="upload-audio-preview is-disabled" data-upload-audio-preview>
+                <div class="upload-audio-preview__head"><span><i class="fa-solid fa-headphones"></i> <span data-upload-audio-preview-name>Chưa chọn file audio</span></span><small data-upload-audio-length>00:00</small></div>
+                <audio class="upload-audio-preview__player" controls preload="metadata" data-upload-audio-player></audio>
+              </div>
+              <div class="upload-processing is-hidden" data-upload-processing><span>Đang xử lý...</span><div class="upload-processing__bar"><div class="upload-processing__fill" data-upload-processing-fill></div></div></div>
+            </article>
+
+            <article class="upload-card">
+              <h3 class="upload-card__title">Xem trước</h3>
+              <div class="upload-preview" data-upload-preview-card>
+                <div class="upload-preview__cover" data-upload-preview-cover><span class="upload-preview__badge">Preview</span></div>
+                <div class="upload-preview__body">
+                  <strong data-upload-preview-title>Tiêu đề truyện của bạn sẽ hiện ở đây</strong>
+                  <p data-upload-preview-meta>Tác giả · Thể loại · Riêng tư</p>
+                  <span class="upload-preview__status" data-upload-preview-visibility>Riêng tư</span>
+                </div>
+              </div>
+            </article>
+          </form>
+        </section>
+
+        <aside class="upload-sidebar">
+          <section class="upload-card upload-checklist">
+            <h3 class="upload-card__title">Checklist trước khi đăng</h3>
+            <ul class="upload-checklist__list">
+              <li data-check-item="title"><i class="fa-regular fa-circle"></i><span>Đã nhập tên truyện</span></li>
+              <li data-check-item="description"><i class="fa-regular fa-circle"></i><span>Mô tả từ 30 ký tự</span></li>
+              <li data-check-item="metadata"><i class="fa-regular fa-circle"></i><span>Đã nhập tác giả và thể loại</span></li>
+              <li data-check-item="media"><i class="fa-regular fa-circle"></i><span>Đã có ảnh bìa và audio</span></li>
+            </ul>
+          </section>
+
+          <section class="upload-card upload-sideinfo">
+            <h3 class="upload-card__title">Quyền hiển thị</h3>
+            <div class="upload-visibility-list">
+              <button type="button" class="upload-visibility" data-upload-visibility-option="Công khai"><strong>Công khai</strong><small>Hiển thị trên trang chủ và danh mục.</small></button>
+              <button type="button" class="upload-visibility is-active" data-upload-visibility-option="Riêng tư"><strong>Riêng tư</strong><small>Chỉ mình bạn nhìn thấy bản nháp này.</small></button>
+              <button type="button" class="upload-visibility" data-upload-visibility-option="Không công khai"><strong>Không công khai</strong><small>Đặc quyền hội viên: chỉ hội viên mới xem được.</small></button>
+            </div>
+            <p>AudioHub Studio sẽ lưu trạng thái để bạn chỉnh sửa tiếp ở lần sau.</p>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer__inner">
+      <div class="footer-col footer-col--brand"><h4>AudioHub.net</h4><p>Trải nghiệm nghe truyện đỉnh cao với kho tàng nội dung phong phú, cập nhật liên tục.</p><a href="about.html" class="footer-link">Về chúng tôi →</a></div>
+      <div class="footer-col"><h4>Khám Phá</h4><ul><li><a href="categories.html">Thể loại</a></li><li><a href="new-posts.html">Truyện mới</a></li><li><a href="hall-of-fame.html">Vinh danh hội viên</a></li><li><a href="popular.html">Truyện phổ biến</a></li></ul></div>
+      <div class="footer-col"><h4>Thông Tin</h4><ul><li><a href="terms.html">Điều khoản sử dụng</a></li><li><a href="privacy.html">Chính sách bảo mật</a></li><li><a href="contact.html">Liên hệ bản quyền</a></li><li><a href="contact.html">Liên hệ với chúng tôi</a></li></ul></div>
+      <div class="footer-col"><h4>Cộng Đồng</h4><div class="social-links"><a href="contact.html" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a><a href="contact.html" aria-label="Zalo">Zalo</a></div></div>
+    </div>
+    <div class="container footer__bottom"><p>© 2026 AudioHub.net. All rights reserved.</p><div class="dmca-badge">DMCA PROTECTED</div></div>
+  </footer>
+
+  <script src="./js/auth-state.js"></script>
+  <script src="./js/api-client.js"></script>
+  <script src="./js/stories-store.js"></script>
+  <script src="./js/stories-cover-store.js"></script>
+  <script src="./js/stories-audio-store.js"></script>
+  <script src="./js/upload-story-ui.js"></script>
+</body>
+</html>

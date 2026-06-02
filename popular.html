@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#09090f" />
+  <title>Truyện Phổ Biến | AudioHub</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/style-categories.css" />
+  <link rel="stylesheet" href="./css/header-enhancements.css" />
+  <link rel="stylesheet" href="./css/story-filters.css" />
+  <link rel="stylesheet" href="./css/auth-state.css" />
+  <link rel="stylesheet" href="./css/library-state.css" />
+</head>
+<body class="listing-page">
+  <header class="site-header">
+    <div class="container header__inner">
+      <a href="index.html" class="logo"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></a>
+      <nav class="site-nav" aria-label="Điều hướng chính">
+        <a href="index.html">Trang Chủ</a>
+        <a href="categories.html">Thể Loại</a>
+        <a href="new-posts.html">Mới Đăng</a>
+        <a href="hall-of-fame.html">Vinh Danh</a>
+      </nav>
+      <div class="header__actions" data-auth-container data-auth-variant="inner">
+        <a href="login.html" class="btn btn--outline">Đăng Nhập</a>
+        <a href="register.html" class="btn btn--primary">Đăng Ký</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="stories-hero"><div class="container"><h1 class="stories-hero__title">Truyện Phổ Biến</h1></div></section>
+    <section class="stories-section"><div class="container">
+      <div class="story-filter-panel">
+        <form class="story-filter-form" data-story-filter-form>
+          <div class="story-filter-field"><label for="filter-title">Tên truyện</label><input id="filter-title" class="story-filter-input" type="search" placeholder="Tìm theo tên truyện" data-filter-title /></div>
+          <div class="story-filter-field"><label for="filter-author">Tác giả</label><input id="filter-author" class="story-filter-input" type="search" placeholder="Tìm theo tác giả" data-filter-author /></div>
+          <div class="story-filter-field"><label for="filter-genre">Thể loại</label><select id="filter-genre" class="story-filter-select" data-filter-genre><option value="">Tất cả thể loại</option><option value="Cổ Đại">Cổ Đại</option><option value="Cổ Tích">Cổ Tích</option><option value="Đam Mỹ">Đam Mỹ</option><option value="Dị Năng">Dị Năng</option><option value="Fanfic">Fanfic</option><option value="Hệ Thống">Hệ Thống</option><option value="Hiện Đại">Hiện Đại</option><option value="Hoàng Đế">Hoàng Đế</option><option value="Huyền Huyễn">Huyền Huyễn</option><option value="Không Gian">Không Gian</option><option value="Kiếm Hiệp">Kiếm Hiệp</option><option value="Linh Dị">Linh Dị</option><option value="Mạt Thế">Mạt Thế</option><option value="Ngôn Tình">Ngôn Tình</option><option value="Ngọt Sủng">Ngọt Sủng</option><option value="Nữ Cường">Nữ Cường</option><option value="Quân Nhân">Quân Nhân</option><option value="Sát Thủ">Sát Thủ</option><option value="Sủng Thú">Sủng Thú</option><option value="Tận Thế">Tận Thế</option><option value="Thập Niên">Thập Niên</option><option value="Thú Nhân">Thú Nhân</option><option value="Tinh Tế">Tinh Tế</option><option value="Trọng Sinh">Trọng Sinh</option></select></div>
+          <div class="story-filter-actions"><button type="submit" class="btn btn--primary story-filter-btn">Áp Dụng</button><button type="button" class="btn btn--outline story-filter-reset" data-filter-reset>Xóa Lọc</button></div>
+        </form>
+        <div class="story-filter-summary" data-filter-summary>Hiển thị tất cả truyện trong danh sách.</div>
+        <div class="story-empty" data-filter-empty>Không tìm thấy truyện phù hợp với bộ lọc hiện tại.</div>
+      </div>
+
+      <div class="stories-grid" data-story-filter-root></div>
+      <nav class="pagination" aria-label="Phân trang truyện phổ biến"><a href="popular.html" class="pagination__item is-active">1</a><a href="popular.html" class="pagination__item">2</a><span class="pagination__dots">...</span><a href="popular.html" class="pagination__item">35</a><a href="popular.html" class="pagination__item pagination__next"><i class="fa-solid fa-chevron-right"></i></a></nav>
+    </div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer__inner"><div class="footer-col footer-col--brand"><h4>AudioHub.net</h4><p>Trải nghiệm nghe truyện đỉnh cao với kho tàng nội dung phong phú, cập nhật liên tục.</p><a href="about.html" class="footer-link">Về chúng tôi →</a></div><div class="footer-col"><h4>Khám Phá</h4><ul><li><a href="categories.html">Thể loại</a></li><li><a href="new-posts.html">Truyện mới</a></li><li><a href="trending.html">Trending</a></li><li><a href="completed.html">Hoàn thành</a></li></ul></div><div class="footer-col"><h4>Thông Tin</h4><ul><li><a href="terms.html">Điều khoản sử dụng</a></li><li><a href="privacy.html">Chính sách bảo mật</a></li><li><a href="contact.html">Liên hệ bản quyền</a></li></ul></div><div class="footer-col"><h4>Cộng Đồng</h4><div class="social-links"><a href="contact.html" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a><a href="contact.html" aria-label="Zalo">Zalo</a></div></div></div><div class="container footer__bottom"><p>© 2026 AudioHub.net. All rights reserved.</p><div class="dmca-badge">DMCA PROTECTED</div></div></footer>
+  <script src="./js/story-filters.js"></script>
+  <script src="./js/auth-state.js"></script>
+  <script src="./js/library-state.js"></script>
+  <script src="./js/api-client.js"></script>
+  <script src="./js/stories-store.js"></script>
+  <script src="./js/stories-cover-store.js"></script>
+  <script src="./js/stories-listing.js"></script>
+</body>
+</html>

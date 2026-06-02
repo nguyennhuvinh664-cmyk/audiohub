@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#09090f" />
+  <title>Tài Khoản | AudioHub</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/style-categories.css" />
+  <link rel="stylesheet" href="./css/account.css" />
+  <link rel="stylesheet" href="./css/auth-state.css" />
+  <link rel="stylesheet" href="./css/library-state.css" />
+</head>
+<body class="account-page">
+  <header class="site-header">
+    <div class="container header__inner">
+      <a href="index.html" class="logo"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></a>
+      <nav class="site-nav" aria-label="Điều hướng chính">
+        <a href="index.html">Trang Chủ</a>
+        <a href="categories.html">Thể Loại</a>
+        <a href="new-posts.html">Mới Đăng</a>
+        <a href="hall-of-fame.html">Vinh Danh</a>
+      </nav>
+      <div class="header__actions" data-auth-container data-auth-variant="inner">
+        <a href="login.html" class="btn btn--outline">Đăng Nhập</a>
+        <a href="register.html" class="btn btn--primary">Đăng Ký</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="account-main">
+    <div class="container">
+      <div class="account-shell">
+        <aside class="account-panel account-sidebar">
+          <div class="account-profile">
+            <div class="account-avatar-wrap">
+              <div class="account-avatar" data-account-avatar>AN</div>
+              <input class="account-avatar-input" type="file" accept="image/*" data-account-avatar-input />
+              <button type="button" class="account-avatar-edit" data-account-avatar-edit><i class="fa-solid fa-camera"></i> Đổi ảnh</button>
+            </div>
+            <h1 class="account-name" data-account-name>Anh Ngọc</h1>
+            <p class="account-email" data-account-email>anhngoc@audiohub.vn</p>
+            <div class="account-badge"><i class="fa-solid fa-crown"></i> Hội viên Kim Cương</div>
+          </div>
+
+          <ul class="account-meta">
+            <li><span>Ngày tham gia</span><strong>14/05/2026</strong></li>
+            <li><span>Trạng thái</span><strong>Đang hoạt động</strong></li>
+            <li><span>Thiết bị gần nhất</span><strong>Web / Desktop</strong></li>
+          </ul>
+
+          <div class="account-actions">
+            <a href="edit-profile.html" class="btn btn--primary">Chỉnh sửa hồ sơ</a>
+            <a href="change-password.html" class="btn btn--outline">Đổi mật khẩu</a>
+            <a href="contact.html" class="btn btn--outline">Hỗ trợ tài khoản</a>
+          </div>
+        </aside>
+
+        <section class="account-content">
+          <div class="account-panel account-hero">
+            <span class="account-kicker"><i class="fa-solid fa-wave-square"></i> Trung tâm tài khoản</span>
+            <h2 class="account-title">Theo dõi hành trình nghe truyện của bạn</h2>
+            <p class="account-subtitle">Trang tài khoản này tổng hợp nhanh các bộ đang nghe, truyện đã lưu, lịch sử gần đây và các thao tác cá nhân cơ bản để trải nghiệm AudioHub liền mạch hơn.</p>
+          </div>
+
+          <div class="account-grid">
+            <div class="account-panel account-stat"><strong data-library-stat="favorites">0</strong><span>Truyện đã lưu vào tủ cá nhân.</span></div>
+            <div class="account-panel account-stat"><strong data-library-stat="history">0</strong><span>Lượt nghe hoặc tiến độ đã lưu gần đây.</span></div>
+            <div class="account-panel account-stat"><strong data-library-stat="following">0</strong><span>Bộ truyện đang theo dõi cập nhật mới.</span></div>
+          </div>
+
+          <div class="account-panel account-card">
+            <h2>Nghe gần đây</h2>
+            <div data-library-history></div>
+          </div>
+
+          <div class="account-panel account-card">
+            <h2>Tủ truyện yêu thích</h2>
+            <div data-library-favorites></div>
+          </div>
+
+          <div class="account-panel account-card">
+            <h2>Đang theo dõi</h2>
+            <p>Những bộ truyện bạn muốn quay lại khi có chương mới sẽ xuất hiện tại đây.</p>
+            <div data-library-following></div>
+          </div>
+
+          <div class="account-panel account-card">
+            <h2>Nội dung của tôi</h2>
+            <p>Danh sách truyện bạn đã tạo ở chế độ demo (lưu trong trình duyệt). Sau này backend chỉ cần nối dữ liệu thật.</p>
+            <div class="library-empty is-hidden" data-stories-action-note></div>
+            <div class="my-stories-scroll" data-stories-mine></div>
+          </div>
+
+          <div class="account-panel account-card">
+            <h2>Thùng rác audio</h2>
+            <p>Audio demo đã xoá sẽ được giữ lại tối đa 7 ngày trước khi tự dọn.</p>
+            <div class="library-empty is-hidden" data-audio-trash-note></div>
+            <div data-audio-trash></div>
+          </div>
+
+          <div class="account-panel account-card">
+            <h2>Danh sách phát</h2>
+            <p>Tạo nhiều playlist cá nhân và mở nhanh đúng chương trên trang chi tiết truyện.</p>
+            <div class="library-empty is-hidden" data-playlist-note></div>
+            <div class="playlist-root" data-playlist-root>
+              <div class="playlist-create">
+                <input type="text" placeholder="Tên playlist mới" data-playlist-create-name />
+                <button type="button" class="btn btn--outline" data-playlist-create>Tạo playlist</button>
+              </div>
+              <div class="playlist-layout">
+                <div class="playlist-list" data-playlist-list></div>
+                <div class="playlist-detail" data-playlist-detail></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="account-panel account-card">
+            <h2>Thao tác nhanh</h2>
+            <p>Bạn có thể dùng các lối tắt dưới đây để quản lý tài khoản, xem hỗ trợ hoặc quay lại các khu vực đang dùng nhiều nhất.</p>
+            <div class="account-links">
+              <a href="upload-story.html" class="account-link"><i class="fa-solid fa-upload"></i> Đăng truyện mới</a>
+              <a href="new-posts.html" class="account-link"><i class="fa-solid fa-bolt"></i> Truyện mới đăng</a>
+              <a href="completed.html" class="account-link"><i class="fa-solid fa-circle-check"></i> Truyện hoàn thành</a>
+              <a href="hall-of-fame.html" class="account-link"><i class="fa-solid fa-trophy"></i> Vinh danh hội viên</a>
+              <a href="change-password.html" class="account-link"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>
+              <a href="contact.html" class="account-link"><i class="fa-solid fa-life-ring"></i> Trung tâm hỗ trợ</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer__inner">
+      <div class="footer-col footer-col--brand"><h4>AudioHub.net</h4><p>Trải nghiệm nghe truyện đỉnh cao với kho tàng nội dung phong phú, cập nhật liên tục.</p><a href="about.html" class="footer-link">Về chúng tôi →</a></div>
+      <div class="footer-col"><h4>Khám Phá</h4><ul><li><a href="categories.html">Thể loại</a></li><li><a href="new-posts.html">Truyện mới</a></li><li><a href="hall-of-fame.html">Vinh danh hội viên</a></li><li><a href="blog.html">Blog</a></li></ul></div>
+      <div class="footer-col"><h4>Thông Tin</h4><ul><li><a href="terms.html">Điều khoản sử dụng</a></li><li><a href="privacy.html">Chính sách bảo mật</a></li><li><a href="contact.html">Liên hệ bản quyền</a></li><li><a href="contact.html">Liên hệ với chúng tôi</a></li></ul></div>
+      <div class="footer-col"><h4>Cộng Đồng</h4><div class="social-links"><a href="contact.html" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a><a href="contact.html" aria-label="Zalo">Zalo</a></div></div>
+    </div>
+    <div class="container footer__bottom"><p>© 2026 AudioHub.net. All rights reserved.</p><div class="dmca-badge">DMCA PROTECTED</div></div>
+  </footer>
+  <script src="./js/api-client.js"></script>
+  <script src="./js/auth-state.js"></script>
+  <script src="./js/stories-store.js"></script>
+  <script src="./js/stories-cover-store.js"></script>
+  <script src="./js/stories-audio-store.js"></script>
+  <script src="./js/library-state.js"></script>
+  <script src="./js/stories-account.js"></script>
+</body>
+</html>

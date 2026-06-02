@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#09090f" />
+  <title>Đăng Nhập | AudioHub</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/style-categories.css" />
+  <link rel="stylesheet" href="./css/header-enhancements.css" />
+  <link rel="stylesheet" href="./css/auth-state.css" />
+</head>
+<body class="auth-page">
+  <header class="site-header">
+    <div class="container header__inner">
+      <a href="index.html" class="logo"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></a>
+      <nav class="site-nav" aria-label="Điều hướng chính">
+        <a href="index.html">Trang Chủ</a>
+        <a href="categories.html">Thể Loại</a>
+        <a href="new-posts.html">Mới Đăng</a>
+        <a href="hall-of-fame.html">Vinh Danh</a>
+      </nav>
+      <div class="header__actions" data-auth-container data-auth-variant="inner">
+        <a href="login.html" class="btn btn--outline">Đăng Nhập</a>
+        <a href="register.html" class="btn btn--primary">Đăng Ký</a>
+      </div>
+    </div>
+  </header>
+  <main class="auth-main">
+    <div class="container">
+      <div class="auth-shell">
+        <section class="auth-card">
+          <span class="auth-kicker"><i class="fa-solid fa-user-lock"></i> Chào mừng trở lại</span>
+          <h1 class="auth-title">Đăng nhập để tiếp tục nghe truyện không gián đoạn</h1>
+          <p class="auth-subtitle">Theo dõi lịch sử nghe, lưu truyện yêu thích và tham gia bình luận cùng cộng đồng AudioHub chỉ với một tài khoản.</p>
+
+          <form class="auth-form">
+            <div class="field">
+              <label for="login-email">Email hoặc tên đăng nhập</label>
+              <input id="login-email" type="text" placeholder="Nhập email hoặc tên đăng nhập" />
+            </div>
+            <div class="field">
+              <label for="login-password">Mật khẩu</label>
+              <input id="login-password" type="password" placeholder="Nhập mật khẩu của bạn" />
+            </div>
+            <div class="check-row">
+              <label><input type="checkbox" /> Ghi nhớ đăng nhập</label>
+              <a href="contact.html" class="auth-link">Quên mật khẩu?</a>
+            </div>
+            <a href="account.html" class="btn btn--primary auth-submit" data-auth-login>Đăng Nhập</a>
+            <div class="auth-divider">Hoặc tiếp tục với</div>
+            <div class="auth-socials">
+              <a href="contact.html" class="auth-social"><i class="fa-brands fa-google"></i> Google</a>
+              <a href="contact.html" class="auth-social"><i class="fa-brands fa-facebook-f"></i> Facebook</a>
+            </div>
+            <p class="auth-switch">Chưa có tài khoản? <a href="register.html" class="auth-link">Tạo tài khoản ngay</a></p>
+          </form>
+        </section>
+
+        <aside class="auth-aside">
+          <div>
+            <span class="auth-kicker"><i class="fa-solid fa-crown"></i> Quyền lợi thành viên</span>
+            <h2>Trở thành một phần của AudioHub</h2>
+            <p>Một tài khoản giúp bạn đồng bộ trải nghiệm trên mọi trang truyện, từ danh sách mới đăng đến trang chi tiết chương.</p>
+          </div>
+          <ul class="auth-benefits">
+            <li><i class="fa-solid fa-check"></i><span>Lưu danh sách truyện yêu thích và lịch sử nghe gần đây.</span></li>
+            <li><i class="fa-solid fa-check"></i><span>Đánh dấu chương đang nghe để quay lại nhanh hơn.</span></li>
+            <li><i class="fa-solid fa-check"></i><span>Tham gia bình luận, đánh giá và chia sẻ cảm nhận với cộng đồng.</span></li>
+          </ul>
+          <div class="auth-statbox">
+            <div class="auth-stat"><strong>50K+</strong><span>Truyện audio</span></div>
+            <div class="auth-stat"><strong>2M+</strong><span>Người nghe</span></div>
+            <div class="auth-stat"><strong>24/7</strong><span>Cập nhật</span></div>
+          </div>
+          <p class="auth-note">Bạn mới tới AudioHub? <a href="register.html" class="auth-link">Đăng ký tài khoản</a> hoặc xem thử <a href="account.html" class="auth-link">trang tài khoản</a> để hình dung trải nghiệm.</p>
+          <p class="auth-note">Bạn muốn đăng truyện? Hãy <a href="register.html" class="auth-link">tạo tài khoản</a> rồi vào menu ảnh đại diện để chọn <a href="upload-story.html" class="auth-link">Đăng truyện</a>.</p>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer__inner">
+      <div class="footer-col footer-col--brand"><h4>AudioHub.net</h4><p>Trải nghiệm nghe truyện đỉnh cao với kho tàng nội dung phong phú, cập nhật liên tục.</p><a href="about.html" class="footer-link">Về chúng tôi →</a></div>
+      <div class="footer-col"><h4>Khám Phá</h4><ul><li><a href="categories.html">Thể loại</a></li><li><a href="new-posts.html">Truyện mới</a></li><li><a href="trending.html">Trending</a></li><li><a href="popular.html">Phổ biến</a></li></ul></div>
+      <div class="footer-col"><h4>Thông Tin</h4><ul><li><a href="terms.html">Điều khoản sử dụng</a></li><li><a href="privacy.html">Chính sách bảo mật</a></li><li><a href="contact.html">Liên hệ bản quyền</a></li></ul></div>
+      <div class="footer-col"><h4>Cộng Đồng</h4><div class="social-links"><a href="contact.html" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a><a href="contact.html" aria-label="Zalo">Zalo</a></div></div>
+    </div>
+    <div class="container footer__bottom"><p>© 2026 AudioHub.net. All rights reserved.</p><div class="dmca-badge">DMCA PROTECTED</div></div>
+  </footer>
+  <script src="./js/api-client.js"></script>
+  <script src="./js/auth-state.js"></script>
+</body>
+</html>
