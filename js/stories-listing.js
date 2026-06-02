@@ -21,7 +21,7 @@
     var title = escapeHtml(story.title);
     var author = escapeHtml(story.author);
     var genre = escapeHtml(story.genre);
-    var href = 'story-detail.html?id=' + encodeURIComponent(story.id);
+    var href = '/html/story-detail.html?id=' + encodeURIComponent(story.id);
 
     var note = story.visibility ? ('Visibility: ' + story.visibility) : 'Truyện demo từ AudioHub Studio.';
 
@@ -361,8 +361,8 @@
       return;
     }
 
-    if (href === 'story-detail' || href.indexOf('story-detail.html?id=') < 0) {
-      card.setAttribute('href', 'story-detail.html?id=' + encodeURIComponent(storyId));
+    if (href === 'story-detail' || href === 'story-detail.html' || href === '/html/story-detail.html' || (href.indexOf('story-detail.html?id=') < 0 && href.indexOf('/html/story-detail.html?id=') < 0)) {
+      card.setAttribute('href', '/html/story-detail.html?id=' + encodeURIComponent(storyId));
     }
 
     var stories = window.AudioHubStories.read() || [];

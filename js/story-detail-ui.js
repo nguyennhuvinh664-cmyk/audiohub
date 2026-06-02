@@ -63,7 +63,7 @@
   function buildHashtagLink(tag) {
     var cleanTag = String(tag || '').trim().toLowerCase();
     if (!cleanTag) return '';
-    var href = 'new-posts.html?hashtag=' + encodeURIComponent(cleanTag);
+    var href = '/html/new-posts.html?hashtag=' + encodeURIComponent(cleanTag);
     return '<a class="story-hashtag" href="' + href + '">#' + escapeHtml(cleanTag) + '</a>';
   }
 
@@ -121,6 +121,122 @@
   function ensureStoryIdInLinks() {
   }
 
+  function isSyntheticStoryId(value) {
+    var id = String(value || '').trim().toLowerCase();
+    return !!id && (id.indexOf('playlist-') === 0 || id.indexOf('seed-card-') === 0);
+  }
+
+  var pendingStorySyncId = '';
+  var HOME_DETAIL_CONTEXT_KEY = 'audiohub-home-detail-context';
+
+  function readHomeDetailContext() {
+    try {
+      var raw = window.sessionStorage.getItem(HOME_DETAIL_CONTEXT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function clearHomeDetailContext() {
+    try {
+      window.sessionStorage.removeItem(HOME_DETAIL_CONTEXT_KEY);
+    } catch (error) {}
+  }
+
+  function resolveStoryFromHomeContext() {
+    if (!window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') return null;
+    var context = readHomeDetailContext();
+    if (!context || String(context.source || '') !== 'home') return null;
+    var storyId = String(context.storyId || '').trim();
+    if (!storyId) return null;
+    var queryId = String(getQueryParam('id') || '').trim();
+    if (queryId && queryId !== storyId) return null;
+    return window.AudioHubStories.getById(storyId) || null;
+  }
+
+  function syncStoryContextFromHome(story) {
+    if (!story || !story.id) return;
+    var context = readHomeDetailContext();
+    if (!context || String(context.source || '') !== 'home') return;
+    var queryId = String(getQueryParam('id') || '').trim();
+    var contextId = String(context.storyId || '').trim();
+    if (queryId && contextId && queryId !== contextId && queryId !== String(story.id)) return;
+    if (contextId && contextId === String(story.id)) {
+      clearHomeDetailContext();
+    }
+  }
+
+  function clearStaleHomeDetailContext() {
+    var context = readHomeDetailContext();
+    if (!context) return;
+    var savedAt = Number(context.savedAt || 0);
+    if (savedAt && Date.now() - savedAt > 5 * 60 * 1000) {
+      clearHomeDetailContext();
+    }
+  }
+
+  clearStaleHomeDetailContext();
+
+  function applyHomeDetailPlaceholder() {
+    var context = readHomeDetailContext();
+    if (!context || String(context.source || '') !== 'home') return;
+    var storyId = String(context.storyId || '').trim();
+    var queryId = String(getQueryParam('id') || '').trim();
+    if (!storyId || (queryId && queryId !== storyId)) return;
+
+    var storyNode = document.querySelector('[data-detail-story]');
+    if (!storyNode) return;
+
+    storyNode.setAttribute('data-story-id', storyId);
+    if (context.title) storyNode.setAttribute('data-title', String(context.title));
+    if (context.author) storyNode.setAttribute('data-author', String(context.author));
+
+    var titleNode = storyNode.querySelector('.detail-title');
+    if (titleNode && context.title) titleNode.textContent = String(context.title);
+
+    var audioSubtitle = document.querySelector('.audio-headings p');
+    if (audioSubtitle && context.title) audioSubtitle.textContent = String(context.title);
+  }
+
+  applyHomeDetailPlaceholder();
+
+  function clearPendingStorySync(id) {
+    var storyId = String(id || pendingStorySyncId || '').trim();
+    if (!storyId) {
+      pendingStorySyncId = '';
+      return;
+    }
+    pendingStorySyncId = '';
+    try {
+      window.sessionStorage.removeItem('audiohub-detail-sync-reload:' + storyId);
+    } catch (error) {}
+  }
+
+  function markPendingStorySync(id) {
+    pendingStorySyncId = String(id || '').trim();
+  }
+
+  function tryResolvePendingStoryAfterSync() {
+    if (!pendingStorySyncId || !window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') return false;
+    var storyId = String(pendingStorySyncId || '').trim();
+    if (!storyId || isSyntheticStoryId(storyId)) return false;
+    var resolved = window.AudioHubStories.getById(storyId);
+    if (!resolved || !resolved.id) return false;
+
+    var reloadKey = 'audiohub-detail-sync-reload:' + storyId;
+    try {
+      if (window.sessionStorage.getItem(reloadKey) === '1') {
+        clearPendingStorySync(storyId);
+        return false;
+      }
+      window.sessionStorage.setItem(reloadKey, '1');
+    } catch (error) {}
+
+    window.location.replace(window.location.pathname + window.location.search);
+    return true;
+  }
+
   function resolveStoryByDom(storyNode) {
     if (!storyNode || !window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return null;
     var stories = window.AudioHubStories.read() || [];
@@ -132,27 +248,38 @@
     var nodeTitleText = normalizeLookup(titleNode ? titleNode.textContent : '');
 
     return stories.find(function (item) {
-      return normalizeLookup(item && item.title) === nodeTitle || normalizeLookup(item && item.title) === nodeTitleText;
-    }) || stories.find(function (item) {
       return normalizeLookup(item && item.title) === nodeTitle && normalizeLookup(item && item.author) === nodeAuthor;
+    }) || stories.find(function (item) {
+      return normalizeLookup(item && item.title) === nodeTitle || normalizeLookup(item && item.title) === nodeTitleText;
     }) || null;
   }
 
   function ensureStoryContext() {
-    if (!window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return;
+    if (!window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return null;
     var storyNode = document.querySelector('[data-detail-story]');
-    if (!storyNode) return;
+    if (!storyNode) return null;
 
-    var currentId = getQueryParam('id');
+    var currentId = String(getQueryParam('id') || '').trim();
     var resolved = currentId && typeof window.AudioHubStories.getById === 'function'
       ? window.AudioHubStories.getById(currentId)
       : null;
 
     if (!resolved) {
+      resolved = resolveStoryFromHomeContext();
+    }
+
+    if (!resolved && currentId && !isSyntheticStoryId(currentId)) {
+      markPendingStorySync(currentId);
+    }
+
+    if (!resolved && !currentId) {
       resolved = resolveStoryByDom(storyNode);
     }
 
-    if (!resolved || !resolved.id) return;
+    if (!resolved || !resolved.id) return null;
+
+    clearPendingStorySync(String(resolved.id || currentId || ''));
+    syncStoryContextFromHome(resolved);
 
     var params = new URLSearchParams(window.location.search || '');
     if (params.get('id') !== String(resolved.id)) {
@@ -160,6 +287,7 @@
       window.history.replaceState({}, '', window.location.pathname + '?' + params.toString());
     }
 
+    return resolved;
   }
 
   ensureStoryContext();
@@ -175,6 +303,7 @@
   });
 
   window.addEventListener('audiohub:stories-synced', function () {
+    if (tryResolvePendingStoryAfterSync()) return;
     ensureStoryContext();
   });
 
@@ -383,27 +512,35 @@
       story = window.AudioHubStories.getById(storyId);
     }
 
-    if (!story && typeof window.AudioHubStories.read === 'function') {
+    if (!story && typeof window.AudioHubStories.read === 'function' && !storyId) {
       var allStories = window.AudioHubStories.read() || [];
       var nodeTitle = String(storyNode.getAttribute('data-title') || '').trim().toLowerCase();
       var nodeAuthor = String(storyNode.getAttribute('data-author') || '').trim().toLowerCase();
       story = allStories.find(function (item) {
         var title = String(item && item.title || '').trim().toLowerCase();
-        return !!nodeTitle && title === nodeTitle;
+        var author = String(item && item.author || '').trim().toLowerCase();
+        return !!nodeTitle && title === nodeTitle && author === nodeAuthor;
       }) || allStories.find(function (item) {
         var title = String(item && item.title || '').trim().toLowerCase();
-        var author = String(item && item.author || '').trim().toLowerCase();
-        return title === nodeTitle && author === nodeAuthor;
+        return !!nodeTitle && title === nodeTitle;
       }) || null;
-
-      if (!story) {
-        story = null;
-      }
     }
 
     if (!story) {
+      if (storyId && !isSyntheticStoryId(storyId)) {
+        markPendingStorySync(storyId);
+      }
       ensureFallbackHashtags(storyNode);
       return null;
+    }
+
+    clearPendingStorySync(String(story.id || storyId || ''));
+
+    if (storyId && isSyntheticStoryId(storyId) && story.id && String(story.id) !== String(storyId)) {
+      var syntheticParams = new URLSearchParams(window.location.search || '');
+      syntheticParams.set('id', String(story.id));
+      window.history.replaceState({}, '', window.location.pathname + '?' + syntheticParams.toString());
+      storyId = String(story.id);
     }
 
     if (!storyId && story.id) {
@@ -438,7 +575,7 @@
     storyNode.setAttribute('data-author', String(story.author || ''));
     storyNode.setAttribute('data-genre', String(story.genre || ''));
     storyNode.setAttribute('data-cover-key', String(story.coverKey || ''));
-    storyNode.setAttribute('href', 'story-detail.html?id=' + encodeURIComponent(String(story.id || '')));
+    storyNode.setAttribute('href', '/html/story-detail.html?id=' + encodeURIComponent(String(story.id || '')));
 
     var titleNode = storyNode.querySelector('.detail-title');
     if (titleNode && story.title) titleNode.textContent = story.title;
@@ -446,7 +583,7 @@
 
     if (story.genre) {
       var crumb = document.querySelector('.breadcrumb');
-      if (crumb) crumb.innerHTML = '<a href="index.html">Home</a> <span>/</span> <a href="categories.html">' + story.genre + '</a> <span>/</span> <a href="new-posts">' + (story.title || 'Chi tiết truyện') + '</a>';
+      if (crumb) crumb.innerHTML = '<a href="/html/index.html">Home</a> <span>/</span> <a href="/html/categories.html">' + story.genre + '</a> <span>/</span> <a href="/html/new-posts.html">' + (story.title || 'Chi tiết truyện') + '</a>';
     }
 
     var meta = storyNode.querySelector('.detail-meta');
@@ -571,7 +708,7 @@
     var list = document.querySelector('.mini-list');
     if (!list || !window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return;
 
-    var stories = pickTrendingStories(window.AudioHubStories.read() || []).slice(0, 6);
+    var stories = pickTrendingStories(window.AudioHubStories.read() || []).slice(0, 12);
 
     if (!stories.length) {
       list.innerHTML = '';
@@ -581,7 +718,7 @@
     list.innerHTML = stories.map(function (item) {
       var title = escapeHtml(String(item.title || 'Truyện'));
       var views2d = Number(item.listenCount2d || 0);
-      var href = 'story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
+      var href = '/html/story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
       var coverKey = escapeHtml(String(item.coverKey || ''));
       return '<a href="' + href + '" class="mini-story">'
         + '<div class="mini-thumb" data-mini-trending-cover-key="' + coverKey + '">' + escapeHtml(title.slice(0, 2).toUpperCase()) + '</div>'
@@ -682,7 +819,7 @@
       var title = escapeHtml(String(item.title || 'Truyện đề xuất'));
       var genre = escapeHtml(String(item.genre || 'Khác'));
       var author = escapeHtml(String(item.author || 'áº¨n danh'));
-      var href = 'story-detail.html?id=' + encodeURIComponent(String(item.id));
+      var href = '/html/story-detail.html?id=' + encodeURIComponent(String(item.id));
       var coverKey = escapeHtml(String(item.coverKey || ''));
       var visibility = escapeHtml(String(item.visibility || ''));
       var storyId = escapeHtml(String(item.id || ''));
@@ -837,11 +974,11 @@
       if (currentId && String(item.id) === currentId) return false;
       if (!genre) return true;
       return String(item.genre || '') === genre;
-    }).slice(0, 6);
+    }).slice(0, 12);
 
     chapterList.innerHTML = recommendations.length
       ? recommendations.map(function (item) {
-          return '<a href="story-detail.html?id=' + encodeURIComponent(String(item.id)) + '" class="chapter-item">'
+          return '<a href="/html/story-detail.html?id=' + encodeURIComponent(String(item.id)) + '" class="chapter-item">'
             + '<span class="chapter-dot"></span><span>' + escapeHtml(String(item.title || 'Truyện')) + '</span></a>';
         }).join('')
       : '<div class="chapter-item"><span class="chapter-dot"></span><span>Chưa có truyện cùng thể loại.</span></div>';
@@ -1273,8 +1410,32 @@
     });
   }
 
+  function scheduleStoryDetailRetry(storyId, attempt) {
+    var safeAttempt = Number(attempt) || 0;
+    if (!storyId || safeAttempt > 3) return;
+    window.setTimeout(function () {
+      var resolved = initStoryDetailFromStore(storyId);
+      if (!resolved && safeAttempt < 3) {
+        scheduleStoryDetailRetry(storyId, safeAttempt + 1);
+      }
+    }, safeAttempt === 0 ? 120 : 450);
+  }
+
   function initPlayer() {
     var storyId = getQueryParam('id');
+    if (storyId) {
+      storyId = String(storyId).trim();
+    }
+    ensureStoryContext();
+    storyId = String(getQueryParam('id') || storyId || '').trim();
+    if (!storyId) {
+      var detailNode = document.querySelector('[data-detail-story]');
+      storyId = String(detailNode && detailNode.getAttribute('data-story-id') || '').trim();
+    }
+    if (!storyId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+      var preResolved = ensureStoryContext();
+      storyId = String(preResolved && preResolved.id || '').trim();
+    }
     if (!storyId) {
       var queryTitle = getQueryParam('title');
       if (queryTitle && window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
@@ -1291,6 +1452,10 @@
       }
     }
     var story = initStoryDetailFromStore(storyId);
+    if (!story && storyId && !isSyntheticStoryId(storyId)) {
+      markPendingStorySync(storyId);
+      scheduleStoryDetailRetry(storyId, 0);
+    }
     if (story && story.id) {
       trackStoryListen(story.id);
       story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'

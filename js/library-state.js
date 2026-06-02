@@ -60,7 +60,7 @@
           id = '';
         }
       }
-      href = id ? ('story-detail.html?id=' + encodeURIComponent(String(id))) : 'story-detail';
+      href = id ? ('/html/story-detail.html?id=' + encodeURIComponent(String(id))) : 'story-detail';
     }
 
     var storyId = String(source.dataset.storyId || '').trim();
@@ -162,7 +162,7 @@
       try { id = new URLSearchParams(window.location.search).get('id') || ''; } catch (error) {}
     }
     if (id && !detail.getAttribute('data-story-id')) detail.setAttribute('data-story-id', String(id));
-    if ((!href || href === 'story-detail') && id) detail.setAttribute('href', 'story-detail.html?id=' + encodeURIComponent(String(id)));
+    if ((!href || href === 'story-detail' || href === 'story-detail.html' || href === '/html/story-detail.html') && id) detail.setAttribute('href', '/html/story-detail.html?id=' + encodeURIComponent(String(id)));
   }
 
   function syncDetailActionsDeferred() {

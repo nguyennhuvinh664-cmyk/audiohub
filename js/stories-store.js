@@ -353,6 +353,13 @@
     }
   }
 
+  function notifyStoriesSynced() {
+    try {
+      window.dispatchEvent(new CustomEvent('audiohub:stories-synced'));
+    } catch (error) {
+    }
+  }
+
   function parseTime(value) {
     var time = Date.parse(String(value || ''));
     return isNaN(time) ? 0 : time;
@@ -391,7 +398,9 @@
 
   function syncFromApi() {
     if (!canUseApi()) {
-      return Promise.resolve(readLocalStories());
+      var localStories = readLocalStories();
+      notifyStoriesSynced();
+      return Promise.resolve(localStories);
     }
 
     return window.AudioHubApi.request('/stories', { method: 'GET' })
@@ -423,10 +432,13 @@
         var mergedStories = drafts.concat(normalized).slice(0, 50);
         writeLocalStories(mergedStories);
         notifyStoriesUpdated();
+        notifyStoriesSynced();
         return mergedStories;
       })
       .catch(function () {
-        return readLocalStories();
+        var fallbackStories = readLocalStories();
+        notifyStoriesSynced();
+        return fallbackStories;
       });
   }
 
