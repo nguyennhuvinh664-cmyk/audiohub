@@ -291,7 +291,7 @@
     }
 
     renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 12));
-    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 12));
+    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 6));
     renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
     renderCardList(document.querySelector('[data-home-completed-grid]'), completedStories.slice(0, 12));
 
@@ -498,7 +498,7 @@
     }
 
     renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 12));
-    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 12));
+    renderTrendingList(document.querySelector('[data-home-trending-list]'), pickTrendingStories(publicStories).slice(0, 6));
     renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
     renderCardList(document.querySelector('[data-home-completed-grid]'), completedStories.slice(0, 12));
 
