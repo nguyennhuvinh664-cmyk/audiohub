@@ -1056,8 +1056,8 @@
       seen[id] = true;
       return true;
     }).sort(function (a, b) {
-      var timeA = Date.parse(String((a && (a.updatedAt || a.createdAt)) || ''));
-      var timeB = Date.parse(String((b && (b.updatedAt || b.createdAt)) || ''));
+      var timeA = Date.parse(String((a && a.createdAt) || (a && a.updatedAt) || ''));
+      var timeB = Date.parse(String((b && b.createdAt) || (b && b.updatedAt) || ''));
       return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
     });
     if (!uniqueStories.length) {
