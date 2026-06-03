@@ -2,14 +2,12 @@
   var STORAGE_KEY = 'audiohub-library';
   var DEFAULT_LIBRARY = {
     favorites: [],
-    following: [],
     history: []
   };
 
   function cloneDefault() {
     return {
       favorites: DEFAULT_LIBRARY.favorites.slice(),
-      following: DEFAULT_LIBRARY.following.slice(),
       history: DEFAULT_LIBRARY.history.slice()
     };
   }
@@ -24,7 +22,6 @@
       var parsed = JSON.parse(raw);
       return {
         favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
-        following: Array.isArray(parsed.following) ? parsed.following : [],
         history: Array.isArray(parsed.history) ? parsed.history : []
       };
     } catch (error) {
@@ -338,13 +335,19 @@
     var existingIds = getExistingStoryIds();
     var filtered = {
       favorites: filterExistingItems(library.favorites, existingIds),
-      following: filterExistingItems(library.following, existingIds),
       history: filterExistingItems(library.history, existingIds)
     };
 
     var changed = filtered.favorites.length !== library.favorites.length
-      || filtered.following.length !== library.following.length
       || filtered.history.length !== library.history.length;
+
+    if (library.following && library.following.length) {
+      changed = true;
+    }
+
+    if (library.following) {
+      delete library.following;
+    }
 
     if (changed) {
       writeLibrary(filtered);
@@ -352,11 +355,14 @@
 
     renderStat('favorites', filtered.favorites.length);
     renderStat('history', filtered.history.length);
-    renderStat('following', filtered.following.length);
 
-    renderCollection('[data-library-history]', filtered.history, 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
+    renderCollection('[data-library-history]', filtered.history.slice(0, 36), 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
     renderCollection('[data-library-favorites]', filtered.favorites, 'favorites', 'Chưa có truyện yêu thích nào được lưu.');
-    renderCollection('[data-library-following]', filtered.following, 'following', 'Bạn chưa theo dõi bộ truyện nào.');
+
+    var followingRoot = document.querySelector('[data-library-following]');
+    if (followingRoot) {
+      followingRoot.innerHTML = '';
+    }
 
     hydrateAccountThumbs();
   }
