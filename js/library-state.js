@@ -146,11 +146,7 @@
 
   function refreshDetailButtonLabels() {
     var favoriteButton = document.querySelector('[data-detail-favorite]');
-    var followButton = document.querySelector('[data-detail-follow]');
-    var historyButton = document.querySelector('[data-detail-history]');
     if (favoriteButton && favoriteButton.textContent.indexOf('Yêu thích') < 0) favoriteButton.innerHTML = '<i class="fa-solid fa-heart"></i> Yêu thích';
-    if (followButton && followButton.textContent.indexOf('Theo dõi') < 0) followButton.innerHTML = '<i class="fa-solid fa-bell"></i> Theo dõi';
-    if (historyButton && historyButton.textContent.indexOf('Lưu lịch sử nghe') < 0) historyButton.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> Lưu lịch sử nghe';
   }
 
   function hydrateDetailStoryIdentity() {
@@ -195,7 +191,7 @@
 
   function addHistory(story, extras) {
     var library = readLibrary();
-    library.history = upsertItem(library.history, story, extras);
+    library.history = upsertItem(library.history, story, extras).slice(0, 36);
     writeLibrary(library);
   }
 
@@ -459,22 +455,10 @@
     var story = buildStoryData(detail);
     var library = readLibrary();
     var favoriteButton = document.querySelector('[data-detail-favorite]');
-    var followButton = document.querySelector('[data-detail-follow]');
-    var historyButton = document.querySelector('[data-detail-history]');
 
     if (favoriteButton) {
       var favActive = hasItemByStory(story, library.favorites);
       setActiveState(favoriteButton, favActive);
-    }
-
-    if (followButton) {
-      var followActive = hasItemByStory(story, library.following);
-      setActiveState(followButton, followActive);
-    }
-
-    if (historyButton) {
-      var historyActive = hasItemByStory(story, library.history);
-      setActiveState(historyButton, historyActive);
     }
   }
 
@@ -502,8 +486,6 @@
     }
 
     var favoriteButton = document.querySelector('[data-detail-favorite]');
-    var followButton = document.querySelector('[data-detail-follow]');
-    var historyButton = document.querySelector('[data-detail-history]');
 
     function currentStory() {
       return buildStoryData(detail);
@@ -512,25 +494,6 @@
     if (favoriteButton) {
       favoriteButton.addEventListener('click', function () {
         toggleCollection('favorites', currentStory());
-        syncDetailActions();
-        renderAccountLibrary();
-      });
-    }
-
-    if (followButton) {
-      followButton.addEventListener('click', function () {
-        toggleCollection('following', currentStory());
-        syncDetailActions();
-        renderAccountLibrary();
-      });
-    }
-
-    if (historyButton) {
-      historyButton.addEventListener('click', function () {
-        addHistory(currentStory(), {
-          progress: 'Đang dừng ở Chương 1',
-          note: 'Đã lưu từ trang chi tiết để tiếp tục nghe sau.'
-        });
         syncDetailActions();
         renderAccountLibrary();
       });
