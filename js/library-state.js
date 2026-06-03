@@ -370,6 +370,7 @@
   }
 
   function renderAccountLibrary() {
+
     if (!document.body.classList.contains('account-page')) {
       return;
     }
@@ -556,7 +557,18 @@
       return;
     }
 
-    removeFromCollection(removeButton.getAttribute('data-library-remove'), removeButton.getAttribute('data-story-key'));
+    var type = removeButton.getAttribute('data-library-remove');
+    var key = removeButton.getAttribute('data-story-key');
+
+    if (type === 'history') {
+      var storyId = String(key || '').indexOf('story::') === 0 ? String(key).slice('story::'.length) : '';
+      if (storyId && window.AudioHubStories && typeof window.AudioHubStories.clearListenHistory === 'function') {
+        window.AudioHubStories.clearListenHistory(storyId);
+      }
+    } else {
+      removeFromCollection(type, key);
+    }
+
     renderAccountLibrary();
     syncFavoriteButtons();
     syncDetailActions();
