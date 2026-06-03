@@ -370,6 +370,7 @@
   }
 
   function renderAccountLibrary() {
+    console.log('renderAccountLibrary called');
 
     if (!document.body.classList.contains('account-page')) {
       return;
