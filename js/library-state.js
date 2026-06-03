@@ -326,6 +326,49 @@
     });
   }
 
+  function parseListenTimestamp(story) {
+    var history = Array.isArray(story && story.listenHistory) ? story.listenHistory : [];
+    var latest = 0;
+    history.forEach(function (value) {
+      var time = Number(value);
+      if (!isNaN(time) && time > latest) latest = time;
+    });
+    return latest;
+  }
+
+  function deriveRecentListensFromStories(limit) {
+    if (!window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') {
+      return [];
+    }
+
+    var stories = window.AudioHubStories.read() || [];
+    var items = stories.map(function (story) {
+      var latest = parseListenTimestamp(story);
+      if (!latest) return null;
+      var id = String(story && story.id || '').trim();
+      if (!id) return null;
+      return {
+        key: 'story::' + id,
+        title: String(story.title || 'AudioHub Story'),
+        author: String(story.author || 'AudioHub'),
+        genre: String(story.genre || 'Truyện audio'),
+        progress: 'Đang nghe gần đây',
+        note: 'Tự động từ lịch sử phát',
+        href: 'story-detail.html?id=' + encodeURIComponent(id),
+        coverKey: story && story.coverKey ? String(story.coverKey) : '',
+        savedAt: new Date(latest).toISOString(),
+        listenAt: latest
+      };
+    }).filter(Boolean).sort(function (a, b) {
+      return Number(b.listenAt || 0) - Number(a.listenAt || 0);
+    });
+
+    return items.slice(0, limit || 36).map(function (item) {
+      delete item.listenAt;
+      return item;
+    });
+  }
+
   function renderAccountLibrary() {
     if (!document.body.classList.contains('account-page')) {
       return;
@@ -337,6 +380,7 @@
       favorites: filterExistingItems(library.favorites, existingIds),
       history: filterExistingItems(library.history, existingIds)
     };
+    var recentHistory = deriveRecentListensFromStories(36);
 
     var changed = filtered.favorites.length !== library.favorites.length
       || filtered.history.length !== library.history.length;
@@ -354,9 +398,9 @@
     }
 
     renderStat('favorites', filtered.favorites.length);
-    renderStat('history', filtered.history.length);
+    renderStat('history', recentHistory.length);
 
-    renderCollection('[data-library-history]', filtered.history.slice(0, 36), 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
+    renderCollection('[data-library-history]', recentHistory, 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
     renderCollection('[data-library-favorites]', filtered.favorites, 'favorites', 'Chưa có truyện yêu thích nào được lưu.');
 
     var followingRoot = document.querySelector('[data-library-following]');
