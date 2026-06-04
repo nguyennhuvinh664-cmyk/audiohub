@@ -459,40 +459,12 @@
 
 .playlist-list {
   display: grid;
-  gap: 10px;
-  max-height: 420px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 6px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(245,158,11,.65) rgba(255,255,255,.08);
+  gap: 12px;
 }
 
 .playlist-detail {
   display: grid;
   gap: 12px;
-}
-
-.playlist-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.playlist-list::-webkit-scrollbar-track {
-  background: rgba(255,255,255,.06);
-  border-radius: 999px;
-}
-
-.playlist-list::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(251,191,36,.9), rgba(249,115,22,.85));
-  border-radius: 999px;
-}
-
-.playlist-list::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(252,211,77,.95), rgba(251,146,60,.92));
-}
-
-.playlist-list > * {
-  min-width: 0;
 }
 
 .playlist-list .playlist-item {
@@ -615,16 +587,9 @@
   border: 1px solid rgba(255,255,255,.04);
 }
 
-@media (max-width: 980px) {
-  .playlist-list {
-    max-height: 320px;
-  }
-}
-
 @media (max-width: 620px) {
   .playlist-list {
-    max-height: 280px;
-    padding-right: 4px;
+    padding-right: 0;
   }
 }
 
