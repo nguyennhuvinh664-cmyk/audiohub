@@ -421,7 +421,7 @@
       var activeClass = id === String(activePlaylistId) ? ' is-active' : '';
       return '' +
         '<div class="playlist-item' + activeClass + '" data-playlist-select="' + escapeHtml(id) + '">' +
-        '<div><div class="playlist-name">' + escapeHtml(playlist.name) + '</div><div class="playlist-meta">' + (playlist.items || []).length + ' mục · ' + escapeHtml(playlist.status || 'Đang ra') + '</div></div>' +
+        '<div class="playlist-main"><div class="playlist-name">' + escapeHtml(playlist.name) + '</div><div class="playlist-meta">' + (playlist.items || []).length + ' mục</div></div>' +
         '<div class="playlist-actions">' +
         '<div class="playlist-status-wrap" data-playlist-status-wrap="' + escapeHtml(id) + '">' +
         '<span class="playlist-status-label">Trạng thái</span>' +
