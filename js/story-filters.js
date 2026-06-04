@@ -197,7 +197,7 @@
       + '<div class="auth-required-modal__icon"><i class="fa-solid fa-lock"></i></div>'
       + '<h3 id="auth-required-title-inline">Yêu cầu đăng nhập</h3>'
       + '<p>Nội dung trang này cần quyền hội viên để xem.</p>'
-      + '<a href="login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>'
+      + '<a href="/html/login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>'
       + '<button type="button" class="auth-required-modal__secondary" data-auth-required-close>Đóng lại</button>'
       + '</div>';
 

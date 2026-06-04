@@ -50,7 +50,7 @@
       return;
     }
 
-    card.href = 'story-detail.html?id=' + encodeURIComponent(story.id);
+    card.href = '/html/story-detail.html?id=' + encodeURIComponent(story.id);
     card.setAttribute('data-story-id', String(story.id || ''));
     card.setAttribute('data-story-visibility', String(story.visibility || ''));
 
@@ -369,7 +369,7 @@
 
   function setTrendingItem(item, story, rank, maxScore) {
     if (!item || !story) return;
-    item.href = 'story-detail.html?id=' + encodeURIComponent(story.id);
+    item.href = '/html/story-detail.html?id=' + encodeURIComponent(story.id);
     item.setAttribute('data-story-id', String(story.id || ''));
     item.setAttribute('data-story-visibility', String(story.visibility || ''));
 
@@ -398,7 +398,7 @@
 
   function buildHomeCardHtml(story) {
     var storyId = String(story && story.id || '').trim();
-    var href = storyId ? ('story-detail.html?id=' + encodeURIComponent(storyId)) : '#';
+    var href = storyId ? ('/html/story-detail.html?id=' + encodeURIComponent(storyId)) : '#';
     var title = String(story.title || 'Truyện mới');
     var genre = String(story.genre || 'Khác');
     var author = String(story.author || 'Ẩn danh');
@@ -445,7 +445,7 @@
       var score = Number(story.listenCount2d || 0);
       var width = maxScore > 0 ? Math.max(10, Math.round(score * 100 / maxScore)) : 10;
       var rankClass = rank === 1 ? ' gold' : (rank === 2 ? ' silver' : (rank === 3 ? ' bronze' : ''));
-      return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
+      return '<a href="/html/story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
         + '<span class="trk' + rankClass + '">' + rank + '</span>'
         + '<div class="tth">' + makeInitials(story.title) + '</div>'
         + '<div class="tin"><p class="tnm">' + String(story.title || 'Truyện mới') + '</p><p class="tmt">' + String(story.genre || 'Khác') + ' • ' + score + ' lượt nghe (2 ngày)</p></div>'
@@ -559,7 +559,7 @@
       + '<div class="auth-required-modal__icon"><i class="fa-solid fa-lock"></i></div>'
       + '<h3 id="auth-required-title-inline">Yêu cầu đăng nhập</h3>'
       + '<p>Bạn cần đăng nhập tài khoản để nghe chương này.</p>'
-      + '<a href="login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>'
+      + '<a href="/html/login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>'
       + '<button type="button" class="auth-required-modal__secondary" data-auth-required-close>Đóng lại</button>'
       + '</div>';
 
@@ -585,10 +585,10 @@
     }
 
     var href = String(card.getAttribute('href') || '').trim();
-    if (!href || href === 'story-detail.html' || href === 'story-detail.html' || (href.indexOf('story-detail.html?id=') < 0 && href.indexOf('story-detail.html?id=') < 0)) {
+    if (!href || href === 'story-detail.html' || href === 'story-detail.html' || (href.indexOf('/html/story-detail.html?id=') < 0 && href.indexOf('/html/story-detail.html?id=') < 0)) {
       var storyId = String(card.getAttribute('data-story-id') || '').trim();
       if (storyId) {
-        card.setAttribute('href', 'story-detail.html?id=' + encodeURIComponent(storyId));
+        card.setAttribute('href', '/html/story-detail.html?id=' + encodeURIComponent(storyId));
         href = String(card.getAttribute('href') || '').trim();
       } else {
         event.preventDefault();
