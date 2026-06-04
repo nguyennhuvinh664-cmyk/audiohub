@@ -307,6 +307,21 @@
     return getLocalStoryById(id);
   }
 
+  function clearListenHistory(id) {
+    if (!id) return false;
+    var story = getLocalStoryById(id);
+    if (!story) return false;
+
+    story.listenHistory = [];
+    story.listenCount = normalizeNumber(story.listenCount);
+    story.listenCount2d = 0;
+    story.listenCount7d = 0;
+    story.updatedAt = new Date().toISOString();
+    upsertLocalStory(story);
+    notifyStoriesUpdated();
+    return true;
+  }
+
   function trackListen(id) {
     if (!id) return null;
     var story = getLocalStoryById(id);
@@ -478,7 +493,8 @@
     getById: getStoryById,
     remove: removeStory,
     sync: syncFromApi,
-    trackListen: trackListen
+    trackListen: trackListen,
+    clearListenHistory: clearListenHistory
   };
 
   migrateAnonymousAuthors();

@@ -129,7 +129,7 @@
             window.AudioHubApi.setToken(result.token);
           }
           setAuthProfileFromUser(result && result.user ? result.user : null);
-          window.location.href = 'account.html';
+          window.location.href = 'html/account.html';
         }).catch(function () {
           loginDemo({
             name: email.split('@')[0] || defaultProfile.name,
@@ -137,7 +137,7 @@
             initials: deriveInitials(email.split('@')[0] || defaultProfile.name),
             tier: defaultProfile.tier
           });
-          window.location.href = 'account.html';
+          window.location.href = 'html/account.html';
         }).then(function () {
           loginButton.textContent = prevText;
         });
@@ -179,7 +179,7 @@
             window.AudioHubApi.setToken(result.token);
           }
           setAuthProfileFromUser(result && result.user ? result.user : { displayName: displayName, email: email });
-          window.location.href = 'account.html';
+          window.location.href = 'html/account.html';
         }).catch(function () {
           loginDemo({
             name: displayName,
@@ -187,7 +187,7 @@
             initials: deriveInitials(displayName),
             tier: defaultProfile.tier
           });
-          window.location.href = 'account.html';
+          window.location.href = 'html/account.html';
         }).then(function () {
           registerButton.textContent = prevText;
         });
@@ -294,7 +294,7 @@
       + '</button>'
       + '<div class="auth-menu__dropdown" hidden>'
       + summary
-      + '<a href="account.html" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
+      + '<a href="html/account.html" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
       + '<a href="upload-story.html" class="auth-menu__link"><i class="fa-solid fa-upload"></i> Đăng truyện</a>'
       + '<a href="change-password.html" class="auth-menu__link"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>'
       + '<button type="button" class="auth-menu__action" data-auth-switch><i class="fa-solid fa-repeat"></i> Chuyển đổi tài khoản</button>'
