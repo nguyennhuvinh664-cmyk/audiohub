@@ -900,9 +900,24 @@
     return '';
   }
 
-  function bindStoryAudio(story) {
+  function bindStoryVideo(story) {
     var videoWrap = document.querySelector('[data-story-video-wrap]');
     var videoNode = document.querySelector('[data-story-video]');
+    if (!videoWrap || !videoNode) return;
+
+    videoWrap.classList.add('is-hidden');
+    videoNode.innerHTML = '';
+
+    var youtubeId = story ? String(story.youtubeId || extractYoutubeId(story.youtubeUrl)) : '';
+    if (!youtubeId) {
+      return;
+    }
+
+    videoNode.innerHTML = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(youtubeId) + '" title="YouTube video player" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
+    videoWrap.classList.remove('is-hidden');
+  }
+
+  function bindStoryAudio(story) {
     var audioNode = document.querySelector('[data-story-audio]');
     var noteNode = document.querySelector('[data-story-audio-note]');
     if (!audioNode) return;
@@ -928,16 +943,8 @@
       noteNode.textContent = '';
       noteNode.classList.add('is-hidden');
     }
-    if (videoWrap) videoWrap.classList.add('is-hidden');
-    if (videoNode) videoNode.innerHTML = '';
 
-    var youtubeId = story ? String(story.youtubeId || extractYoutubeId(story.youtubeUrl)) : '';
-    if (youtubeId && videoWrap && videoNode) {
-      videoNode.innerHTML = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(youtubeId) + '" title="YouTube video player" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
-      videoWrap.classList.remove('is-hidden');
-      showNote('Đang phát video YouTube của truyện này.');
-      return;
-    }
+    bindStoryVideo(story);
 
     var audioKey = story && story.audioKey ? String(story.audioKey) : '';
     if (!audioKey || !window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') {
