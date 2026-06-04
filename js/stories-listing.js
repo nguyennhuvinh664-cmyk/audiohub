@@ -21,7 +21,7 @@
     var title = escapeHtml(story.title);
     var author = escapeHtml(story.author);
     var genre = escapeHtml(story.genre);
-    var href = '/html/story-detail.html?id=' + encodeURIComponent(story.id);
+    var href = '/story-detail.html?id=' + encodeURIComponent(story.id);
 
     var note = story.visibility ? ('Visibility: ' + story.visibility) : 'Truyện demo từ AudioHub Studio.';
 
@@ -115,7 +115,7 @@
       + '<div class="auth-required-modal__icon"><i class="fa-solid fa-lock"></i></div>'
       + '<h3 id="auth-required-title-inline">Yêu cầu đăng nhập</h3>'
       + '<p>Bạn cần đăng nhập tài khoản để nghe chương này.</p>'
-      + '<a href="/html/login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>'
+      + '<a href="login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>'
       + '<button type="button" class="auth-required-modal__secondary" data-auth-required-close>Đóng lại</button>'
       + '</div>';
 
@@ -361,8 +361,8 @@
       return;
     }
 
-    if (href === 'story-detail' || href === 'story-detail.html' || href === 'story-detail.html' || (href.indexOf('/html/story-detail.html?id=') < 0 && href.indexOf('/html/story-detail.html?id=') < 0)) {
-      card.setAttribute('href', '/html/story-detail.html?id=' + encodeURIComponent(storyId));
+    if (href === 'story-detail' || href === 'story-detail.html' || href === 'story-detail.html' || (href.indexOf('/story-detail.html?id=') < 0 && href.indexOf('/story-detail.html?id=') < 0)) {
+      card.setAttribute('href', '/story-detail.html?id=' + encodeURIComponent(storyId));
     }
 
     var stories = window.AudioHubStories.read() || [];

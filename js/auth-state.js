@@ -129,7 +129,7 @@
             window.AudioHubApi.setToken(result.token);
           }
           setAuthProfileFromUser(result && result.user ? result.user : null);
-          window.location.href = '/html/account.html';
+          window.location.href = 'account.html';
         }).catch(function () {
           loginDemo({
             name: email.split('@')[0] || defaultProfile.name,
@@ -137,7 +137,7 @@
             initials: deriveInitials(email.split('@')[0] || defaultProfile.name),
             tier: defaultProfile.tier
           });
-          window.location.href = '/html/account.html';
+          window.location.href = 'account.html';
         }).then(function () {
           loginButton.textContent = prevText;
         });
@@ -179,7 +179,7 @@
             window.AudioHubApi.setToken(result.token);
           }
           setAuthProfileFromUser(result && result.user ? result.user : { displayName: displayName, email: email });
-          window.location.href = '/html/account.html';
+          window.location.href = 'account.html';
         }).catch(function () {
           loginDemo({
             name: displayName,
@@ -187,7 +187,7 @@
             initials: deriveInitials(displayName),
             tier: defaultProfile.tier
           });
-          window.location.href = '/html/account.html';
+          window.location.href = 'account.html';
         }).then(function () {
           registerButton.textContent = prevText;
         });
@@ -222,12 +222,12 @@
 
   function logoutAndRedirect() {
     clearAuth();
-    window.location.href = '/html/index.html';
+    window.location.href = 'index.html';
   }
 
   function switchAccountRedirect() {
     clearAuth();
-    window.location.href = '/html/login.html';
+    window.location.href = 'login.html';
   }
 
   function loginDemo(overrides) {
@@ -247,16 +247,16 @@
 
   function buildGuestActions(container) {
     if (container.dataset.authVariant === 'mobile') {
-      container.innerHTML = '<a href="/html/login.html" class="btn btn--outline btn--blk">Đăng Nhập</a><a href="/html/register.html" class="btn btn--primary btn--blk"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>';
+      container.innerHTML = '<a href="login.html" class="btn btn--outline btn--blk">Đăng Nhập</a><a href="register.html" class="btn btn--primary btn--blk"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>';
       return;
     }
 
     if (container.dataset.authVariant === 'home') {
-      container.innerHTML = '<a href="/html/login.html" class="btn btn--outline"><i class="fa-regular fa-user"></i> Đăng Nhập</a><a href="/html/register.html" class="btn btn--primary"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>';
+      container.innerHTML = '<a href="login.html" class="btn btn--outline"><i class="fa-regular fa-user"></i> Đăng Nhập</a><a href="register.html" class="btn btn--primary"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>';
       return;
     }
 
-    container.innerHTML = '<a href="/html/login.html" class="btn btn--outline">Đăng Nhập</a><a href="/html/register.html" class="btn btn--primary">Đăng Ký</a>';
+    container.innerHTML = '<a href="login.html" class="btn btn--outline">Đăng Nhập</a><a href="register.html" class="btn btn--primary">Đăng Ký</a>';
   }
 
   function readAvatarDataUrl() {
@@ -294,9 +294,9 @@
       + '</button>'
       + '<div class="auth-menu__dropdown" hidden>'
       + summary
-      + '<a href="/html/account.html" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
-      + '<a href="/html/upload-story.html" class="auth-menu__link"><i class="fa-solid fa-upload"></i> Đăng truyện</a>'
-      + '<a href="/html/change-password.html" class="auth-menu__link"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>'
+      + '<a href="account.html" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
+      + '<a href="upload-story.html" class="auth-menu__link"><i class="fa-solid fa-upload"></i> Đăng truyện</a>'
+      + '<a href="change-password.html" class="auth-menu__link"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>'
       + '<button type="button" class="auth-menu__action" data-auth-switch><i class="fa-solid fa-repeat"></i> Chuyển đổi tài khoản</button>'
       + '<button type="button" class="auth-menu__action auth-menu__action--danger" data-auth-logout><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>'
       + '</div>'
