@@ -421,7 +421,7 @@
       var activeClass = id === String(activePlaylistId) ? ' is-active' : '';
       return '' +
         '<div class="playlist-item' + activeClass + '" data-playlist-select="' + escapeHtml(id) + '">' +
-        '<div class="playlist-main"><div class="playlist-name">' + escapeHtml(playlist.name) + '</div><div class="playlist-meta">' + (playlist.items || []).length + ' mục</div></div>' +
+        '<div><div class="playlist-name">' + escapeHtml(playlist.name) + '</div><div class="playlist-meta">' + (playlist.items || []).length + ' mục · ' + escapeHtml(playlist.status || 'Đang ra') + '</div></div>' +
         '<div class="playlist-actions">' +
         '<div class="playlist-status-wrap" data-playlist-status-wrap="' + escapeHtml(id) + '">' +
         '<span class="playlist-status-label">Trạng thái</span>' +
@@ -431,10 +431,8 @@
         '<button type="button" class="playlist-status-option" data-playlist-status-option="' + escapeHtml(id) + '::Đã hoàn thành">Hoàn thành</button>' +
         '</div>' +
         '</div>' +
-        '<div class="playlist-action-buttons">' +
         '<button type="button" class="playlist-btn" data-playlist-rename="' + escapeHtml(id) + '">Đổi tên</button>' +
         '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(id) + '">Xóa</button>' +
-        '</div>' +
         '</div>' +
         '</div>';
     }).join('');
