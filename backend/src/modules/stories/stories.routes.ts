@@ -213,7 +213,7 @@ router.post('/', async (req: AuthRequest, res) => {
   });
 
   if (duplicatedRecent) {
-    return ok(res, duplicatedRecent, 200);
+    return ok(res, await toStoryResponse(duplicatedRecent), 200);
   }
 
   const youtubeUrl = body.youtubeUrl === undefined || body.youtubeUrl === null ? null : String(body.youtubeUrl).trim();

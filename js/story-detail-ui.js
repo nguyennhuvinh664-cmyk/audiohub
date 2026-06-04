@@ -63,7 +63,7 @@
   function buildHashtagLink(tag) {
     var cleanTag = String(tag || '').trim().toLowerCase();
     if (!cleanTag) return '';
-    var href = '/html/new-posts.html?hashtag=' + encodeURIComponent(cleanTag);
+    var href = '/new-posts.html?hashtag=' + encodeURIComponent(cleanTag);
     return '<a class="story-hashtag" href="' + href + '">#' + escapeHtml(cleanTag) + '</a>';
   }
 
@@ -577,7 +577,7 @@
     storyNode.setAttribute('data-cover-key', String(story.coverKey || ''));
     storyNode.setAttribute('data-youtube-url', String(story.youtubeUrl || ''));
     storyNode.setAttribute('data-youtube-id', String(story.youtubeId || ''));
-    storyNode.setAttribute('href', '/html/story-detail.html?id=' + encodeURIComponent(String(story.id || '')));
+    storyNode.setAttribute('href', '/story-detail.html?id=' + encodeURIComponent(String(story.id || '')));
 
     var titleNode = storyNode.querySelector('.detail-title');
     if (titleNode && story.title) titleNode.textContent = story.title;
@@ -585,7 +585,7 @@
 
     if (story.genre) {
       var crumb = document.querySelector('.breadcrumb');
-      if (crumb) crumb.innerHTML = '<a href="/html/index.html">Home</a> <span>/</span> <a href="/html/categories.html">' + story.genre + '</a> <span>/</span> <a href="/html/new-posts.html">' + (story.title || 'Chi tiết truyện') + '</a>';
+      if (crumb) crumb.innerHTML = '<a href="index.html">Home</a> <span>/</span> <a href="categories.html">' + story.genre + '</a> <span>/</span> <a href="new-posts.html">' + (story.title || 'Chi tiết truyện') + '</a>';
     }
 
     var meta = storyNode.querySelector('.detail-meta');
@@ -720,7 +720,7 @@
     list.innerHTML = stories.map(function (item) {
       var title = escapeHtml(String(item.title || 'Truyện'));
       var views2d = Number(item.listenCount2d || 0);
-      var href = '/html/story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
+      var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
       var coverKey = escapeHtml(String(item.coverKey || ''));
       return '<a href="' + href + '" class="mini-story">'
         + '<div class="mini-thumb" data-mini-trending-cover-key="' + coverKey + '">' + escapeHtml(title.slice(0, 2).toUpperCase()) + '</div>'
@@ -821,7 +821,7 @@
       var title = escapeHtml(String(item.title || 'Truyện đề xuất'));
       var genre = escapeHtml(String(item.genre || 'Khác'));
       var author = escapeHtml(String(item.author || 'áº¨n danh'));
-      var href = '/html/story-detail.html?id=' + encodeURIComponent(String(item.id));
+      var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id));
       var coverKey = escapeHtml(String(item.coverKey || ''));
       var visibility = escapeHtml(String(item.visibility || ''));
       var storyId = escapeHtml(String(item.id || ''));
@@ -1016,7 +1016,7 @@
 
     chapterList.innerHTML = recommendations.length
       ? recommendations.map(function (item) {
-          return '<a href="/html/story-detail.html?id=' + encodeURIComponent(String(item.id)) + '" class="chapter-item">'
+          return '<a href="story-detail.html?id=' + encodeURIComponent(String(item.id)) + '" class="chapter-item">'
             + '<span class="chapter-dot"></span><span>' + escapeHtml(String(item.title || 'Truyện')) + '</span></a>';
         }).join('')
       : '<div class="chapter-item"><span class="chapter-dot"></span><span>Chưa có truyện cùng thể loại.</span></div>';
