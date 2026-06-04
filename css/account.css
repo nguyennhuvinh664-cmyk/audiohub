@@ -524,16 +524,23 @@
 
 .playlist-actions {
   width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.playlist-action-buttons {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .playlist-entry-actions {
   justify-content: flex-end;
 }
 
-.playlist-actions > * {
-  flex-shrink: 0;
-}
-
+.playlist-actions > *,
+.playlist-action-buttons > *,
 .playlist-entry-actions > * {
   flex-shrink: 0;
 }

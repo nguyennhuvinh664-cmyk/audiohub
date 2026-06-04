@@ -431,8 +431,10 @@
         '<button type="button" class="playlist-status-option" data-playlist-status-option="' + escapeHtml(id) + '::Đã hoàn thành">Hoàn thành</button>' +
         '</div>' +
         '</div>' +
+        '<div class="playlist-action-buttons">' +
         '<button type="button" class="playlist-btn" data-playlist-rename="' + escapeHtml(id) + '">Đổi tên</button>' +
         '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(id) + '">Xóa</button>' +
+        '</div>' +
         '</div>' +
         '</div>';
     }).join('');
