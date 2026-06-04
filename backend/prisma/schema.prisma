@@ -39,6 +39,8 @@ model Story {
   isCompleted  Boolean            @default(false) @map("is_completed")
   coverKey     String?            @map("cover_key")
   audioKey     String?            @map("audio_key")
+  youtubeUrl   String?            @map("youtube_url")
+  youtubeId    String?            @map("youtube_id")
   createdAt    DateTime           @default(now()) @map("created_at")
   updatedAt    DateTime           @updatedAt @map("updated_at")
   deletedAt    DateTime?          @map("deleted_at")

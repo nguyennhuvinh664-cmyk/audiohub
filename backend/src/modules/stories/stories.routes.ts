@@ -76,6 +76,24 @@ function toUiAudioStatus(value: AudioStatus) {
   return 'Sẵn sàng';
 }
 
+function extractYoutubeId(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const direct = raw.match(/^[a-zA-Z0-9_-]{11}$/);
+  if (direct) return direct[0];
+  const patterns = [
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+  ];
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match && match[1]) return match[1];
+  }
+  return '';
+}
+
 const createSchema = z.object({
   title: z.string().min(1),
   author: z.string().min(1),
@@ -88,7 +106,9 @@ const createSchema = z.object({
   status: z.string().optional().default(''),
   isCompleted: z.boolean().optional().default(false),
   coverKey: z.string().nullable().optional(),
-  audioKey: z.string().nullable().optional()
+  audioKey: z.string().nullable().optional(),
+  youtubeUrl: z.string().nullable().optional(),
+  youtubeId: z.string().nullable().optional()
 });
 
 function parseTime(value: Date | string | null | undefined) {
@@ -124,6 +144,8 @@ async function toStoryResponse(story: any) {
     isCompleted: !!story.isCompleted,
     coverKey: story.coverKey,
     audioKey: story.audioKey,
+    youtubeUrl: story.youtubeUrl || '',
+    youtubeId: story.youtubeId || '',
     listenCount: metrics.listenCount,
     listenCount2d: metrics.listenCount2d,
     listenCount7d: metrics.listenCount7d,
@@ -149,7 +171,9 @@ const patchSchema = z.object({
   status: z.string().optional(),
   isCompleted: z.boolean().optional(),
   coverKey: z.string().nullable().optional(),
-  audioKey: z.string().nullable().optional()
+  audioKey: z.string().nullable().optional(),
+  youtubeUrl: z.string().nullable().optional(),
+  youtubeId: z.string().nullable().optional()
 });
 
 router.get('/public', async (_req, res) => {
@@ -192,6 +216,11 @@ router.post('/', async (req: AuthRequest, res) => {
     return ok(res, duplicatedRecent, 200);
   }
 
+  const youtubeUrl = body.youtubeUrl === undefined || body.youtubeUrl === null ? null : String(body.youtubeUrl).trim();
+  const youtubeId = body.youtubeId === undefined || body.youtubeId === null
+    ? extractYoutubeId(youtubeUrl || '') || null
+    : (extractYoutubeId(body.youtubeId) || extractYoutubeId(youtubeUrl || '') || null);
+
   const story = await prisma.story.create({
     data: {
       userId,
@@ -206,7 +235,9 @@ router.post('/', async (req: AuthRequest, res) => {
       status: parseCompletedStatus(body.status, ''),
       isCompleted: parseIsCompleted(body.isCompleted, String(body.status || ''), false),
       coverKey: body.coverKey === undefined ? null : body.coverKey,
-      audioKey: body.audioKey === undefined ? null : body.audioKey
+      audioKey: body.audioKey === undefined ? null : body.audioKey,
+      youtubeUrl,
+      youtubeId
     }
   });
 
@@ -251,6 +282,13 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
   const body = parsed.data;
 
+  const nextYoutubeUrl = body.youtubeUrl === undefined
+    ? existing.youtubeUrl
+    : (body.youtubeUrl === null ? null : String(body.youtubeUrl).trim());
+  const nextYoutubeId = body.youtubeId === undefined
+    ? (extractYoutubeId(nextYoutubeUrl || '') || existing.youtubeId)
+    : (body.youtubeId === null ? null : (extractYoutubeId(body.youtubeId) || extractYoutubeId(nextYoutubeUrl || '') || null));
+
   const updated = await prisma.story.update({
     where: { id: existing.id },
     data: {
@@ -267,7 +305,9 @@ router.patch('/:id', async (req: AuthRequest, res) => {
         ? parseIsCompleted(undefined, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted)
         : parseIsCompleted(body.isCompleted, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted),
       coverKey: body.coverKey === undefined ? existing.coverKey : body.coverKey,
-      audioKey: body.audioKey === undefined ? existing.audioKey : body.audioKey
+      audioKey: body.audioKey === undefined ? existing.audioKey : body.audioKey,
+      youtubeUrl: nextYoutubeUrl,
+      youtubeId: nextYoutubeId
     }
   });
 
@@ -320,6 +360,8 @@ router.delete('/:id', async (req: AuthRequest, res) => {
         visibility: toUiVisibility(story.visibility),
         audioStatus: toUiAudioStatus(story.audioStatus),
         coverKey: story.coverKey,
+        youtubeUrl: story.youtubeUrl,
+        youtubeId: story.youtubeId,
         createdAt: story.createdAt
       };
 

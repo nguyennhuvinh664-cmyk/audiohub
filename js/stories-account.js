@@ -1098,6 +1098,7 @@
         '<div class="story-edit-main">' +
         '<label>Tên truyện<input type="text" data-edit-title value="' + title + '" /></label>' +
         '<label>Tác giả<input type="text" data-edit-author value="' + escapeHtml(story.author || '') + '" /></label>' +
+        '<label>Link YouTube<input type="url" data-edit-youtube-url value="' + escapeHtml(story.youtubeUrl || '') + '" placeholder="https://www.youtube.com/watch?v=..." /></label>' +
         '<label>Hashtag<input type="text" data-edit-hashtags value="' + escapeHtml('#' + ((story.hashtags || []).join(' #'))) + '" /></label>' +
         '<label>Trạng thái hiển thị<select data-edit-visibility>' +
         '<option value="Riêng tư"' + (selectedVisibility === 'Riêng tư' ? ' selected' : '') + '>Riêng tư</option>' +
@@ -1278,6 +1279,34 @@
     });
   }
 
+  function extractYoutubeId(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+    var patterns = [
+      /[?&]v=([a-zA-Z0-9_-]{11})/,
+      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (var i = 0; i < patterns.length; i += 1) {
+      var match = raw.match(patterns[i]);
+      if (match && match[1]) return match[1];
+    }
+    return '';
+  }
+
+  function normalizeYoutubeUrl(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    var id = extractYoutubeId(raw);
+    return id ? ('https://www.youtube.com/watch?v=' + id) : raw;
+  }
+
+  function normalizeYoutubeId(value, fallbackUrl) {
+    return extractYoutubeId(value) || extractYoutubeId(fallbackUrl) || '';
+  }
+
   function handleEditSubmit(event) {
     var form = event.target && event.target.closest ? event.target.closest('[data-story-edit-form]') : null;
     if (!form) {
@@ -1296,12 +1325,20 @@
 
     var titleInput = form.querySelector('[data-edit-title]');
     var authorInput = form.querySelector('[data-edit-author]');
+    var youtubeInput = form.querySelector('[data-edit-youtube-url]');
     var visibilitySelect = form.querySelector('[data-edit-visibility]');
     var audioStatusSelect = form.querySelector('[data-edit-audio-status]');
     var readingTextInput = form.querySelector('[data-edit-reading-text]');
     var hashtagsInput = form.querySelector('[data-edit-hashtags]');
     var coverFileInput = form.querySelector('[data-edit-cover-file]');
     var coverFile = coverFileInput && coverFileInput.files ? coverFileInput.files[0] : null;
+    var normalizedYoutubeUrl = normalizeYoutubeUrl(youtubeInput ? String(youtubeInput.value || '').trim() : (story.youtubeUrl || ''));
+    var normalizedYoutubeId = normalizeYoutubeId('', normalizedYoutubeUrl);
+
+    if ((youtubeInput ? String(youtubeInput.value || '').trim() : '').trim() && !normalizedYoutubeId) {
+      setActionNote('Link YouTube không hợp lệ.', 'warning');
+      return;
+    }
 
     function saveStory(nextCoverKey) {
       window.AudioHubStories.upsert({
@@ -1310,6 +1347,8 @@
         author: authorInput ? String(authorInput.value || '').trim() : story.author,
         genre: story.genre,
         description: story.description,
+        youtubeUrl: normalizedYoutubeUrl,
+        youtubeId: normalizedYoutubeId,
         readingText: readingTextInput ? String(readingTextInput.value || '') : (story.readingText || ''),
         hashtags: hashtagsInput ? parseHashtags(hashtagsInput.value) : (story.hashtags || []),
         chapterTitle: story.chapterTitle,

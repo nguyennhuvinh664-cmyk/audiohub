@@ -575,6 +575,8 @@
     storyNode.setAttribute('data-author', String(story.author || ''));
     storyNode.setAttribute('data-genre', String(story.genre || ''));
     storyNode.setAttribute('data-cover-key', String(story.coverKey || ''));
+    storyNode.setAttribute('data-youtube-url', String(story.youtubeUrl || ''));
+    storyNode.setAttribute('data-youtube-id', String(story.youtubeId || ''));
     storyNode.setAttribute('href', '/html/story-detail.html?id=' + encodeURIComponent(String(story.id || '')));
 
     var titleNode = storyNode.querySelector('.detail-title');
@@ -881,7 +883,26 @@
 
   var audioUrlByNode = new WeakMap();
 
+  function extractYoutubeId(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+    var patterns = [
+      /[?&]v=([a-zA-Z0-9_-]{11})/,
+      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (var i = 0; i < patterns.length; i += 1) {
+      var match = raw.match(patterns[i]);
+      if (match && match[1]) return match[1];
+    }
+    return '';
+  }
+
   function bindStoryAudio(story) {
+    var videoWrap = document.querySelector('[data-story-video-wrap]');
+    var videoNode = document.querySelector('[data-story-video]');
     var audioNode = document.querySelector('[data-story-audio]');
     var noteNode = document.querySelector('[data-story-audio-note]');
     if (!audioNode) return;
@@ -906,6 +927,16 @@
     if (noteNode) {
       noteNode.textContent = '';
       noteNode.classList.add('is-hidden');
+    }
+    if (videoWrap) videoWrap.classList.add('is-hidden');
+    if (videoNode) videoNode.innerHTML = '';
+
+    var youtubeId = story ? String(story.youtubeId || extractYoutubeId(story.youtubeUrl)) : '';
+    if (youtubeId && videoWrap && videoNode) {
+      videoNode.innerHTML = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(youtubeId) + '" title="YouTube video player" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
+      videoWrap.classList.remove('is-hidden');
+      showNote('Đang phát video YouTube của truyện này.');
+      return;
     }
 
     var audioKey = story && story.audioKey ? String(story.audioKey) : '';

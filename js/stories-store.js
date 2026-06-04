@@ -114,6 +114,34 @@
     });
   }
 
+  function extractYoutubeId(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+    var patterns = [
+      /[?&]v=([a-zA-Z0-9_-]{11})/,
+      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (var i = 0; i < patterns.length; i += 1) {
+      var match = raw.match(patterns[i]);
+      if (match && match[1]) return match[1];
+    }
+    return '';
+  }
+
+  function normalizeYoutubeUrl(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    var id = extractYoutubeId(raw);
+    return id ? ('https://www.youtube.com/watch?v=' + id) : raw;
+  }
+
+  function normalizeYoutubeId(value, fallbackUrl) {
+    return extractYoutubeId(value) || extractYoutubeId(fallbackUrl) || '';
+  }
+
   function resolveAuthorFallback() {
     try {
       var raw = window.localStorage.getItem('audiohub-demo-auth');
@@ -137,6 +165,8 @@
 
   function normalizeStory(story) {
     var cleanedAuthor = sanitizeAuthor(story && story.author);
+    var youtubeUrl = normalizeYoutubeUrl(story && story.youtubeUrl);
+    var youtubeId = normalizeYoutubeId(story && story.youtubeId, youtubeUrl);
     return {
       id: story && story.id ? String(story.id) : makeId(),
       title: normalize(story && story.title, 'Truyện mới'),
@@ -151,6 +181,8 @@
       coverDataUrl: '',
       coverKey: story && story.coverKey ? String(story.coverKey) : '',
       audioKey: story && story.audioKey ? String(story.audioKey) : '',
+      youtubeUrl: youtubeUrl,
+      youtubeId: youtubeId,
       listenCount: normalizeNumber(story && story.listenCount),
       listenCount2d: normalizeNumber(story && story.listenCount2d),
       listenCount7d: normalizeNumber(story && story.listenCount7d),
@@ -255,7 +287,9 @@
       visibility: normalize(story && story.visibility, 'Riêng tư'),
       audioStatus: normalize(story && story.audioStatus, story && story.audioKey ? 'Sẵn sàng' : 'Chưa có'),
       coverKey: story && story.coverKey ? String(story.coverKey) : null,
-      audioKey: story && story.audioKey ? String(story.audioKey) : null
+      audioKey: story && story.audioKey ? String(story.audioKey) : null,
+      youtubeUrl: story && story.youtubeUrl ? normalizeYoutubeUrl(story.youtubeUrl) : null,
+      youtubeId: story && story.youtubeId ? normalizeYoutubeId(story.youtubeId, story && story.youtubeUrl) : normalizeYoutubeId('', story && story.youtubeUrl)
     };
   }
 
@@ -293,6 +327,8 @@
             audioStatus: localEntry.audioStatus,
             coverKey: localEntry.coverKey,
             audioKey: localEntry.audioKey,
+            youtubeUrl: localEntry.youtubeUrl,
+            youtubeId: localEntry.youtubeId,
             createdAt: created.createdAt || localEntry.createdAt,
             updatedAt: created.updatedAt || new Date().toISOString()
           });
@@ -400,6 +436,8 @@
     var merged = normalizeStory(remoteEntry);
     if (!merged.coverKey && localEntry.coverKey) merged.coverKey = String(localEntry.coverKey);
     if (!merged.audioKey && localEntry.audioKey) merged.audioKey = String(localEntry.audioKey);
+    if (!merged.youtubeUrl && localEntry.youtubeUrl) merged.youtubeUrl = String(localEntry.youtubeUrl);
+    if (!merged.youtubeId && localEntry.youtubeId) merged.youtubeId = String(localEntry.youtubeId);
     if (!merged.readingText && localEntry.readingText) merged.readingText = String(localEntry.readingText);
 
     var mergedAuthor = sanitizeAuthor(merged.author);

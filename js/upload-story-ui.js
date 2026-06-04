@@ -9,7 +9,51 @@
   var authorInput = document.querySelector('[data-upload-author]');
   var genreSelect = document.querySelector('[data-upload-genre]');
   var chapterInput = document.querySelector('[data-upload-chapter]');
+  var youtubeInput = document.querySelector('[data-upload-youtube-url]');
   var visibilitySelect = document.querySelector('[data-upload-visibility]');
+
+  function extractYoutubeId(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+    var patterns = [
+      /[?&]v=([a-zA-Z0-9_-]{11})/,
+      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (var i = 0; i < patterns.length; i += 1) {
+      var match = raw.match(patterns[i]);
+      if (match && match[1]) return match[1];
+    }
+    return '';
+  }
+
+  function normalizeYoutubeUrl(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    var id = extractYoutubeId(raw);
+    return id ? ('https://www.youtube.com/watch?v=' + id) : raw;
+  }
+
+  function normalizeYoutubeId(value, fallbackUrl) {
+    return extractYoutubeId(value) || extractYoutubeId(fallbackUrl) || '';
+  }
+
+  function validateYoutubeUrl(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return { ok: true, url: '', id: '' };
+    var normalizedUrl = normalizeYoutubeUrl(raw);
+    var id = normalizeYoutubeId('', normalizedUrl);
+    if (!id) {
+      return { ok: false, url: raw, id: '', message: 'Link YouTube không hợp lệ.' };
+    }
+    return { ok: true, url: normalizedUrl, id: id };
+  }
+
+  function getYoutubePayload() {
+    return validateYoutubeUrl(youtubeInput ? youtubeInput.value : '');
+  }
   var visibilityButtons = Array.prototype.slice.call(document.querySelectorAll('[data-upload-visibility-option]'));
   var previewTitle = document.querySelector('[data-upload-preview-title]');
   var previewMeta = document.querySelector('[data-upload-preview-meta]');
@@ -588,6 +632,9 @@
   if (chapterInput) {
     chapterInput.addEventListener('input', render);
   }
+  if (youtubeInput) {
+    youtubeInput.addEventListener('input', render);
+  }
   if (visibilitySelect) {
     visibilitySelect.addEventListener('change', function () {
       state.visibility = visibilitySelect.value;
@@ -738,6 +785,12 @@
       syncVisibilityButtons();
     }
 
+    var youtubePayload = getYoutubePayload();
+    if (!youtubePayload.ok) {
+      showBanner(youtubePayload.message || 'Link YouTube không hợp lệ.', false);
+      return;
+    }
+
     if (authorInput) {
       authorInput.value = resolvedAuthor;
       authorInput.readOnly = true;
@@ -780,6 +833,8 @@
         channelName: getEffectiveAuthorName(),
         genre: genreSelect ? genreSelect.value : '',
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
+        youtubeUrl: youtubePayload.url,
+        youtubeId: youtubePayload.id,
         visibility: state.visibility,
         coverKey: state.coverKey || '',
         audioKey: state.audioKey || '',

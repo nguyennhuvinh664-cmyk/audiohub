@@ -41,6 +41,28 @@
   position: relative;
 }
 
+.audio-video-embed {
+  width: 100%;
+}
+
+.audio-video-embed__frame {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+}
+
+.audio-video-embed__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .audio-native {
   width: 100%;
 }
@@ -50,11 +72,13 @@
   font-size: .85rem;
 }
 
+.audio-video-embed.is-hidden,
 .audio-native.is-hidden,
 .audio-native-note.is-hidden {
   display: none;
 }
 
+.audio-video-embed:not(.is-hidden),
 .audio-native:not(.is-hidden) {
   margin-top: 6px;
 }
