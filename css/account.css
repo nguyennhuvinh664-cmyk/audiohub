@@ -459,12 +459,148 @@
 
 .playlist-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245,158,11,.65) rgba(255,255,255,.08);
 }
 
 .playlist-detail {
   display: grid;
   gap: 12px;
+}
+
+.playlist-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.playlist-list::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.06);
+  border-radius: 999px;
+}
+
+.playlist-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(251,191,36,.9), rgba(249,115,22,.85));
+  border-radius: 999px;
+}
+
+.playlist-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(252,211,77,.95), rgba(251,146,60,.92));
+}
+
+.playlist-list > * {
+  min-width: 0;
+}
+
+.playlist-list .playlist-item {
+  min-height: 88px;
+  padding: 12px;
+}
+
+.playlist-list .playlist-actions {
+  gap: 8px;
+}
+
+.playlist-list .playlist-meta {
+  margin-top: 4px;
+}
+
+.playlist-list .playlist-status-trigger {
+  min-width: 112px;
+  height: 32px;
+}
+
+.playlist-list .playlist-btn {
+  min-height: 32px;
+  padding: 4px 10px;
+}
+
+.playlist-list .playlist-status-label {
+  font-size: .68rem;
+}
+
+.playlist-list .playlist-name {
+  font-size: .98rem;
+}
+
+.playlist-list .playlist-action-buttons {
+  gap: 6px;
+}
+
+.playlist-detail > .playlist-item {
+  min-height: auto;
+}
+
+.playlist-list .playlist-item,
+.playlist-detail .playlist-entry,
+.playlist-detail > .playlist-item {
+  overflow: hidden;
+}
+
+.playlist-list .playlist-item.is-active:hover {
+  border-color: rgba(251,191,36,.42);
+}
+
+.playlist-detail .playlist-entry:hover {
+  background: rgba(255,255,255,.03);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:hover {
+  background: rgba(255,255,255,.055);
+}
+
+.playlist-status-label {
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.playlist-list .playlist-item.is-active .playlist-status-trigger,
+.playlist-list .playlist-item.is-active .playlist-btn {
+  color: #fff;
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn {
+  background: rgba(255,255,255,.01);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:first-child {
+  border-color: rgba(59,130,246,.22);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:last-child {
+  border-color: rgba(255,255,255,.14);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:first-child:hover {
+  border-color: rgba(96,165,250,.38);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:last-child:hover {
+  border-color: rgba(248,250,252,.26);
+}
+
+.playlist-detail::-webkit-scrollbar-thumb {
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.playlist-detail::-webkit-scrollbar-track {
+  border: 1px solid rgba(255,255,255,.04);
+}
+
+@media (max-width: 980px) {
+  .playlist-list {
+    max-height: 320px;
+  }
+}
+
+@media (max-width: 620px) {
+  .playlist-list {
+    max-height: 280px;
+    padding-right: 4px;
+  }
 }
 
 .playlist-item,
