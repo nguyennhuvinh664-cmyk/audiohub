@@ -387,14 +387,6 @@
     var changed = filtered.favorites.length !== library.favorites.length
       || filtered.history.length !== library.history.length;
 
-    if (library.following && library.following.length) {
-      changed = true;
-    }
-
-    if (library.following) {
-      delete library.following;
-    }
-
     if (changed) {
       writeLibrary(filtered);
     }
@@ -404,11 +396,6 @@
 
     renderCollection('[data-library-history]', recentHistory, 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
     renderCollection('[data-library-favorites]', filtered.favorites, 'favorites', 'Chưa có truyện yêu thích nào được lưu.');
-
-    var followingRoot = document.querySelector('[data-library-following]');
-    if (followingRoot) {
-      followingRoot.innerHTML = '';
-    }
 
     hydrateAccountThumbs();
   }
