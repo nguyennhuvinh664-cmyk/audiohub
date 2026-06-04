@@ -274,7 +274,7 @@
         }
         showStatus('Đã lưu thay đổi hồ sơ.', 'success');
         window.setTimeout(function () {
-          window.location.href = 'html/account.html';
+          window.location.href = 'account.html';
         }, 600);
       })
       .catch(function (error) {
@@ -282,7 +282,7 @@
           clearAuthToken();
           showStatus('Đã lưu thay đổi hồ sơ.', 'success');
           window.setTimeout(function () {
-            window.location.href = 'html/account.html';
+            window.location.href = 'account.html';
           }, 600);
           return;
         }
