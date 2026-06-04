@@ -469,49 +469,50 @@
 
 .playlist-list .playlist-item {
   min-height: 0;
-  padding: 10px;
-  gap: 8px;
-}
-
-.playlist-list .playlist-actions {
+  padding: 8px 10px;
   gap: 6px;
 }
 
+.playlist-list .playlist-actions {
+  gap: 4px;
+  padding-top: 0;
+}
+
 .playlist-list .playlist-meta {
-  margin-top: 2px;
-  font-size: .88rem;
+  margin-top: 1px;
+  font-size: .84rem;
 }
 
 .playlist-list .playlist-status-wrap {
-  gap: 2px;
+  gap: 1px;
 }
 
 .playlist-list .playlist-status-trigger {
-  min-width: 96px;
-  height: 28px;
-  padding: 0 10px;
-  font-size: .78rem;
-  border-radius: 10px;
+  min-width: 88px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: .74rem;
+  border-radius: 9px;
 }
 
 .playlist-list .playlist-btn {
-  min-height: 28px;
-  padding: 3px 9px;
-  font-size: .76rem;
+  min-height: 24px;
+  padding: 2px 8px;
+  font-size: .72rem;
 }
 
 .playlist-list .playlist-status-label {
-  font-size: .62rem;
+  font-size: .58rem;
   margin-bottom: 0;
 }
 
 .playlist-list .playlist-name {
-  font-size: .92rem;
-  line-height: 1.25;
+  font-size: .88rem;
+  line-height: 1.15;
 }
 
 .playlist-list .playlist-action-buttons {
-  gap: 5px;
+  gap: 4px;
 }
 
 .playlist-list .playlist-item .playlist-main {
@@ -522,6 +523,46 @@
   padding-top: 0;
 }
 
+.playlist-list .playlist-item .playlist-status-trigger,
+.playlist-list .playlist-item .playlist-btn {
+  box-shadow: none;
+}
+
+.playlist-list .playlist-item .playlist-status-label {
+  letter-spacing: .03em;
+}
+
+.playlist-list .playlist-item .playlist-action-buttons {
+  margin-top: 0;
+}
+
+.playlist-list .playlist-item .playlist-main,
+.playlist-list .playlist-item .playlist-actions {
+  min-width: 0;
+}
+
+.playlist-list .playlist-item .playlist-btn,
+.playlist-list .playlist-item .playlist-status-trigger {
+  font-weight: 700;
+}
+
+.playlist-list .playlist-item {
+  border-radius: 14px;
+}
+
+.playlist-list .playlist-item .playlist-meta,
+.playlist-list .playlist-item .playlist-status-label {
+  opacity: .95;
+}
+
+.playlist-list .playlist-item .playlist-action-buttons,
+.playlist-list .playlist-item .playlist-status-wrap {
+  align-items: flex-start;
+}
+
+.playlist-list .playlist-item .playlist-actions {
+  align-content: start;
+}
 .playlist-list .playlist-item .playlist-status-trigger,
 .playlist-list .playlist-item .playlist-action-buttons {
   width: auto;
