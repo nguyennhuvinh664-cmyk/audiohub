@@ -469,50 +469,54 @@
 
 .playlist-list .playlist-item {
   min-height: 0;
-  padding: 8px 10px;
-  gap: 6px;
+  padding: 6px 8px;
+  gap: 4px;
+  border-radius: 12px;
 }
 
 .playlist-list .playlist-actions {
-  gap: 4px;
+  gap: 3px;
   padding-top: 0;
 }
 
 .playlist-list .playlist-meta {
-  margin-top: 1px;
-  font-size: .84rem;
+  margin-top: 0;
+  font-size: .78rem;
+  line-height: 1.1;
 }
 
 .playlist-list .playlist-status-wrap {
-  gap: 1px;
+  gap: 0;
 }
 
 .playlist-list .playlist-status-trigger {
-  min-width: 88px;
-  height: 24px;
-  padding: 0 8px;
-  font-size: .74rem;
-  border-radius: 9px;
+  min-width: 76px;
+  height: 20px;
+  padding: 0 7px;
+  font-size: .68rem;
+  border-radius: 8px;
 }
 
 .playlist-list .playlist-btn {
-  min-height: 24px;
-  padding: 2px 8px;
-  font-size: .72rem;
+  min-height: 20px;
+  padding: 1px 7px;
+  font-size: .66rem;
+  border-radius: 999px;
 }
 
 .playlist-list .playlist-status-label {
-  font-size: .58rem;
+  font-size: .5rem;
   margin-bottom: 0;
+  line-height: 1;
 }
 
 .playlist-list .playlist-name {
-  font-size: .88rem;
-  line-height: 1.15;
+  font-size: .82rem;
+  line-height: 1.05;
 }
 
 .playlist-list .playlist-action-buttons {
-  gap: 4px;
+  gap: 3px;
 }
 
 .playlist-list .playlist-item .playlist-main {
@@ -521,15 +525,17 @@
 
 .playlist-list .playlist-item .playlist-actions {
   padding-top: 0;
+  align-content: start;
 }
 
 .playlist-list .playlist-item .playlist-status-trigger,
 .playlist-list .playlist-item .playlist-btn {
   box-shadow: none;
+  font-weight: 700;
 }
 
 .playlist-list .playlist-item .playlist-status-label {
-  letter-spacing: .03em;
+  letter-spacing: .02em;
 }
 
 .playlist-list .playlist-item .playlist-action-buttons {
@@ -539,15 +545,6 @@
 .playlist-list .playlist-item .playlist-main,
 .playlist-list .playlist-item .playlist-actions {
   min-width: 0;
-}
-
-.playlist-list .playlist-item .playlist-btn,
-.playlist-list .playlist-item .playlist-status-trigger {
-  font-weight: 700;
-}
-
-.playlist-list .playlist-item {
-  border-radius: 14px;
 }
 
 .playlist-list .playlist-item .playlist-meta,
@@ -560,10 +557,27 @@
   align-items: flex-start;
 }
 
-.playlist-list .playlist-item .playlist-actions {
-  align-content: start;
-}
 .playlist-list .playlist-item .playlist-status-trigger,
+.playlist-list .playlist-item .playlist-action-buttons {
+  width: auto;
+}
+
+.playlist-list .playlist-item .playlist-main > * + * {
+  margin-top: 2px;
+}
+
+.playlist-list .playlist-item .playlist-actions > * + * {
+  margin-top: 1px;
+}
+
+.playlist-list .playlist-item .playlist-btn,
+.playlist-list .playlist-item .playlist-status-trigger {
+  line-height: 1;
+}
+
+.playlist-list .playlist-item .playlist-action-buttons .playlist-btn {
+  min-width: 0;
+}.playlist-list .playlist-item .playlist-status-trigger,
 .playlist-list .playlist-item .playlist-action-buttons {
   width: auto;
 }
