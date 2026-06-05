@@ -782,33 +782,83 @@
     }
   }
 
+  function buildStoryPayload(forcePublished) {
+    var youtubePayload = getYoutubePayload();
+    if (!youtubePayload.ok) {
+      return { ok: false, message: youtubePayload.message || 'Link YouTube không hợp lệ.' };
+    }
+
+    var resolvedAuthor = getEffectiveAuthorName();
+    if (!resolvedAuthor || resolvedAuthor === 'Tài khoản AudioHub') {
+      return { ok: false, message: 'Chưa lấy được tên tác giả từ tài khoản. Vui lòng đăng nhập lại.' };
+    }
+
+    return {
+      ok: true,
+      payload: {
+        title: titleInput ? titleInput.value.trim() : '',
+        description: descriptionInput ? descriptionInput.value.trim() : '',
+        author: resolvedAuthor,
+        channelName: resolvedAuthor,
+        genre: genreSelect ? genreSelect.value : '',
+        chapterTitle: chapterInput ? chapterInput.value.trim() : '',
+        youtubeUrl: youtubePayload.url,
+        youtubeId: youtubePayload.id,
+        visibility: forcePublished ? 'Công khai' : (state.visibility || 'Riêng tư'),
+        coverKey: state.coverKey || '',
+        audioKey: state.audioKey || '',
+        readingText: state.readingText || '',
+        hashtags: getCombinedHashtags()
+      }
+    };
+  }
+
+  function saveDraftStory(statusLabel) {
+    if (state.submitting) {
+      return;
+    }
+
+    var built = buildStoryPayload(false);
+    if (!built.ok) {
+      showBanner(built.message, false);
+      return;
+    }
+
+    if (!window.AudioHubStories) {
+      showBanner('Chưa thể lưu vì thiếu stories-store.js.', false);
+      return;
+    }
+
+    if (authorInput) {
+      authorInput.value = built.payload.author;
+      authorInput.readOnly = true;
+    }
+
+    var story = null;
+    try {
+      story = window.AudioHubStories.upsert(built.payload);
+    } catch (error) {
+      showBanner('Không thể lưu nháp demo. Trình duyệt có thể đang đầy bộ nhớ (localStorage).', false);
+      return;
+    }
+
+    showBanner(statusLabel + ' Đã lưu vào danh sách demo.', false);
+    return story;
+  }
+
   function saveStory(statusLabel, published) {
     if (state.submitting) {
       return;
     }
 
-    var resolvedAuthor = getEffectiveAuthorName();
-    if (!resolvedAuthor || resolvedAuthor === 'Tài khoản AudioHub') {
-      showBanner('Chưa lấy được tên tác giả từ tài khoản. Vui lòng đăng nhập lại.', false);
-      return;
-    }
-
-    if (published) {
-      state.visibility = 'Công khai';
-      if (visibilitySelect) {
-        visibilitySelect.value = 'Công khai';
-      }
-      syncVisibilityButtons();
-    }
-
-    var youtubePayload = getYoutubePayload();
-    if (!youtubePayload.ok) {
-      showBanner(youtubePayload.message || 'Link YouTube không hợp lệ.', false);
+    var built = buildStoryPayload(!!published);
+    if (!built.ok) {
+      showBanner(built.message, false);
       return;
     }
 
     if (authorInput) {
-      authorInput.value = resolvedAuthor;
+      authorInput.value = built.payload.author;
       authorInput.readOnly = true;
     }
 
@@ -835,39 +885,20 @@
     } catch (error) {
     }
 
-    if (!window.AudioHubStories) {
-      showBanner('Chưa thể lưu vì thiếu stories-store.js.', false);
-      return;
-    }
-
     var story = null;
     try {
-      story = window.AudioHubStories.upsert({
-        title: titleInput ? titleInput.value.trim() : '',
-        description: descriptionInput ? descriptionInput.value.trim() : '',
-        author: getEffectiveAuthorName(),
-        channelName: getEffectiveAuthorName(),
-        genre: genreSelect ? genreSelect.value : '',
-        chapterTitle: chapterInput ? chapterInput.value.trim() : '',
-        youtubeUrl: youtubePayload.url,
-        youtubeId: youtubePayload.id,
-        visibility: state.visibility,
-        coverKey: state.coverKey || '',
-        audioKey: state.audioKey || '',
-        readingText: state.readingText || '',
-        hashtags: getCombinedHashtags()
-      });
+      story = window.AudioHubStories.upsert(built.payload);
     } catch (error) {
       showBanner('Không thể lưu truyện demo. Trình duyệt có thể đang đầy bộ nhớ (localStorage). Hãy thử xoá dữ liệu site hoặc dùng file nhỏ hơn.', false);
       return;
     }
 
-    if (!state.coverKey) {
+    if (published && !state.coverKey) {
       showBanner('Ảnh bìa chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
       return;
     }
 
-    if (!state.audioKey) {
+    if (published && !state.audioKey) {
       showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
       return;
     }
@@ -883,6 +914,14 @@
     button.addEventListener('click', function () {
       if (button.hasAttribute('data-upload-preview')) {
         openPreviewCard();
+        return;
+      }
+      if (button.hasAttribute('data-upload-draft')) {
+        saveDraftStory('Bản nháp giao diện');
+        showBanner('Đã lưu nháp trong trình duyệt. Bạn có thể tiếp tục chỉnh sửa sau.', false);
+        if (banner) {
+          banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         return;
       }
       saveStory('Bản nháp giao diện', false);
