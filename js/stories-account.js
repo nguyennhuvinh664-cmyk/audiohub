@@ -394,7 +394,7 @@
     params.set('playlistId', context.playlistId);
     params.set('chapter', context.chapterLabel);
     params.set('chapterIndex', String(context.chapterIndex));
-    window.location.href = 'story-detail.html?' + params.toString();
+    window.location.href = '/story-detail.html?' + params.toString();
   }
 
   function renderPlaylists() {
