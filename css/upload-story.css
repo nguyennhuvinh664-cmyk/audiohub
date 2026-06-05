@@ -269,6 +269,22 @@
   color: var(--t3);
 }
 
+.upload-preview {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(255,255,255,.03);
+  display: grid;
+  grid-template-columns: 168px 1fr;
+  min-height: 180px;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+
+.upload-preview.is-highlighted {
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, .45), 0 0 0 10px rgba(249, 115, 22, .12);
+  transform: translateY(-2px);
+}
+
 .upload-preview__cover {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -335,6 +351,14 @@
   border: 1px solid rgba(255,255,255,.08);
   color: var(--t1);
   font-weight: 800;
+}
+
+.upload-banner {
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.upload-banner.is-published {
+  color: #fde68a;
 }
 
 .upload-audio-preview {

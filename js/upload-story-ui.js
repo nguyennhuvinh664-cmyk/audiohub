@@ -503,6 +503,22 @@
     banner.classList.toggle('is-published', !!published);
   }
 
+  function openPreviewCard() {
+    var previewCard = document.querySelector('[data-upload-preview-card]');
+    if (!previewCard) {
+      showBanner('Không tìm thấy khung xem trước.', false);
+      return;
+    }
+
+    previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    previewCard.classList.add('is-highlighted');
+    window.setTimeout(function () {
+      previewCard.classList.remove('is-highlighted');
+    }, 1800);
+    render();
+    showBanner('Đang hiển thị bản xem trước bên dưới.', false);
+  }
+
   function setCoverPreview(file) {
     if (!file || !coverZone || !previewCover) {
       return;
@@ -865,13 +881,24 @@
 
   draftButtons.forEach(function (button) {
     button.addEventListener('click', function () {
+      if (button.hasAttribute('data-upload-preview')) {
+        openPreviewCard();
+        return;
+      }
       saveStory('Bản nháp giao diện', false);
+      showBanner('Đã lưu nháp trong trình duyệt. Bạn có thể tiếp tục chỉnh sửa sau.', false);
+      if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     });
   });
 
   if (publishButton) {
     publishButton.addEventListener('click', function () {
       saveStory('Truyện demo đã được đưa vào trạng thái sẵn sàng xuất bản.', true);
+      if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     });
   }
 
