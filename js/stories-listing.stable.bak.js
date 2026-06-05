@@ -21,7 +21,7 @@
     var title = escapeHtml(story.title);
     var author = escapeHtml(story.author);
     var genre = escapeHtml(story.genre);
-    var href = 'story-detail.html?id=' + encodeURIComponent(story.id);
+    var href = '/story-detail.html?id=' + encodeURIComponent(story.id);
 
     var note = story.visibility ? ('Visibility: ' + story.visibility) : 'Truyện demo từ AudioHub Studio.';
 
