@@ -586,7 +586,7 @@
     }
 
     var href = String(card.getAttribute('href') || '').trim();
-    if (!href || href === 'story-detail.html' || href === 'story-detail.html' || (href.indexOf('/story-detail.html?id=') < 0 && href.indexOf('/story-detail.html?id=') < 0)) {
+    if (!href || href === 'story-detail.html' || (href.indexOf('/story-detail.html?id=') < 0 && href.indexOf('/story-detail.html?id=') < 0)) {
       var storyId = String(card.getAttribute('data-story-id') || '').trim();
       if (storyId) {
         card.setAttribute('href', '/story-detail.html?id=' + encodeURIComponent(storyId));
