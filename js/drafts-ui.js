@@ -64,7 +64,7 @@
       + '</div>'
       + '<div class="draft-card__actions">'
       + '<a class="btn btn--outline" href="' + storyHref(story) + '">Mở nháp</a>'
-      + '<a class="btn btn--primary" href="upload-story.html">Sửa tiếp</a>'
+      + '<a class="btn btn--primary" href="upload-story.html?id=' + encodeURIComponent(String(story.id || '')) + '">Sửa tiếp</a>'
       + '</div>'
       + '</div>'
       + '</article>';

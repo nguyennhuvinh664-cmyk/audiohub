@@ -336,34 +336,43 @@
     return latest;
   }
 
-  function deriveRecentListensFromStories(limit) {
+  function deriveHistoryEventsFromStories(limit) {
     if (!window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') {
       return [];
     }
 
     var stories = window.AudioHubStories.read() || [];
-    var items = stories.map(function (story) {
-      var latest = parseListenTimestamp(story);
-      if (!latest) return null;
+    var items = [];
+
+    stories.forEach(function (story) {
+      var history = Array.isArray(story && story.listenHistory) ? story.listenHistory : [];
       var id = String(story && story.id || '').trim();
-      if (!id) return null;
-      return {
-        key: 'story::' + id,
-        title: String(story.title || 'AudioHub Story'),
-        author: String(story.author || 'AudioHub'),
-        genre: String(story.genre || 'Truyện audio'),
-        progress: 'Đang nghe gần đây',
-        note: 'Tự động từ lịch sử phát',
-        href: '/story-detail.html?id=' + encodeURIComponent(id),
-        coverKey: story && story.coverKey ? String(story.coverKey) : '',
-        savedAt: new Date(latest).toISOString(),
-        listenAt: latest
-      };
-    }).filter(Boolean).sort(function (a, b) {
+      if (!id || !history.length) return;
+
+      history.forEach(function (value, index) {
+        var time = Number(value);
+        if (isNaN(time) || time <= 0) return;
+        items.push({
+          key: 'story::' + id + '::' + time + '::' + index,
+          title: String(story.title || 'AudioHub Story'),
+          author: String(story.author || 'AudioHub'),
+          genre: String(story.genre || 'Truyện audio'),
+          progress: 'Đã nghe',
+          note: 'Tự động từ lịch sử phát',
+          href: '/story-detail.html?id=' + encodeURIComponent(id),
+          coverKey: story && story.coverKey ? String(story.coverKey) : '',
+          savedAt: new Date(time).toISOString(),
+          listenAt: time
+        });
+      });
+    });
+
+    items.sort(function (a, b) {
       return Number(b.listenAt || 0) - Number(a.listenAt || 0);
     });
 
-    return items.slice(0, limit || 36).map(function (item) {
+    var out = typeof limit === 'number' ? items.slice(0, limit) : items;
+    return out.map(function (item) {
       delete item.listenAt;
       return item;
     });
@@ -382,7 +391,9 @@
       favorites: filterExistingItems(library.favorites, existingIds),
       history: filterExistingItems(library.history, existingIds)
     };
-    var recentHistory = deriveRecentListensFromStories(36);
+    var recentHistory = deriveHistoryEventsFromStories();
+    var totalHistoryCount = deriveHistoryEventsFromStories().length;
+    var totalStoryCount = (window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? (window.AudioHubStories.read() || []).length : 0);
 
     var changed = filtered.favorites.length !== library.favorites.length
       || filtered.history.length !== library.history.length;
@@ -392,7 +403,8 @@
     }
 
     renderStat('favorites', filtered.favorites.length);
-    renderStat('history', recentHistory.length);
+    renderStat('history', totalHistoryCount);
+    renderStat('stories', totalStoryCount);
 
     renderCollection('[data-library-history]', recentHistory, 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
     renderCollection('[data-library-favorites]', filtered.favorites, 'favorites', 'Chưa có truyện yêu thích nào được lưu.');
