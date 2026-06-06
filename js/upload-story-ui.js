@@ -269,6 +269,12 @@
     metadata: document.querySelector('[data-check-item="metadata"]'),
     media: document.querySelector('[data-check-item="media"]')
   };
+  var editStoryId = '';
+  try {
+    editStoryId = new window.URL(window.location.href).searchParams.get('id') || '';
+  } catch (error) {
+    editStoryId = '';
+  }
 
   var defaultCoverBackground = previewCover ? window.getComputedStyle(previewCover).backgroundImage : '';
   var state = {
@@ -502,6 +508,78 @@
     banner.classList.remove('is-hidden');
     banner.classList.toggle('is-published', !!published);
   }
+
+  function setFieldValue(node, value) {
+    if (!node) return;
+    node.value = value || '';
+  }
+
+  function setDraftContext(story) {
+    if (!story || !story.id) {
+      return;
+    }
+    editStoryId = String(story.id);
+    if (root) {
+      root.setAttribute('data-editing-draft', editStoryId);
+    }
+    if (banner) {
+      banner.textContent = 'Đang chỉnh sửa bản nháp #' + editStoryId;
+      banner.classList.remove('is-hidden');
+      banner.classList.remove('is-published');
+    }
+  }
+
+  function hydrateDraft(story) {
+    if (!story) {
+      return false;
+    }
+
+    setDraftContext(story);
+    setFieldValue(titleInput, story.title);
+    setFieldValue(descriptionInput, story.description);
+    setFieldValue(genreSelect, story.genre);
+    setFieldValue(chapterInput, story.chapterTitle);
+    setFieldValue(youtubeInput, story.youtubeUrl);
+    setFieldValue(visibilitySelect, story.visibility || 'Riêng tư');
+    state.visibility = visibilitySelect && visibilitySelect.value ? visibilitySelect.value : (story.visibility || 'Riêng tư');
+    state.coverKey = story.coverKey || '';
+    state.audioKey = story.audioKey || '';
+    state.readingText = story.readingText || '';
+    state.coverReady = !!story.coverKey;
+    state.audioReady = !!story.audioKey;
+
+    if (story.coverKey) {
+      state.coverName = 'Ảnh bìa đã lưu';
+      if (coverLabel) coverLabel.textContent = 'Ảnh bìa đã lưu trong bản nháp';
+      if (coverZone) coverZone.classList.add('is-ready');
+    }
+
+    if (story.audioKey) {
+      state.audioName = 'Audio đã lưu';
+      if (audioLabel) audioLabel.textContent = 'Audio đã lưu trong bản nháp';
+      if (audioZone) audioZone.classList.add('is-ready');
+      setAudioPreviewDisabled(false);
+    }
+
+    render();
+    return true;
+  }
+
+  function loadDraftFromQuery() {
+    if (!editStoryId || !window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') {
+      return false;
+    }
+    var story = window.AudioHubStories.getById(editStoryId);
+    if (!story) {
+      return false;
+    }
+    return hydrateDraft(story);
+  }
+
+  window.addEventListener('audiohub:stories-updated', function () {
+    if (!editStoryId) return;
+    loadDraftFromQuery();
+  });
 
   function openPreviewCard() {
     var previewCard = document.querySelector('[data-upload-preview-card]');
@@ -784,6 +862,18 @@
 
   function buildStoryPayload(forcePublished) {
     var youtubePayload = getYoutubePayload();
+    var currentStoryId = editStoryId || '';
+    if (!currentStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+      var previewStory = null;
+      try {
+        var idFromUrl = new window.URL(window.location.href).searchParams.get('id') || '';
+        if (idFromUrl) {
+          previewStory = window.AudioHubStories.getById(idFromUrl);
+          currentStoryId = previewStory && previewStory.id ? String(previewStory.id) : '';
+        }
+      } catch (error) {
+      }
+    }
     if (!youtubePayload.ok) {
       return { ok: false, message: youtubePayload.message || 'Link YouTube không hợp lệ.' };
     }
@@ -796,6 +886,7 @@
     return {
       ok: true,
       payload: {
+        id: currentStoryId || undefined,
         title: titleInput ? titleInput.value.trim() : '',
         description: descriptionInput ? descriptionInput.value.trim() : '',
         author: resolvedAuthor,
@@ -941,5 +1032,6 @@
     });
   }
 
+  loadDraftFromQuery();
   render();
 })();
