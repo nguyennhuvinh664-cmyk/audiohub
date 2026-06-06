@@ -204,6 +204,27 @@
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.08);
   background: rgba(255,255,255,.03);
+  flex-wrap: wrap;
+}
+
+.account-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.account-feature-card--wide {
+  grid-column: 1 / -1;
+}
+
+.account-feature-card > :last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 980px) {
+  .account-feature-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .account-tab {

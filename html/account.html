@@ -94,6 +94,7 @@
               <div class="account-tabs" role="tablist" aria-label="Nội dung của tôi">
                 <button type="button" class="account-tab is-active" data-content-tab="published" aria-selected="true">Đã đăng</button>
                 <button type="button" class="account-tab" data-content-tab="draft" aria-selected="false">Bản nháp</button>
+                <button type="button" class="account-tab" data-content-tab="playlist" aria-selected="false">Danh sách phát</button>
               </div>
             </div>
             <div class="account-content-panels">
@@ -105,6 +106,19 @@
                 <div class="library-empty is-hidden" data-stories-drafts-note></div>
                 <div data-stories-drafts></div>
               </section>
+              <section class="account-content-panel" data-content-panel="playlist" hidden>
+                <div class="library-empty is-hidden" data-playlist-note></div>
+                <div class="playlist-root" data-playlist-root>
+                  <div class="playlist-create">
+                    <input type="text" placeholder="Tên playlist mới" data-playlist-create-name />
+                    <button type="button" class="btn btn--outline" data-playlist-create>Tạo playlist</button>
+                  </div>
+                  <div class="playlist-layout">
+                    <div class="playlist-list" data-playlist-list></div>
+                    <div class="playlist-detail" data-playlist-detail></div>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
 
@@ -113,29 +127,6 @@
             <p>Audio demo đã xoá sẽ được giữ lại tối đa 7 ngày trước khi tự dọn.</p>
             <div class="library-empty is-hidden" data-audio-trash-note></div>
             <div data-audio-trash></div>
-          </div>
-
-          <div class="account-panel account-card">
-            <h2>Thùng rác audio</h2>
-            <p>Audio demo đã xoá sẽ được giữ lại tối đa 7 ngày trước khi tự dọn.</p>
-            <div class="library-empty is-hidden" data-audio-trash-note></div>
-            <div data-audio-trash></div>
-          </div>
-
-          <div class="account-panel account-card">
-            <h2>Danh sách phát</h2>
-            <p>Tạo nhiều playlist cá nhân và mở nhanh đúng chương trên trang chi tiết truyện.</p>
-            <div class="library-empty is-hidden" data-playlist-note></div>
-            <div class="playlist-root" data-playlist-root>
-              <div class="playlist-create">
-                <input type="text" placeholder="Tên playlist mới" data-playlist-create-name />
-                <button type="button" class="btn btn--outline" data-playlist-create>Tạo playlist</button>
-              </div>
-              <div class="playlist-layout">
-                <div class="playlist-list" data-playlist-list></div>
-                <div class="playlist-detail" data-playlist-detail></div>
-              </div>
-            </div>
           </div>
 
           <div class="account-panel account-card">

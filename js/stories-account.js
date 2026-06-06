@@ -224,6 +224,10 @@
       storiesDraftsNote.classList.toggle('is-hidden', !!drafts.length);
       storiesDraftsNote.textContent = drafts.length ? '' : 'Chưa có nháp nào.';
     }
+    if (document.querySelector('[data-content-tab="playlist"]')) {
+      var playlistTab = document.querySelector('[data-content-tab="playlist"]');
+      playlistTab.textContent = 'Danh sách phát';
+    }
   }
 
   function bindCollectionActions() {
@@ -367,26 +371,35 @@
 
   function setContentPanel(name) {
     var next = String(name || 'published');
+    var found = false;
     contentButtons.forEach(function (button) {
       var active = String(button.getAttribute('data-content-tab') || '') === next;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-selected', active ? 'true' : 'false');
+      if (active) found = true;
     });
     contentPanels.forEach(function (panel) {
       var active = String(panel.getAttribute('data-content-panel') || '') === next;
       panel.classList.toggle('is-active', active);
       panel.hidden = !active;
     });
+    if (found) writeTab(next);
   }
 
   function initContentTabs() {
     if (!contentButtons.length || !contentPanels.length) return;
+    var initial = readTab();
+    if (!contentButtons.some(function (button) {
+      return String(button.getAttribute('data-content-tab') || '') === initial;
+    })) {
+      initial = 'published';
+    }
     contentButtons.forEach(function (button) {
       button.addEventListener('click', function () {
         setContentPanel(button.getAttribute('data-content-tab'));
       });
     });
-    setContentPanel('published');
+    setContentPanel(initial);
   }
 
   function refreshAll() {
