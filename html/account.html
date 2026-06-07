@@ -90,14 +90,14 @@
             <section class="account-mainpanel is-active" data-main-panel="history">
               <div class="account-panel account-card">
                 <h2>Nghe gần đây</h2>
-                <div data-library-history></div>
+                <div class="account-scroll-list" data-library-history></div>
               </div>
             </section>
 
             <section class="account-mainpanel" data-main-panel="favorites" hidden>
               <div class="account-panel account-card">
                 <h2>Tủ truyện yêu thích</h2>
-                <div data-library-favorites></div>
+                <div class="account-scroll-list" data-library-favorites></div>
               </div>
             </section>
 
@@ -108,20 +108,20 @@
                     <h2>Nội dung của tôi</h2>
                     <p>Danh sách truyện bạn đã tạo ở chế độ demo (lưu trong trình duyệt). Sau này backend chỉ cần nối dữ liệu thật.</p>
                   </div>
-                  <div class="account-tabs" role="tablist" aria-label="Nội dung của tôi">
-                    <button type="button" class="account-tab is-active" data-content-tab="published" aria-selected="true">Đã đăng</button>
-                    <button type="button" class="account-tab" data-content-tab="draft" aria-selected="false">Bản nháp</button>
-                    <button type="button" class="account-tab" data-content-tab="playlist" aria-selected="false">Danh sách phát</button>
-                  </div>
+                </div>
+                <div class="account-tabs account-tabs--row" role="tablist" aria-label="Nội dung của tôi">
+                  <button type="button" class="account-tab is-active" data-content-tab="published" aria-selected="true">Đã đăng</button>
+                  <button type="button" class="account-tab" data-content-tab="draft" aria-selected="false">Bản nháp</button>
+                  <button type="button" class="account-tab" data-content-tab="playlist" aria-selected="false">Danh sách phát</button>
                 </div>
                 <div class="account-content-panels">
                   <section class="account-content-panel is-active" data-content-panel="published">
                     <div class="library-empty is-hidden" data-stories-published-note></div>
-                    <div data-stories-published></div>
+                    <div class="account-scroll-list" data-stories-published></div>
                   </section>
                   <section class="account-content-panel" data-content-panel="draft" hidden>
                     <div class="library-empty is-hidden" data-stories-drafts-note></div>
-                    <div data-stories-drafts></div>
+                    <div class="account-scroll-list" data-stories-drafts></div>
                   </section>
                   <section class="account-content-panel" data-content-panel="playlist" hidden>
                     <div class="library-empty is-hidden" data-playlist-note></div>
@@ -139,13 +139,6 @@
                 </div>
               </div>
             </section>
-          </div>
-
-          <div class="account-panel account-card">
-            <h2>Thùng rác audio</h2>
-            <p>Audio demo đã xoá sẽ được giữ lại tối đa 7 ngày trước khi tự dọn.</p>
-            <div class="library-empty is-hidden" data-audio-trash-note></div>
-            <div data-audio-trash></div>
           </div>
 
           <div class="account-panel account-card">
