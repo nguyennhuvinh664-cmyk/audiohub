@@ -577,6 +577,19 @@
   renderAccountLibrary();
   syncFavoriteButtons();
   syncDetailActions();
+
+  window.hydrateLibraryThumbs = hydrateLibraryThumbs;
+  window.renderAccountLibrary = renderAccountLibrary;
+
+  window.addEventListener('audiohub:stories-updated', function () {
+    renderAccountLibrary();
+  });
+
+  setInterval(function () {
+    if (document.body.classList.contains('account-page')) {
+      renderAccountLibrary();
+    }
+  }, 5000);
   bindFavoriteButtons();
   bindDetailActions();
 })();

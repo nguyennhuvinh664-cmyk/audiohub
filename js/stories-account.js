@@ -274,6 +274,10 @@
       if (key === 'history') countNode.textContent = String(stats.history);
       if (key === 'favorites') countNode.textContent = String(stats.favorites);
     });
+
+    if (typeof window.renderAccountLibrary === 'function') {
+      window.renderAccountLibrary();
+    }
   }
 
   function removeFromCollection(type, key) {
@@ -462,7 +466,21 @@
     if (!root) return;
     if (typeof window.hydrateLibraryThumbs === 'function') {
       window.hydrateLibraryThumbs(root);
+      return;
     }
+    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+    root.querySelectorAll('[data-library-thumb]').forEach(function (node) {
+      var coverKey = String(node.getAttribute('data-library-cover-key') || '').trim();
+      if (!coverKey) return;
+      window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+        if (!blob) return;
+        var url = URL.createObjectURL(blob);
+        node.style.backgroundImage = 'url("' + url + '")';
+        node.style.backgroundSize = 'cover';
+        node.style.backgroundPosition = 'center';
+        node.classList.add('is-cover-ready');
+      }).catch(function () {});
+    });
   }
 
   function deriveThumbStyle(item) {
