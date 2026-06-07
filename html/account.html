@@ -69,57 +69,76 @@
             <p class="account-subtitle">Trang tài khoản này tổng hợp nhanh các bộ đang nghe, truyện đã lưu, lịch sử gần đây và các thao tác cá nhân cơ bản để trải nghiệm AudioHub liền mạch hơn.</p>
           </div>
 
-          <div class="account-grid">
-            <div class="account-panel account-stat"><strong data-library-stat="favorites">0</strong><span>Truyện đã lưu vào tủ cá nhân.</span></div>
-            <div class="account-panel account-stat"><strong data-library-stat="history">0</strong><span>Lượt nghe hoặc tiến độ đã lưu gần đây.</span></div>
-            <div class="account-panel account-stat"><strong data-library-stat="history">36</strong><span>Tối đa 36 truyện nghe gần đây sẽ được lưu tự động.</span></div>
+          <!-- 3 nav cards -->
+          <div class="account-navcards" role="tablist" aria-label="Khu vực tài khoản">
+            <button type="button" class="account-navcard is-active" data-main-tab="history" aria-selected="true">
+              <i class="fa-solid fa-headphones"></i>
+              <span>Nghe gần đây</span>
+            </button>
+            <button type="button" class="account-navcard" data-main-tab="favorites" aria-selected="false">
+              <i class="fa-solid fa-heart"></i>
+              <span>Yêu thích</span>
+            </button>
+            <button type="button" class="account-navcard" data-main-tab="mycontent" aria-selected="false">
+              <i class="fa-solid fa-book-open"></i>
+              <span>Nội dung của bạn</span>
+            </button>
           </div>
 
-          <div class="account-panel account-card">
-            <h2>Nghe gần đây</h2>
-            <div data-library-history></div>
-          </div>
-
-          <div class="account-panel account-card">
-            <h2>Tủ truyện yêu thích</h2>
-            <div data-library-favorites></div>
-          </div>
-
-          <div class="account-panel account-card">
-            <div class="account-card__header">
-              <div>
-                <h2>Nội dung của tôi</h2>
-                <p>Danh sách truyện bạn đã tạo ở chế độ demo (lưu trong trình duyệt). Sau này backend chỉ cần nối dữ liệu thật.</p>
+          <!-- main panels -->
+          <div class="account-mainpanels">
+            <section class="account-mainpanel is-active" data-main-panel="history">
+              <div class="account-panel account-card">
+                <h2>Nghe gần đây</h2>
+                <div data-library-history></div>
               </div>
-              <div class="account-tabs" role="tablist" aria-label="Nội dung của tôi">
-                <button type="button" class="account-tab is-active" data-content-tab="published" aria-selected="true">Đã đăng</button>
-                <button type="button" class="account-tab" data-content-tab="draft" aria-selected="false">Bản nháp</button>
-                <button type="button" class="account-tab" data-content-tab="playlist" aria-selected="false">Danh sách phát</button>
+            </section>
+
+            <section class="account-mainpanel" data-main-panel="favorites" hidden>
+              <div class="account-panel account-card">
+                <h2>Tủ truyện yêu thích</h2>
+                <div data-library-favorites></div>
               </div>
-            </div>
-            <div class="account-content-panels">
-              <section class="account-content-panel is-active" data-content-panel="published">
-                <div class="library-empty is-hidden" data-stories-published-note></div>
-                <div data-stories-published></div>
-              </section>
-              <section class="account-content-panel" data-content-panel="draft" hidden>
-                <div class="library-empty is-hidden" data-stories-drafts-note></div>
-                <div data-stories-drafts></div>
-              </section>
-              <section class="account-content-panel" data-content-panel="playlist" hidden>
-                <div class="library-empty is-hidden" data-playlist-note></div>
-                <div class="playlist-root" data-playlist-root>
-                  <div class="playlist-create">
-                    <input type="text" placeholder="Tên playlist mới" data-playlist-create-name />
-                    <button type="button" class="btn btn--outline" data-playlist-create>Tạo playlist</button>
+            </section>
+
+            <section class="account-mainpanel" data-main-panel="mycontent" hidden>
+              <div class="account-panel account-card">
+                <div class="account-card__header">
+                  <div>
+                    <h2>Nội dung của tôi</h2>
+                    <p>Danh sách truyện bạn đã tạo ở chế độ demo (lưu trong trình duyệt). Sau này backend chỉ cần nối dữ liệu thật.</p>
                   </div>
-                  <div class="playlist-layout">
-                    <div class="playlist-list" data-playlist-list></div>
-                    <div class="playlist-detail" data-playlist-detail></div>
+                  <div class="account-tabs" role="tablist" aria-label="Nội dung của tôi">
+                    <button type="button" class="account-tab is-active" data-content-tab="published" aria-selected="true">Đã đăng</button>
+                    <button type="button" class="account-tab" data-content-tab="draft" aria-selected="false">Bản nháp</button>
+                    <button type="button" class="account-tab" data-content-tab="playlist" aria-selected="false">Danh sách phát</button>
                   </div>
                 </div>
-              </section>
-            </div>
+                <div class="account-content-panels">
+                  <section class="account-content-panel is-active" data-content-panel="published">
+                    <div class="library-empty is-hidden" data-stories-published-note></div>
+                    <div data-stories-published></div>
+                  </section>
+                  <section class="account-content-panel" data-content-panel="draft" hidden>
+                    <div class="library-empty is-hidden" data-stories-drafts-note></div>
+                    <div data-stories-drafts></div>
+                  </section>
+                  <section class="account-content-panel" data-content-panel="playlist" hidden>
+                    <div class="library-empty is-hidden" data-playlist-note></div>
+                    <div class="playlist-root" data-playlist-root>
+                      <div class="playlist-create">
+                        <input type="text" placeholder="Tên playlist mới" data-playlist-create-name />
+                        <button type="button" class="btn btn--outline" data-playlist-create>Tạo playlist</button>
+                      </div>
+                      <div class="playlist-layout">
+                        <div class="playlist-list" data-playlist-list></div>
+                        <div class="playlist-detail" data-playlist-detail></div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </section>
           </div>
 
           <div class="account-panel account-card">

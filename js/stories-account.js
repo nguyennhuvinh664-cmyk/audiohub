@@ -15,6 +15,9 @@
   var avatarEditButton = document.querySelector('[data-account-avatar-edit]');
   var avatarInput = document.querySelector('[data-account-avatar-input]');
 
+  var mainTabButtons = Array.prototype.slice.call(document.querySelectorAll('[data-main-tab]'));
+  var mainTabPanels = Array.prototype.slice.call(document.querySelectorAll('[data-main-panel]'));
+
   var storiesPublished = document.querySelector('[data-stories-published]');
   var storiesDrafts = document.querySelector('[data-stories-drafts]');
   var storiesPublishedNote = document.querySelector('[data-stories-published-note]');
@@ -402,6 +405,30 @@
     setContentPanel(initial);
   }
 
+  function setMainTab(name) {
+    var next = String(name || 'history');
+    mainTabButtons.forEach(function (button) {
+      var active = String(button.getAttribute('data-main-tab') || '') === next;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    mainTabPanels.forEach(function (panel) {
+      var active = String(panel.getAttribute('data-main-panel') || '') === next;
+      panel.classList.toggle('is-active', active);
+      panel.hidden = !active;
+    });
+  }
+
+  function initMainTabs() {
+    if (!mainTabButtons.length) return;
+    setMainTab('history');
+    mainTabButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        setMainTab(button.getAttribute('data-main-tab'));
+      });
+    });
+  }
+
   function refreshAll() {
     renderStoriesSection();
     renderLibrarySections();
@@ -410,6 +437,7 @@
 
   initAvatar();
   initTabs();
+  initMainTabs();
   initContentTabs();
   bindCollectionActions();
   refreshAll();
