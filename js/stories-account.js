@@ -233,6 +233,58 @@
     }
   }
 
+  function bindBulkActions() {
+    document.addEventListener('change', function (event) {
+      var selectAll = event.target.closest('[data-select-all]');
+      if (selectAll) {
+        var container = selectAll.closest('[data-stories-published], [data-stories-drafts]');
+        if (!container) return;
+        var checkboxes = container.querySelectorAll('[data-story-checkbox]');
+        checkboxes.forEach(function (cb) { cb.checked = selectAll.checked; });
+        updateDeleteButton(container);
+        return;
+      }
+
+      var storyCheckbox = event.target.closest('[data-story-checkbox]');
+      if (storyCheckbox) {
+        var container = storyCheckbox.closest('[data-stories-published], [data-stories-drafts]');
+        if (container) updateDeleteButton(container);
+        return;
+      }
+    });
+
+    document.addEventListener('click', function (event) {
+      var deleteBtn = event.target.closest('[data-delete-selected]');
+      if (!deleteBtn) return;
+      var container = deleteBtn.closest('[data-stories-published], [data-stories-drafts]');
+      if (!container) return;
+      var checked = Array.prototype.slice.call(container.querySelectorAll('[data-story-checkbox]:checked'));
+      if (!checked.length) return;
+      var ids = checked.map(function (cb) { return cb.getAttribute('data-story-id'); }).filter(Boolean);
+      if (!ids.length) return;
+      if (!window.confirm('Xóa ' + ids.length + ' truyện đã chọn?')) return;
+      deleteStoriesByIds(ids);
+      renderStoriesSection();
+    });
+  }
+
+  function updateDeleteButton(container) {
+    if (!container) return;
+    var checked = container.querySelectorAll('[data-story-checkbox]:checked').length;
+    var deleteBtn = container.querySelector('[data-delete-selected]');
+    if (deleteBtn) {
+      deleteBtn.disabled = checked === 0;
+      deleteBtn.textContent = checked > 0 ? ('Xóa ' + checked + ' đã chọn') : 'Xóa đã chọn';
+    }
+  }
+
+  function deleteStoriesByIds(ids) {
+    if (!window.AudioHubStories || typeof window.AudioHubStories.deleteById !== 'function') return;
+    ids.forEach(function (id) {
+      window.AudioHubStories.deleteById(id);
+    });
+  }
+
   function bindCollectionActions() {
     document.addEventListener('click', function (event) {
       var button = event.target && event.target.closest ? event.target.closest('[data-library-remove]') : null;
@@ -297,17 +349,40 @@
       mount.innerHTML = '<p class="library-empty">' + escapeHtml(emptyText) + '</p>';
       return;
     }
-    mount.innerHTML = '<ul class="account-list">' + items.map(function (story) {
+
+    var hasItems = items.length > 0;
+    var html = '';
+
+    if (hasItems) {
+      html += '<div class="account-bulk-actions">';
+      html += '<label class="account-checkbox-all"><input type="checkbox" data-select-all /> <span>Chọn tất cả</span></label>';
+      html += '<button type="button" class="btn btn--outline btn--danger" data-delete-selected disabled><i class="fa-solid fa-trash"></i> Xóa đã chọn</button>';
+      html += '</div>';
+    }
+
+    html += '<ul class="account-list account-list--selectable">' + items.map(function (story) {
       var title = escapeHtml(story.title || 'Truyện mới');
       var author = escapeHtml(story.author || 'Ẩn danh');
       var genre = escapeHtml(story.genre || 'Truyện audio');
       var updated = formatTime(story.updatedAt || story.createdAt);
+      var storyId = String(story.id || '').trim();
+      var coverKey = story.coverKey ? String(story.coverKey) : '';
+      var thumbStyle = 'background: linear-gradient(135deg, #6366f1, #8b5cf6)';
+
       return '' +
-        '<li>' +
-          '<strong><a href="' + escapeHtml(storyHref(story)) + '">' + title + '</a></strong>' +
-          '<small>' + author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '') + '</small>' +
+        '<li data-story-item>' +
+          '<label class="account-item-checkbox"><input type="checkbox" data-story-checkbox data-story-id="' + escapeHtml(storyId) + '" /></label>' +
+          '<div class="account-item-thumb" data-story-thumb data-story-id="' + escapeHtml(storyId) + '" data-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
+            '<span>' + escapeHtml((story.title || 'ST').slice(0, 2).toUpperCase()) + '</span>' +
+          '</div>' +
+          '<div class="account-item-body">' +
+            '<strong><a href="' + escapeHtml(storyHref(story)) + '">' + title + '</a></strong>' +
+            '<small>' + author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '') + '</small>' +
+          '</div>' +
         '</li>';
     }).join('') + '</ul>';
+
+    mount.innerHTML = html;
   }
 
   function buildFavoriteList(items) {
@@ -439,6 +514,7 @@
   initTabs();
   initMainTabs();
   initContentTabs();
+  bindBulkActions();
   bindCollectionActions();
   refreshAll();
   setContentPanel('published');
