@@ -15,6 +15,12 @@
   var avatarEditButton = document.querySelector('[data-account-avatar-edit]');
   var avatarInput = document.querySelector('[data-account-avatar-input]');
 
+  var currentHistoryPage = 1;
+  var currentFavoritesPage = 1;
+  var currentPublishedPage = 1;
+  var currentDraftPage = 1;
+  var ITEMS_PER_PAGE = 20;
+
   var mainTabButtons = Array.prototype.slice.call(document.querySelectorAll('[data-main-tab]'));
   var mainTabPanels = Array.prototype.slice.call(document.querySelectorAll('[data-main-panel]'));
 
@@ -216,8 +222,8 @@
     var published = stories.filter(function (story) { return !isDraft(story); });
     var drafts = stories.filter(isDraft);
 
-    renderStorySection(published, storiesPublished, 'Chưa có truyện nào được đăng.');
-    renderStorySection(drafts, storiesDrafts, 'Chưa có bản nháp nào.');
+    renderStorySection(published, storiesPublished, 'Chưa có truyện nào được đăng.', currentPublishedPage, 'published');
+    renderStorySection(drafts, storiesDrafts, 'Chưa có bản nháp nào.', currentDraftPage, 'draft');
 
     if (storiesPublishedNote) {
       storiesPublishedNote.classList.toggle('is-hidden', !!published.length);
@@ -231,6 +237,80 @@
       var playlistTab = document.querySelector('[data-content-tab="playlist"]');
       playlistTab.textContent = 'Danh sách phát';
     }
+  }
+
+  function readLibrary() {
+    try {
+      var raw = window.localStorage.getItem('audiohub-library');
+      var parsed = raw ? JSON.parse(raw) : {};
+      return {
+        history: Array.isArray(parsed.history) ? parsed.history : [],
+        favorites: Array.isArray(parsed.favorites) ? parsed.favorites : []
+      };
+    } catch (error) {
+      return { history: [], favorites: [] };
+    }
+  }
+
+  function renderLibrarySections() {
+    var lib = readLibrary();
+    buildHistoryList(sortRecentDesc(lib.history || []), currentHistoryPage);
+    buildFavoriteList(lib.favorites || [], currentFavoritesPage);
+
+    var stats = {
+      favorites: (lib.favorites || []).length,
+      history: (lib.history || []).length,
+      stories: getStories().length
+    };
+    document.querySelectorAll('[data-library-stat="favorites"]').forEach(function (node) { node.textContent = String(stats.favorites); });
+    document.querySelectorAll('[data-library-stat="history"]').forEach(function (node) { node.textContent = String(stats.history); });
+    document.querySelectorAll('[data-library-stat="stories"]').forEach(function (node) { node.textContent = String(stats.stories); });
+    var cards = Array.prototype.slice.call(document.querySelectorAll('[data-account-tab]'));
+    cards.forEach(function (card) {
+      var key = card.getAttribute('data-account-tab') || '';
+      var countNode = card.querySelector('strong');
+      if (!countNode) return;
+      if (key === 'content') countNode.textContent = String(stats.stories);
+      if (key === 'history') countNode.textContent = String(stats.history);
+      if (key === 'favorites') countNode.textContent = String(stats.favorites);
+    });
+  }
+
+  function removeFromCollection(type, key) {
+    var lib = readLibrary();
+    lib[type] = (lib[type] || []).filter(function (item) { return item.key !== key; });
+    try {
+      window.localStorage.setItem('audiohub-library', JSON.stringify(lib));
+    } catch (error) {}
+  }
+
+  function bindPagination() {
+    document.addEventListener('click', function (event) {
+      var prevBtn = event.target.closest('[data-page-prev]');
+      var nextBtn = event.target.closest('[data-page-next]');
+      if (!prevBtn && !nextBtn) return;
+
+      var btn = prevBtn || nextBtn;
+      var type = btn.getAttribute('data-page-type');
+
+      if (type === 'history') {
+        if (prevBtn) currentHistoryPage = Math.max(1, currentHistoryPage - 1);
+        if (nextBtn) currentHistoryPage++;
+        renderLibrarySections();
+      } else if (type === 'favorites') {
+        if (prevBtn) currentFavoritesPage = Math.max(1, currentFavoritesPage - 1);
+        if (nextBtn) currentFavoritesPage++;
+        renderLibrarySections();
+      } else if (type === 'published') {
+        if (prevBtn) currentPublishedPage = Math.max(1, currentPublishedPage - 1);
+        if (nextBtn) currentPublishedPage++;
+        renderStoriesSection();
+      } else if (type === 'draft') {
+        if (prevBtn) currentDraftPage = Math.max(1, currentDraftPage - 1);
+        if (nextBtn) currentDraftPage++;
+        renderStoriesSection();
+      }
+    });
   }
 
   function bindBulkActions() {
@@ -297,13 +377,19 @@
     });
   }
 
-  function buildHistoryList(items) {
+  function buildHistoryList(items, page) {
     if (!historyMount) return;
     if (!items.length) {
       historyMount.innerHTML = '<p class="library-empty">Chưa có lịch sử nghe nào.</p>';
       return;
     }
-    historyMount.innerHTML = '<ul class="history-youtube-list">' + items.map(function (item) {
+
+    var start = (page - 1) * ITEMS_PER_PAGE;
+    var end = start + ITEMS_PER_PAGE;
+    var paged = items.slice(start, end);
+    var totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
+
+    var html = '<ul class="history-youtube-list">' + paged.map(function (item) {
       return '' +
         '<li class="history-youtube-item">' +
           '<a class="history-youtube-thumb" href="' + escapeHtml(item.href) + '" style="background:' + deriveThumbStyle(item) + '"' + buildThumbDataAttrs(item) + '><span>' + escapeHtml(deriveThumbLabel(item)) + '</span></a>' +
@@ -318,15 +404,28 @@
           '</div>' +
         '</li>';
     }).join('') + '</ul>';
+
+    if (totalPages > 1) {
+      html += buildPagination(page, totalPages, 'history');
+    }
+
+    historyMount.innerHTML = html;
+    hydrateLibraryThumbs(historyMount);
   }
 
-  function buildFavoriteList(items) {
+  function buildFavoriteList(items, page) {
     if (!favoritesMount) return;
     if (!items.length) {
       favoritesMount.innerHTML = '<p class="library-empty">Chưa có truyện yêu thích nào được lưu.</p>';
       return;
     }
-    favoritesMount.innerHTML = '<ul class="favorites-youtube-grid">' + items.map(function (item) {
+
+    var start = (page - 1) * ITEMS_PER_PAGE;
+    var end = start + ITEMS_PER_PAGE;
+    var paged = items.slice(start, end);
+    var totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
+
+    var html = '<ul class="favorites-youtube-grid">' + paged.map(function (item) {
       return '' +
         '<li class="favorite-youtube-card">' +
           '<a class="favorite-youtube-thumb" href="' + escapeHtml(item.href) + '" style="background:' + deriveThumbStyle(item) + '"' + buildThumbDataAttrs(item) + '><span>' + escapeHtml(deriveThumbLabel(item)) + '</span></a>' +
@@ -341,16 +440,72 @@
           '</div>' +
         '</li>';
     }).join('') + '</ul>';
+
+    if (totalPages > 1) {
+      html += buildPagination(page, totalPages, 'favorites');
+    }
+
+    favoritesMount.innerHTML = html;
+    hydrateLibraryThumbs(favoritesMount);
   }
 
-  function renderStorySection(items, mount, emptyText) {
+  function buildPagination(current, total, type) {
+    var html = '<div class="account-pagination">';
+    html += '<button type="button" class="account-page-btn" data-page-prev data-page-type="' + type + '" ' + (current === 1 ? 'disabled' : '') + '><i class="fa-solid fa-chevron-left"></i></button>';
+    html += '<span class="account-page-info">Trang ' + current + ' / ' + total + '</span>';
+    html += '<button type="button" class="account-page-btn" data-page-next data-page-type="' + type + '" ' + (current === total ? 'disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>';
+    html += '</div>';
+    return html;
+  }
+
+  function hydrateLibraryThumbs(root) {
+    if (!root) return;
+    if (typeof window.hydrateLibraryThumbs === 'function') {
+      window.hydrateLibraryThumbs(root);
+    }
+  }
+
+  function deriveThumbStyle(item) {
+    var key = String(item && (item.genre || item.title) || '').toLowerCase();
+    var palettes = [
+      'linear-gradient(135deg,#0ea5e9,#2563eb)',
+      'linear-gradient(135deg,#f97316,#f59e0b)',
+      'linear-gradient(135deg,#a855f7,#7c3aed)',
+      'linear-gradient(135deg,#14b8a6,#0d9488)',
+      'linear-gradient(135deg,#ec4899,#db2777)'
+    ];
+    var idx = 0;
+    for (var i = 0; i < key.length; i += 1) idx += key.charCodeAt(i);
+    return palettes[idx % palettes.length];
+  }
+
+  function deriveThumbLabel(item) {
+    var title = String(item && item.title || '').trim();
+    if (!title) return 'AH';
+    return title.split(/\s+/).filter(Boolean).slice(0, 2).map(function (part) {
+      return part.charAt(0).toUpperCase();
+    }).join('') || 'AH';
+  }
+
+  function buildThumbDataAttrs(item) {
+    var href = escapeHtml(item && item.href || '');
+    var coverKey = escapeHtml(item && item.coverKey || '');
+    return ' data-library-thumb="true" data-library-href="' + href + '" data-library-cover-key="' + coverKey + '"';
+  }
+
+  function renderStorySection(items, mount, emptyText, page, type) {
     if (!mount) return;
     if (!items.length) {
       mount.innerHTML = '<p class="library-empty">' + escapeHtml(emptyText) + '</p>';
       return;
     }
 
-    var hasItems = items.length > 0;
+    var start = (page - 1) * ITEMS_PER_PAGE;
+    var end = start + ITEMS_PER_PAGE;
+    var paged = items.slice(start, end);
+    var totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
+
+    var hasItems = paged.length > 0;
     var html = '';
 
     if (hasItems) {
@@ -360,7 +515,7 @@
       html += '</div>';
     }
 
-    html += '<ul class="account-list account-list--selectable">' + items.map(function (story) {
+    html += '<ul class="account-list account-list--selectable">' + paged.map(function (story) {
       var title = escapeHtml(story.title || 'Truyện mới');
       var author = escapeHtml(story.author || 'Ẩn danh');
       var genre = escapeHtml(story.genre || 'Truyện audio');
@@ -382,7 +537,32 @@
         '</li>';
     }).join('') + '</ul>';
 
+    if (totalPages > 1) {
+      html += buildPagination(page, totalPages, type);
+    }
+
     mount.innerHTML = html;
+    hydrateStoryThumbs(mount);
+  }
+
+  function hydrateStoryThumbs(root) {
+    if (!root || !window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') return;
+    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+
+    root.querySelectorAll('[data-story-thumb]').forEach(function (node) {
+      node.classList.remove('is-cover-ready');
+      var coverKey = String(node.getAttribute('data-cover-key') || '').trim();
+      if (!coverKey) return;
+
+      window.AudioHubStoryCover.get(coverKey)
+        .then(function (blob) {
+          if (!blob) return;
+          var url = URL.createObjectURL(blob);
+          node.style.backgroundImage = 'url("' + url + '")';
+          node.classList.add('is-cover-ready');
+        })
+        .catch(function () {});
+    });
   }
 
   function buildFavoriteList(items) {
@@ -516,6 +696,7 @@
   initContentTabs();
   bindBulkActions();
   bindCollectionActions();
+  bindPagination();
   refreshAll();
   setContentPanel('published');
 

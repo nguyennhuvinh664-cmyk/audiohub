@@ -355,6 +355,46 @@
   border-radius: 999px;
 }
 
+.account-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0;
+  margin-top: 16px;
+}
+
+.account-page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.03);
+  color: var(--t1);
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.account-page-btn:hover:not(:disabled) {
+  border-color: rgba(245,158,11,.3);
+  background: rgba(245,158,11,.1);
+  color: var(--primary);
+}
+
+.account-page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.account-page-info {
+  font-weight: 700;
+  color: var(--t2);
+  font-size: .9rem;
+}
+
 .account-content-panels {
   display: grid;
   gap: 14px;
