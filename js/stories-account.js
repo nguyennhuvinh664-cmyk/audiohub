@@ -317,41 +317,6 @@
     });
   }
 
-    document.addEventListener('click', function (event) {
-      // close all menus if clicking outside
-      if (!event.target.closest('[data-story-menu-panel]') && !event.target.closest('[data-story-menu]')) {
-        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
-      }
-
-      // toggle menu
-      var menuBtn = event.target.closest('[data-story-menu]');
-      if (menuBtn) {
-        var sid = menuBtn.getAttribute('data-story-menu');
-        var panel = document.querySelector('[data-story-menu-panel="' + sid + '"]');
-        if (!panel) return;
-        var isOpen = !panel.classList.contains('is-hidden');
-        // close all first
-        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
-        if (!isOpen) panel.classList.remove('is-hidden');
-        event.stopPropagation();
-        return;
-      }
-
-      // delete single story
-      var deleteOneBtn = event.target.closest('[data-story-delete-one]');
-      if (deleteOneBtn) {
-        var sid = deleteOneBtn.getAttribute('data-story-delete-one');
-        if (!sid) return;
-        if (!window.confirm('Xóa truyện này?')) return;
-        deleteStoriesByIds([sid]);
-        currentPublishedPage = 1;
-        currentDraftPage = 1;
-        renderStoriesSection();
-        return;
-      }
-    });
-  }
-
   function bindStoryMenuActions() {
     document.addEventListener('change', function (event) {
       var selectAll = event.target.closest('[data-select-all]');
@@ -373,6 +338,37 @@
     });
 
     document.addEventListener('click', function (event) {
+      // close all menus if clicking outside
+      if (!event.target.closest('[data-story-menu-panel]') && !event.target.closest('[data-story-menu]')) {
+        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
+      }
+
+      // toggle 3-dot menu
+      var menuBtn = event.target.closest('[data-story-menu]');
+      if (menuBtn) {
+        var sid = menuBtn.getAttribute('data-story-menu');
+        var panel = document.querySelector('[data-story-menu-panel="' + sid + '"]');
+        if (!panel) return;
+        var isOpen = !panel.classList.contains('is-hidden');
+        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
+        if (!isOpen) panel.classList.remove('is-hidden');
+        event.stopPropagation();
+        return;
+      }
+
+      // delete single story
+      var deleteOneBtn = event.target.closest('[data-story-delete-one]');
+      if (deleteOneBtn) {
+        var sid = deleteOneBtn.getAttribute('data-story-delete-one');
+        if (!sid) return;
+        if (!window.confirm('Xóa truyện này?')) return;
+        deleteStoriesByIds([sid]);
+        currentPublishedPage = 1;
+        currentDraftPage = 1;
+        renderStoriesSection();
+        return;
+      }
+
       var deleteBtn = event.target.closest('[data-delete-selected]');
       if (deleteBtn) {
         var container = deleteBtn.closest('[data-stories-published], [data-stories-drafts]');
