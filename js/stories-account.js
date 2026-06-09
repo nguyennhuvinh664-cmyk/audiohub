@@ -339,16 +339,39 @@
 
     document.addEventListener('click', function (event) {
       var deleteBtn = event.target.closest('[data-delete-selected]');
-      if (!deleteBtn) return;
-      var container = deleteBtn.closest('[data-stories-published], [data-stories-drafts]');
-      if (!container) return;
-      var checked = Array.prototype.slice.call(container.querySelectorAll('[data-story-checkbox]:checked'));
-      if (!checked.length) return;
-      var ids = checked.map(function (cb) { return cb.getAttribute('data-story-id'); }).filter(Boolean);
-      if (!ids.length) return;
-      if (!window.confirm('Xóa ' + ids.length + ' truyện đã chọn?')) return;
-      deleteStoriesByIds(ids);
-      renderStoriesSection();
+      if (deleteBtn) {
+        var container = deleteBtn.closest('[data-stories-published], [data-stories-drafts]');
+        if (!container) return;
+        var checked = Array.prototype.slice.call(container.querySelectorAll('[data-story-checkbox]:checked'));
+        if (!checked.length) return;
+        var ids = checked.map(function (cb) { return cb.getAttribute('data-story-id'); }).filter(Boolean);
+        if (!ids.length) return;
+        if (!window.confirm('Xóa ' + ids.length + ' truyện đã chọn?')) return;
+        deleteStoriesByIds(ids);
+        currentPublishedPage = 1;
+        currentDraftPage = 1;
+        renderStoriesSection();
+        return;
+      }
+
+      var pagePrev = event.target.closest('[data-page-prev]');
+      var pageNext = event.target.closest('[data-page-next]');
+      if (!pagePrev && !pageNext) return;
+      var btn = pagePrev || pageNext;
+      var type = btn.getAttribute('data-page-type');
+      if (type === 'history') {
+        currentHistoryPage = Math.max(1, currentHistoryPage + (pageNext ? 1 : -1));
+        renderLibrarySections();
+      } else if (type === 'favorites') {
+        currentFavoritesPage = Math.max(1, currentFavoritesPage + (pageNext ? 1 : -1));
+        renderLibrarySections();
+      } else if (type === 'published') {
+        currentPublishedPage = Math.max(1, currentPublishedPage + (pageNext ? 1 : -1));
+        renderStoriesSection();
+      } else if (type === 'draft') {
+        currentDraftPage = Math.max(1, currentDraftPage + (pageNext ? 1 : -1));
+        renderStoriesSection();
+      }
     });
   }
 
@@ -569,7 +592,15 @@
 
     root.querySelectorAll('[data-story-thumb]').forEach(function (node) {
       node.classList.remove('is-cover-ready');
+      var storyId = String(node.getAttribute('data-story-id') || '').trim();
       var coverKey = String(node.getAttribute('data-cover-key') || '').trim();
+
+      if (!coverKey && storyId) {
+        var story = window.AudioHubStories.getById(storyId);
+        coverKey = story && story.coverKey ? String(story.coverKey) : '';
+        if (coverKey) node.setAttribute('data-cover-key', coverKey);
+      }
+
       if (!coverKey) return;
 
       window.AudioHubStoryCover.get(coverKey)
@@ -577,9 +608,13 @@
           if (!blob) return;
           var url = URL.createObjectURL(blob);
           node.style.backgroundImage = 'url("' + url + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
           node.classList.add('is-cover-ready');
         })
-        .catch(function () {});
+        .catch(function (err) {
+          console.warn('Failed to load cover:', coverKey, err);
+        });
     });
   }
 
@@ -702,10 +737,244 @@
     });
   }
 
+  // ── Playlist ─────────────────────────────────────────────────────────────
+
+  var PLAYLIST_STORAGE_KEY = 'audiohub-playlists-v1';
+  var activePlaylistId = null;
+
+  var playlistListMount  = document.querySelector('[data-playlist-list]');
+  var playlistDetailMount = document.querySelector('[data-playlist-detail]');
+  var playlistCreateBtn  = document.querySelector('[data-playlist-create]');
+  var playlistCreateInput = document.querySelector('[data-playlist-create-name]');
+  var playlistNote       = document.querySelector('[data-playlist-note]');
+
+  function readPlaylists() {
+    try {
+      var raw = window.localStorage.getItem(PLAYLIST_STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writePlaylists(list) {
+    try {
+      window.localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(list));
+    } catch (e) {}
+  }
+
+  function generateId() {
+    return 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now();
+  }
+
+  function createPlaylist(name) {
+    var list = readPlaylists();
+    var playlist = { id: generateId(), name: String(name || '').trim(), entries: [], createdAt: new Date().toISOString() };
+    list.push(playlist);
+    writePlaylists(list);
+    return playlist;
+  }
+
+  function deletePlaylist(id) {
+    var list = readPlaylists().filter(function (p) { return p.id !== id; });
+    writePlaylists(list);
+    if (activePlaylistId === id) activePlaylistId = null;
+  }
+
+  function renamePlaylist(id, newName) {
+    var list = readPlaylists();
+    list.forEach(function (p) { if (p.id === id) p.name = String(newName || '').trim() || p.name; });
+    writePlaylists(list);
+  }
+
+  function removeEntryFromPlaylist(playlistId, entryKey) {
+    var list = readPlaylists();
+    list.forEach(function (p) {
+      if (p.id === playlistId) {
+        p.entries = (p.entries || []).filter(function (e) { return e.key !== entryKey; });
+      }
+    });
+    writePlaylists(list);
+  }
+
+  function renderPlaylist() {
+    if (!playlistListMount) return;
+    var list = readPlaylists();
+
+    if (playlistNote) playlistNote.classList.toggle('is-hidden', true);
+
+    if (!list.length) {
+      playlistListMount.innerHTML = '<p class="playlist-empty">Chưa có playlist nào. Tạo playlist đầu tiên của bạn.</p>';
+      if (playlistDetailMount) playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một playlist để xem chi tiết.</p>';
+      return;
+    }
+
+    playlistListMount.innerHTML = list.map(function (pl) {
+      var isActive = pl.id === activePlaylistId;
+      var count = (pl.entries || []).length;
+      return '' +
+        '<div class="playlist-item' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
+          '<div class="playlist-main">' +
+            '<div class="playlist-name">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
+            '<div class="playlist-meta">' + count + ' truyện</div>' +
+          '</div>' +
+          '<div class="playlist-actions">' +
+            '<div class="playlist-action-buttons">' +
+              '<button type="button" class="playlist-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
+              '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+
+    renderPlaylistDetail();
+  }
+
+  function renderPlaylistDetail() {
+    if (!playlistDetailMount) return;
+    if (!activePlaylistId) {
+      playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một playlist để xem chi tiết.</p>';
+      return;
+    }
+    var list = readPlaylists();
+    var pl = null;
+    list.forEach(function (p) { if (p.id === activePlaylistId) pl = p; });
+    if (!pl) {
+      playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist không tồn tại.</p>';
+      return;
+    }
+    var entries = pl.entries || [];
+    if (!entries.length) {
+      playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist chưa có truyện nào.</p>';
+      return;
+    }
+    playlistDetailMount.innerHTML = entries.map(function (entry) {
+      return '' +
+        '<div class="playlist-entry" data-entry-key="' + escapeHtml(entry.key) + '">' +
+          '<div>' +
+            '<strong>' + escapeHtml(entry.title || 'Truyện audio') + '</strong>' +
+            '<small>' + escapeHtml(entry.author || 'Ẩn danh') + ' · ' + escapeHtml(entry.genre || 'Truyện audio') + '</small>' +
+          '</div>' +
+          '<div class="playlist-entry-actions">' +
+            '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
+            '<button type="button" class="playlist-btn" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function bindPlaylistActions() {
+    if (playlistCreateBtn) {
+      playlistCreateBtn.addEventListener('click', function () {
+        var name = playlistCreateInput ? String(playlistCreateInput.value || '').trim() : '';
+        if (!name) {
+          if (playlistCreateInput) playlistCreateInput.focus();
+          return;
+        }
+        createPlaylist(name);
+        if (playlistCreateInput) playlistCreateInput.value = '';
+        renderPlaylist();
+      });
+    }
+
+    if (playlistCreateInput) {
+      playlistCreateInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (playlistCreateBtn) playlistCreateBtn.click();
+        }
+      });
+    }
+
+    document.addEventListener('click', function (event) {
+      // select playlist
+      var item = event.target.closest('[data-playlist-id]');
+      var renameBtn = event.target.closest('[data-playlist-rename]');
+      var deleteBtn = event.target.closest('[data-playlist-delete]');
+      var removeBtn = event.target.closest('[data-entry-remove]');
+
+      if (removeBtn) {
+        var entryKey = removeBtn.getAttribute('data-entry-remove');
+        var plId = removeBtn.getAttribute('data-playlist-id');
+        if (entryKey && plId) {
+          removeEntryFromPlaylist(plId, entryKey);
+          renderPlaylist();
+        }
+        return;
+      }
+
+      if (deleteBtn) {
+        var plId = deleteBtn.getAttribute('data-playlist-delete');
+        if (plId && window.confirm('Xóa playlist này?')) {
+          deletePlaylist(plId);
+          renderPlaylist();
+        }
+        return;
+      }
+
+      if (renameBtn) {
+        var plId = renameBtn.getAttribute('data-playlist-rename');
+        var plList = readPlaylists();
+        var target = null;
+        plList.forEach(function (p) { if (p.id === plId) target = p; });
+        if (!target) return;
+        var newName = window.prompt('Đổi tên playlist:', target.name || '');
+        if (newName === null) return;
+        newName = String(newName).trim();
+        if (!newName) return;
+        renamePlaylist(plId, newName);
+        renderPlaylist();
+        return;
+      }
+
+      if (item && !renameBtn && !deleteBtn && !removeBtn) {
+        var plId = item.getAttribute('data-playlist-id');
+        if (plId) {
+          activePlaylistId = plId;
+          renderPlaylist();
+        }
+      }
+    });
+  }
+
+  // Global API for other pages to add entries to a playlist
+  window.AudioHubPlaylist = {
+    list: readPlaylists,
+    create: function (name) { var pl = createPlaylist(name); renderPlaylist(); return pl; },
+    addEntry: function (playlistId, entry) {
+      if (!playlistId || !entry || !entry.key) return false;
+      var list = readPlaylists();
+      var found = false;
+      list.forEach(function (p) {
+        if (p.id === playlistId) {
+          var exists = (p.entries || []).some(function (e) { return e.key === entry.key; });
+          if (!exists) {
+            p.entries = p.entries || [];
+            p.entries.push({
+              key: entry.key,
+              title: entry.title || '',
+              author: entry.author || '',
+              genre: entry.genre || '',
+              href: entry.href || ''
+            });
+          }
+          found = true;
+        }
+      });
+      if (found) { writePlaylists(list); renderPlaylist(); }
+      return found;
+    },
+    remove: function (playlistId, entryKey) { removeEntryFromPlaylist(playlistId, entryKey); renderPlaylist(); }
+  };
+
+  // ── End Playlist ──────────────────────────────────────────────────────────
+
   function refreshAll() {
     renderStoriesSection();
     renderLibrarySections();
     renderTrash();
+    renderPlaylist();
   }
 
   initAvatar();
@@ -715,13 +984,14 @@
   bindBulkActions();
   bindCollectionActions();
   bindPagination();
+  bindPlaylistActions();
   refreshAll();
   setContentPanel('published');
 
   window.addEventListener('audiohub:stories-updated', refreshAll);
   window.addEventListener('storage', function (event) {
     if (!event || !event.key) return;
-    if (event.key === 'audiohub-library' || event.key === AVATAR_STORAGE_KEY) {
+    if (event.key === 'audiohub-library' || event.key === AVATAR_STORAGE_KEY || event.key === PLAYLIST_STORAGE_KEY) {
       refreshAll();
     }
   });
