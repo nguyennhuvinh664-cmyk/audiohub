@@ -840,6 +840,8 @@
   }
 
   function renderPlaylist() {
+    var playlistListMount = document.querySelector('[data-playlist-list]');
+    var playlistDetailMount = document.querySelector('[data-playlist-detail]');
     if (!playlistListMount) return;
     var list = readPlaylists();
 
@@ -902,6 +904,7 @@
   }
 
   function renderPlaylistDetail() {
+    var playlistDetailMount = document.querySelector('[data-playlist-detail]');
     if (!playlistDetailMount) return;
     if (!activePlaylistId) {
       playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một playlist để xem chi tiết.</p>';
@@ -958,7 +961,8 @@
     }).join('');
 
     // bind slider input live
-    playlistDetailMount.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
+    var detailMount2 = document.querySelector('[data-playlist-detail]');
+    if (detailMount2) detailMount2.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
       slider.addEventListener('input', function () {
         var val = slider.value;
         var fill = slider.closest('.playlist-entry').querySelector('.playlist-progress-fill');
@@ -975,34 +979,17 @@
   }
 
   function bindPlaylistActions() {
-    if (playlistCreateBtn) {
-      playlistCreateBtn.addEventListener('click', function () {
-        var name = playlistCreateInput ? String(playlistCreateInput.value || '').trim() : '';
-        if (!name) {
-          if (playlistCreateInput) playlistCreateInput.focus();
-          return;
-        }
-        createPlaylist(name);
-        if (playlistCreateInput) playlistCreateInput.value = '';
-        renderPlaylist();
-      });
-    }
-
-    if (playlistCreateInput) {
-      playlistCreateInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (playlistCreateBtn) playlistCreateBtn.click();
-        }
-      });
-    }
-
+    // dùng event delegation để tránh null khi bind
     document.addEventListener('click', function (event) {
-      // select playlist
-      var item = event.target.closest('[data-playlist-id]');
-      var renameBtn = event.target.closest('[data-playlist-rename]');
-      var deleteBtn = event.target.closest('[data-playlist-delete]');
-      var removeBtn = event.target.closest('[data-entry-remove]');
+      if (event.target.closest('[data-playlist-create]')) {
+        var input = document.querySelector('[data-playlist-create-name]');
+        var name = input ? String(input.value || '').trim() : '';
+        if (!name) { if (input) input.focus(); return; }
+        createPlaylist(name);
+        if (input) input.value = '';
+        renderPlaylist();
+        return;
+      }
 
       var toggleBtn = event.target.closest('[data-toggle-key]');
       if (toggleBtn) {
@@ -1016,6 +1003,7 @@
         return;
       }
 
+      var removeBtn = event.target.closest('[data-entry-remove]');
       if (removeBtn) {
         var entryKey = removeBtn.getAttribute('data-entry-remove');
         var plId = removeBtn.getAttribute('data-playlist-id');
@@ -1026,6 +1014,7 @@
         return;
       }
 
+      var deleteBtn = event.target.closest('[data-playlist-delete]');
       if (deleteBtn) {
         var plId = deleteBtn.getAttribute('data-playlist-delete');
         if (plId && window.confirm('Xóa playlist này?')) {
@@ -1035,6 +1024,7 @@
         return;
       }
 
+      var renameBtn = event.target.closest('[data-playlist-rename]');
       if (renameBtn) {
         var plId = renameBtn.getAttribute('data-playlist-rename');
         var plList = readPlaylists();
@@ -1050,13 +1040,26 @@
         return;
       }
 
-      if (item && !renameBtn && !deleteBtn && !removeBtn) {
+      var item = event.target.closest('[data-playlist-id]');
+      if (item && !event.target.closest('[data-playlist-rename]') && !event.target.closest('[data-playlist-delete]')) {
         var plId = item.getAttribute('data-playlist-id');
         if (plId) {
           activePlaylistId = plId;
           renderPlaylist();
         }
       }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var input = document.querySelector('[data-playlist-create-name]');
+      if (document.activeElement !== input) return;
+      e.preventDefault();
+      var name = String(input.value || '').trim();
+      if (!name) return;
+      createPlaylist(name);
+      input.value = '';
+      renderPlaylist();
     });
   }
 
