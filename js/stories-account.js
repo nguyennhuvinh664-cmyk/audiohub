@@ -782,12 +782,7 @@
 
   var PLAYLIST_STORAGE_KEY = 'audiohub-playlists-v1';
   var activePlaylistId = null;
-
-  var playlistListMount  = document.querySelector('[data-playlist-list]');
-  var playlistDetailMount = document.querySelector('[data-playlist-detail]');
-  var playlistCreateBtn  = document.querySelector('[data-playlist-create]');
-  var playlistCreateInput = document.querySelector('[data-playlist-create-name]');
-  var playlistNote       = document.querySelector('[data-playlist-note]');
+  var playlistNote = document.querySelector('[data-playlist-note]');
 
   function readPlaylists() {
     try {
