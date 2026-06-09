@@ -174,7 +174,7 @@
 
   function isDraft(story) {
     var visibility = String(story && story.visibility || '').trim().toLowerCase();
-    return !visibility || visibility === 'riêng tư' || visibility === 'không công khai' || visibility === 'private' || visibility === 'draft';
+    return visibility === 'draft' || visibility === 'private' || visibility === 'không công khai';
   }
 
   function sortRecentDesc(list) {
@@ -1101,7 +1101,6 @@
   initTabs();
   initMainTabs();
   initContentTabs();
-  bindStoryMenuActions();
   bindStoryMenuActions();
   bindCollectionActions();
   bindPagination();
