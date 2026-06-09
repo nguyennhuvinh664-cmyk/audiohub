@@ -1717,7 +1717,81 @@
   margin-bottom: 10px;
 }
 
-/* Progress bar */
+/* 3-dot menu */
+.account-item-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.account-item-menu-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.03);
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.account-item-menu-btn:hover {
+  background: rgba(255,255,255,.08);
+  color: var(--t1);
+  border-color: rgba(255,255,255,.18);
+}
+
+.account-item-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  min-width: 180px;
+  background: #111827;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.4);
+  overflow: hidden;
+  padding: 6px;
+}
+
+.account-item-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--t1);
+  font-weight: 700;
+  font-size: .9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s ease;
+}
+
+.account-item-menu-option:hover {
+  background: rgba(255,255,255,.07);
+  color: #fff;
+}
+
+.account-item-menu-option--danger {
+  color: #fca5a5;
+}
+
+.account-item-menu-option--danger:hover {
+  background: rgba(239,68,68,.12);
+  color: #fecaca;
+}
+
+.account-item-menu.is-hidden {
+  display: none !important;
+}
 .playlist-progress-wrap {
   display: flex;
   align-items: center;

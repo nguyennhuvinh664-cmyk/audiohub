@@ -317,7 +317,42 @@
     });
   }
 
-  function bindBulkActions() {
+    document.addEventListener('click', function (event) {
+      // close all menus if clicking outside
+      if (!event.target.closest('[data-story-menu-panel]') && !event.target.closest('[data-story-menu]')) {
+        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
+      }
+
+      // toggle menu
+      var menuBtn = event.target.closest('[data-story-menu]');
+      if (menuBtn) {
+        var sid = menuBtn.getAttribute('data-story-menu');
+        var panel = document.querySelector('[data-story-menu-panel="' + sid + '"]');
+        if (!panel) return;
+        var isOpen = !panel.classList.contains('is-hidden');
+        // close all first
+        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
+        if (!isOpen) panel.classList.remove('is-hidden');
+        event.stopPropagation();
+        return;
+      }
+
+      // delete single story
+      var deleteOneBtn = event.target.closest('[data-story-delete-one]');
+      if (deleteOneBtn) {
+        var sid = deleteOneBtn.getAttribute('data-story-delete-one');
+        if (!sid) return;
+        if (!window.confirm('Xóa truyện này?')) return;
+        deleteStoriesByIds([sid]);
+        currentPublishedPage = 1;
+        currentDraftPage = 1;
+        renderStoriesSection();
+        return;
+      }
+    });
+  }
+
+  function bindStoryMenuActions() {
     document.addEventListener('change', function (event) {
       var selectAll = event.target.closest('[data-select-all]');
       if (selectAll) {
@@ -565,6 +600,7 @@
       var coverKey = story.coverKey ? String(story.coverKey) : '';
       var thumbStyle = 'background: linear-gradient(135deg, #6366f1, #8b5cf6)';
 
+      var editHref = '/html/upload-story.html?edit=' + encodeURIComponent(storyId);
       return '' +
         '<li data-story-item>' +
           '<label class="account-item-checkbox"><input type="checkbox" data-story-checkbox data-story-id="' + escapeHtml(storyId) + '" /></label>' +
@@ -574,6 +610,14 @@
           '<div class="account-item-body">' +
             '<strong><a href="' + escapeHtml(storyHref(story)) + '">' + title + '</a></strong>' +
             '<small>' + author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '') + '</small>' +
+          '</div>' +
+          '<div class="account-item-menu-wrap">' +
+            '<button type="button" class="account-item-menu-btn" data-story-menu="' + escapeHtml(storyId) + '" aria-label="Tùy chọn" title="Tùy chọn"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
+            '<div class="account-item-menu is-hidden" data-story-menu-panel="' + escapeHtml(storyId) + '">' +
+              '<a href="' + escapeHtml(editHref) + '" class="account-item-menu-option"><i class="fa-solid fa-pen-to-square"></i> Sửa truyện</a>' +
+              '<a href="' + escapeHtml(storyHref(story)) + '" class="account-item-menu-option"><i class="fa-solid fa-eye"></i> Xem truyện</a>' +
+              '<button type="button" class="account-item-menu-option account-item-menu-option--danger" data-story-delete-one="' + escapeHtml(storyId) + '"><i class="fa-solid fa-trash"></i> Xóa truyện</button>' +
+            '</div>' +
           '</div>' +
         '</li>';
     }).join('') + '</ul>';
@@ -1063,6 +1107,7 @@
   initMainTabs();
   initContentTabs();
   bindBulkActions();
+  bindStoryMenuActions();
   bindCollectionActions();
   bindPagination();
   bindPlaylistActions();
