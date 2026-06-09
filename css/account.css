@@ -1777,7 +1777,59 @@
   background: rgba(34,197,94,.1);
 }
 
-/* Playlist picker modal */
+.playlist-rename-input {
+  background: rgba(255,255,255,.06);
+  border: 1.5px solid rgba(245,158,11,.45);
+  border-radius: 8px;
+  color: var(--t1);
+  font-family: var(--font-d);
+  font-weight: 800;
+  font-size: 1.02rem;
+  padding: 4px 8px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.playlist-rename-input:focus {
+  border-color: rgba(245,158,11,.7);
+  box-shadow: 0 0 0 3px rgba(245,158,11,.12);
+}
+
+.playlist-card-status {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.pl-status-listening {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .76rem;
+  font-weight: 700;
+  color: #22d3ee;
+  background: rgba(6,182,212,.1);
+  border: 1px solid rgba(6,182,212,.2);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.pl-status-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .76rem;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(34,197,94,.1);
+  border: 1px solid rgba(34,197,94,.2);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+/* playlist-rename-input end */
 .pl-picker-backdrop {
   position: fixed;
   inset: 0;

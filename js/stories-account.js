@@ -946,12 +946,22 @@
 
     playlistListMount.innerHTML = list.map(function (pl) {
       var isActive = pl.id === activePlaylistId;
-      var count = (pl.entries || []).length;
+      var entries = pl.entries || [];
+      var count = entries.length;
+      var doneCount = entries.filter(function (e) { return e.status === 'done'; }).length;
+      var listeningCount = count - doneCount;
+      var statusHtml = '';
+      if (count > 0) {
+        statusHtml = '<div class="playlist-card-status">' +
+          (listeningCount > 0 ? '<span class="pl-status-listening"><i class="fa-solid fa-headphones"></i> ' + listeningCount + '</span>' : '') +
+          (doneCount > 0 ? '<span class="pl-status-done"><i class="fa-solid fa-circle-check"></i> ' + doneCount + '</span>' : '') +
+        '</div>';
+      }
       return '' +
         '<div class="playlist-item' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
           '<div class="playlist-main">' +
-            '<div class="playlist-name">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
-            '<div class="playlist-meta">' + count + ' truyện</div>' +
+            '<div class="playlist-name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
+            '<div class="playlist-meta">' + count + ' truyện' + (statusHtml ? (' · ' + (listeningCount > 0 ? listeningCount + ' đang nghe' : '') + (doneCount > 0 ? (listeningCount > 0 ? ', ' : '') + doneCount + ' xong' : '')) : '') + '</div>' +
           '</div>' +
           '<div class="playlist-actions">' +
             '<div class="playlist-action-buttons">' +
@@ -1100,16 +1110,28 @@
       var renameBtn = event.target.closest('[data-playlist-rename]');
       if (renameBtn) {
         var plId = renameBtn.getAttribute('data-playlist-rename');
-        var plList = readPlaylists();
-        var target = null;
-        plList.forEach(function (p) { if (p.id === plId) target = p; });
-        if (!target) return;
-        var newName = window.prompt('Đổi tên playlist:', target.name || '');
-        if (newName === null) return;
-        newName = String(newName).trim();
-        if (!newName) return;
-        renamePlaylist(plId, newName);
-        renderPlaylist();
+        var nameDisplay = document.querySelector('[data-playlist-name-display="' + plId + '"]');
+        if (!nameDisplay) return;
+        var currentName = nameDisplay.textContent || '';
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.className = 'playlist-rename-input';
+        nameDisplay.replaceWith(input);
+        input.focus();
+        input.select();
+        function commitRename() {
+          var newName = input.value.trim();
+          if (newName && newName !== currentName) {
+            renamePlaylist(plId, newName);
+          }
+          renderPlaylist();
+        }
+        input.addEventListener('blur', commitRename);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+          if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+        });
         return;
       }
 
