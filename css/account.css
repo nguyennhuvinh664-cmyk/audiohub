@@ -412,9 +412,6 @@
 .account-list {
   display: grid;
   gap: 12px;
-  max-height: 600px;
-  overflow-y: auto;
-  padding-right: 6px;
 }
 
 .account-list::-webkit-scrollbar {
