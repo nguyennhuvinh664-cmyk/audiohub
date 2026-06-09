@@ -1027,13 +1027,8 @@
             '<small>' + escapeHtml(entry.author || 'Ẩn danh') + ' · ' + escapeHtml(entry.genre || 'Truyện audio') + '</small>' +
           '</div>' +
           '<div class="playlist-entry-actions">' +
-            '<button type="button" class="playlist-btn playlist-status-toggle ' + (isDone ? 'is-done' : '') + '" ' +
-              'data-toggle-key="' + escapeHtml(entry.key) + '" data-toggle-pl="' + escapeHtml(pl.id) + '" ' +
-              'data-toggle-next="' + (isDone ? 'listening' : 'done') + '" ' +
-              'title="' + (isDone ? 'Đánh dấu đang nghe' : 'Đánh dấu hoàn thành') + '">' +
-              (isDone ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-circle-check"></i>') +
-            '</button>' +
-            '<button type="button" class="playlist-btn" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
+            '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
+            '<button type="button" class="playlist-btn playlist-btn--remove" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
           '</div>' +
         '</div>';
     }).join('');
