@@ -42,6 +42,18 @@
       .replace(/'/g, '&#39;');
   }
 
+  function showToast(msg) {
+    var t = document.createElement('div');
+    t.className = 'account-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('is-visible'); }, 10);
+    setTimeout(function () {
+      t.classList.remove('is-visible');
+      setTimeout(function () { t.remove(); }, 300);
+    }, 2500);
+  }
+
   function readTab() {
     try {
       return String(window.localStorage.getItem(TAB_STORAGE_KEY) || 'content');
@@ -361,19 +373,18 @@
       if (addPlaylistBtn) {
         var storyId = addPlaylistBtn.getAttribute('data-story-add-playlist');
         var playlists = readPlaylists();
+        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
+
+        // remove existing modal
+        var existing = document.getElementById('playlist-picker-modal');
+        if (existing) existing.remove();
+
         if (!playlists.length) {
-          window.alert('Bạn chưa có playlist nào. Hãy tạo playlist trong tab "Danh sách phát".');
+          // show mini toast
+          showToast('Bạn chưa có playlist nào. Hãy tạo trong tab "Danh sách phát".');
           return;
         }
-        var options = playlists.map(function (pl, i) { return (i + 1) + '. ' + pl.name + ' (' + (pl.entries || []).length + ' truyện)'; }).join('\n');
-        var choice = window.prompt('Chọn playlist (nhập số):\n' + options);
-        if (choice === null) return;
-        var idx = parseInt(choice, 10) - 1;
-        if (isNaN(idx) || idx < 0 || idx >= playlists.length) {
-          window.alert('Số không hợp lệ.');
-          return;
-        }
-        var pl = playlists[idx];
+
         var entry = {
           key: storyId,
           title: addPlaylistBtn.getAttribute('data-story-title') || '',
@@ -383,17 +394,60 @@
           status: 'listening',
           progress: 0
         };
-        var exists = (pl.entries || []).some(function (e) { return e.key === storyId; });
-        if (exists) {
-          window.alert('Truyện đã có trong playlist "' + pl.name + '".');
-          return;
-        }
-        pl.entries = pl.entries || [];
-        pl.entries.push(entry);
-        writePlaylists(playlists);
-        window.alert('Đã thêm vào playlist "' + pl.name + '".');
-        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
-        renderPlaylist();
+
+        var modal = document.createElement('div');
+        modal.id = 'playlist-picker-modal';
+        modal.className = 'pl-picker-backdrop';
+        modal.innerHTML = '' +
+          '<div class="pl-picker">' +
+            '<div class="pl-picker__header">' +
+              '<span>Lưu vào playlist</span>' +
+              '<button type="button" class="pl-picker__close" id="pl-picker-close"><i class="fa-solid fa-xmark"></i></button>' +
+            '</div>' +
+            '<ul class="pl-picker__list">' +
+              playlists.map(function (pl) {
+                var inList = (pl.entries || []).some(function (e) { return e.key === storyId; });
+                return '<li>' +
+                  '<button type="button" class="pl-picker__item' + (inList ? ' is-added' : '') + '" data-pick-pl="' + escapeHtml(pl.id) + '">' +
+                    '<span class="pl-picker__check"><i class="fa-solid fa-check"></i></span>' +
+                    '<span class="pl-picker__name">' + escapeHtml(pl.name) + '</span>' +
+                    '<span class="pl-picker__count">' + (pl.entries || []).length + ' truyện</span>' +
+                  '</button>' +
+                '</li>';
+              }).join('') +
+            '</ul>' +
+          '</div>';
+
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', function (e) {
+          if (e.target === modal || e.target.closest('#pl-picker-close')) {
+            modal.remove();
+            return;
+          }
+          var pickBtn = e.target.closest('[data-pick-pl]');
+          if (!pickBtn) return;
+          var plId = pickBtn.getAttribute('data-pick-pl');
+          var lists = readPlaylists();
+          var target = null;
+          lists.forEach(function (p) { if (p.id === plId) target = p; });
+          if (!target) return;
+          var alreadyIn = (target.entries || []).some(function (e) { return e.key === storyId; });
+          if (alreadyIn) {
+            // remove from playlist
+            target.entries = target.entries.filter(function (e) { return e.key !== storyId; });
+            writePlaylists(lists);
+            pickBtn.classList.remove('is-added');
+            showToast('Đã xóa khỏi "' + target.name + '".');
+          } else {
+            target.entries = target.entries || [];
+            target.entries.push(entry);
+            writePlaylists(lists);
+            pickBtn.classList.add('is-added');
+            showToast('Đã thêm vào "' + target.name + '".');
+          }
+          renderPlaylist();
+        });
         return;
       }
 
