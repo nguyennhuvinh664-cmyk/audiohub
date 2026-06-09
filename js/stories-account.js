@@ -391,21 +391,22 @@
 
       var pagePrev = event.target.closest('[data-page-prev]');
       var pageNext = event.target.closest('[data-page-next]');
-      if (!pagePrev && !pageNext) return;
-      var btn = pagePrev || pageNext;
-      var type = btn.getAttribute('data-page-type');
-      if (type === 'history') {
-        currentHistoryPage = Math.max(1, currentHistoryPage + (pageNext ? 1 : -1));
-        renderLibrarySections();
-      } else if (type === 'favorites') {
-        currentFavoritesPage = Math.max(1, currentFavoritesPage + (pageNext ? 1 : -1));
-        renderLibrarySections();
-      } else if (type === 'published') {
-        currentPublishedPage = Math.max(1, currentPublishedPage + (pageNext ? 1 : -1));
-        renderStoriesSection();
-      } else if (type === 'draft') {
-        currentDraftPage = Math.max(1, currentDraftPage + (pageNext ? 1 : -1));
-        renderStoriesSection();
+      if (pagePrev || pageNext) {
+        var btn = pagePrev || pageNext;
+        var type = btn.getAttribute('data-page-type');
+        if (type === 'history') {
+          currentHistoryPage = Math.max(1, currentHistoryPage + (pageNext ? 1 : -1));
+          renderLibrarySections();
+        } else if (type === 'favorites') {
+          currentFavoritesPage = Math.max(1, currentFavoritesPage + (pageNext ? 1 : -1));
+          renderLibrarySections();
+        } else if (type === 'published') {
+          currentPublishedPage = Math.max(1, currentPublishedPage + (pageNext ? 1 : -1));
+          renderStoriesSection();
+        } else if (type === 'draft') {
+          currentDraftPage = Math.max(1, currentDraftPage + (pageNext ? 1 : -1));
+          renderStoriesSection();
+        }
       }
     });
   }
