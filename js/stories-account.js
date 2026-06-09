@@ -831,6 +831,35 @@
     renderPlaylistDetail();
   }
 
+  var STATUS_LABELS = {
+    'listening': 'Đang nghe',
+    'done': 'Đã hoàn thành'
+  };
+
+  function updateEntryStatus(playlistId, entryKey, status) {
+    var list = readPlaylists();
+    list.forEach(function (p) {
+      if (p.id === playlistId) {
+        (p.entries || []).forEach(function (e) {
+          if (e.key === entryKey) e.status = status;
+        });
+      }
+    });
+    writePlaylists(list);
+  }
+
+  function updateEntryProgress(playlistId, entryKey, progress) {
+    var list = readPlaylists();
+    list.forEach(function (p) {
+      if (p.id === playlistId) {
+        (p.entries || []).forEach(function (e) {
+          if (e.key === entryKey) e.progress = Math.min(100, Math.max(0, Number(progress) || 0));
+        });
+      }
+    });
+    writePlaylists(list);
+  }
+
   function renderPlaylistDetail() {
     if (!playlistDetailMount) return;
     if (!activePlaylistId) {
@@ -850,11 +879,35 @@
       return;
     }
     playlistDetailMount.innerHTML = entries.map(function (entry) {
+      var progress = Number(entry.progress) || 0;
+      var status = entry.status || 'listening';
+      var statusLabel = STATUS_LABELS[status] || 'Đang nghe';
+      var isDone = status === 'done';
       return '' +
-        '<div class="playlist-entry" data-entry-key="' + escapeHtml(entry.key) + '">' +
-          '<div>' +
+        '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
+          '<div class="playlist-entry-main">' +
             '<strong>' + escapeHtml(entry.title || 'Truyện audio') + '</strong>' +
             '<small>' + escapeHtml(entry.author || 'Ẩn danh') + ' · ' + escapeHtml(entry.genre || 'Truyện audio') + '</small>' +
+            '<div class="playlist-progress-wrap">' +
+              '<div class="playlist-progress-bar">' +
+                '<div class="playlist-progress-fill" style="width:' + progress + '%"></div>' +
+              '</div>' +
+              '<span class="playlist-progress-pct">' + progress + '%</span>' +
+            '</div>' +
+            '<input type="range" class="playlist-progress-slider" min="0" max="100" value="' + progress + '" ' +
+              'data-slider-key="' + escapeHtml(entry.key) + '" data-slider-pl="' + escapeHtml(pl.id) + '" />' +
+            '<div class="playlist-status-row">' +
+              '<span class="playlist-status-badge playlist-status-badge--' + escapeHtml(status) + '">' +
+                (isDone ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-headphones"></i>') +
+                ' ' + escapeHtml(statusLabel) +
+              '</span>' +
+              '<button type="button" class="playlist-btn playlist-status-toggle" ' +
+                'data-toggle-key="' + escapeHtml(entry.key) + '" data-toggle-pl="' + escapeHtml(pl.id) + '" ' +
+                'data-toggle-next="' + (isDone ? 'listening' : 'done') + '" ' +
+                'title="' + (isDone ? 'Đánh dấu đang nghe' : 'Đánh dấu hoàn thành') + '">' +
+                (isDone ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-circle-check"></i>') +
+              '</button>' +
+            '</div>' +
           '</div>' +
           '<div class="playlist-entry-actions">' +
             '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
@@ -862,6 +915,22 @@
           '</div>' +
         '</div>';
     }).join('');
+
+    // bind slider input live
+    playlistDetailMount.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
+      slider.addEventListener('input', function () {
+        var val = slider.value;
+        var fill = slider.closest('.playlist-entry').querySelector('.playlist-progress-fill');
+        var pct = slider.closest('.playlist-entry').querySelector('.playlist-progress-pct');
+        if (fill) fill.style.width = val + '%';
+        if (pct) pct.textContent = val + '%';
+      });
+      slider.addEventListener('change', function () {
+        var key = slider.getAttribute('data-slider-key');
+        var plId = slider.getAttribute('data-slider-pl');
+        updateEntryProgress(plId, key, slider.value);
+      });
+    });
   }
 
   function bindPlaylistActions() {
@@ -893,6 +962,18 @@
       var renameBtn = event.target.closest('[data-playlist-rename]');
       var deleteBtn = event.target.closest('[data-playlist-delete]');
       var removeBtn = event.target.closest('[data-entry-remove]');
+
+      var toggleBtn = event.target.closest('[data-toggle-key]');
+      if (toggleBtn) {
+        var entryKey = toggleBtn.getAttribute('data-toggle-key');
+        var plId = toggleBtn.getAttribute('data-toggle-pl');
+        var nextStatus = toggleBtn.getAttribute('data-toggle-next');
+        if (entryKey && plId && nextStatus) {
+          updateEntryStatus(plId, entryKey, nextStatus);
+          renderPlaylistDetail();
+        }
+        return;
+      }
 
       if (removeBtn) {
         var entryKey = removeBtn.getAttribute('data-entry-remove');
