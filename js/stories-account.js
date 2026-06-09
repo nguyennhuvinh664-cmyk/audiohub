@@ -356,6 +356,47 @@
         return;
       }
 
+      // add to playlist
+      var addPlaylistBtn = event.target.closest('[data-story-add-playlist]');
+      if (addPlaylistBtn) {
+        var storyId = addPlaylistBtn.getAttribute('data-story-add-playlist');
+        var playlists = readPlaylists();
+        if (!playlists.length) {
+          window.alert('Bạn chưa có playlist nào. Hãy tạo playlist trong tab "Danh sách phát".');
+          return;
+        }
+        var options = playlists.map(function (pl, i) { return (i + 1) + '. ' + pl.name + ' (' + (pl.entries || []).length + ' truyện)'; }).join('\n');
+        var choice = window.prompt('Chọn playlist (nhập số):\n' + options);
+        if (choice === null) return;
+        var idx = parseInt(choice, 10) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= playlists.length) {
+          window.alert('Số không hợp lệ.');
+          return;
+        }
+        var pl = playlists[idx];
+        var entry = {
+          key: storyId,
+          title: addPlaylistBtn.getAttribute('data-story-title') || '',
+          author: addPlaylistBtn.getAttribute('data-story-author') || '',
+          genre: addPlaylistBtn.getAttribute('data-story-genre') || '',
+          href: addPlaylistBtn.getAttribute('data-story-href') || '',
+          status: 'listening',
+          progress: 0
+        };
+        var exists = (pl.entries || []).some(function (e) { return e.key === storyId; });
+        if (exists) {
+          window.alert('Truyện đã có trong playlist "' + pl.name + '".');
+          return;
+        }
+        pl.entries = pl.entries || [];
+        pl.entries.push(entry);
+        writePlaylists(playlists);
+        window.alert('Đã thêm vào playlist "' + pl.name + '".');
+        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
+        renderPlaylist();
+        return;
+      }
+
       // delete single story
       var deleteOneBtn = event.target.closest('[data-story-delete-one]');
       if (deleteOneBtn) {
@@ -613,6 +654,7 @@
             '<div class="account-item-menu is-hidden" data-story-menu-panel="' + escapeHtml(storyId) + '">' +
               '<a href="' + escapeHtml(editHref) + '" class="account-item-menu-option"><i class="fa-solid fa-pen-to-square"></i> Sửa truyện</a>' +
               '<a href="' + escapeHtml(storyHref(story)) + '" class="account-item-menu-option"><i class="fa-solid fa-eye"></i> Xem truyện</a>' +
+              '<button type="button" class="account-item-menu-option" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '"><i class="fa-solid fa-list-ul"></i> Thêm vào playlist</button>' +
               '<button type="button" class="account-item-menu-option account-item-menu-option--danger" data-story-delete-one="' + escapeHtml(storyId) + '"><i class="fa-solid fa-trash"></i> Xóa truyện</button>' +
             '</div>' +
           '</div>' +
