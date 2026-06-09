@@ -1101,7 +1101,7 @@
   initTabs();
   initMainTabs();
   initContentTabs();
-  bindBulkActions();
+  bindStoryMenuActions();
   bindStoryMenuActions();
   bindCollectionActions();
   bindPagination();
