@@ -1016,36 +1016,23 @@
     playlistDetailMount.innerHTML = entries.map(function (entry) {
       var progress = Number(entry.progress) || 0;
       var status = entry.status || 'listening';
-      var statusLabel = STATUS_LABELS[status] || 'Đang nghe';
       var isDone = status === 'done';
       return '' +
         '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
+          '<a class="playlist-entry-thumb" href="' + escapeHtml(entry.href || '#') + '" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">' +
+            '<span>' + escapeHtml((entry.title || 'AH').slice(0,2).toUpperCase()) + '</span>' +
+          '</a>' +
           '<div class="playlist-entry-main">' +
-            '<strong>' + escapeHtml(entry.title || 'Truyện audio') + '</strong>' +
+            '<a class="playlist-entry-title" href="' + escapeHtml(entry.href || '#') + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
             '<small>' + escapeHtml(entry.author || 'Ẩn danh') + ' · ' + escapeHtml(entry.genre || 'Truyện audio') + '</small>' +
-            '<div class="playlist-progress-wrap">' +
-              '<div class="playlist-progress-bar">' +
-                '<div class="playlist-progress-fill" style="width:' + progress + '%"></div>' +
-              '</div>' +
-              '<span class="playlist-progress-pct">' + progress + '%</span>' +
-            '</div>' +
-            '<input type="range" class="playlist-progress-slider" min="0" max="100" value="' + progress + '" ' +
-              'data-slider-key="' + escapeHtml(entry.key) + '" data-slider-pl="' + escapeHtml(pl.id) + '" />' +
-            '<div class="playlist-status-row">' +
-              '<span class="playlist-status-badge playlist-status-badge--' + escapeHtml(status) + '">' +
-                (isDone ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-headphones"></i>') +
-                ' ' + escapeHtml(statusLabel) +
-              '</span>' +
-              '<button type="button" class="playlist-btn playlist-status-toggle" ' +
-                'data-toggle-key="' + escapeHtml(entry.key) + '" data-toggle-pl="' + escapeHtml(pl.id) + '" ' +
-                'data-toggle-next="' + (isDone ? 'listening' : 'done') + '" ' +
-                'title="' + (isDone ? 'Đánh dấu đang nghe' : 'Đánh dấu hoàn thành') + '">' +
-                (isDone ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-circle-check"></i>') +
-              '</button>' +
-            '</div>' +
           '</div>' +
           '<div class="playlist-entry-actions">' +
-            '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
+            '<button type="button" class="playlist-btn playlist-status-toggle ' + (isDone ? 'is-done' : '') + '" ' +
+              'data-toggle-key="' + escapeHtml(entry.key) + '" data-toggle-pl="' + escapeHtml(pl.id) + '" ' +
+              'data-toggle-next="' + (isDone ? 'listening' : 'done') + '" ' +
+              'title="' + (isDone ? 'Đánh dấu đang nghe' : 'Đánh dấu hoàn thành') + '">' +
+              (isDone ? '<i class="fa-solid fa-rotate-left"></i>' : '<i class="fa-solid fa-circle-check"></i>') +
+            '</button>' +
             '<button type="button" class="playlist-btn" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
           '</div>' +
         '</div>';
