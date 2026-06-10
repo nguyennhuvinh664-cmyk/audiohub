@@ -905,7 +905,7 @@
   display: grid;
   grid-template-columns: 290px 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .playlist-list,
@@ -917,6 +917,7 @@
   padding: 14px;
   box-shadow: 0 18px 40px rgba(2,6,23,.24), inset 0 1px 0 rgba(255,255,255,.04);
   backdrop-filter: blur(16px);
+  min-height: 0;
 }
 
 .playlist-list::before,
@@ -951,7 +952,7 @@
 .playlist-list {
   display: grid;
   gap: 12px;
-  max-height: 640px;
+  max-height: calc(100vh - 280px);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 6px;
