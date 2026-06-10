@@ -991,7 +991,7 @@
               '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
             '</div>' +
           '</div>' +
-        '</div>';} },
+        '</div>';
     }).join('');
 
     renderPlaylistDetail();
