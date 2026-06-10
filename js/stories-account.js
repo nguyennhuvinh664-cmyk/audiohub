@@ -928,56 +928,31 @@
     writePlaylists(list);
   }
 
-  function ensurePlaylistStatePopup() {
-    var popup = document.querySelector('[data-playlist-state-popup]');
-    if (popup) return popup;
-    popup = document.createElement('div');
-    popup.className = 'playlist-state-popup is-hidden';
-    popup.setAttribute('data-playlist-state-popup', 'true');
-    popup.innerHTML = '' +
-      '<button type="button" class="playlist-state-option" data-playlist-state="ongoing">Đang ra</button>' +
-      '<button type="button" class="playlist-state-option" data-playlist-state="done">Đã hoàn thành</button>';
-    document.body.appendChild(popup);
-    return popup;
+  function togglePlaylistStateMenu(playlistId) {
+    var menu = document.querySelector('[data-playlist-state-menu="' + playlistId + '"]');
+    if (!menu) return;
+    var isOpen = !menu.classList.contains('is-hidden');
+    document.querySelectorAll('[data-playlist-state-menu]').forEach(function (node) {
+      node.classList.add('is-hidden');
+    });
+    if (!isOpen) menu.classList.remove('is-hidden');
   }
 
-  function hidePlaylistStatePopup() {
-    var popup = document.querySelector('[data-playlist-state-popup]');
-    if (popup) popup.classList.add('is-hidden');
-  }
-
-  function showPlaylistStatePopup(trigger, playlistId) {
-    var popup = ensurePlaylistStatePopup();
-    var rect = trigger.getBoundingClientRect();
-    var margin = 8;
-    popup.setAttribute('data-playlist-state-id', playlistId);
-    popup.classList.remove('is-hidden');
-    popup.style.visibility = 'hidden';
-    popup.style.left = '0px';
-    popup.style.top = '0px';
-
-    requestAnimationFrame(function () {
-      var popupRect = popup.getBoundingClientRect();
-      var popupWidth = popupRect.width || 190;
-      var popupHeight = popupRect.height || 96;
-      var left = rect.left;
-      var top = rect.bottom + margin;
-
-      if (left + popupWidth > window.innerWidth - margin) {
-        left = window.innerWidth - popupWidth - margin;
-      }
-      if (left < margin) left = margin;
-
-      if (top + popupHeight > window.innerHeight - margin) {
-        top = rect.top - popupHeight - margin;
-      }
-      if (top < margin) top = margin;
-
-      popup.style.left = left + 'px';
-      popup.style.top = top + 'px';
-      popup.style.visibility = 'visible';
+  function closePlaylistStateMenus() {
+    document.querySelectorAll('[data-playlist-state-menu]').forEach(function (node) {
+      node.classList.add('is-hidden');
     });
   }
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest('[data-playlist-state-trigger]') && !event.target.closest('[data-playlist-state-menu]')) {
+      closePlaylistStateMenus();
+    }
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') closePlaylistStateMenus();
+  });
 
   function removeEntryFromPlaylist(playlistId, entryKey) {
     var list = readPlaylists();
@@ -1029,10 +1004,10 @@
             '<div class="playlist-progress-mini"><span style="width:' + (count ? Math.round((doneCount / count) * 100) : 0) + '%"></span></div>' +
             '<div class="playlist-state-wrap">' +
               '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">Trạng thái <i class="fa-solid fa-chevron-down"></i></button>' +
-            '</div>' +
-            '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
-              '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
-              '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
+              '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
+                '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
+                '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
+              '</div>' +
             '</div>' +
           '</div>' +
           '<div class="playlist-actions">' +
@@ -1182,26 +1157,21 @@
       var stateTrigger = event.target.closest('[data-playlist-state-trigger]');
       if (stateTrigger) {
         var plId = stateTrigger.getAttribute('data-playlist-state-trigger');
-        showPlaylistStatePopup(stateTrigger, plId);
+        closePlaylistStateMenus();
+        togglePlaylistStateMenu(plId);
         return;
       }
 
-      var stateOption = event.target.closest('.playlist-state-popup .playlist-state-option');
+      var stateOption = event.target.closest('[data-playlist-state-set]');
       if (stateOption) {
-        var popup = document.querySelector('[data-playlist-state-popup]');
-        var plId = popup && popup.getAttribute('data-playlist-state-id');
+        var plId = stateOption.getAttribute('data-playlist-state-set');
         var nextState = stateOption.getAttribute('data-playlist-state');
         if (plId && nextState) {
           setPlaylistState(plId, nextState);
-          hidePlaylistStatePopup();
+          closePlaylistStateMenus();
           renderPlaylist();
         }
         return;
-      }
-
-      var popup = event.target.closest('[data-playlist-state-popup]');
-      if (!popup) {
-        hidePlaylistStatePopup();
       }
 
       var playBtn = event.target.closest('.playlist-play-btn');
