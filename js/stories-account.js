@@ -975,6 +975,7 @@
           '<div class="playlist-main">' +
             '<div class="playlist-name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
             '<div class="playlist-meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
+            '<div class="playlist-progress-mini"><span style="width:' + (count ? Math.round((doneCount / count) * 100) : 0) + '%"></span></div>' +
             '<div class="playlist-state-wrap">' +
               '<div class="playlist-state-badge">Trạng thái</div>' +
               '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' + escapeHtml(stateLabel) + ' <i class="fa-solid fa-chevron-down"></i></button>' +
@@ -983,14 +984,6 @@
                 '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
               '</div>' +
             '</div>' +
-            '<div class="playlist-progress-mini"><span style="width:' + (count ? Math.round((doneCount / count) * 100) : 0) + '%"></span></div>' +
-          '</div>' +
-          '<div class="playlist-actions">' +
-            '<div class="playlist-action-buttons">' +
-              '<button type="button" class="playlist-btn playlist-play-btn" title="Phát nhanh"><i class="fa-solid fa-play"></i></button>' +
-              '<button type="button" class="playlist-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
-              '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
-            '</div>' +
           '</div>' +
           '<div class="playlist-actions">' +
             '<div class="playlist-action-buttons">' +
@@ -998,7 +991,7 @@
               '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
             '</div>' +
           '</div>' +
-        '</div>';
+        '</div>';} },
     }).join('');
 
     renderPlaylistDetail();
