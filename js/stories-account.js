@@ -949,8 +949,24 @@
   function showPlaylistStatePopup(trigger, playlistId) {
     var popup = ensurePlaylistStatePopup();
     var rect = trigger.getBoundingClientRect();
-    popup.style.left = Math.max(12, Math.min(window.innerWidth - 210, rect.left)) + 'px';
-    popup.style.top = (rect.bottom + 8) + 'px';
+    var popupWidth = 190;
+    var popupHeight = 96;
+    var margin = 8;
+    var left = rect.left;
+    var top = rect.bottom + margin;
+
+    if (left + popupWidth > window.innerWidth - margin) {
+      left = window.innerWidth - popupWidth - margin;
+    }
+    if (left < margin) left = margin;
+
+    if (top + popupHeight > window.innerHeight - margin) {
+      top = rect.top - popupHeight - margin;
+    }
+    if (top < margin) top = margin;
+
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
     popup.setAttribute('data-playlist-state-id', playlistId);
     popup.classList.remove('is-hidden');
   }
@@ -1173,6 +1189,11 @@
           renderPlaylist();
         }
         return;
+      }
+
+      var popup = event.target.closest('[data-playlist-state-popup]');
+      if (!popup) {
+        hidePlaylistStatePopup();
       }
 
       var playBtn = event.target.closest('.playlist-play-btn');
