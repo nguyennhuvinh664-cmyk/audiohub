@@ -928,6 +928,33 @@
     writePlaylists(list);
   }
 
+  function ensurePlaylistStatePopup() {
+    var popup = document.querySelector('[data-playlist-state-popup]');
+    if (popup) return popup;
+    popup = document.createElement('div');
+    popup.className = 'playlist-state-popup is-hidden';
+    popup.setAttribute('data-playlist-state-popup', 'true');
+    popup.innerHTML = '' +
+      '<button type="button" class="playlist-state-option" data-playlist-state="ongoing">Đang ra</button>' +
+      '<button type="button" class="playlist-state-option" data-playlist-state="done">Đã hoàn thành</button>';
+    document.body.appendChild(popup);
+    return popup;
+  }
+
+  function hidePlaylistStatePopup() {
+    var popup = document.querySelector('[data-playlist-state-popup]');
+    if (popup) popup.classList.add('is-hidden');
+  }
+
+  function showPlaylistStatePopup(trigger, playlistId) {
+    var popup = ensurePlaylistStatePopup();
+    var rect = trigger.getBoundingClientRect();
+    popup.style.left = Math.max(12, Math.min(window.innerWidth - 210, rect.left)) + 'px';
+    popup.style.top = (rect.bottom + 8) + 'px';
+    popup.setAttribute('data-playlist-state-id', playlistId);
+    popup.classList.remove('is-hidden');
+  }
+
   function removeEntryFromPlaylist(playlistId, entryKey) {
     var list = readPlaylists();
     list.forEach(function (p) {
@@ -978,10 +1005,10 @@
             '<div class="playlist-progress-mini"><span style="width:' + (count ? Math.round((doneCount / count) * 100) : 0) + '%"></span></div>' +
             '<div class="playlist-state-wrap">' +
               '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">Trạng thái <i class="fa-solid fa-chevron-down"></i></button>' +
-              '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
-                '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
-                '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
-              '</div>' +
+            '</div>' +
+            '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
+              '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
+              '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
             '</div>' +
           '</div>' +
           '<div class="playlist-actions">' +
@@ -1131,24 +1158,18 @@
       var stateTrigger = event.target.closest('[data-playlist-state-trigger]');
       if (stateTrigger) {
         var plId = stateTrigger.getAttribute('data-playlist-state-trigger');
-        var menu = document.querySelector('[data-playlist-state-menu="' + plId + '"]');
-        if (menu) {
-          var open = !menu.classList.contains('is-hidden');
-          document.querySelectorAll('[data-playlist-state-menu]').forEach(function (m) {
-            m.classList.add('is-hidden');
-          });
-          if (open) menu.classList.add('is-hidden');
-          else menu.classList.remove('is-hidden');
-        }
+        showPlaylistStatePopup(stateTrigger, plId);
         return;
       }
 
-      var stateOption = event.target.closest('[data-playlist-state-set]');
+      var stateOption = event.target.closest('.playlist-state-popup .playlist-state-option');
       if (stateOption) {
-        var plId = stateOption.getAttribute('data-playlist-state-set');
+        var popup = document.querySelector('[data-playlist-state-popup]');
+        var plId = popup && popup.getAttribute('data-playlist-state-id');
         var nextState = stateOption.getAttribute('data-playlist-state');
         if (plId && nextState) {
           setPlaylistState(plId, nextState);
+          hidePlaylistStatePopup();
           renderPlaylist();
         }
         return;
