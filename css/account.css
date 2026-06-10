@@ -1271,6 +1271,11 @@
   min-width: 0;
 }
 
+.playlist-list,
+.playlist-item {
+  overflow: visible;
+}
+
 .playlist-list .playlist-item:active {
   transform: translateY(1px);
 }
@@ -1803,19 +1808,8 @@
   flex-wrap: wrap;
 }
 
-.playlist-state-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  margin-top: 10px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(245,158,11,.12);
-  border: 1px solid rgba(245,158,11,.22);
-  color: #fbbf24;
-  font-size: .78rem;
-  font-weight: 800;
-}
+/* removed extra state label */
+.playlist-state-badge { display: none; }
 
 .playlist-state-wrap {
   position: relative;
