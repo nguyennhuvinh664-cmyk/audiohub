@@ -2604,6 +2604,7 @@
 
 .playlist-list .playlist-item {
   box-shadow: none;
+  overflow: visible !important;
 }
 
 .playlist-root {
