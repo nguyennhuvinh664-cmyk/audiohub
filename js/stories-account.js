@@ -950,18 +950,21 @@
       var count = entries.length;
       var doneCount = entries.filter(function (e) { return e.status === 'done'; }).length;
       var listeningCount = count - doneCount;
-      var statusHtml = '';
+      var statusLabel = '';
       if (count > 0) {
-        statusHtml = '<div class="playlist-card-status">' +
-          (listeningCount > 0 ? '<span class="pl-status-listening"><i class="fa-solid fa-headphones"></i> ' + listeningCount + '</span>' : '') +
-          (doneCount > 0 ? '<span class="pl-status-done"><i class="fa-solid fa-circle-check"></i> ' + doneCount + '</span>' : '') +
-        '</div>';
+        if (listeningCount > 0 && doneCount > 0) {
+          statusLabel = listeningCount + ' đang nghe, ' + doneCount + ' đã xong';
+        } else if (listeningCount > 0) {
+          statusLabel = listeningCount + ' đang nghe';
+        } else if (doneCount > 0) {
+          statusLabel = doneCount + ' đã xong';
+        }
       }
       return '' +
         '<div class="playlist-item' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
           '<div class="playlist-main">' +
             '<div class="playlist-name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
-            '<div class="playlist-meta">' + count + ' truyện' + (statusHtml ? (' · ' + (listeningCount > 0 ? listeningCount + ' đang nghe' : '') + (doneCount > 0 ? (listeningCount > 0 ? ', ' : '') + doneCount + ' xong' : '')) : '') + '</div>' +
+            '<div class="playlist-meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
           '</div>' +
           '<div class="playlist-actions">' +
             '<div class="playlist-action-buttons">' +
