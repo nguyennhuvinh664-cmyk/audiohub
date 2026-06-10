@@ -949,26 +949,34 @@
   function showPlaylistStatePopup(trigger, playlistId) {
     var popup = ensurePlaylistStatePopup();
     var rect = trigger.getBoundingClientRect();
-    var popupWidth = 190;
-    var popupHeight = 96;
     var margin = 8;
-    var left = rect.left;
-    var top = rect.bottom + margin;
-
-    if (left + popupWidth > window.innerWidth - margin) {
-      left = window.innerWidth - popupWidth - margin;
-    }
-    if (left < margin) left = margin;
-
-    if (top + popupHeight > window.innerHeight - margin) {
-      top = rect.top - popupHeight - margin;
-    }
-    if (top < margin) top = margin;
-
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
     popup.setAttribute('data-playlist-state-id', playlistId);
     popup.classList.remove('is-hidden');
+    popup.style.visibility = 'hidden';
+    popup.style.left = '0px';
+    popup.style.top = '0px';
+
+    requestAnimationFrame(function () {
+      var popupRect = popup.getBoundingClientRect();
+      var popupWidth = popupRect.width || 190;
+      var popupHeight = popupRect.height || 96;
+      var left = rect.left;
+      var top = rect.bottom + margin;
+
+      if (left + popupWidth > window.innerWidth - margin) {
+        left = window.innerWidth - popupWidth - margin;
+      }
+      if (left < margin) left = margin;
+
+      if (top + popupHeight > window.innerHeight - margin) {
+        top = rect.top - popupHeight - margin;
+      }
+      if (top < margin) top = margin;
+
+      popup.style.left = left + 'px';
+      popup.style.top = top + 'px';
+      popup.style.visibility = 'visible';
+    });
   }
 
   function removeEntryFromPlaylist(playlistId, entryKey) {

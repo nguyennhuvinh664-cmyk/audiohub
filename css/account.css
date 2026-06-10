@@ -1840,7 +1840,7 @@
 .playlist-state-menu { display: none !important; }
 
 .playlist-state-popup {
-  position: fixed;
+  position: fixed !important;
   z-index: 10000;
   min-width: 180px;
   background: #111827;
