@@ -977,8 +977,7 @@
             '<div class="playlist-meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
             '<div class="playlist-progress-mini"><span style="width:' + (count ? Math.round((doneCount / count) * 100) : 0) + '%"></span></div>' +
             '<div class="playlist-state-wrap">' +
-              '<div class="playlist-state-badge">Trạng thái</div>' +
-              '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' + escapeHtml(stateLabel) + ' <i class="fa-solid fa-chevron-down"></i></button>' +
+              '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">Trạng thái <i class="fa-solid fa-chevron-down"></i></button>' +
               '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
                 '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
                 '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
@@ -1133,7 +1132,14 @@
       if (stateTrigger) {
         var plId = stateTrigger.getAttribute('data-playlist-state-trigger');
         var menu = document.querySelector('[data-playlist-state-menu="' + plId + '"]');
-        if (menu) menu.classList.toggle('is-hidden');
+        if (menu) {
+          var open = !menu.classList.contains('is-hidden');
+          document.querySelectorAll('[data-playlist-state-menu]').forEach(function (m) {
+            m.classList.add('is-hidden');
+          });
+          if (open) menu.classList.add('is-hidden');
+          else menu.classList.remove('is-hidden');
+        }
         return;
       }
 

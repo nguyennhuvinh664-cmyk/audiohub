@@ -1841,16 +1841,26 @@
   position: absolute;
   left: 0;
   top: calc(100% + 8px);
-  z-index: 30;
+  z-index: 999;
   min-width: 170px;
   background: #111827;
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 14px;
   padding: 6px;
   box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  display: none;
+}
+
+.playlist-state-menu.is-hidden {
+  display: none !important;
+}
+
+.playlist-state-menu:not(.is-hidden) {
+  display: block;
 }
 
 .playlist-state-option {
+  display: block;
   width: 100%;
   text-align: left;
   border: 0;
@@ -1864,10 +1874,6 @@
 
 .playlist-state-option:hover {
   background: rgba(255,255,255,.08);
-}
-
-.playlist-state-menu.is-hidden {
-  display: none !important;
 }
 
 .playlist-progress-mini {
