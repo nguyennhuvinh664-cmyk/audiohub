@@ -920,6 +920,14 @@
     writePlaylists(list);
   }
 
+  function setPlaylistState(id, state) {
+    var list = readPlaylists();
+    list.forEach(function (p) {
+      if (p.id === id) p.state = state === 'done' ? 'done' : 'ongoing';
+    });
+    writePlaylists(list);
+  }
+
   function removeEntryFromPlaylist(playlistId, entryKey) {
     var list = readPlaylists();
     list.forEach(function (p) {
@@ -960,18 +968,21 @@
           statusLabel = doneCount + ' đã xong';
         }
       }
-      var stateBadge = '';
-      if (count > 0) {
-        if (doneCount > 0 && listeningCount > 0) stateBadge = 'Đang ra';
-        else if (doneCount > 0) stateBadge = 'Đã xong';
-        else stateBadge = 'Đang ra';
-      }
+      var state = String(pl.state || (doneCount > 0 ? 'done' : 'ongoing'));
+      var stateLabel = state === 'done' ? 'Đã hoàn thành' : 'Đang ra';
       return '' +
         '<div class="playlist-item' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
           '<div class="playlist-main">' +
             '<div class="playlist-name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
             '<div class="playlist-meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
-            (stateBadge ? '<div class="playlist-state-badge">' + escapeHtml(stateBadge) + '</div>' : '') +
+            '<div class="playlist-state-wrap">' +
+              '<div class="playlist-state-badge">Trạng thái</div>' +
+              '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' + escapeHtml(stateLabel) + ' <i class="fa-solid fa-chevron-down"></i></button>' +
+              '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
+                '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
+                '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
+              '</div>' +
+            '</div>' +
             '<div class="playlist-progress-mini"><span style="width:' + (count ? Math.round((doneCount / count) * 100) : 0) + '%"></span></div>' +
           '</div>' +
           '<div class="playlist-actions">' +
@@ -1120,6 +1131,25 @@
         var plId = deleteBtn.getAttribute('data-playlist-delete');
         if (plId && window.confirm('Xóa playlist này?')) {
           deletePlaylist(plId);
+          renderPlaylist();
+        }
+        return;
+      }
+
+      var stateTrigger = event.target.closest('[data-playlist-state-trigger]');
+      if (stateTrigger) {
+        var plId = stateTrigger.getAttribute('data-playlist-state-trigger');
+        var menu = document.querySelector('[data-playlist-state-menu="' + plId + '"]');
+        if (menu) menu.classList.toggle('is-hidden');
+        return;
+      }
+
+      var stateOption = event.target.closest('[data-playlist-state-set]');
+      if (stateOption) {
+        var plId = stateOption.getAttribute('data-playlist-state-set');
+        var nextState = stateOption.getAttribute('data-playlist-state');
+        if (plId && nextState) {
+          setPlaylistState(plId, nextState);
           renderPlaylist();
         }
         return;
