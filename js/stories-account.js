@@ -1001,8 +1001,7 @@
           '<div class="playlist-main">' +
             '<div class="playlist-name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
             '<div class="playlist-meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
-            '<div class="playlist-progress-mini"><span style="width:' + (count ? Math.round((doneCount / count) * 100) : 0) + '%"></span></div>' +
-            '<input type="range" class="playlist-progress-slider" min="0" max="100" value="' + (count ? Math.round((doneCount / count) * 100) : 0) + '" disabled />' +
+            '' +
             '<div class="playlist-state-wrap">' +
               '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' + escapeHtml(stateLabel) + ' <i class="fa-solid fa-chevron-down"></i></button>' +
               '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
