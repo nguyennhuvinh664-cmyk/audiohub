@@ -1439,8 +1439,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 10px;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,.07);
   background: rgba(255,255,255,.02);
@@ -1501,6 +1501,10 @@
 .playlist-main {
   min-width: 0;
   width: 100%;
+}
+
+.playlist-main > * + * {
+  margin-top: 4px;
 }
 
 .playlist-name {
@@ -2289,11 +2293,11 @@
 }
 
 .playlist-detail .playlist-entry {
-  min-height: 74px;
+  min-height: 56px;
 }
 
 .playlist-list .playlist-item {
-  min-height: 164px;
+  min-height: 112px;
 }
 
 .playlist-list .playlist-item .playlist-actions {
@@ -2656,8 +2660,8 @@
 }
 
 .playlist-status-trigger {
-  min-width: 120px;
-  height: 34px;
+  min-width: 112px;
+  height: 32px;
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,.15);
   background: rgba(15,23,42,.9);
