@@ -1803,6 +1803,45 @@
   flex-wrap: wrap;
 }
 
+.playlist-state-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(245,158,11,.12);
+  border: 1px solid rgba(245,158,11,.22);
+  color: #fbbf24;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.playlist-progress-mini {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.07);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.playlist-progress-mini span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #06b6d4, #3b82f6);
+}
+
+.playlist-play-btn {
+  color: #22d3ee;
+  border-color: rgba(34,211,238,.24);
+}
+
+.playlist-play-btn:hover {
+  background: rgba(34,211,238,.08);
+}
+
 .pl-status-listening {
   display: inline-flex;
   align-items: center;

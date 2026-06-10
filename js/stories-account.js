@@ -960,11 +960,26 @@
           statusLabel = doneCount + ' đã xong';
         }
       }
+      var stateBadge = '';
+      if (count > 0) {
+        if (doneCount > 0 && listeningCount > 0) stateBadge = 'Đang ra';
+        else if (doneCount > 0) stateBadge = 'Đã xong';
+        else stateBadge = 'Đang ra';
+      }
       return '' +
         '<div class="playlist-item' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
           '<div class="playlist-main">' +
             '<div class="playlist-name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
             '<div class="playlist-meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
+            (stateBadge ? '<div class="playlist-state-badge">' + escapeHtml(stateBadge) + '</div>' : '') +
+            '<div class="playlist-progress-mini"><span style="width:' + (count ? Math.round((doneCount / count) * 100) : 0) + '%"></span></div>' +
+          '</div>' +
+          '<div class="playlist-actions">' +
+            '<div class="playlist-action-buttons">' +
+              '<button type="button" class="playlist-btn playlist-play-btn" title="Phát nhanh"><i class="fa-solid fa-play"></i></button>' +
+              '<button type="button" class="playlist-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
+              '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
+            '</div>' +
           '</div>' +
           '<div class="playlist-actions">' +
             '<div class="playlist-action-buttons">' +
@@ -1106,6 +1121,22 @@
         if (plId && window.confirm('Xóa playlist này?')) {
           deletePlaylist(plId);
           renderPlaylist();
+        }
+        return;
+      }
+
+      var playBtn = event.target.closest('.playlist-play-btn');
+      if (playBtn) {
+        var card = playBtn.closest('[data-playlist-id]');
+        if (card) {
+          var plId = card.getAttribute('data-playlist-id');
+          var playlists = readPlaylists();
+          var target = null;
+          playlists.forEach(function (p) { if (p.id === plId) target = p; });
+          if (target && (target.entries || []).length) {
+            var first = target.entries[0];
+            if (first && first.href) window.location.href = first.href;
+          }
         }
         return;
       }
