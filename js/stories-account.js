@@ -1081,11 +1081,6 @@
           '<div class="playlist-entry-main">' +
             '<a class="playlist-entry-title" href="' + escapeHtml(entry.href || '#') + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
             '<small>' + escapeHtml(entry.author || 'Ẩn danh') + ' · ' + escapeHtml(entry.genre || 'Truyện audio') + '</small>' +
-            '<div class="playlist-progress-wrap">' +
-              '<div class="playlist-progress-bar"><div class="playlist-progress-fill" style="width:' + progress + '%"></div></div>' +
-              '<span class="playlist-progress-pct">' + progress + '%</span>' +
-            '</div>' +
-            '<input type="range" class="playlist-progress-slider" min="0" max="100" step="1" value="' + progress + '" data-slider-key="' + escapeHtml(entry.key) + '" data-slider-pl="' + escapeHtml(pl.id) + '">' +
           '</div>' +
           '<div class="playlist-entry-actions">' +
             '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
