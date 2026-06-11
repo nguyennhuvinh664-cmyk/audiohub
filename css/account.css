@@ -1909,11 +1909,18 @@
   height: 38px;
   padding: 0;
   border-radius: 999px;
+  display: inline-flex;
   justify-content: center;
   align-items: center;
+  line-height: 1;
   font-size: .9rem;
   border-color: rgba(255,255,255,.12);
   background: rgba(255,255,255,.025);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn i {
+  margin: 0;
+  line-height: 1;
 }
 
 .playlist-detail .playlist-entry-actions .playlist-btn:first-child {
