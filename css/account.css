@@ -1495,8 +1495,8 @@
 .playlist-root .library-empty { margin-bottom: 10px; }
 
 .playlist-entry-thumb {
-  width: 50px;
-  height: 50px;
+  width: 58px;
+  height: 58px;
   border-radius: 14px;
   flex-shrink: 0;
   display: flex;
@@ -1510,6 +1510,7 @@
   overflow: hidden;
   position: relative;
   box-shadow: 0 10px 20px rgba(2,6,23,.22), inset 0 1px 0 rgba(255,255,255,.08);
+  text-decoration: none;
 }
 
 .playlist-entry-thumb::after {
@@ -1521,8 +1522,7 @@
 }
 
 .playlist-entry-thumb.is-cover-ready span {
-  position: relative;
-  z-index: 1;
+  display: none;
 }
 
 .playlist-entry-thumb.is-cover-ready::after {
@@ -1915,4 +1915,40 @@
   .playlist-btn { padding: 6px 10px; }
   .playlist-item { gap: 10px; }
   .playlist-action-buttons { gap: 6px; }
+}
+
+/* Playlist entry action buttons nicer look */
+.playlist-detail .playlist-entry-actions .playlist-btn {
+  min-width: 38px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  justify-content: center;
+  align-items: center;
+  font-size: .9rem;
+  border-color: rgba(255,255,255,.12);
+  background: rgba(255,255,255,.025);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:first-child {
+  color: #67e8f9;
+  border-color: rgba(103,232,249,.25);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:first-child:hover {
+  background: rgba(103,232,249,.12);
+  border-color: rgba(103,232,249,.45);
+  color: #67e8f9;
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:last-child {
+  color: #f87171;
+  border-color: rgba(248,113,113,.2);
+}
+
+.playlist-detail .playlist-entry-actions .playlist-btn:last-child:hover {
+  background: rgba(248,113,113,.1);
+  border-color: rgba(248,113,113,.45);
+  color: #f87171;
 }
