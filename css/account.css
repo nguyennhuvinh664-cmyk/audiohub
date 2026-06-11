@@ -1365,8 +1365,7 @@
 /* removed duplicate weak rule */
 
 .playlist-list .playlist-btn,
-.playlist-list .playlist-status-trigger,
-.playlist-detail .playlist-entry-actions .playlist-btn {
+.playlist-list .playlist-status-trigger {
   min-height: 34px;
   border: 1px solid rgba(255,255,255,.13);
   background: rgba(255,255,255,.02);
@@ -1469,10 +1468,7 @@
   white-space: nowrap;
 }
 
-.playlist-detail .playlist-entry-actions .playlist-btn:first-child { border-color: rgba(59,130,246,.22); }
-.playlist-detail .playlist-entry-actions .playlist-btn:last-child { border-color: rgba(255,255,255,.14); }
-.playlist-detail .playlist-entry-actions .playlist-btn:first-child:hover { border-color: rgba(96,165,250,.38); }
-.playlist-detail .playlist-entry-actions .playlist-btn:last-child:hover { border-color: rgba(248,250,252,.26); }
+/* removed old weak hover rules */
 
 .playlist-empty {
   color: var(--t3);
