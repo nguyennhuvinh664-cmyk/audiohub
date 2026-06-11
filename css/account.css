@@ -246,6 +246,14 @@
   display: none !important;
 }
 
+.account-mainpanel {
+  display: none;
+}
+
+.account-mainpanel.is-active {
+  display: block;
+}
+
 @media (max-width: 620px) {
   .account-navcards {
     grid-template-columns: 1fr;
