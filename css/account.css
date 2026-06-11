@@ -1176,7 +1176,7 @@
   overflow-y: auto;
   align-content: start;
   scrollbar-width: thin;
-  scrollbar-color: rgba(34,211,238,.9) rgba(255,255,255,.12);
+  scrollbar-color: rgba(103,232,249,.9) rgba(255,255,255,.1);
   max-height: 100%;
 }
 
