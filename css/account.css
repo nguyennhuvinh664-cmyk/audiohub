@@ -1223,7 +1223,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: 8px;
   width: 100%;
 }
@@ -1236,7 +1236,7 @@
 .playlist-controls-row .playlist-action-buttons {
   flex-shrink: 0;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   justify-self: end;
 }
 
@@ -1254,23 +1254,28 @@
   width: 100%;
   min-width: 0;
   max-width: none;
-  height: 32px;
-  padding: 0 12px;
+  height: 30px;
+  padding: 0 10px;
   border-radius: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .playlist-item .playlist-btn {
-  min-height: 32px;
-  min-width: 32px;
-  padding: 4px 8px;
+  min-height: 30px;
+  min-width: 28px;
+  width: 28px;
+  padding: 0;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: .78rem;
 }
 
 .playlist-item .playlist-action-buttons {
-  gap: 6px;
+  gap: 5px;
 }
 
 .playlist-item .playlist-name { font-size: .98rem; }
