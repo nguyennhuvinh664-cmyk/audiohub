@@ -1489,17 +1489,36 @@
 .playlist-entry-thumb {
   width: 50px;
   height: 50px;
-  border-radius: 12px;
+  border-radius: 14px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: .95rem;
+  font-weight: 900;
+  font-size: .92rem;
   color: #fff;
   background-size: cover;
   background-position: center;
   overflow: hidden;
+  position: relative;
+  box-shadow: 0 10px 20px rgba(2,6,23,.22), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.playlist-entry-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.18));
+  pointer-events: none;
+}
+
+.playlist-entry-thumb.is-cover-ready span {
+  position: relative;
+  z-index: 1;
+}
+
+.playlist-entry-thumb.is-cover-ready::after {
+  background: linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.24));
 }
 
 .playlist-entry-title {

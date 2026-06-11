@@ -1073,9 +1073,15 @@
       var progress = Number(entry.progress) || 0;
       var status = entry.status || 'listening';
       var isDone = status === 'done';
+      var coverKey = String(entry.coverKey || '');
+      if (!coverKey && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+        var story = window.AudioHubStories.getById(entry.key);
+        coverKey = story && story.coverKey ? String(story.coverKey) : '';
+      }
+      var thumbStyle = coverKey ? '' : 'background:linear-gradient(135deg,#6366f1,#8b5cf6)';
       return '' +
         '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
-          '<a class="playlist-entry-thumb" href="' + escapeHtml(entry.href || '#') + '" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">' +
+          '<a class="playlist-entry-thumb" href="' + escapeHtml(entry.href || '#') + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
             '<span>' + escapeHtml((entry.title || 'AH').slice(0,2).toUpperCase()) + '</span>' +
           '</a>' +
           '<div class="playlist-entry-main">' +
@@ -1086,11 +1092,26 @@
             '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
             '<button type="button" class="playlist-btn playlist-btn--remove" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
           '</div>' +
-        '</div>';
+        '</div>';}
     }).join('');
 
     // bind slider input live
     var detailMount2 = document.querySelector('[data-playlist-detail]');
+    if (detailMount2 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+      detailMount2.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
+        var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
+        if (!coverKey) return;
+        window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+          if (!blob) return;
+          var url = URL.createObjectURL(blob);
+          node.style.backgroundImage = 'url("' + url + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
+          node.classList.add('is-cover-ready');
+        }).catch(function () {});
+      });
+    }
+
     if (detailMount2) detailMount2.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
       slider.addEventListener('input', function () {
         var val = slider.value;
