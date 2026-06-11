@@ -1465,6 +1465,7 @@
 
 .playlist-detail .playlist-entry-actions {
   white-space: nowrap;
+  align-items: center;
 }
 
 /* removed old weak hover rules */
