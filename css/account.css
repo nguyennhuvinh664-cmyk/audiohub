@@ -863,7 +863,7 @@
   gap: 12px;
   align-items: stretch;
   min-height: 0;
-  height: auto;
+  height: 520px;
   min-width: 0;
 }
 
@@ -1167,6 +1167,7 @@
   align-content: start;
   scrollbar-width: thin;
   scrollbar-color: rgba(34,211,238,.9) rgba(255,255,255,.12);
+  max-height: 100%;
 }
 
 .playlist-detail {
@@ -1176,6 +1177,7 @@
   align-content: start;
   scrollbar-width: thin;
   scrollbar-color: rgba(34,211,238,.9) rgba(255,255,255,.12);
+  max-height: 100%;
 }
 
 .playlist-list::-webkit-scrollbar,
