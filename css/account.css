@@ -930,11 +930,7 @@
 
 .playlist-list .playlist-btn,
 .playlist-list .playlist-status-trigger,
-.playlist-detail .playlist-entry-actions .playlist-btn {
-  min-height: 32px;
-  padding: 4px 9px;
-  font-size: .78rem;
-}
+/* removed duplicate weak rule */
 
 .playlist-status-trigger {
   min-width: 118px;
@@ -974,9 +970,7 @@
   min-width: 0;
 }
 
-.playlist-detail .playlist-entry-actions .playlist-btn {
-  min-width: 42px;
-}
+/* removed duplicate weak rule */
 
 .playlist-detail {
   overflow-y: auto;
@@ -1368,10 +1362,7 @@
   white-space: nowrap;
 }
 
-.playlist-entry-actions .playlist-btn {
-  min-width: 46px;
-  justify-content: center;
-}
+/* removed duplicate weak rule */
 
 .playlist-list .playlist-btn,
 .playlist-list .playlist-status-trigger,
