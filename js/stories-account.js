@@ -1002,18 +1002,18 @@
             '<div class="playlist-name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
             '<div class="playlist-meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
             '' +
-            '<div class="playlist-state-wrap">' +
-              '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' + escapeHtml(stateLabel) + ' <i class="fa-solid fa-chevron-down"></i></button>' +
-              '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
-                '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
-                '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
+            '<div class="playlist-controls-row">' +
+              '<div class="playlist-state-wrap">' +
+                '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' + escapeHtml(stateLabel) + ' <i class="fa-solid fa-chevron-down"></i></button>' +
+                '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
+                  '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
+                  '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
+                '</div>' +
               '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="playlist-actions">' +
-            '<div class="playlist-action-buttons">' +
-              '<button type="button" class="playlist-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
-              '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
+              '<div class="playlist-action-buttons">' +
+                '<button type="button" class="playlist-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
+                '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
+              '</div>' +
             '</div>' +
           '</div>' +
         '</div>';    }).join('');
@@ -1081,6 +1081,11 @@
           '<div class="playlist-entry-main">' +
             '<a class="playlist-entry-title" href="' + escapeHtml(entry.href || '#') + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
             '<small>' + escapeHtml(entry.author || 'Ẩn danh') + ' · ' + escapeHtml(entry.genre || 'Truyện audio') + '</small>' +
+            '<div class="playlist-progress-wrap">' +
+              '<div class="playlist-progress-bar"><div class="playlist-progress-fill" style="width:' + progress + '%"></div></div>' +
+              '<span class="playlist-progress-pct">' + progress + '%</span>' +
+            '</div>' +
+            '<input type="range" class="playlist-progress-slider" min="0" max="100" step="1" value="' + progress + '" data-slider-key="' + escapeHtml(entry.key) + '" data-slider-pl="' + escapeHtml(pl.id) + '">' +
           '</div>' +
           '<div class="playlist-entry-actions">' +
             '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
