@@ -1916,23 +1916,25 @@
 }
 
 .playlist-detail .playlist-entry-actions .playlist-btn:first-child {
-  color: #67e8f9;
-  border-color: rgba(103,232,249,.25);
+  color: #fff;
+  background: #22d3ee;
+  border-color: #22d3ee;
 }
 
 .playlist-detail .playlist-entry-actions .playlist-btn:first-child:hover {
-  background: rgba(103,232,249,.12);
-  border-color: rgba(103,232,249,.45);
-  color: #67e8f9;
+  background: #67e8f9;
+  border-color: #67e8f9;
+  color: #fff;
 }
 
 .playlist-detail .playlist-entry-actions .playlist-btn:last-child {
-  color: #f87171;
-  border-color: rgba(248,113,113,.2);
+  color: #fff;
+  background: #f87171;
+  border-color: #f87171;
 }
 
 .playlist-detail .playlist-entry-actions .playlist-btn:last-child:hover {
-  background: rgba(248,113,113,.1);
-  border-color: rgba(248,113,113,.45);
-  color: #f87171;
+  background: #fca5a5;
+  border-color: #fca5a5;
+  color: #fff;
 }
