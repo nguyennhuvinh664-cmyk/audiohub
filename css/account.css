@@ -1383,7 +1383,6 @@
 
 .playlist-btn:hover,
 .playlist-status-trigger:hover,
-.playlist-detail .playlist-entry-actions .playlist-btn:hover,
 .playlist-entry-actions .playlist-btn:hover,
 .playlist-action-buttons .playlist-btn:hover {
   border-color: rgba(245,158,11,.28);
@@ -1836,9 +1835,7 @@
 .playlist-list .playlist-status-option + .playlist-status-option { border-top: 1px solid rgba(255,255,255,.06); }
 .playlist-list .playlist-item.is-active:hover { border-color: rgba(251,191,36,.42); }
 .playlist-detail .playlist-entry:hover { background: rgba(255,255,255,.03); }
-.playlist-detail .playlist-entry-actions .playlist-btn:hover { background: rgba(255,255,255,.055); }
-.playlist-list .playlist-item.is-active .playlist-status-menu { background: #111827; }
-.playlist-list .playlist-item .playlist-btn { padding-inline: 12px; }
+.playlist-detail .playlist-entry-actions .playlist-btn { border-radius: 999px; }
 .playlist-detail .playlist-item { padding-bottom: 12px; }
 .playlist-detail .playlist-entry,
 .playlist-detail > .playlist-item { overflow: hidden; }
