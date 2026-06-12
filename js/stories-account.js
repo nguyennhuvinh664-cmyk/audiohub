@@ -765,8 +765,8 @@
 
   function renderLibrarySections() {
     var lib = readLibrary();
-    buildHistoryList(sortRecentDesc(lib.history || []));
-    buildFavoriteList(lib.favorites || []);
+    buildHistoryList(sortRecentDesc(lib.history || []), currentHistoryPage);
+    buildFavoriteList(lib.favorites || [], currentFavoritesPage);
 
     var stats = {
       favorites: (lib.favorites || []).length,
@@ -785,6 +785,10 @@
       if (key === 'history') countNode.textContent = String(stats.history);
       if (key === 'favorites') countNode.textContent = String(stats.favorites);
     });
+
+    if (typeof window.renderAccountLibrary === 'function') {
+      window.renderAccountLibrary();
+    }
   }
 
   function renderTrash() {
