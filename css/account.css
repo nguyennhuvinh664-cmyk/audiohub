@@ -880,7 +880,12 @@
   backdrop-filter: blur(12px);
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34,211,238,.95) rgba(255,255,255,.12);
 }
 
 .playlist-detail[data-playlist-detail] {
@@ -973,7 +978,25 @@
 
 .playlist-list::-webkit-scrollbar,
 .playlist-detail::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
+}
+
+.playlist-list::-webkit-scrollbar-track,
+.playlist-detail::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.05);
+  border-radius: 999px;
+}
+
+.playlist-list::-webkit-scrollbar-thumb,
+.playlist-detail::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(34,211,238,.98), rgba(59,130,246,.98));
+  border-radius: 999px;
+  border: 2px solid rgba(10,14,28,.9);
+}
+
+.playlist-list::-webkit-scrollbar-thumb:hover,
+.playlist-detail::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(56,189,248,1), rgba(96,165,250,1));
 }
 
 .playlist-detail .playlist-entry-actions,
