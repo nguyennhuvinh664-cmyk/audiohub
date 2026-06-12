@@ -304,6 +304,18 @@
 
   function bindPagination() {
     document.addEventListener('click', function (event) {
+      var pageNumBtn = event.target.closest('[data-page-num]');
+      if (pageNumBtn) {
+        var type = pageNumBtn.getAttribute('data-page-type');
+        var num = Math.max(1, parseInt(pageNumBtn.getAttribute('data-page-num') || '1', 10));
+        var plId = pageNumBtn.getAttribute('data-playlist-id');
+        if (type === 'history') { currentHistoryPage = num; renderLibrarySections(); return; }
+        if (type === 'favorites') { currentFavoritesPage = num; renderLibrarySections(); return; }
+        if (type === 'published') { currentPublishedPage = num; renderStoriesSection(); return; }
+        if (type === 'draft') { currentDraftPage = num; renderStoriesSection(); return; }
+        if (type === 'playlist') { currentPlaylistPage = num; renderPlaylistDetail(); return; }
+      }
+
       var prevBtn = event.target.closest('[data-page-prev]');
       var nextBtn = event.target.closest('[data-page-next]');
       if (!prevBtn && !nextBtn) return;
@@ -608,9 +620,29 @@
   function buildPagination(current, total, type, playlistId) {
     var attr = playlistId ? ' data-playlist-id="' + playlistId + '"' : '';
     var html = '<div class="account-pagination">';
+    // prev
     html += '<button type="button" class="account-page-btn" data-page-prev data-page-type="' + type + '"' + attr + ' ' + (current === 1 ? 'disabled' : '') + '><i class="fa-solid fa-chevron-left"></i></button>';
-    html += '<span class="account-page-info">Trang ' + current + ' / ' + total + '</span>';
+
+    // numeric pages
+    function pushPage(num, isActive) {
+      html += '<button type="button" class="account-page-btn' + (isActive ? ' is-active' : '') + '" data-page-num="' + num + '" data-page-type="' + type + '"' + (playlistId ? ' data-playlist-id="' + playlistId + '"' : '') + '>' + num + '</button>';
+    }
+
+    if (total <= 7) {
+      for (var i = 1; i <= total; i++) { pushPage(i, i === current); }
+    } else {
+      pushPage(1, current === 1);
+      if (current > 4) html += '<span class="account-page-ellipsis">...</span>';
+      var start = Math.max(2, current - 2);
+      var end = Math.min(total - 1, current + 2);
+      for (var j = start; j <= end; j++) pushPage(j, j === current);
+      if (current < total - 3) html += '<span class="account-page-ellipsis">...</span>';
+      pushPage(total, current === total);
+    }
+
+    // next
     html += '<button type="button" class="account-page-btn" data-page-next data-page-type="' + type + '"' + attr + ' ' + (current === total ? 'disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>';
+
     html += '</div>';
     return html;
   }
