@@ -1238,12 +1238,12 @@
 .playlist-list {
   display: grid;
   gap: 10px;
-  overflow-y: auto;
+  overflow-y: scroll;
   overscroll-behavior: contain;
-  padding-right: 6px;
+  padding-right: 8px;
   align-content: start;
   scrollbar-width: thin;
-  scrollbar-color: rgba(34,211,238,.9) rgba(255,255,255,.12);
+  scrollbar-color: rgba(34,211,238,.95) rgba(255,255,255,.14);
   max-height: 100%;
 }
 
