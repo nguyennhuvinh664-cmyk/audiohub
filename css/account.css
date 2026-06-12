@@ -878,13 +878,9 @@
   padding: 12px;
   box-shadow: 0 12px 26px rgba(2,6,23,.15), inset 0 1px 0 rgba(255,255,255,.03);
   backdrop-filter: blur(12px);
-
-.playlist-list {
   min-height: 0;
-}
-
-.playlist-detail {
-  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .playlist-detail[data-playlist-detail] {
@@ -930,8 +926,6 @@
 
 .playlist-list .playlist-btn,
 .playlist-list .playlist-status-trigger,
-/* removed duplicate weak rule */
-
 .playlist-status-trigger {
   min-width: 118px;
   height: 32px;
@@ -942,14 +936,8 @@
   min-width: 42px;
 }
 
-.playlist-action-buttons {
-  gap: 6px;
-}
-
-.playlist-actions {
-  gap: 6px;
-}
-
+.playlist-action-buttons,
+.playlist-actions,
 .playlist-entry-actions {
   gap: 6px;
 }
@@ -970,8 +958,6 @@
   min-width: 0;
 }
 
-/* removed duplicate weak rule */
-
 .playlist-detail {
   overflow-y: auto;
 }
@@ -987,7 +973,7 @@
 
 .playlist-list::-webkit-scrollbar,
 .playlist-detail::-webkit-scrollbar {
-  width: 7px;
+  width: 10px;
 }
 
 .playlist-detail .playlist-entry-actions,
@@ -1136,10 +1122,6 @@
   .playlist-entry > div:first-child {
     padding-right: 0;
   }
-}
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .playlist-list::before,
