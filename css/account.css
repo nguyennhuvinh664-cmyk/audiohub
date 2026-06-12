@@ -252,6 +252,12 @@
 
 .account-mainpanel.is-active {
   display: block;
+  height: auto;
+}
+
+.account-mainpanel .account-card {
+  height: auto;
+  min-height: 0;
 }
 
 @media (max-width: 620px) {
