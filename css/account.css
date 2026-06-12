@@ -576,9 +576,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   margin-top: 16px;
-  padding: 10px 0 0;
+  padding: 12px 14px 0;
   border-top: 1px solid rgba(255,255,255,.06);
   transform: scale(.7);
   transform-origin: top center;
@@ -586,34 +586,48 @@
 }
 
 .account-page-btn {
-  width: 36px;
+  min-width: 36px;
   height: 36px;
-  border-radius: 8px;
+  padding: 0 12px;
+  border-radius: 999px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.03);
   color: var(--t1);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all .2s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease;
 }
 
 .account-page-btn:hover:not(:disabled) {
-  border-color: var(--primary);
+  transform: translateY(-1px);
+  border-color: rgba(245,158,11,.35);
   background: rgba(245,158,11,.12);
   color: var(--primary);
+  box-shadow: 0 8px 18px rgba(245,158,11,.08);
+}
+
+.account-page-btn.is-active {
+  border-color: rgba(245,158,11,.45);
+  background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(6,182,212,.14));
+  color: #fff7ed;
+  box-shadow: 0 10px 24px rgba(245,158,11,.14);
 }
 
 .account-page-btn:disabled {
   opacity: .3;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .account-page-info {
-  font-weight: 700;
+  font-weight: 800;
   color: var(--t2);
-  font-size: .95rem;
+  font-size: .92rem;
+  letter-spacing: .01em;
+  padding-inline: 2px;
 }
 
 .account-list strong {
