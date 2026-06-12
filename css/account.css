@@ -344,9 +344,23 @@
   max-height: 520px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-right: 6px;
+  padding-right: 16px; /* reserve space for visible rail */
+  position: relative;
   scrollbar-width: auto;
   scrollbar-color: rgba(6,182,212,.8) rgba(255,255,255,.12);
+}
+
+/* visible rail to ensure users see a scrollbar area even when OS hides native scrollbars */
+.account-scroll-list::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  bottom: 6px;
+  width: 8px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 999px;
+  pointer-events: none;
 }
 
 .account-scroll-list::-webkit-scrollbar {
