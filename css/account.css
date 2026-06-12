@@ -1564,8 +1564,10 @@
 .playlist-root .library-empty { margin-bottom: 10px; }
 
 .playlist-entry-thumb {
-  width: 58px;
-  height: 58px;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
   border-radius: 14px;
   flex-shrink: 0;
   display: flex;
