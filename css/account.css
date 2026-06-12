@@ -914,7 +914,7 @@
 
 .playlist-layout {
   display: grid;
-  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
   min-height: 0;
@@ -1412,27 +1412,102 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.playlist-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.playlist-name {
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--t1);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-meta {
+  font-size: .82rem;
+  color: var(--t3);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .playlist-state-wrap {
-  margin-top: 4px;
+  position: relative;
+  margin-top: 0;
+  width: fit-content;
 }
 
-.playlist-item .playlist-state-trigger {
-  margin-top: 4px;
+.playlist-state-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  min-width: 0;
+  border: 1px solid rgba(245,158,11,.24);
+  background: rgba(245,158,11,.08);
+  color: #fbbf24;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: .8rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .playlist-item .playlist-action-buttons {
-  gap: 8px;
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+  align-items: flex-start;
 }
 
 .playlist-item .playlist-btn {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: var(--t2);
+  cursor: pointer;
+  transition: all .18s ease;
+}
+
+.playlist-item .playlist-btn:hover {
+  border-color: rgba(245,158,11,.3);
+  background: rgba(245,158,11,.1);
+  color: var(--primary);
+}
+
+.playlist-item,
+.playlist-entry {
+  display: flex;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.025);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+  transition: border-color .18s ease, background .18s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .playlist-main {
