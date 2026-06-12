@@ -1281,7 +1281,7 @@
 .playlist-item,
 .playlist-entry {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 10px 11px;
@@ -1291,16 +1291,30 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
   transition: border-color .18s ease, background .18s ease, transform .18s ease;
   min-width: 0;
+  min-height: 86px;
+  box-sizing: border-box;
 }
 
 .playlist-item {
-  flex-direction: column;
-  align-items: stretch;
   cursor: pointer;
 }
 
 .playlist-entry {
   align-items: center;
+}
+
+.playlist-main,
+.playlist-entry-main {
+  min-width: 0;
+  flex: 1;
+  align-self: center;
+}
+
+.playlist-entry-thumb {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
 }
 
 .playlist-controls-row {
