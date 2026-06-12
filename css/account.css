@@ -1332,11 +1332,12 @@
   align-items: center;
   gap: 5px;
   justify-self: end;
+  display: flex;
 }
 
 .playlist-item .playlist-actions,
 .playlist-item .playlist-action-buttons {
-  display: none;
+  display: flex;
 }
 
 .playlist-item .playlist-controls-row {
