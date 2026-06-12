@@ -1314,25 +1314,23 @@
 }
 
 .playlist-controls-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 6px;
   width: 100%;
 }
 
 .playlist-controls-row .playlist-state-wrap {
   min-width: 0;
-  width: 100%;
+  flex: 1;
 }
 
 .playlist-controls-row .playlist-action-buttons {
   flex-shrink: 0;
+  display: flex;
   align-items: center;
   gap: 5px;
-  justify-self: end;
-  display: flex;
 }
 
 .playlist-item .playlist-actions,
@@ -1693,7 +1691,7 @@
 
 .playlist-card-status { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
 .playlist-state-badge { display: none; }
-.playlist-state-wrap { position: relative; margin-top: 8px; }
+.playlist-state-wrap { position: relative; margin-top: 2px; }
 .playlist-state-trigger {
   display: inline-flex;
   align-items: center;
