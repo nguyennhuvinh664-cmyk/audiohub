@@ -19,7 +19,7 @@
   var currentFavoritesPage = 1;
   var currentPublishedPage = 1;
   var currentDraftPage = 1;
-  var ITEMS_PER_PAGE = 20;
+  var ITEMS_PER_PAGE = 10;
 
   var mainTabButtons = Array.prototype.slice.call(document.querySelectorAll('[data-main-tab]'));
   var mainTabPanels = Array.prototype.slice.call(document.querySelectorAll('[data-main-panel]'));
