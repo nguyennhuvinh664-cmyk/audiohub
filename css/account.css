@@ -1319,6 +1319,7 @@
   gap: 8px;
   margin-top: 6px;
   width: 100%;
+  justify-content: space-between;
 }
 
 .playlist-controls-row .playlist-state-wrap {
@@ -1331,6 +1332,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  margin-left: auto;
 }
 
 .playlist-item .playlist-actions,
