@@ -21,6 +21,8 @@
   var currentDraftPage = 1;
   var ITEMS_PER_PAGE = 10;
 
+  var currentPlaylistPage = 1;
+
   var mainTabButtons = Array.prototype.slice.call(document.querySelectorAll('[data-main-tab]'));
   var mainTabPanels = Array.prototype.slice.call(document.querySelectorAll('[data-main-panel]'));
 
@@ -325,6 +327,10 @@
         if (prevBtn) currentDraftPage = Math.max(1, currentDraftPage - 1);
         if (nextBtn) currentDraftPage++;
         renderStoriesSection();
+      } else if (type === 'playlist') {
+        if (prevBtn) currentPlaylistPage = Math.max(1, currentPlaylistPage - 1);
+        if (nextBtn) currentPlaylistPage++;
+        renderPlaylistDetail();
       }
     });
   }
@@ -599,11 +605,12 @@
     hydrateLibraryThumbs(favoritesMount);
   }
 
-  function buildPagination(current, total, type) {
+  function buildPagination(current, total, type, playlistId) {
+    var attr = playlistId ? ' data-playlist-id="' + playlistId + '"' : '';
     var html = '<div class="account-pagination">';
-    html += '<button type="button" class="account-page-btn" data-page-prev data-page-type="' + type + '" ' + (current === 1 ? 'disabled' : '') + '><i class="fa-solid fa-chevron-left"></i></button>';
+    html += '<button type="button" class="account-page-btn" data-page-prev data-page-type="' + type + '"' + attr + ' ' + (current === 1 ? 'disabled' : '') + '><i class="fa-solid fa-chevron-left"></i></button>';
     html += '<span class="account-page-info">Trang ' + current + ' / ' + total + '</span>';
-    html += '<button type="button" class="account-page-btn" data-page-next data-page-type="' + type + '" ' + (current === total ? 'disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>';
+    html += '<button type="button" class="account-page-btn" data-page-next data-page-type="' + type + '"' + attr + ' ' + (current === total ? 'disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>';
     html += '</div>';
     return html;
   }
@@ -1049,7 +1056,13 @@
       playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist chưa có truyện nào.</p>';
       return;
     }
-    playlistDetailMount.innerHTML = entries.map(function (entry) {
+
+    var start = (currentPlaylistPage - 1) * ITEMS_PER_PAGE;
+    var end = start + ITEMS_PER_PAGE;
+    var paged = entries.slice(start, end);
+    var totalPages = Math.max(1, Math.ceil(entries.length / ITEMS_PER_PAGE));
+
+    playlistDetailMount.innerHTML = paged.map(function (entry) {
       var progress = Number(entry.progress) || 0;
       var status = entry.status || 'listening';
       var isDone = status === 'done';
@@ -1074,6 +1087,10 @@
           '</div>' +
         '</div>';
     }).join('');
+
+    if (totalPages > 1) {
+      playlistDetailMount.innerHTML += buildPagination(currentPlaylistPage, totalPages, 'playlist', pl.id);
+    }
 
     // bind slider input live
     var detailMount2 = document.querySelector('[data-playlist-detail]');
@@ -1222,6 +1239,7 @@
       if (item && !event.target.closest('[data-playlist-rename]') && !event.target.closest('[data-playlist-delete]')) {
         var plId = item.getAttribute('data-playlist-id');
         if (plId) {
+          currentPlaylistPage = 1;
           activePlaylistId = plId;
           renderPlaylist();
         }
