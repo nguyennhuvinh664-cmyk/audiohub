@@ -1241,6 +1241,7 @@
   overflow-y: scroll;
   overscroll-behavior: contain;
   padding-right: 8px;
+  padding-bottom: 16px;
   align-content: start;
   scrollbar-width: thin;
   scrollbar-color: rgba(34,211,238,.95) rgba(255,255,255,.14);
