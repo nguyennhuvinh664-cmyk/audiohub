@@ -1132,8 +1132,9 @@
         '</div>';
     }).join('');
 
-    if (totalPages > 1) {
-      playlistDetailMount.innerHTML += buildPagination(currentPlaylistPage, totalPages, 'playlist', pl.id);
+    var paginationWrapPlaylist = document.querySelector('[data-pagination-wrap="playlist"]');
+    if (paginationWrapPlaylist) {
+      paginationWrapPlaylist.innerHTML = totalPages > 1 ? buildPagination(currentPlaylistPage, totalPages, 'playlist', pl.id) : '';
     }
 
     // bind slider input live

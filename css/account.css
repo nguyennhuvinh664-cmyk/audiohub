@@ -922,6 +922,20 @@
   min-width: 0;
 }
 
+.playlist-detail-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.playlist-detail-wrap .playlist-detail {
+  flex: 1;
+}
+
+.playlist-detail-wrap .account-pagination-wrap {
+  flex-shrink: 0;
+}
+
 .playlist-list,
 .playlist-detail {
   position: relative;
