@@ -577,9 +577,13 @@
         '</li>';
     }).join('') + '</ul>';
 
-    html += buildPagination(page, totalPages, 'history');
-
     historyMount.innerHTML = html;
+
+    var paginationWrap = document.querySelector('[data-pagination-wrap="history"]');
+    if (paginationWrap) {
+      paginationWrap.innerHTML = buildPagination(page, totalPages, 'history');
+    }
+
     hydrateLibraryThumbs(historyMount);
   }
 
@@ -611,9 +615,13 @@
         '</li>';
     }).join('') + '</ul>';
 
-    html += buildPagination(page, totalPages, 'favorites');
-
     favoritesMount.innerHTML = html;
+
+    var paginationWrap = document.querySelector('[data-pagination-wrap="favorites"]');
+    if (paginationWrap) {
+      paginationWrap.innerHTML = buildPagination(page, totalPages, 'favorites');
+    }
+
     hydrateLibraryThumbs(favoritesMount);
   }
 
@@ -750,9 +758,13 @@
         '</li>';
     }).join('') + '</ul>';
 
-    html += buildPagination(page, totalPages, type);
-
     mount.innerHTML = html;
+
+    var paginationWrap = document.querySelector('[data-pagination-wrap="' + type + '"]');
+    if (paginationWrap) {
+      paginationWrap.innerHTML = buildPagination(page, totalPages, type);
+    }
+
     hydrateStoryThumbs(mount);
   }
 
