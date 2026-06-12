@@ -559,9 +559,7 @@
         '</li>';
     }).join('') + '</ul>';
 
-    if (totalPages > 1) {
-      html += buildPagination(page, totalPages, 'history');
-    }
+    html += buildPagination(page, totalPages, 'history');
 
     historyMount.innerHTML = html;
     hydrateLibraryThumbs(historyMount);
@@ -595,9 +593,7 @@
         '</li>';
     }).join('') + '</ul>';
 
-    if (totalPages > 1) {
-      html += buildPagination(page, totalPages, 'favorites');
-    }
+    html += buildPagination(page, totalPages, 'favorites');
 
     favoritesMount.innerHTML = html;
     hydrateLibraryThumbs(favoritesMount);
@@ -715,9 +711,7 @@
         '</li>';
     }).join('') + '</ul>';
 
-    if (totalPages > 1) {
-      html += buildPagination(page, totalPages, type);
-    }
+    html += buildPagination(page, totalPages, type);
 
     mount.innerHTML = html;
     hydrateStoryThumbs(mount);
@@ -755,24 +749,6 @@
     });
   }
 
-  function buildFavoriteList(items) {
-    if (!favoritesMount) return;
-    if (!items.length) {
-      favoritesMount.innerHTML = '<p class="library-empty">Chưa có truyện yêu thích nào được lưu.</p>';
-      return;
-    }
-    favoritesMount.innerHTML = '<ul class="favorites-youtube-grid">' + items.map(function (item) {
-      return '' +
-        '<li class="favorite-youtube-card">' +
-          '<a class="favorite-youtube-thumb" href="' + escapeHtml(item.href) + '">' + escapeHtml((item.title || 'AH').slice(0, 2).toUpperCase()) + '</a>' +
-          '<div class="favorite-youtube-body">' +
-            '<a class="favorite-youtube-title" href="' + escapeHtml(item.href) + '">' + escapeHtml(item.title || 'AudioHub Story') + '</a>' +
-            '<p class="favorite-youtube-meta">' + escapeHtml(item.author || 'Ẩn danh') + '</p>' +
-            '<p class="favorite-youtube-sub">' + escapeHtml(item.genre || 'Truyện audio') + '</p>' +
-          '</div>' +
-        '</li>';
-    }).join('') + '</ul>';
-  }
 
   function readLibrary() {
     try {
