@@ -19,7 +19,7 @@
   var currentFavoritesPage = 1;
   var currentPublishedPage = 1;
   var currentDraftPage = 1;
-  var ITEMS_PER_PAGE = 9;
+  var ITEMS_PER_PAGE = 20;
 
   var currentPlaylistPage = 1;
 
