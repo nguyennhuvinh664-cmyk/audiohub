@@ -1268,9 +1268,14 @@
       }
 
       var item = event.target.closest('[data-playlist-id]');
-      if (item && !event.target.closest('[data-playlist-rename]') && !event.target.closest('[data-playlist-delete]')) {
+      if (item
+        && !event.target.closest('[data-playlist-rename]')
+        && !event.target.closest('[data-playlist-delete]')
+        && !event.target.closest('[data-page-num]')
+        && !event.target.closest('[data-page-prev]')
+        && !event.target.closest('[data-page-next]')) {
         var plId = item.getAttribute('data-playlist-id');
-        if (plId) {
+        if (plId && plId !== activePlaylistId) {
           currentPlaylistPage = 1;
           activePlaylistId = plId;
           renderPlaylist();
