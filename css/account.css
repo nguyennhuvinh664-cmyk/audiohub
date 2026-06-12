@@ -1282,7 +1282,7 @@
 .playlist-entry {
   display: flex;
   gap: 10px;
-  padding: 10px 11px;
+  padding: 14px 14px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.07);
   background: rgba(255,255,255,.025);
@@ -1412,8 +1412,27 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
+  margin-bottom: 10px;
+}
+
+.playlist-state-wrap {
+  margin-top: 4px;
+}
+
+.playlist-item .playlist-state-trigger {
+  margin-top: 4px;
+}
+
+.playlist-item .playlist-action-buttons {
+  gap: 8px;
+}
+
+.playlist-item .playlist-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
 }
 
 .playlist-main {
