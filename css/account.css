@@ -603,6 +603,10 @@
   width: 100%;
 }
 
+.account-pagination {
+  animation: pagination-fade-in .18s ease both;
+}
+
 .account-page-btn {
   min-width: 36px;
   height: 36px;
@@ -616,11 +620,11 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
-  transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease, opacity .18s ease;
 }
 
 .account-page-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.03);
   border-color: rgba(245,158,11,.35);
   background: rgba(245,158,11,.12);
   color: var(--primary);
@@ -632,12 +636,25 @@
   background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(6,182,212,.14));
   color: #fff7ed;
   box-shadow: 0 10px 24px rgba(245,158,11,.14);
+  transform: translateY(-1px) scale(1.05);
 }
 
 .account-page-btn:disabled {
   opacity: .3;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.account-page-ellipsis {
+  color: var(--t3);
+  font-weight: 800;
+  letter-spacing: .15em;
+  transform: translateY(-1px);
+}
+
+@keyframes pagination-fade-in {
+  from { opacity: 0; transform: translateY(4px) scale(.7); }
+  to { opacity: 1; transform: translateY(0) scale(.7); }
 }
 
 .account-page-info {
