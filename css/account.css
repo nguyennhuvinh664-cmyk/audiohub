@@ -935,11 +935,26 @@
 
 .playlist-list-wrap .playlist-list {
   flex: 1;
+  overflow: hidden;
 }
 
-.playlist-list-wrap .account-pagination-wrap,
+.playlist-list-wrap .account-pagination-wrap {
+  flex-shrink: 0;
+  margin-top: 10px;
+}
+
 .playlist-detail-wrap .account-pagination-wrap {
   flex-shrink: 0;
+  margin-top: 10px;
+}
+
+.playlist-list-wrap .account-pagination {
+  transform: scale(.68);
+}
+
+.playlist-list-wrap .account-page-btn {
+  min-width: 34px;
+  height: 34px;
 }
 
 .playlist-detail-wrap {
