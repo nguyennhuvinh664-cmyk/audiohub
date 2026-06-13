@@ -931,7 +931,7 @@
 
 .playlist-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  grid-template-columns: minmax(208px, 256px) minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
   min-height: 0;
