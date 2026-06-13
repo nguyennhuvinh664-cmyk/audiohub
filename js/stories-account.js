@@ -20,7 +20,8 @@
   var currentPublishedPage = 1;
   var currentDraftPage = 1;
   var ITEMS_PER_PAGE = 20;
-  var PLAYLIST_ITEMS_PER_PAGE = 6;
+  var PLAYLIST_LIST_ITEMS_PER_PAGE = 6;
+  var PLAYLIST_ITEMS_PER_PAGE = 10;
 
   var currentPlaylistListPage = 1;
   var currentPlaylistDetailPage = 1;
@@ -1016,10 +1017,10 @@
       return;
     }
 
-    var listStart = (currentPlaylistListPage - 1) * PLAYLIST_ITEMS_PER_PAGE;
-    var listEnd = listStart + PLAYLIST_ITEMS_PER_PAGE;
+    var listStart = (currentPlaylistListPage - 1) * PLAYLIST_LIST_ITEMS_PER_PAGE;
+    var listEnd = listStart + PLAYLIST_LIST_ITEMS_PER_PAGE;
     var pagedList = list.slice(listStart, listEnd);
-    var totalListPages = Math.max(1, Math.ceil(list.length / PLAYLIST_ITEMS_PER_PAGE));
+    var totalListPages = Math.max(1, Math.ceil(list.length / PLAYLIST_LIST_ITEMS_PER_PAGE));
 
     playlistListMount.innerHTML = pagedList.map(function (pl) {
       var isActive = pl.id === activePlaylistId;
