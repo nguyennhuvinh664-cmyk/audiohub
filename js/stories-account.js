@@ -22,7 +22,8 @@
   var ITEMS_PER_PAGE = 20;
   var PLAYLIST_ITEMS_PER_PAGE = 6;
 
-  var currentPlaylistPage = 1;
+  var currentPlaylistListPage = 1;
+  var currentPlaylistDetailPage = 1;
 
   var mainTabButtons = Array.prototype.slice.call(document.querySelectorAll('[data-main-tab]'));
   var mainTabPanels = Array.prototype.slice.call(document.querySelectorAll('[data-main-panel]'));
@@ -314,8 +315,8 @@
         if (type === 'favorites') { currentFavoritesPage = num; renderLibrarySections(); return; }
         if (type === 'published') { currentPublishedPage = num; renderStoriesSection(); return; }
         if (type === 'draft') { currentDraftPage = num; renderStoriesSection(); return; }
-        if (type === 'playlist-list') { currentPlaylistPage = num; renderPlaylist(); return; }
-        if (type === 'playlist') { currentPlaylistPage = num; renderPlaylistDetail(); return; }
+        if (type === 'playlist-list') { currentPlaylistListPage = num; renderPlaylist(); return; }
+        if (type === 'playlist') { currentPlaylistDetailPage = num; renderPlaylistDetail(); return; }
       }
 
       var prevBtn = event.target.closest('[data-page-prev]');
@@ -341,9 +342,13 @@
         if (prevBtn) currentDraftPage = Math.max(1, currentDraftPage - 1);
         if (nextBtn) currentDraftPage++;
         renderStoriesSection();
+      } else if (type === 'playlist-list') {
+        if (prevBtn) currentPlaylistListPage = Math.max(1, currentPlaylistListPage - 1);
+        if (nextBtn) currentPlaylistListPage++;
+        renderPlaylist();
       } else if (type === 'playlist') {
-        if (prevBtn) currentPlaylistPage = Math.max(1, currentPlaylistPage - 1);
-        if (nextBtn) currentPlaylistPage++;
+        if (prevBtn) currentPlaylistDetailPage = Math.max(1, currentPlaylistDetailPage - 1);
+        if (nextBtn) currentPlaylistDetailPage++;
         renderPlaylistDetail();
       }
     });
@@ -1011,7 +1016,7 @@
       return;
     }
 
-    var listStart = (currentPlaylistPage - 1) * PLAYLIST_ITEMS_PER_PAGE;
+    var listStart = (currentPlaylistListPage - 1) * PLAYLIST_ITEMS_PER_PAGE;
     var listEnd = listStart + PLAYLIST_ITEMS_PER_PAGE;
     var pagedList = list.slice(listStart, listEnd);
     var totalListPages = Math.max(1, Math.ceil(list.length / PLAYLIST_ITEMS_PER_PAGE));
@@ -1112,7 +1117,7 @@
       return;
     }
 
-    var start = (currentPlaylistPage - 1) * PLAYLIST_ITEMS_PER_PAGE;
+    var start = (currentPlaylistDetailPage - 1) * PLAYLIST_ITEMS_PER_PAGE;
     var end = start + PLAYLIST_ITEMS_PER_PAGE;
     var paged = entries.slice(start, end);
     var totalPages = Math.max(1, Math.ceil(entries.length / PLAYLIST_ITEMS_PER_PAGE));
