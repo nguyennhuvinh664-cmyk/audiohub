@@ -1151,7 +1151,7 @@
 
     var paginationWrapPlaylist = document.querySelector('[data-pagination-wrap="playlist"]');
     if (paginationWrapPlaylist) {
-      paginationWrapPlaylist.innerHTML = totalPages > 1 ? buildPagination(currentPlaylistPage, totalPages, 'playlist', pl.id) : '';
+      paginationWrapPlaylist.innerHTML = totalPages > 1 ? buildPagination(currentPlaylistDetailPage, totalPages, 'playlist', pl.id) : '';
     }
 
     // bind slider input live
