@@ -1415,13 +1415,29 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 
 .playlist-state-wrap {
   position: relative;
-  margin-top: 0;
+  margin-top: -2px;
   width: fit-content;
+}
+
+.playlist-item {
+  padding-bottom: 10px;
+}
+
+.playlist-item .playlist-state-trigger {
+  margin-top: 0;
+}
+
+.playlist-item .playlist-action-buttons {
+  margin-top: -2px;
+}
+
+.playlist-meta {
+  margin-top: 1px;
 }
 
 .playlist-main {
