@@ -1010,7 +1010,12 @@
       return;
     }
 
-    playlistListMount.innerHTML = list.map(function (pl) {
+    var listStart = (currentPlaylistPage - 1) * PLAYLIST_ITEMS_PER_PAGE;
+    var listEnd = listStart + PLAYLIST_ITEMS_PER_PAGE;
+    var pagedList = list.slice(listStart, listEnd);
+    var totalListPages = Math.max(1, Math.ceil(list.length / PLAYLIST_ITEMS_PER_PAGE));
+
+    playlistListMount.innerHTML = pagedList.map(function (pl) {
       var isActive = pl.id === activePlaylistId;
       var entries = pl.entries || [];
       var count = entries.length;
@@ -1048,6 +1053,11 @@
             '</div>' +
           '</div>' +
         '</div>';    }).join('');
+
+    var paginationWrapLeft = document.querySelector('[data-pagination-wrap="playlist-list"]');
+    if (paginationWrapLeft) {
+      paginationWrapLeft.innerHTML = totalListPages > 1 ? buildPagination(currentPlaylistPage, totalListPages, 'playlist-list') : '';
+    }
 
     renderPlaylistDetail();
   }
