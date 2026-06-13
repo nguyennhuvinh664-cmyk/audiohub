@@ -1063,7 +1063,7 @@
 
     var paginationWrapLeft = document.querySelector('[data-pagination-wrap="playlist-list"]');
     if (paginationWrapLeft) {
-      paginationWrapLeft.innerHTML = totalListPages > 1 ? buildPagination(currentPlaylistPage, totalListPages, 'playlist-list') : '';
+      paginationWrapLeft.innerHTML = totalListPages > 1 ? buildPagination(currentPlaylistListPage, totalListPages, 'playlist-list') : '';
     }
 
     renderPlaylistDetail();
