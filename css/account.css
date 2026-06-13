@@ -2223,7 +2223,56 @@
   .playlist-action-buttons { gap: 6px; }
 }
 
-/* Playlist entry action buttons nicer look */
+/* Polished playlist layout */
+.playlist-list-wrap .account-pagination-wrap,
+.playlist-detail-wrap .account-pagination-wrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.playlist-list-wrap .account-pagination,
+.playlist-detail-wrap .account-pagination {
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 999px;
+  padding: 6px 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 10px 20px rgba(0,0,0,.12);
+}
+
+.playlist-list-wrap .account-page-btn,
+.playlist-detail-wrap .account-page-btn {
+  min-width: 32px;
+  height: 32px;
+}
+
+.playlist-list .playlist-item {
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+}
+
+.playlist-list .playlist-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245,158,11,.22);
+}
+
+.playlist-list .playlist-item.is-active {
+  box-shadow: 0 10px 24px rgba(245,158,11,.08), inset 0 1px 0 rgba(255,255,255,.03);
+}
+
+.playlist-state-trigger {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.playlist-action-buttons .playlist-btn,
+.playlist-detail .playlist-entry-actions .playlist-btn {
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, color .18s ease;
+}
+
+.playlist-action-buttons .playlist-btn:hover,
+.playlist-detail .playlist-entry-actions .playlist-btn:hover {
+  transform: translateY(-1px);
+}
+
 .playlist-detail .playlist-entry-actions .playlist-btn {
   min-width: 38px;
   width: 38px;
@@ -2266,4 +2315,38 @@
   background: #fca5a5;
   border-color: #fca5a5;
   color: #fff;
+}
+
+.playlist-detail .playlist-entry,
+.playlist-list .playlist-item {
+  backdrop-filter: blur(6px);
+}
+
+.playlist-list .playlist-state-trigger,
+.playlist-list .playlist-status-trigger {
+  padding-inline: 12px;
+}
+
+.playlist-list .playlist-state-wrap {
+  margin-top: 6px;
+}
+
+.playlist-list .playlist-meta {
+  opacity: .95;
+}
+
+.playlist-list .playlist-name {
+  letter-spacing: -.02em;
+}
+
+.playlist-detail-wrap .playlist-detail {
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+}
+
+.playlist-list-wrap .playlist-list {
+  padding-bottom: 2px;
+}
+
+.playlist-list-wrap .account-pagination-wrap {
+  padding-bottom: 2px;
 }
