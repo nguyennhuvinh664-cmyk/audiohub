@@ -20,7 +20,7 @@
   var currentPublishedPage = 1;
   var currentDraftPage = 1;
   var ITEMS_PER_PAGE = 20;
-  var PLAYLIST_ITEMS_PER_PAGE = 10;
+  var PLAYLIST_ITEMS_PER_PAGE = 6;
 
   var currentPlaylistPage = 1;
 
@@ -314,6 +314,7 @@
         if (type === 'favorites') { currentFavoritesPage = num; renderLibrarySections(); return; }
         if (type === 'published') { currentPublishedPage = num; renderStoriesSection(); return; }
         if (type === 'draft') { currentDraftPage = num; renderStoriesSection(); return; }
+        if (type === 'playlist-list') { currentPlaylistPage = num; renderPlaylist(); return; }
         if (type === 'playlist') { currentPlaylistPage = num; renderPlaylistDetail(); return; }
       }
 
