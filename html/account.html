@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="../css/account.css" />
   <link rel="stylesheet" href="../css/auth-state.css" />
   <link rel="stylesheet" href="../css/library-state.css" />
+  <link rel="stylesheet" href="../css/content-search.css" />
 </head>
 <body class="account-page">
   <header class="site-header">
@@ -122,6 +123,15 @@
                 </div>
                 <div class="account-content-panels">
                   <section class="account-content-panel is-active" data-content-panel="published">
+                    <div class="content-search-wrap">
+                      <div class="content-search-bar">
+                        <input type="text" class="content-search-input" placeholder="Tìm kiếm trong truyện đã đăng..." data-search-published />
+                        <i class="fa-solid fa-magnifying-glass content-search-icon"></i>
+                        <button type="button" class="content-search-clear" data-search-clear="published" style="display: none;">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                    </div>
                     <div class="library-empty is-hidden" data-stories-published-note></div>
                     <div class="account-list-wrap">
                       <div class="account-scroll-list" data-stories-published></div>
@@ -129,6 +139,15 @@
                     </div>
                   </section>
                   <section class="account-content-panel" data-content-panel="draft" hidden>
+                    <div class="content-search-wrap">
+                      <div class="content-search-bar">
+                        <input type="text" class="content-search-input" placeholder="Tìm kiếm trong bản nháp..." data-search-draft />
+                        <i class="fa-solid fa-magnifying-glass content-search-icon"></i>
+                        <button type="button" class="content-search-clear" data-search-clear="draft" style="display: none;">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                    </div>
                     <div class="library-empty is-hidden" data-stories-drafts-note></div>
                     <div class="account-list-wrap">
                       <div class="account-scroll-list" data-stories-drafts></div>
@@ -141,6 +160,15 @@
                       <div class="playlist-create">
                         <input type="text" placeholder="Tên playlist mới" data-playlist-create-name />
                         <button type="button" class="btn btn--outline" data-playlist-create>Tạo playlist</button>
+                      </div>
+                      <div class="content-search-wrap">
+                        <div class="content-search-bar">
+                          <input type="text" class="content-search-input" placeholder="Tìm kiếm playlist..." data-search-playlist />
+                          <i class="fa-solid fa-magnifying-glass content-search-icon"></i>
+                          <button type="button" class="content-search-clear" data-search-clear="playlist" style="display: none;">
+                            <i class="fa-solid fa-xmark"></i>
+                          </button>
+                        </div>
                       </div>
                       <div class="playlist-layout">
                         <div class="playlist-list-wrap">
@@ -192,5 +220,6 @@
   <script src="../js/stories-audio-store.js"></script>
   <script src="../js/library-state.js"></script>
   <script src="../js/stories-account.js"></script>
+  <script src="../js/content-search.js"></script>
 </body>
 </html>
