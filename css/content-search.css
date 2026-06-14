@@ -1,30 +1,43 @@
-/* Content Search Styles - Fixed for Account Theme */
+/* Content Search Styles - Beautiful Modern Design */
 .content-search-wrap {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .content-search-bar {
   position: relative;
   display: flex;
   align-items: center;
-  background: rgba(16, 20, 24, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(30, 39, 56, 0.95), rgba(16, 24, 39, 0.95));
+  border: 1px solid transparent;
+  border-radius: 16px;
   padding: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   max-width: 100%;
+  overflow: hidden;
 }
 
 .content-search-bar:hover {
-  border-color: rgba(52, 152, 219, 0.3);
-  background: rgba(16, 20, 24, 0.9);
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(52, 152, 219, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, rgba(35, 47, 68, 0.98), rgba(20, 29, 47, 0.98));
 }
 
 .content-search-bar:focus-within {
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-  background: rgba(16, 20, 24, 0.95);
+  transform: translateY(-3px);
+  box-shadow:
+    0 16px 64px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(52, 152, 219, 0.4),
+    0 8px 32px rgba(52, 152, 219, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(40, 52, 73, 1), rgba(25, 34, 52, 1));
 }
 
 .content-search-input {
@@ -32,15 +45,18 @@
   background: transparent;
   border: none;
   color: #ffffff;
-  font-size: 14px;
-  padding: 16px 16px 16px 48px;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 18px 20px 18px 54px;
   outline: none;
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
   min-width: 0;
+  letter-spacing: 0.3px;
 }
 
 .content-search-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
 }
 
 .content-search-icon {
