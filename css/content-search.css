@@ -1,43 +1,30 @@
-/* Content Search Styles - Beautiful Modern Design */
+/* Content Search Styles - Clean & Compatible */
 .content-search-wrap {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .content-search-bar {
   position: relative;
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, rgba(30, 39, 56, 0.95), rgba(16, 24, 39, 0.95));
-  border: 1px solid transparent;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   padding: 0;
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  backdrop-filter: blur(20px);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
   max-width: 100%;
-  overflow: hidden;
 }
 
 .content-search-bar:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 12px 48px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(52, 152, 219, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  background: linear-gradient(135deg, rgba(35, 47, 68, 0.98), rgba(20, 29, 47, 0.98));
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .content-search-bar:focus-within {
-  transform: translateY(-3px);
-  box-shadow:
-    0 16px 64px rgba(0, 0, 0, 0.5),
-    0 0 0 2px rgba(52, 152, 219, 0.4),
-    0 8px 32px rgba(52, 152, 219, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  background: linear-gradient(135deg, rgba(40, 52, 73, 1), rgba(25, 34, 52, 1));
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .content-search-input {
