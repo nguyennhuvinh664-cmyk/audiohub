@@ -1,298 +1,390 @@
-/**
- * Content Search Functionality
- * Handles search for Published Stories, Drafts, and Playlists
- */
+// Content Search Functionality
+(function() {
+  'use strict';
 
-class ContentSearch {
-  constructor() {
-    this.searchInputs = {
-      published: document.querySelector('[data-search="published"]'),
-      draft: document.querySelector('[data-search="draft"]'),
-      playlist: document.querySelector('[data-search="playlist"]')
-    };
+  // Search configuration
+  const SEARCH_CONFIG = {
+    debounceDelay: 300,
+    minSearchLength: 1,
+    highlightClass: 'search-highlight'
+  };
 
-    this.clearButtons = {
-      published: document.querySelector('[data-search-clear="published"]'),
-      draft: document.querySelector('[data-search-clear="draft"]'),
-      playlist: document.querySelector('[data-search-clear="playlist"]')
-    };
+  // Search state
+  const searchState = {
+    published: { query: '', results: [], isSearching: false },
+    draft: { query: '', results: [], isSearching: false },
+    playlist: { query: '', results: [], isSearching: false }
+  };
 
-    this.containers = {
-      published: document.querySelector('[data-stories-published]'),
-      draft: document.querySelector('[data-stories-drafts]'),
-      playlist: document.querySelector('[data-playlist-list]')
-    };
+  // DOM elements cache
+  const elements = {};
 
-    this.originalData = {
-      published: [],
-      draft: [],
-      playlist: []
-    };
+  // Initialize search functionality
+  function initSearch() {
+    // Cache DOM elements
+    cacheElements();
 
-    this.init();
+    // Bind event listeners
+    bindEvents();
+
+    // Generate sample data for demo
+    generateSampleData();
+
+    console.log('Content search initialized');
   }
 
-  init() {
-    // Store original data when elements are loaded
-    this.storeOriginalData();
+  // Cache DOM elements for better performance
+  function cacheElements() {
+    // Search inputs
+    elements.searchPublished = document.querySelector('[data-search-published]');
+    elements.searchDraft = document.querySelector('[data-search-draft]');
+    elements.searchPlaylist = document.querySelector('[data-search-playlist]');
 
-    // Setup search event listeners
-    Object.keys(this.searchInputs).forEach(type => {
-      if (this.searchInputs[type]) {
-        this.setupSearchInput(type);
-      }
-    });
+    // Clear buttons
+    elements.clearPublished = document.querySelector('[data-search-clear="published"]');
+    elements.clearDraft = document.querySelector('[data-search-clear="draft"]');
+    elements.clearPlaylist = document.querySelector('[data-search-clear="playlist"]');
 
-    // Setup clear button listeners
-    Object.keys(this.clearButtons).forEach(type => {
-      if (this.clearButtons[type]) {
-        this.setupClearButton(type);
-      }
-    });
-
-    // Listen for data updates from other scripts
-    document.addEventListener('contentDataUpdated', (e) => {
-      if (e.detail && e.detail.type) {
-        this.updateOriginalData(e.detail.type, e.detail.data);
-      }
-    });
+    // Content containers
+    elements.publishedList = document.querySelector('[data-stories-published]');
+    elements.draftsList = document.querySelector('[data-stories-drafts]');
+    elements.playlistList = document.querySelector('[data-playlist-list]');
   }
 
-  storeOriginalData() {
-    // Store data when DOM is ready or when data is loaded
-    setTimeout(() => {
-      Object.keys(this.containers).forEach(type => {
-        this.updateOriginalData(type);
-      });
-    }, 1000);
-  }
-
-  updateOriginalData(type, data = null) {
-    if (data) {
-      this.originalData[type] = data;
-      return;
+  // Bind event listeners
+  function bindEvents() {
+    // Search input events
+    if (elements.searchPublished) {
+      elements.searchPublished.addEventListener('input', debounce((e) => handleSearch('published', e.target.value), SEARCH_CONFIG.debounceDelay));
+      elements.searchPublished.addEventListener('focus', () => handleSearchFocus('published'));
     }
 
-    // Extract data from DOM
-    const container = this.containers[type];
+    if (elements.searchDraft) {
+      elements.searchDraft.addEventListener('input', debounce((e) => handleSearch('draft', e.target.value), SEARCH_CONFIG.debounceDelay));
+      elements.searchDraft.addEventListener('focus', () => handleSearchFocus('draft'));
+    }
+
+    if (elements.searchPlaylist) {
+      elements.searchPlaylist.addEventListener('input', debounce((e) => handleSearch('playlist', e.target.value), SEARCH_CONFIG.debounceDelay));
+      elements.searchPlaylist.addEventListener('focus', () => handleSearchFocus('playlist'));
+    }
+
+    // Clear button events
+    if (elements.clearPublished) {
+      elements.clearPublished.addEventListener('click', () => clearSearch('published'));
+    }
+
+    if (elements.clearDraft) {
+      elements.clearDraft.addEventListener('click', () => clearSearch('draft'));
+    }
+
+    if (elements.clearPlaylist) {
+      elements.clearPlaylist.addEventListener('click', () => clearSearch('playlist'));
+    }
+  }
+
+  // Handle search input
+  function handleSearch(type, query) {
+    const trimmedQuery = query.trim();
+    searchState[type].query = trimmedQuery;
+
+    // Toggle clear button visibility
+    toggleClearButton(type, trimmedQuery.length > 0);
+
+    // Show loading state
+    if (trimmedQuery.length >= SEARCH_CONFIG.minSearchLength) {
+      setLoadingState(type, true);
+
+      // Simulate API delay for better UX
+      setTimeout(() => {
+        performSearch(type, trimmedQuery);
+        setLoadingState(type, false);
+      }, 150);
+    } else {
+      // Show all items when query is too short
+      showAllItems(type);
+    }
+  }
+
+  // Handle search input focus
+  function handleSearchFocus(type) {
+    const query = searchState[type].query;
+    if (query.length >= SEARCH_CONFIG.minSearchLength) {
+      performSearch(type, query);
+    }
+  }
+
+  // Perform the actual search
+  function performSearch(type, query) {
+    const container = getContainerElement(type);
     if (!container) return;
 
-    const items = Array.from(container.children);
-    this.originalData[type] = items.map(item => ({
-      element: item,
-      title: this.extractTitle(item),
-      author: this.extractAuthor(item),
-      category: this.extractCategory(item),
-      searchText: this.extractSearchText(item)
-    }));
-  }
+    const items = container.querySelectorAll('.library-item, .playlist-item');
+    const results = [];
+    let visibleCount = 0;
 
-  extractTitle(element) {
-    const titleEl = element.querySelector('.library-title, .playlist-item h4, h4');
-    return titleEl ? titleEl.textContent.trim() : '';
-  }
+    items.forEach(item => {
+      const searchableText = getSearchableText(item);
+      const isMatch = searchableText.toLowerCase().includes(query.toLowerCase());
 
-  extractAuthor(element) {
-    const authorEl = element.querySelector('.library-author, .playlist-item .author, .author');
-    return authorEl ? authorEl.textContent.trim() : '';
-  }
-
-  extractCategory(element) {
-    const categoryEl = element.querySelector('.library-category, .category');
-    return categoryEl ? categoryEl.textContent.trim() : '';
-  }
-
-  extractSearchText(element) {
-    // Create searchable text from all relevant content
-    const title = this.extractTitle(element);
-    const author = this.extractAuthor(element);
-    const category = this.extractCategory(element);
-
-    return [title, author, category].join(' ').toLowerCase();
-  }
-
-  setupSearchInput(type) {
-    const input = this.searchInputs[type];
-    const clearBtn = this.clearButtons[type];
-
-    let searchTimeout;
-
-    input.addEventListener('input', (e) => {
-      const query = e.target.value.trim();
-
-      // Show/hide clear button
-      if (clearBtn) {
-        clearBtn.style.display = query ? 'flex' : 'none';
-      }
-
-      // Add loading state
-      input.parentElement.classList.add('content-search-loading');
-
-      // Debounce search
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        this.performSearch(type, query);
-        input.parentElement.classList.remove('content-search-loading');
-      }, 300);
-    });
-
-    // Handle Enter key
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        clearTimeout(searchTimeout);
-        this.performSearch(type, input.value.trim());
-        input.parentElement.classList.remove('content-search-loading');
+      if (isMatch && query.length > 0) {
+        // Highlight matching text
+        highlightText(item, query);
+        item.style.display = '';
+        results.push(item);
+        visibleCount++;
+      } else if (query.length === 0) {
+        // Show all items when no query
+        removeHighlight(item);
+        item.style.display = '';
+        visibleCount++;
+      } else {
+        // Hide non-matching items
+        item.style.display = 'none';
       }
     });
+
+    // Update search state
+    searchState[type].results = results;
+
+    // Show no results message if needed
+    toggleNoResultsMessage(type, visibleCount === 0 && query.length > 0);
+
+    // Add search animation class
+    container.classList.add('search-complete');
+    setTimeout(() => container.classList.remove('search-complete'), 300);
   }
 
-  setupClearButton(type) {
-    const clearBtn = this.clearButtons[type];
-    const input = this.searchInputs[type];
+  // Get searchable text from item
+  function getSearchableText(item) {
+    const title = item.querySelector('.library-title, .playlist-name, h3, h4');
+    const author = item.querySelector('.library-author, .playlist-author, .story-author');
+    const genre = item.querySelector('.library-genre, .playlist-genre, .story-genre');
 
-    clearBtn.addEventListener('click', () => {
-      input.value = '';
-      clearBtn.style.display = 'none';
-      this.performSearch(type, '');
-      input.focus();
+    let text = '';
+    if (title) text += title.textContent + ' ';
+    if (author) text += author.textContent + ' ';
+    if (genre) text += genre.textContent + ' ';
+
+    return text.trim();
+  }
+
+  // Highlight matching text
+  function highlightText(item, query) {
+    if (!query || query.length === 0) return;
+
+    const elements = item.querySelectorAll('.library-title, .library-author, .library-genre, .playlist-name, h3, h4');
+    const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+
+    elements.forEach(el => {
+      const originalText = el.getAttribute('data-original-text') || el.textContent;
+      if (!el.getAttribute('data-original-text')) {
+        el.setAttribute('data-original-text', originalText);
+      }
+
+      const highlightedText = originalText.replace(regex, `<span class="${SEARCH_CONFIG.highlightClass}">$1</span>`);
+      el.innerHTML = highlightedText;
     });
   }
 
-  performSearch(type, query) {
-    const container = this.containers[type];
-    const data = this.originalData[type];
+  // Remove highlight from text
+  function removeHighlight(item) {
+    const elements = item.querySelectorAll('.library-title, .library-author, .library-genre, .playlist-name, h3, h4');
 
-    if (!container || !data.length) {
-      return;
-    }
-
-    // Clear current content
-    container.innerHTML = '';
-
-    if (!query) {
-      // Show all original items
-      data.forEach(item => {
-        this.clearHighlights(item.element);
-        container.appendChild(item.element);
-      });
-      return;
-    }
-
-    // Filter and highlight results
-    const queryLower = query.toLowerCase();
-    const matchedItems = data.filter(item =>
-      item.searchText.includes(queryLower)
-    );
-
-    if (matchedItems.length === 0) {
-      this.showNoResults(container, query, type);
-      return;
-    }
-
-    // Show matched items with highlights
-    matchedItems.forEach(item => {
-      this.highlightText(item.element, query);
-      container.appendChild(item.element);
-    });
-  }
-
-  highlightText(element, query) {
-    if (!query) return;
-
-    const walker = document.createTreeWalker(
-      element,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
-
-    const textNodes = [];
-    let node;
-    while (node = walker.nextNode()) {
-      textNodes.push(node);
-    }
-
-    const regex = new RegExp(`(${this.escapeRegExp(query)})`, 'gi');
-
-    textNodes.forEach(textNode => {
-      const parent = textNode.parentNode;
-      if (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE') return;
-
-      const text = textNode.textContent;
-      if (regex.test(text)) {
-        const highlighted = text.replace(regex, '<span class="search-highlight">$1</span>');
-        const wrapper = document.createElement('span');
-        wrapper.innerHTML = highlighted;
-        parent.replaceChild(wrapper, textNode);
+    elements.forEach(el => {
+      const originalText = el.getAttribute('data-original-text');
+      if (originalText) {
+        el.textContent = originalText;
+        el.removeAttribute('data-original-text');
       }
     });
   }
 
-  clearHighlights(element) {
-    const highlights = element.querySelectorAll('.search-highlight');
-    highlights.forEach(highlight => {
-      const parent = highlight.parentNode;
-      parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
-      parent.normalize();
+  // Clear search
+  function clearSearch(type) {
+    const inputElement = getInputElement(type);
+    if (inputElement) {
+      inputElement.value = '';
+      inputElement.focus();
+    }
+
+    searchState[type].query = '';
+    searchState[type].results = [];
+
+    toggleClearButton(type, false);
+    showAllItems(type);
+    toggleNoResultsMessage(type, false);
+  }
+
+  // Show all items (clear search results)
+  function showAllItems(type) {
+    const container = getContainerElement(type);
+    if (!container) return;
+
+    const items = container.querySelectorAll('.library-item, .playlist-item');
+    items.forEach(item => {
+      item.style.display = '';
+      removeHighlight(item);
     });
   }
 
-  showNoResults(container, query, type) {
-    const typeNames = {
-      published: 'truyện đã đăng',
-      draft: 'bản nháp',
-      playlist: 'playlist'
-    };
+  // Toggle clear button visibility
+  function toggleClearButton(type, show) {
+    const clearButton = getClearButtonElement(type);
+    if (clearButton) {
+      clearButton.style.display = show ? 'flex' : 'none';
+    }
+  }
 
-    container.innerHTML = `
-      <div class="search-no-results">
+  // Set loading state
+  function setLoadingState(type, isLoading) {
+    const container = getContainerElement(type);
+    if (!container) return;
+
+    searchState[type].isSearching = isLoading;
+
+    if (isLoading) {
+      container.classList.add('searching');
+    } else {
+      container.classList.remove('searching');
+    }
+  }
+
+  // Toggle no results message
+  function toggleNoResultsMessage(type, show) {
+    const container = getContainerElement(type);
+    if (!container) return;
+
+    let noResultsEl = container.querySelector('.content-search-no-results');
+
+    if (show && !noResultsEl) {
+      noResultsEl = document.createElement('div');
+      noResultsEl.className = 'content-search-no-results';
+      noResultsEl.innerHTML = `
         <i class="fa-solid fa-magnifying-glass"></i>
         <h3>Không tìm thấy kết quả</h3>
-        <p>Không có ${typeNames[type]} nào khớp với từ khóa "<strong>${this.escapeHtml(query)}</strong>"</p>
-      </div>
-    `;
+        <p>Hãy thử với từ khóa khác hoặc kiểm tra lại chính tả.</p>
+      `;
+      container.appendChild(noResultsEl);
+    } else if (!show && noResultsEl) {
+      noResultsEl.remove();
+    }
   }
 
-  escapeRegExp(string) {
+  // Helper functions
+  function getInputElement(type) {
+    switch (type) {
+      case 'published': return elements.searchPublished;
+      case 'draft': return elements.searchDraft;
+      case 'playlist': return elements.searchPlaylist;
+      default: return null;
+    }
+  }
+
+  function getClearButtonElement(type) {
+    switch (type) {
+      case 'published': return elements.clearPublished;
+      case 'draft': return elements.clearDraft;
+      case 'playlist': return elements.clearPlaylist;
+      default: return null;
+    }
+  }
+
+  function getContainerElement(type) {
+    switch (type) {
+      case 'published': return elements.publishedList;
+      case 'draft': return elements.draftsList;
+      case 'playlist': return elements.playlistList;
+      default: return null;
+    }
+  }
+
+  // Utility functions
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  // Generate sample data for demo purposes
+  function generateSampleData() {
+    // Sample published stories
+    const publishedSamples = [
+      { title: 'Tình Yêu Không Khoảng Cách', author: 'Minh Tâm', genre: 'Lãng Mạn' },
+      { title: 'Cuộc Phiêu Lưu Kỳ Thú', author: 'Hải Yến', genre: 'Phiêu Lưu' },
+      { title: 'Bí Ẩn Thành Phố Cổ', author: 'Quang Minh', genre: 'Bí Ẩn' },
+      { title: 'Những Ngày Học Trò', author: 'Thu Thảo', genre: 'Thanh Xuân' },
+      { title: 'Hành Trình Tìm Lại Ký Ức', author: 'Đức Anh', genre: 'Tâm Lý' }
+    ];
+
+    // Add sample data to published container
+    addSampleItems('published', publishedSamples);
+    addSampleItems('draft', publishedSamples.slice(0, 2));
+
+    // Sample playlists
+    const playlistSamples = [
+      { name: 'Truyện Tình Yêu Hay Nhất', count: 25 },
+      { name: 'Phiêu Lưu Kinh Dị', count: 18 },
+      { name: 'Tâm Lý Xã Hội', count: 12 }
+    ];
+    addSamplePlaylists(playlistSamples);
   }
 
-  // Public method to update data from external scripts
-  updateData(type, data) {
-    this.updateOriginalData(type, data);
-  }
+  function addSampleItems(type, items) {
+    const container = getContainerElement(type);
+    if (!container || container.children.length > 0) return;
 
-  // Public method to clear all searches
-  clearAllSearches() {
-    Object.keys(this.searchInputs).forEach(type => {
-      const input = this.searchInputs[type];
-      const clearBtn = this.clearButtons[type];
-
-      if (input) {
-        input.value = '';
-      }
-      if (clearBtn) {
-        clearBtn.style.display = 'none';
-      }
-
-      this.performSearch(type, '');
+    items.forEach(item => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'library-item';
+      itemEl.innerHTML = `
+        <div class="library-item-content">
+          <h3 class="library-title">${item.title}</h3>
+          <p class="library-author">Tác giả: ${item.author}</p>
+          <span class="library-genre">${item.genre}</span>
+        </div>
+      `;
+      container.appendChild(itemEl);
     });
   }
-}
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.body.classList.contains('account-page')) {
-    window.contentSearch = new ContentSearch();
+  function addSamplePlaylists(items) {
+    const container = elements.playlistList;
+    if (!container || container.children.length > 0) return;
+
+    items.forEach(item => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'playlist-item';
+      itemEl.innerHTML = `
+        <h4 class="playlist-name">${item.name}</h4>
+        <p>${item.count} truyện</p>
+      `;
+      container.appendChild(itemEl);
+    });
   }
-});
 
-// Export for external use
-window.ContentSearch = ContentSearch;
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSearch);
+  } else {
+    initSearch();
+  }
+
+  // Export for external use
+  window.ContentSearch = {
+    search: performSearch,
+    clear: clearSearch,
+    state: searchState
+  };
+
+})();
