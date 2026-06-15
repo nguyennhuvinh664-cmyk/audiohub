@@ -389,7 +389,12 @@
         if (!panel) return;
         var isOpen = !panel.classList.contains('is-hidden');
         document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
-        if (!isOpen) panel.classList.remove('is-hidden');
+        document.querySelectorAll('.account-item-menu-wrap').forEach(function (wrap) { wrap.classList.remove('is-open'); });
+        if (!isOpen) {
+          panel.classList.remove('is-hidden');
+          var wrap = panel.closest('.account-item-menu-wrap');
+          if (wrap) wrap.classList.add('is-open');
+        }
         event.stopPropagation();
         return;
       }
@@ -788,7 +793,7 @@
             '<div class="account-item-menu is-hidden" data-story-menu-panel="' + escapeHtml(storyId) + '">' +
               '<a href="' + escapeHtml(storyHref(story)) + '" class="account-item-menu-option">Xem truyện</a>' +
               '<button type="button" class="account-item-menu-option" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '">Thêm vào playlist</button>' +
-              '<a href="' + escapeHtml(editHref) + '" class="account-item-menu-option">Chỉnh sửa</a>' +
+              '<a href="' + escapeHtml(editHref) + '" class="account-item-menu-option">Sửa audio</a>' +
               '<button type="button" class="account-item-menu-option account-item-menu-option--danger" data-story-delete-one="' + escapeHtml(storyId) + '">Xóa truyện</button>' +
             '</div>' +
           '</div>' +

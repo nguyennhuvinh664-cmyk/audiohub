@@ -83,13 +83,14 @@ class ContentSearch {
       return;
     }
 
-    // Search in ALL data, not just current page
+    // Search in ALL data, but show only one page of results
     const results = this.searchInData(tabType, query.toLowerCase());
+    const pageResults = results.slice(0, this.pageSize);
 
-    if (results.length === 0) {
+    if (pageResults.length === 0) {
       this.showNoResults(tabType, query);
     } else {
-      this.displaySearchResults(tabType, results, query);
+      this.displaySearchResults(tabType, pageResults, query);
     }
   }
 
@@ -120,6 +121,13 @@ class ContentSearch {
       const element = this.createResultElement(tabType, item, query);
       container.appendChild(element);
     });
+
+    if (results.length >= this.pageSize) {
+      const notice = document.createElement('div');
+      notice.className = 'search-results-limit';
+      notice.textContent = `Hiển thị ${this.pageSize} truyện đầu tiên. Hãy thu hẹp tìm kiếm để xem kết quả chính xác hơn.`;
+      container.appendChild(notice);
+    }
 
     // Hide pagination during search
     this.hidePagination(tabType);
@@ -172,7 +180,7 @@ class ContentSearch {
           <div class="account-item-menu is-hidden" data-story-menu-panel="${item.id}">
             <a href="${storyHref}" class="account-item-menu-option">Xem truyện</a>
             <button type="button" class="account-item-menu-option" data-story-add-playlist="${item.id}" data-story-title="${item.title || ''}" data-story-author="${item.author || ''}" data-story-genre="${item.category || ''}" data-story-href="${storyHref}">Thêm vào playlist</button>
-            <a href="${editHref}" class="account-item-menu-option">Chỉnh sửa</a>
+            <a href="${editHref}" class="account-item-menu-option">Sửa audio</a>
             <button type="button" class="account-item-menu-option account-item-menu-option--danger" data-story-delete-one="${item.id}">Xóa truyện</button>
           </div>
         </div>
@@ -221,6 +229,8 @@ class ContentSearch {
     this.allData.draft = this.generateSampleData('draft', 20);
     this.allData.playlist = this.generateSamplePlaylists(30);
 
+    this.pageSize = 10;
+
     // Load initial display data
     this.loadTabData('published');
     this.loadTabData('draft');
@@ -268,9 +278,7 @@ class ContentSearch {
     const container = this.getResultContainer(tabType);
     if (!container) return;
 
-    // Show first page of data (simulate pagination)
-    const pageSize = 10;
-    const pageData = this.allData[tabType].slice(0, pageSize);
+    const pageData = this.allData[tabType].slice(0, this.pageSize);
 
     container.innerHTML = '';
     if (tabType !== 'playlist') {
