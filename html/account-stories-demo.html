@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo Danh Sách Truyện | AudioHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="../css/style-categories.css" />
+  <link rel="stylesheet" href="../css/account.css" />
+  <link rel="stylesheet" href="../css/library-state.css" />
+  <link rel="stylesheet" href="../css/content-search.css" />
+  <style>
+    body {
+      background: linear-gradient(180deg, #09090f 0%, #09090f 46%, #080811 100%);
+      color: #e2e8f0;
+      font-family: var(--font-base, 'Nunito', sans-serif);
+      margin: 0;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    .demo-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(15,23,42,.8);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.3);
+    }
+
+    .demo-title {
+      font-family: var(--font-d, 'Baloo 2', sans-serif);
+      font-size: 2rem;
+      font-weight: 800;
+      color: #f1f5f9;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    /* Story List Styles */
+    .story-list-container {
+      background: rgba(15,23,42,.6);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .story-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .story-item {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.03);
+      transition: border-color .2s ease, background .2s ease;
+    }
+
+    .story-item:hover {
+      border-color: rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+    }
+
+    .story-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 1.2rem;
+      overflow: hidden;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    }
+
+    .story-body {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .story-title {
+      display: block;
+      color: #f1f5f9;
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+      text-decoration: none;
+    }
+
+    .story-title:hover {
+      color: #f59e0b;
+    }
+
+    .story-meta {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .story-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .story-menu {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 8px;
+      background: rgba(255,255,255,.04);
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .2s ease;
+    }
+
+    .story-menu:hover {
+      background: rgba(255,255,255,.08);
+      color: #f1f5f9;
+    }
+
+    /* Tabs */
+    .content-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      margin-bottom: 16px;
+    }
+
+    .content-tab {
+      flex: 1;
+      text-align: center;
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: .9rem;
+      background: transparent;
+      color: #94a3b8;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+
+    .content-tab.is-active {
+      background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(6,182,212,.14));
+      color: #f1f5f9;
+    }
+
+    /* Search */
+    .search-container {
+      margin-bottom: 16px;
+    }
+
+    .search-bar {
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px 0 48px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.05);
+      color: #f1f5f9;
+      font-size: 1rem;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .search-input:focus {
+      border-color: rgba(245,158,11,.4);
+      box-shadow: 0 0 0 3px rgba(245,158,11,.1);
+    }
+
+    .search-input::placeholder {
+      color: #64748b;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      font-size: 1.1rem;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 16px 0;
+    }
+
+    .page-btn {
+      min-width: 36px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03);
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all .2s ease;
+    }
+
+    .page-btn:hover {
+      border-color: rgba(245,158,11,.3);
+      background: rgba(245,158,11,.1);
+      color: #f59e0b;
+    }
+
+    .page-btn.is-active {
+      border-color: rgba(245,158,11,.4);
+      background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(6,182,212,.14));
+      color: #fff7ed;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <h1 class="demo-title">Demo Danh Sách Truyện</h1>
+
+    <!-- Tabs -->
+    <div class="content-tabs">
+      <button class="content-tab is-active">Đã đăng</button>
+      <button class="content-tab">Bản nháp</button>
+      <button class="content-tab">Danh sách phát</button>
+    </div>
+
+    <!-- Search -->
+    <div class="search-container">
+      <div class="search-bar">
+        <input type="text" class="search-input" placeholder="Tìm kiếm trong truyện đã đăng..." />
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      </div>
+    </div>
+
+    <!-- Story List -->
+    <div class="story-list-container">
+      <div class="story-list">
+        <!-- Story 1 -->
+        <div class="story-item">
+          <div class="story-thumb" style="background-image: url('https://via.placeholder.com/64x64/f59e0b/ffffff?text=T1');">
+            T1
+          </div>
+          <div class="story-body">
+            <a href="#" class="story-title">Truyện số 1</a>
+            <div class="story-meta">Nguyễn Văn A • Kinh Dị • Cập nhật 1:58 8/06/2026</div>
+          </div>
+          <div class="story-actions">
+            <button class="story-menu">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Story 2 -->
+        <div class="story-item">
+          <div class="story-thumb" style="background-image: url('https://via.placeholder.com/64x64/ef4444/ffffff?text=T2');">
+            T2
+          </div>
+          <div class="story-body">
+            <a href="#" class="story-title">Truyện số 2</a>
+            <div class="story-meta">Phạm Thị D • Lãng Mạn • Cập nhật 10:05 17/06/2026</div>
+          </div>
+          <div class="story-actions">
+            <button class="story-menu">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Story 3 -->
+        <div class="story-item">
+          <div class="story-thumb" style="background-image: url('https://via.placeholder.com/64x64/8b5cf6/ffffff?text=T3');">
+            T3
+          </div>
+          <div class="story-body">
+            <a href="#" class="story-title">Truyện số 3</a>
+            <div class="story-meta">Hoàng Văn E • Lãng Mạn • Cập nhật 1:12 24/06/2026</div>
+          </div>
+          <div class="story-actions">
+            <button class="story-menu">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Story 4 -->
+        <div class="story-item">
+          <div class="story-thumb" style="background-image: url('https://via.placeholder.com/64x64/06b6d4/ffffff?text=T4');">
+            T4
+          </div>
+          <div class="story-body">
+            <a href="#" class="story-title">Truyện số 4</a>
+            <div class="story-meta">Trần Văn F • Hành Động • Cập nhật 15:30 25/06/2026</div>
+          </div>
+          <div class="story-actions">
+            <button class="story-menu">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Story 5 -->
+        <div class="story-item">
+          <div class="story-thumb" style="background-image: url('https://via.placeholder.com/64x64/10b981/ffffff?text=T5');">
+            T5
+          </div>
+          <div class="story-body">
+            <a href="#" class="story-title">Truyện số 5</a>
+            <div class="story-meta">Lê Thị G • Tâm Lý • Cập nhật 9:45 26/06/2026</div>
+          </div>
+          <div class="story-actions">
+            <button class="story-menu">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <button class="page-btn" disabled>
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button class="page-btn is-active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <button class="page-btn">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px; text-align: center; color: #64748b;">
+      <p>🎯 Demo này sử dụng CSS styles từ files hiện tại của project</p>
+      <p>📁 Mở <code>localhost:8080/html/account-stories-demo.html</code> để xem</p>
+    </div>
+  </div>
+
+  <script>
+    // Simple tab switching
+    document.querySelectorAll('.content-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+      });
+    });
+
+    // Simple pagination
+    document.querySelectorAll('.page-btn:not([disabled])').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!btn.classList.contains('is-active')) {
+          document.querySelectorAll('.page-btn').forEach(b => b.classList.remove('is-active'));
+          if (btn.textContent.match(/\d/)) {
+            btn.classList.add('is-active');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
