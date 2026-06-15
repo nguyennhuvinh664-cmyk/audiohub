@@ -235,9 +235,12 @@
   }
 
   function renderStoriesSection() {
+    console.log('[account] renderStoriesSection called');
     var stories = sortRecentDesc(getStories());
+    console.log('[account] stories found:', stories.length);
     var published = stories.filter(function (story) { return !isDraft(story); });
     var drafts = stories.filter(isDraft);
+    console.log('[account] published:', published.length, 'drafts:', drafts.length);
 
     renderStorySection(published, storiesPublished, 'Chưa có truyện nào được đăng.', currentPublishedPage, 'published');
     renderStorySection(drafts, storiesDrafts, 'Chưa có bản nháp nào.', currentDraftPage, 'draft');
@@ -1393,10 +1396,34 @@
   // ── End Playlist ──────────────────────────────────────────────────────────
 
   function refreshAll() {
-    renderStoriesSection();
-    renderLibrarySections();
-    renderTrash();
-    renderPlaylist();
+    console.log('[account] refreshAll called');
+    try {
+      renderStoriesSection();
+      console.log('[account] renderStoriesSection done');
+    } catch (e) {
+      console.error('[account] renderStoriesSection error:', e);
+    }
+
+    try {
+      renderLibrarySections();
+      console.log('[account] renderLibrarySections done');
+    } catch (e) {
+      console.error('[account] renderLibrarySections error:', e);
+    }
+
+    try {
+      renderTrash();
+      console.log('[account] renderTrash done');
+    } catch (e) {
+      console.error('[account] renderTrash error:', e);
+    }
+
+    try {
+      renderPlaylist();
+      console.log('[account] renderPlaylist done');
+    } catch (e) {
+      console.error('[account] renderPlaylist error:', e);
+    }
   }
 
   initAvatar();
