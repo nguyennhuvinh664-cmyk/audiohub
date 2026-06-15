@@ -382,7 +382,7 @@
       }
 
       // toggle 3-dot menu
-      var menuBtn = event.target.closest('[data-story-menu]');
+      var menuBtn = event.target.closest('[data-story-menu], .account-item-menu-btn');
       if (menuBtn) {
         var sid = menuBtn.getAttribute('data-story-menu');
         var panel = document.querySelector('[data-story-menu-panel="' + sid + '"]');
@@ -487,6 +487,32 @@
         currentPublishedPage = 1;
         currentDraftPage = 1;
         renderStoriesSection();
+        return;
+      }
+
+      var selectAllBtn = event.target.closest('[data-select-all-items]');
+      if (selectAllBtn) {
+        var container = selectAllBtn.closest('[data-stories-published], [data-stories-drafts]');
+        if (container) {
+          var checkboxes = container.querySelectorAll('[data-story-checkbox]');
+          checkboxes.forEach(function (cb) { cb.checked = true; });
+          var selectToggle = container.querySelector('[data-select-all]');
+          if (selectToggle) selectToggle.checked = true;
+          updateDeleteButton(container);
+        }
+        return;
+      }
+
+      var deselectAllBtn = event.target.closest('[data-deselect-all-items]');
+      if (deselectAllBtn) {
+        var container = deselectAllBtn.closest('[data-stories-published], [data-stories-drafts]');
+        if (container) {
+          var checkboxes = container.querySelectorAll('[data-story-checkbox]');
+          checkboxes.forEach(function (cb) { cb.checked = false; });
+          var selectToggle = container.querySelector('[data-select-all]');
+          if (selectToggle) selectToggle.checked = false;
+          updateDeleteButton(container);
+        }
         return;
       }
 
@@ -729,8 +755,11 @@
 
     if (hasItems) {
       html += '<div class="account-bulk-actions">';
-      html += '<label class="account-checkbox-all"><input type="checkbox" data-select-all /> <span>Chọn tất cả</span></label>';
-      html += '<button type="button" class="btn btn--outline btn--danger" data-delete-selected disabled><i class="fa-solid fa-trash"></i> Xóa đã chọn</button>';
+      html += '<div class="account-bulk-action-buttons">';
+      html += '<button type="button" class="btn btn--outline" data-select-all-items><i class="fa-solid fa-check"></i> chọn tất cả</button>';
+      html += '<button type="button" class="btn btn--outline" data-deselect-all-items><i class="fa-solid fa-xmark"></i> bỏ chọn</button>';
+      html += '</div>';
+      html += '<button type="button" class="btn btn--danger" data-delete-selected disabled><i class="fa-solid fa-trash"></i> xóa tất cả mục đã chọn</button>';
       html += '</div>';
     }
 
@@ -757,10 +786,10 @@
           '<div class="account-item-menu-wrap">' +
             '<button type="button" class="account-item-menu-btn" data-story-menu="' + escapeHtml(storyId) + '" aria-label="Tùy chọn" title="Tùy chọn"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
             '<div class="account-item-menu is-hidden" data-story-menu-panel="' + escapeHtml(storyId) + '">' +
-              '<a href="' + escapeHtml(editHref) + '" class="account-item-menu-option"><i class="fa-solid fa-pen-to-square"></i> Sửa truyện</a>' +
-              '<a href="' + escapeHtml(storyHref(story)) + '" class="account-item-menu-option"><i class="fa-solid fa-eye"></i> Xem truyện</a>' +
-              '<button type="button" class="account-item-menu-option" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '"><i class="fa-solid fa-list-ul"></i> Thêm vào playlist</button>' +
-              '<button type="button" class="account-item-menu-option account-item-menu-option--danger" data-story-delete-one="' + escapeHtml(storyId) + '"><i class="fa-solid fa-trash"></i> Xóa truyện</button>' +
+              '<a href="' + escapeHtml(storyHref(story)) + '" class="account-item-menu-option">Xem truyện</a>' +
+              '<button type="button" class="account-item-menu-option" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '">Thêm vào playlist</button>' +
+              '<a href="' + escapeHtml(editHref) + '" class="account-item-menu-option">Chỉnh sửa</a>' +
+              '<button type="button" class="account-item-menu-option account-item-menu-option--danger" data-story-delete-one="' + escapeHtml(storyId) + '">Xóa truyện</button>' +
             '</div>' +
           '</div>' +
         '</li>';

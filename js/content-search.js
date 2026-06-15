@@ -25,6 +25,9 @@ class ContentSearch {
     this.initSearchTab('draft');
     this.initSearchTab('playlist');
 
+    // Bind bulk actions for search result lists
+    this.initBulkActions();
+
     // Load initial data
     this.loadAllData();
   }
@@ -33,7 +36,7 @@ class ContentSearch {
     // Get search elements
     this.searchInputs[tabType] = document.querySelector(`[data-search-${tabType}]`);
     this.clearButtons[tabType] = document.querySelector(`[data-search-clear="${tabType}"]`);
-    this.searchContainers[tabType] = document.querySelector(`[data-stories-${tabType}], [data-playlist-list], [data-playlist-root]`);
+    this.searchContainers[tabType] = this.getResultContainer(tabType);
 
     if (!this.searchInputs[tabType]) return;
 
@@ -144,10 +147,12 @@ class ContentSearch {
         </div>
       `;
     } else {
+      var storyHref = '/story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
+      var editHref = '/html/upload-story.html?edit=' + encodeURIComponent(String(item.id || ''));
       div.className = 'account-list-item';
       div.innerHTML = `
         <div class="account-list-item-checkbox">
-          <input type="checkbox" id="story-${item.id}">
+          <input type="checkbox" id="story-${item.id}" data-story-checkbox>
         </div>
         <div class="account-list-item-thumb">
           <img src="${item.cover || '/images/placeholder.jpg'}" alt="${item.title}">
@@ -160,10 +165,16 @@ class ContentSearch {
             Cập nhật ${item.updateTime}
           </p>
         </div>
-        <div class="account-list-item-actions">
-          <button type="button" class="account-list-item-menu" data-story-menu="${item.id}">
+        <div class="account-item-menu-wrap">
+          <button type="button" class="account-item-menu-btn" data-story-menu="${item.id}" aria-label="Tùy chọn" title="Tùy chọn">
             <i class="fa-solid fa-ellipsis-vertical"></i>
           </button>
+          <div class="account-item-menu is-hidden" data-story-menu-panel="${item.id}">
+            <a href="${storyHref}" class="account-item-menu-option">Xem truyện</a>
+            <button type="button" class="account-item-menu-option" data-story-add-playlist="${item.id}" data-story-title="${item.title || ''}" data-story-author="${item.author || ''}" data-story-genre="${item.category || ''}" data-story-href="${storyHref}">Thêm vào playlist</button>
+            <a href="${editHref}" class="account-item-menu-option">Chỉnh sửa</a>
+            <button type="button" class="account-item-menu-option account-item-menu-option--danger" data-story-delete-one="${item.id}">Xóa truyện</button>
+          </div>
         </div>
       `;
     }
@@ -262,6 +273,17 @@ class ContentSearch {
     const pageData = this.allData[tabType].slice(0, pageSize);
 
     container.innerHTML = '';
+    if (tabType !== 'playlist') {
+      const toolbar = document.createElement('div');
+      toolbar.className = 'search-action-bar';
+      toolbar.innerHTML = `
+        <button type="button" class="btn btn--outline" data-search-select-all><i class="fa-solid fa-check"></i> chọn tất cả</button>
+        <button type="button" class="btn btn--outline" data-search-deselect-all><i class="fa-solid fa-xmark"></i> bỏ chọn</button>
+        <button type="button" class="btn btn--danger" data-search-delete-selected><i class="fa-solid fa-trash"></i> xóa tất cả mục đã chọn</button>
+      `;
+      container.appendChild(toolbar);
+    }
+
     pageData.forEach(item => {
       const element = this.createResultElement(tabType, item, '');
       container.appendChild(element);
@@ -272,7 +294,10 @@ class ContentSearch {
     if (tabType === 'playlist') {
       return document.querySelector('[data-playlist-list]');
     }
-    return document.querySelector(`[data-stories-${tabType}]`);
+    if (tabType === 'draft') {
+      return document.querySelector('[data-stories-drafts]');
+    }
+    return document.querySelector('[data-stories-published]');
   }
 
   hidePagination(tabType) {
@@ -280,6 +305,52 @@ class ContentSearch {
     if (pagination) {
       pagination.style.display = 'none';
     }
+  }
+
+  initBulkActions() {
+    document.addEventListener('click', (event) => {
+      var selectAllBtn = event.target.closest('[data-search-select-all]');
+      var deselectAllBtn = event.target.closest('[data-search-deselect-all]');
+      var deleteSelectedBtn = event.target.closest('[data-search-delete-selected]');
+
+      if (selectAllBtn || deselectAllBtn || deleteSelectedBtn) {
+        var panel = event.target.closest('[data-content-panel]');
+        if (!panel) return;
+        var listRoot = panel.querySelector('[data-stories-published], [data-stories-drafts]');
+        if (!listRoot) return;
+
+        if (selectAllBtn) {
+          listRoot.querySelectorAll('[data-story-checkbox]').forEach(function (checkbox) {
+            checkbox.checked = true;
+          });
+          var toggle = listRoot.querySelector('[data-select-all]');
+          if (toggle) toggle.checked = true;
+          return;
+        }
+
+        if (deselectAllBtn) {
+          listRoot.querySelectorAll('[data-story-checkbox]').forEach(function (checkbox) {
+            checkbox.checked = false;
+          });
+          var toggle = listRoot.querySelector('[data-select-all]');
+          if (toggle) toggle.checked = false;
+          return;
+        }
+
+        if (deleteSelectedBtn) {
+          var ids = Array.prototype.slice.call(listRoot.querySelectorAll('[data-story-checkbox]:checked')).map(function (checkbox) {
+            return checkbox.getAttribute('id') && checkbox.getAttribute('id').replace(/^story-/, '');
+          }).filter(Boolean);
+          if (!ids.length) return;
+          if (!window.confirm('Xóa ' + ids.length + ' truyện đã chọn?')) return;
+          if (typeof window.AudioHubStories === 'object' && typeof window.AudioHubStories.deleteById === 'function') {
+            ids.forEach(function (id) { window.AudioHubStories.deleteById(id); });
+          }
+          this.loadAllData();
+          return;
+        }
+      }
+    });
   }
 
   showPagination(tabType) {
@@ -317,11 +388,6 @@ class ContentSearch {
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  new ContentSearch();
-});
-
-// Also initialize if DOM is already loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     new ContentSearch();
