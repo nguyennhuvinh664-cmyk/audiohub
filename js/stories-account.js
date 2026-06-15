@@ -359,6 +359,7 @@
   }
 
   function bindStoryMenuActions() {
+    console.log('[DEBUG] bindStoryMenuActions called');
     document.addEventListener('change', function (event) {
       var selectAll = event.target.closest('[data-select-all]');
       if (selectAll) {
@@ -592,6 +593,7 @@
   }
 
   function buildHistoryList(items, page) {
+    console.log('[DEBUG] buildHistoryList called:', { items: items.length, historyMount: !!historyMount, page: page });
     if (!historyMount) return;
     if (!items.length) {
       historyMount.innerHTML = '<p class="library-empty">Chưa có lịch sử nghe nào.</p>';
@@ -630,6 +632,7 @@
   }
 
   function buildFavoriteList(items, page) {
+    console.log('[DEBUG] buildFavoriteList called:', { items: items.length, favoritesMount: !!favoritesMount, page: page });
     if (!favoritesMount) return;
     if (!items.length) {
       favoritesMount.innerHTML = '<p class="library-empty">Chưa có truyện yêu thích nào được lưu.</p>';
@@ -747,6 +750,7 @@
   }
 
   function renderStorySection(items, mount, emptyText, page, type) {
+    console.log('[DEBUG] renderStorySection called:', { items: items.length, mount: !!mount, type: type, page: page });
     if (!mount) return;
     if (!items.length) {
       mount.innerHTML = '<p class="library-empty">' + escapeHtml(emptyText) + '</p>';
@@ -894,8 +898,12 @@
   }
 
   function setContentPanel(name) {
+    console.log('[DEBUG] setContentPanel called with:', name);
     var next = String(name || 'published');
     var found = false;
+    console.log('[DEBUG] contentButtons found:', contentButtons.length);
+    console.log('[DEBUG] contentPanels found:', contentPanels.length);
+
     contentButtons.forEach(function (button) {
       var active = String(button.getAttribute('data-content-tab') || '') === next;
       button.classList.toggle('is-active', active);
@@ -907,7 +915,12 @@
       panel.classList.toggle('is-active', active);
       panel.hidden = !active;
     });
-    if (found) writeTab(next);
+    if (found) {
+      console.log('[DEBUG] setContentPanel success:', next);
+      writeTab(next);
+    } else {
+      console.log('[DEBUG] setContentPanel failed - no matching tab found for:', next);
+    }
   }
 
   function initContentTabs() {
@@ -941,11 +954,18 @@
   }
 
   function initMainTabs() {
-    if (!mainTabButtons.length) return;
+    console.log('[DEBUG] initMainTabs called, found buttons:', mainTabButtons.length);
+    if (!mainTabButtons.length) {
+      console.log('[DEBUG] No main tab buttons found!');
+      return;
+    }
     setMainTab('history');
-    mainTabButtons.forEach(function (button) {
+    mainTabButtons.forEach(function (button, index) {
+      console.log('[DEBUG] Binding click event to main tab button', index, button.getAttribute('data-main-tab'));
       button.addEventListener('click', function () {
-        setMainTab(button.getAttribute('data-main-tab'));
+        var tabName = button.getAttribute('data-main-tab');
+        console.log('[DEBUG] Main tab clicked:', tabName);
+        setMainTab(tabName);
       });
     });
   }
