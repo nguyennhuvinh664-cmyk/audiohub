@@ -1412,6 +1412,13 @@
   setContentPanel('published');
 
   window.addEventListener('audiohub:stories-updated', refreshAll);
+  window.addEventListener('audiohub:stories-synced', refreshAll);
+
+  // Force sync from API when page loads
+  if (window.AudioHubStories && typeof window.AudioHubStories.sync === 'function') {
+    window.AudioHubStories.sync();
+  }
+
   window.addEventListener('storage', function (event) {
     if (!event || !event.key) return;
     if (event.key === 'audiohub-library' || event.key === AVATAR_STORAGE_KEY || event.key === PLAYLIST_STORAGE_KEY) {
