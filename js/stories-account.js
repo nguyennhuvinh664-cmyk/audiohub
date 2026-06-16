@@ -189,9 +189,22 @@
     return Array.isArray(window.AudioHubStories.read()) ? window.AudioHubStories.read() : [];
   }
 
+  // Truyện chỉ lưu local (chưa upload lên backend) có ID bắt đầu bằng 's_'
+  function isLocalOnlyStory(story) {
+    return String(story && story.id || '').startsWith('s_');
+  }
+
+  // Kiểm tra có đang dùng tài khoản thật (không phải demo)
+  function isRealLogin() {
+    return !!(window.AudioHubApi &&
+      typeof window.AudioHubApi.isEnabled === 'function' &&
+      window.AudioHubApi.isEnabled());
+  }
+
   function isDraft(story) {
     var visibility = String(story && story.visibility || '').trim().toLowerCase();
-    return visibility === 'draft' || visibility === 'private' || visibility === 'không công khai';
+    return visibility === 'draft' || visibility === 'private' || visibility === 'không công khai'
+      || visibility === 'riêng tư';
   }
 
   function sortRecentDesc(list) {
@@ -235,9 +248,20 @@
   }
 
   function renderStoriesSection() {
-    var stories = sortRecentDesc(getStories());
-    var published = stories.filter(function (story) { return !isDraft(story); });
-    var drafts = stories.filter(isDraft);
+    var allStories = sortRecentDesc(getStories());
+    var realLogin = isRealLogin();
+
+    var published, drafts;
+    if (realLogin) {
+      // Đăng nhập thật: chỉ hiện truyện từ API (ID không bắt đầu bằng 's_')
+      var apiStories = allStories.filter(function (s) { return !isLocalOnlyStory(s); });
+      published = apiStories.filter(function (story) { return !isDraft(story); });
+      drafts = apiStories.filter(isDraft);
+    } else {
+      // Demo mode: hiện tất cả từ localStorage
+      published = allStories.filter(function (story) { return !isDraft(story); });
+      drafts = allStories.filter(isDraft);
+    }
 
     renderStorySection(published, storiesPublished, 'Chưa có truyện nào được đăng.', currentPublishedPage, 'published');
     renderStorySection(drafts, storiesDrafts, 'Chưa có bản nháp nào.', currentDraftPage, 'draft');
@@ -274,10 +298,15 @@
     buildHistoryList(sortRecentDesc(lib.history || []), currentHistoryPage);
     buildFavoriteList(lib.favorites || [], currentFavoritesPage);
 
+    var allStories = getStories();
+    var storiesCount = isRealLogin()
+      ? allStories.filter(function(s) { return !isLocalOnlyStory(s); }).length
+      : allStories.length;
+
     var stats = {
       favorites: (lib.favorites || []).length,
       history: (lib.history || []).length,
-      stories: getStories().length
+      stories: storiesCount
     };
     document.querySelectorAll('[data-library-stat="favorites"]').forEach(function (node) { node.textContent = String(stats.favorites); });
     document.querySelectorAll('[data-library-stat="history"]').forEach(function (node) { node.textContent = String(stats.history); });
@@ -861,10 +890,15 @@
     buildHistoryList(sortRecentDesc(lib.history || []), currentHistoryPage);
     buildFavoriteList(lib.favorites || [], currentFavoritesPage);
 
+    var allStories = getStories();
+    var storiesCount = isRealLogin()
+      ? allStories.filter(function(s) { return !isLocalOnlyStory(s); }).length
+      : allStories.length;
+
     var stats = {
       favorites: (lib.favorites || []).length,
       history: (lib.history || []).length,
-      stories: getStories().length
+      stories: storiesCount
     };
     document.querySelectorAll('[data-library-stat="favorites"]').forEach(function (node) { node.textContent = String(stats.favorites); });
     document.querySelectorAll('[data-library-stat="history"]').forEach(function (node) { node.textContent = String(stats.history); });
