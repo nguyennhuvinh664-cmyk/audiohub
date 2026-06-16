@@ -235,12 +235,9 @@
   }
 
   function renderStoriesSection() {
-    console.log('[account] renderStoriesSection called');
     var stories = sortRecentDesc(getStories());
-    console.log('[account] stories found:', stories.length);
     var published = stories.filter(function (story) { return !isDraft(story); });
     var drafts = stories.filter(isDraft);
-    console.log('[account] published:', published.length, 'drafts:', drafts.length);
 
     renderStorySection(published, storiesPublished, 'Chưa có truyện nào được đăng.', currentPublishedPage, 'published');
     renderStorySection(drafts, storiesDrafts, 'Chưa có bản nháp nào.', currentDraftPage, 'draft');
@@ -359,7 +356,6 @@
   }
 
   function bindStoryMenuActions() {
-    console.log('[DEBUG] bindStoryMenuActions called');
     document.addEventListener('change', function (event) {
       var selectAll = event.target.closest('[data-select-all]');
       if (selectAll) {
@@ -593,7 +589,6 @@
   }
 
   function buildHistoryList(items, page) {
-    console.log('[DEBUG] buildHistoryList called:', { items: items.length, historyMount: !!historyMount, page: page });
     if (!historyMount) return;
     if (!items.length) {
       historyMount.innerHTML = '<p class="library-empty">Chưa có lịch sử nghe nào.</p>';
@@ -632,7 +627,6 @@
   }
 
   function buildFavoriteList(items, page) {
-    console.log('[DEBUG] buildFavoriteList called:', { items: items.length, favoritesMount: !!favoritesMount, page: page });
     if (!favoritesMount) return;
     if (!items.length) {
       favoritesMount.innerHTML = '<p class="library-empty">Chưa có truyện yêu thích nào được lưu.</p>';
@@ -750,7 +744,6 @@
   }
 
   function renderStorySection(items, mount, emptyText, page, type) {
-    console.log('[DEBUG] renderStorySection called:', { items: items.length, mount: !!mount, type: type, page: page });
     if (!mount) return;
     if (!items.length) {
       mount.innerHTML = '<p class="library-empty">' + escapeHtml(emptyText) + '</p>';
@@ -898,11 +891,8 @@
   }
 
   function setContentPanel(name) {
-    console.log('[DEBUG] setContentPanel called with:', name);
     var next = String(name || 'published');
     var found = false;
-    console.log('[DEBUG] contentButtons found:', contentButtons.length);
-    console.log('[DEBUG] contentPanels found:', contentPanels.length);
 
     contentButtons.forEach(function (button) {
       var active = String(button.getAttribute('data-content-tab') || '') === next;
@@ -915,12 +905,7 @@
       panel.classList.toggle('is-active', active);
       panel.hidden = !active;
     });
-    if (found) {
-      console.log('[DEBUG] setContentPanel success:', next);
-      writeTab(next);
-    } else {
-      console.log('[DEBUG] setContentPanel failed - no matching tab found for:', next);
-    }
+    if (found) writeTab(next);
   }
 
   function initContentTabs() {
@@ -954,18 +939,11 @@
   }
 
   function initMainTabs() {
-    console.log('[DEBUG] initMainTabs called, found buttons:', mainTabButtons.length);
-    if (!mainTabButtons.length) {
-      console.log('[DEBUG] No main tab buttons found!');
-      return;
-    }
+    if (!mainTabButtons.length) return;
     setMainTab('history');
-    mainTabButtons.forEach(function (button, index) {
-      console.log('[DEBUG] Binding click event to main tab button', index, button.getAttribute('data-main-tab'));
+    mainTabButtons.forEach(function (button) {
       button.addEventListener('click', function () {
-        var tabName = button.getAttribute('data-main-tab');
-        console.log('[DEBUG] Main tab clicked:', tabName);
-        setMainTab(tabName);
+        setMainTab(button.getAttribute('data-main-tab'));
       });
     });
   }
@@ -1416,34 +1394,10 @@
   // ── End Playlist ──────────────────────────────────────────────────────────
 
   function refreshAll() {
-    console.log('[account] refreshAll called');
-    try {
-      renderStoriesSection();
-      console.log('[account] renderStoriesSection done');
-    } catch (e) {
-      console.error('[account] renderStoriesSection error:', e);
-    }
-
-    try {
-      renderLibrarySections();
-      console.log('[account] renderLibrarySections done');
-    } catch (e) {
-      console.error('[account] renderLibrarySections error:', e);
-    }
-
-    try {
-      renderTrash();
-      console.log('[account] renderTrash done');
-    } catch (e) {
-      console.error('[account] renderTrash error:', e);
-    }
-
-    try {
-      renderPlaylist();
-      console.log('[account] renderPlaylist done');
-    } catch (e) {
-      console.error('[account] renderPlaylist error:', e);
-    }
+    try { renderStoriesSection(); } catch (e) {}
+    try { renderLibrarySections(); } catch (e) {}
+    try { renderTrash(); } catch (e) {}
+    try { renderPlaylist(); } catch (e) {}
   }
 
   initAvatar();

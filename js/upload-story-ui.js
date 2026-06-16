@@ -942,18 +942,8 @@
       return;
     }
 
-    console.log('[debug] saveStory called, published:', published);
-    console.log('[debug] story state:', {
-      coverKey: state.coverKey,
-      audioKey: state.audioKey,
-      coverReady: state.coverReady,
-      audioReady: state.audioReady
-    });
-
     var built = buildStoryPayload(!!published);
-    console.log('[debug] buildStoryPayload result:', built);
     if (!built.ok) {
-      console.error('[debug] buildStoryPayload failed:', built.message);
       showBanner(built.message, false);
       return;
     }
@@ -966,7 +956,6 @@
     render();
 
     if (!window.AudioHubStories) {
-      console.error('[debug] window.AudioHubStories not found');
       showBanner('Chưa thể lưu vì thiếu stories-store.js.', false);
       return;
     }
@@ -989,32 +978,25 @@
 
     var story = null;
     try {
-      console.log('[debug] Calling upsert with payload:', built.payload);
       story = window.AudioHubStories.upsert(built.payload);
-      console.log('[debug] upsert result:', story);
     } catch (error) {
-      console.error('[debug] upsert error:', error);
       showBanner('Không thể lưu truyện demo. Trình duyệt có thể đang đầy bộ nhớ (localStorage). Hãy thử xoá dữ liệu site hoặc dùng file nhỏ hơn.', false);
       return;
     }
 
     if (published && !state.coverKey) {
-      console.warn('[debug] Missing coverKey for publish');
       showBanner('Ảnh bìa chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
       return;
     }
 
     if (published && !state.audioKey) {
-      console.warn('[debug] Missing audioKey for publish');
       showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
       return;
     }
 
-    console.log('[debug] Story saved successfully:', story);
     showBanner(statusLabel + ' Đã lưu vào danh sách demo.', published);
 
     if (published && story && story.id) {
-      console.log('[debug] Redirecting to story detail:', story.id);
       window.location.href = '/story-detail.html?id=' + encodeURIComponent(story.id);
     }
   }
