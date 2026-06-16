@@ -1747,7 +1747,7 @@
 
 .playlist-item .playlist-status-trigger,
 .playlist-item .playlist-state-trigger {
-  width: 100%;
+  width: auto;
   min-width: 0;
   max-width: none;
   height: 30px;
@@ -1811,17 +1811,16 @@
 
 .playlist-item-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   margin-bottom: 2px;
 }
 
 .playlist-state-wrap {
   position: relative;
-  margin-top: -2px;
-  width: fit-content;
+  flex-shrink: 0;
 }
 
 .playlist-item {
@@ -1830,10 +1829,6 @@
 
 .playlist-item .playlist-state-trigger {
   margin-top: 0;
-}
-
-.playlist-item .playlist-action-buttons {
-  margin-top: -2px;
 }
 
 .playlist-meta {
@@ -1942,12 +1937,6 @@
   padding: 10px 12px;
 }
 
-.playlist-state-wrap {
-  position: relative;
-  margin-top: 8px;
-  width: fit-content;
-}
-
 .playlist-main {
   display: flex;
   flex-direction: column;
@@ -1967,10 +1956,6 @@
 .playlist-item .playlist-actions {
   width: auto;
   justify-content: flex-end;
-}
-
-.playlist-state-wrap {
-  width: 100%;
 }
 
 .playlist-item .playlist-state-trigger {
@@ -2240,21 +2225,20 @@
 
 .playlist-card-status { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
 .playlist-state-badge { display: none; }
-.playlist-state-wrap { position: relative; margin-top: 2px; }
 .playlist-state-trigger {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
   width: fit-content;
-  min-width: 132px;
   border: 1px solid rgba(245,158,11,.24);
   background: rgba(245,158,11,.08);
   color: #fbbf24;
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   text-align: left;
   font-weight: 800;
+  font-size: .82rem;
+  white-space: nowrap;
   cursor: pointer;
 }
 .playlist-state-trigger i { font-size: .8rem; }
@@ -2272,7 +2256,6 @@
   display: block;
 }
 .playlist-state-menu.is-hidden { display: none !important; }
-.playlist-state-wrap:has(.playlist-state-menu:not(.is-hidden)) { margin-bottom: 74px; }
 .playlist-item:has(.playlist-state-menu:not(.is-hidden)) { z-index: 5; }
 .playlist-state-option {
   display: block;
@@ -2705,7 +2688,7 @@
 }
 
 .playlist-list .playlist-state-wrap {
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 .playlist-list .playlist-meta {
