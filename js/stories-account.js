@@ -247,21 +247,10 @@
     }).join('') + '</ul>';
   }
 
-  function renderStoriesSection() {
-    var allStories = sortRecentDesc(getStories());
-    var realLogin = isRealLogin();
-
-    var published, drafts;
-    if (realLogin) {
-      // Đăng nhập thật: chỉ hiện truyện từ API (ID không bắt đầu bằng 's_')
-      var apiStories = allStories.filter(function (s) { return !isLocalOnlyStory(s); });
-      published = apiStories.filter(function (story) { return !isDraft(story); });
-      drafts = apiStories.filter(isDraft);
-    } else {
-      // Demo mode: hiện tất cả từ localStorage
-      published = allStories.filter(function (story) { return !isDraft(story); });
-      drafts = allStories.filter(isDraft);
-    }
+  function renderStoriesFromList(stories) {
+    var sorted = sortRecentDesc(stories);
+    var published = sorted.filter(function (story) { return !isDraft(story); });
+    var drafts = sorted.filter(isDraft);
 
     renderStorySection(published, storiesPublished, 'Chưa có truyện nào được đăng.', currentPublishedPage, 'published');
     renderStorySection(drafts, storiesDrafts, 'Chưa có bản nháp nào.', currentDraftPage, 'draft');
@@ -275,8 +264,32 @@
       storiesDraftsNote.textContent = drafts.length ? '' : 'Chưa có nháp nào.';
     }
     if (document.querySelector('[data-content-tab="playlist"]')) {
-      var playlistTab = document.querySelector('[data-content-tab="playlist"]');
-      playlistTab.textContent = 'Danh sách phát';
+      document.querySelector('[data-content-tab="playlist"]').textContent = 'Danh sách phát';
+    }
+  }
+
+  function renderStoriesSection() {
+    if (isRealLogin()) {
+      // Đăng nhập thật: gọi thẳng API, không dùng localStorage
+      if (storiesPublished) storiesPublished.innerHTML = '<p class="library-empty">Đang tải...</p>';
+      if (storiesDrafts) storiesDrafts.innerHTML = '<p class="library-empty">Đang tải...</p>';
+
+      window.AudioHubApi.request('/stories', { method: 'GET' })
+        .then(function (response) {
+          var stories = Array.isArray(response) ? response : [];
+          renderStoriesFromList(stories);
+        })
+        .catch(function () {
+          // Nếu API lỗi, fallback về localStorage (bỏ demo data s_)
+          var fallback = getStories().filter(function (s) { return !isLocalOnlyStory(s); });
+          renderStoriesFromList(fallback);
+        });
+    } else {
+      // Demo mode: đọc từ localStorage, bỏ s_ stories khỏi published
+      var allStories = getStories();
+      var nonLocal = allStories.filter(function (s) { return !isLocalOnlyStory(s); });
+      var localDrafts = allStories.filter(isLocalOnlyStory);
+      renderStoriesFromList(nonLocal.concat(localDrafts));
     }
   }
 
