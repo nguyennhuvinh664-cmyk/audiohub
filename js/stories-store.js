@@ -476,7 +476,8 @@
           return mergeStoryWithLocal(entry, local);
         }).filter(Boolean);
 
-        var drafts = localStories.filter(function (story) {
+        // Khi real login (canUseApi), bỏ local s_ drafts vì đó là demo data chưa upload thật
+        var drafts = canUseApi() ? [] : localStories.filter(function (story) {
           return story && story.id && String(story.id).startsWith('s_');
         }).map(function (story) {
           return normalizeStory(story);
