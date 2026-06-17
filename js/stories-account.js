@@ -625,9 +625,9 @@
   }
 
   function deleteStoriesByIds(ids) {
-    if (!window.AudioHubStories || typeof window.AudioHubStories.deleteById !== 'function') return;
+    if (!window.AudioHubStories || typeof window.AudioHubStories.remove !== 'function') return;
     ids.forEach(function (id) {
-      window.AudioHubStories.deleteById(id);
+      window.AudioHubStories.remove(id);
     });
   }
 
