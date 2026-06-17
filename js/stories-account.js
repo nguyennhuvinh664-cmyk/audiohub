@@ -201,6 +201,23 @@
       window.AudioHubApi.isEnabled());
   }
 
+  // Tự động xóa dữ liệu demo (s_ prefix) khỏi localStorage khi đăng nhập thật
+  function clearLocalDemoStories() {
+    if (!isRealLogin()) return;
+    try {
+      var raw = window.localStorage.getItem('audiohub-stories');
+      if (!raw) return;
+      var stories = JSON.parse(raw);
+      if (!Array.isArray(stories)) return;
+      var cleaned = stories.filter(function (s) {
+        return s && s.id && !String(s.id).startsWith('s_');
+      });
+      if (cleaned.length !== stories.length) {
+        window.localStorage.setItem('audiohub-stories', JSON.stringify(cleaned));
+      }
+    } catch (e) {}
+  }
+
   function isDraft(story) {
     var visibility = String(story && story.visibility || '').trim().toLowerCase();
     return visibility === 'draft' || visibility === 'private' || visibility === 'không công khai'
@@ -1455,6 +1472,7 @@
   bindCollectionActions();
   bindPagination();
   bindPlaylistActions();
+  clearLocalDemoStories();
   refreshAll();
   setContentPanel('published');
 
