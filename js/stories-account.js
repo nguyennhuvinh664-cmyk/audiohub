@@ -201,20 +201,16 @@
       window.AudioHubApi.isEnabled());
   }
 
-  // Tự động xóa dữ liệu demo (s_ prefix) khỏi localStorage khi đăng nhập thật
+  // Tự động xóa toàn bộ dữ liệu local khỏi localStorage khi đăng nhập thật
+  // (kể cả demo data không có s_ prefix) — API sẽ sync lại dữ liệu thật
   function clearLocalDemoStories() {
     if (!isRealLogin()) return;
     try {
       var raw = window.localStorage.getItem('audiohub-stories');
       if (!raw) return;
       var stories = JSON.parse(raw);
-      if (!Array.isArray(stories)) return;
-      var cleaned = stories.filter(function (s) {
-        return s && s.id && !String(s.id).startsWith('s_');
-      });
-      if (cleaned.length !== stories.length) {
-        window.localStorage.setItem('audiohub-stories', JSON.stringify(cleaned));
-      }
+      if (!Array.isArray(stories) || !stories.length) return;
+      window.localStorage.setItem('audiohub-stories', JSON.stringify([]));
     } catch (e) {}
   }
 
@@ -297,9 +293,9 @@
           renderStoriesFromList(stories);
         })
         .catch(function () {
-          // Nếu API lỗi, fallback về localStorage (bỏ demo data s_)
-          var fallback = getStories().filter(function (s) { return !isLocalOnlyStory(s); });
-          renderStoriesFromList(fallback);
+          // Nếu API lỗi, hiện thông báo thay vì đọc localStorage (tránh hiện demo data)
+          if (storiesPublished) storiesPublished.innerHTML = '<p class="library-empty">Không thể tải truyện. Vui lòng thử lại.</p>';
+          if (storiesDrafts) storiesDrafts.innerHTML = '<p class="library-empty">Không thể tải bản nháp. Vui lòng thử lại.</p>';
         });
     } else {
       // Demo mode: đọc từ localStorage, bỏ s_ stories khỏi published
