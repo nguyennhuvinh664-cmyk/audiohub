@@ -1649,7 +1649,7 @@
   box-sizing: border-box;
 }
 
-.playlist-item {
+.playlist-item-old {
   flex-direction: row;
   align-items: center;
   gap: 12px;
@@ -1787,7 +1787,7 @@
   flex-shrink: 0;
 }
 
-.playlist-item {
+.playlist-item-old {
   padding-bottom: 10px;
 }
 
@@ -1880,7 +1880,7 @@
   color: var(--primary);
 }
 
-.playlist-item {
+.playlist-item-old {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -2126,7 +2126,7 @@
 .playlist-status-option:hover { background: rgba(255,255,255,.08); }
 .playlist-status-menu.is-hidden { display: none; }
 
-.playlist-detail > .playlist-item {
+.playlist-detail > .playlist-item-old {
   background: rgba(255,255,255,.02);
 }
 
@@ -2512,7 +2512,7 @@
   }
   .playlist-create { flex-direction: column; }
   .playlist-create input { min-width: 0; }
-  .playlist-item { align-items: flex-start; flex-direction: column; }
+  .playlist-item-old { align-items: flex-start; flex-direction: column; }
   .playlist-actions,
   .playlist-entry-actions {
     width: 100%;
@@ -2526,7 +2526,7 @@
   .playlist-status-wrap { width: 100%; }
   .playlist-status-trigger { width: 100%; min-width: 0; }
   .playlist-btn { padding: 6px 10px; }
-  .playlist-item { gap: 10px; }
+  .playlist-item-old { gap: 10px; }
   .playlist-action-buttons { gap: 6px; }
 }
 
@@ -2553,7 +2553,7 @@
   height: 32px;
 }
 
-.playlist-list .playlist-item {
+.playlist-list .playlist-item-old {
   background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
 }
 
@@ -2625,7 +2625,7 @@
 }
 
 .playlist-detail .playlist-entry,
-.playlist-list .playlist-item {
+.playlist-list .playlist-item-old {
   backdrop-filter: blur(6px);
 }
 
@@ -2754,7 +2754,7 @@
   box-shadow: 0 16px 30px rgba(0, 0, 0, .12);
 }
 
-.account-content-panel[data-content-panel="playlist"] .playlist-item {
+.account-content-panel[data-content-panel="playlist"] .playlist-item-old {
   flex-direction: column;
 }
 
@@ -2953,4 +2953,23 @@
   flex-direction: row !important;
   gap: 8px !important;
   align-items: center !important;
+}
+
+/* FINAL PLAYLIST FIX - FORCE 140PX */
+.playlist-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 12px !important; /* Giảm padding */
+  margin-bottom: 12px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  cursor: pointer !important;
+  height: 100px !important; /* Thay đổi chiều cao */
+  min-height: 100px !important;
+  max-height: 100px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
