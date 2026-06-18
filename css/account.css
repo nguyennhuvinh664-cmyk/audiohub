@@ -2936,3 +2936,21 @@
   padding-right: 10px;
 }
 
+
+/* Playlist Custom Layout Fix */
+.playlist-actions-row {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  margin-top: 14px !important;
+  gap: 10px !important;
+}
+
+.playlist-action-buttons {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
