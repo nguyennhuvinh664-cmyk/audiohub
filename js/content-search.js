@@ -218,63 +218,88 @@ class ContentSearch {
   }
 
   showAllResults(tabType) {
-    // Restore original content by reloading data
-    this.loadTabData(tabType);
+    // Dispatch event to let stories-account.js re-render instead of rendering ourselves
+    window.dispatchEvent(new CustomEvent('audiohub:stories-updated'));
     this.showPagination(tabType);
   }
 
   loadAllData() {
-    // Load sample data - replace with real API calls
-    this.allData.published = this.generateSampleData('published', 50);
-    this.allData.draft = this.generateSampleData('draft', 20);
-    this.allData.playlist = this.generateSamplePlaylists(30);
-
+    // Read real data from AudioHubStories store - do NOT generate sample data
     this.pageSize = 10;
-
-    // Load initial display data
-    this.loadTabData('published');
-    this.loadTabData('draft');
-    this.loadTabData('playlist');
+    this.refreshDataFromStore();
+    // Do NOT call loadTabData() here - let stories-account.js handle rendering
   }
 
-  generateSampleData(type, count) {
-    const stories = [];
-    const categories = ['Hành Động', 'Lãng Mạn', 'Hài Hước', 'Kinh Dị', 'Viễn Tưởng', 'Lịch Sử'];
-    const authors = ['Nguyễn Văn A', 'Trần Thị B', 'Lê Văn C', 'Phạm Thị D', 'Hoàng Văn E'];
+  refreshDataFromStore() {
+    // Read stories from AudioHubStories
+    var stories = [];
+    if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+      var raw = window.AudioHubStories.read();
+      stories = Array.isArray(raw) ? raw : [];
+    }
 
-    for (let i = 1; i <= count; i++) {
-      stories.push({
-        id: `${type}-${i}`,
-        title: `${type === 'draft' ? 'Bản nháp' : 'Truyện'} số ${i}`,
-        author: authors[Math.floor(Math.random() * authors.length)],
-        category: categories[Math.floor(Math.random() * categories.length)],
-        updateTime: `${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')} ${Math.floor(Math.random() * 30) + 1}/06/2026`,
+    // Check if real login (API mode)
+    var isRealLogin = window.AudioHubApi &&
+      typeof window.AudioHubApi.isEnabled === 'function' &&
+      window.AudioHubApi.isEnabled();
+
+    // Filter local-only stories (s_ prefix) for real login
+    if (isRealLogin) {
+      stories = stories.filter(function(s) {
+        return !String(s && s.id || '').startsWith('s_');
+      });
+    }
+
+    // Separate published and draft
+    var published = [];
+    var draft = [];
+    stories.forEach(function(story) {
+      var visibility = String(story && story.visibility || '').trim().toLowerCase();
+      var isDraft = visibility === 'draft' || visibility === 'private' ||
+        visibility === 'không công khai' || visibility === 'riêng tư';
+
+      var item = {
+        id: story.id || '',
+        title: story.title || 'Truyện mới',
+        author: story.author || 'Ẩn danh',
+        category: story.genre || 'Truyện audio',
+        updateTime: story.updatedAt || story.createdAt || '',
         cover: null,
-        description: `Mô tả cho ${type} số ${i}`
-      });
-    }
+        description: story.description || ''
+      };
 
-    return stories;
-  }
+      if (isDraft) {
+        draft.push(item);
+      } else {
+        published.push(item);
+      }
+    });
 
-  generateSamplePlaylists(count) {
-    const playlists = [];
-    const names = ['Thiên Long Bát Bộ', 'Thúy Hỷ', 'Tây Du Ký', 'Hồng Lâu Mộng', 'Tam Quốc', 'Conan', 'One Piece'];
+    this.allData.published = published;
+    this.allData.draft = draft;
 
-    for (let i = 1; i <= count; i++) {
-      playlists.push({
-        id: `playlist-${i}`,
-        title: i <= names.length ? names[i-1] : `Playlist ${i}`,
-        count: Math.floor(Math.random() * 50) + 1,
-        duration: `${Math.floor(Math.random() * 100) + 10} giờ`,
-        description: `Mô tả playlist ${i}`
-      });
-    }
-
-    return playlists;
+    // Read playlists from localStorage
+    var playlists = [];
+    try {
+      var rawPl = window.localStorage.getItem('audiohub-playlists-v1');
+      if (rawPl) {
+        var parsed = JSON.parse(rawPl);
+        playlists = Array.isArray(parsed) ? parsed.map(function(pl) {
+          return {
+            id: pl.id || '',
+            title: pl.name || 'Playlist',
+            count: Array.isArray(pl.entries) ? pl.entries.length : 0,
+            duration: 'Đang cập nhật',
+            description: ''
+          };
+        }) : [];
+      }
+    } catch (e) {}
+    this.allData.playlist = playlists;
   }
 
   loadTabData(tabType) {
+    // This method is only used during search - do NOT render on init
     const container = this.getResultContainer(tabType);
     if (!container) return;
 
