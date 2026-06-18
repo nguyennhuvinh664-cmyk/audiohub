@@ -830,7 +830,7 @@
       var updated = formatTime(story.updatedAt || story.createdAt);
       var storyId = String(story.id || '').trim();
       var coverKey = story.coverKey ? String(story.coverKey) : '';
-      var thumbStyle = 'background: linear-gradient(135deg, #6366f1, #8b5cf6)';
+      var thumbStyle = 'background: rgba(255, 255, 255, 0.1)';
 
       var editHref = '/html/upload-story.html?edit=' + encodeURIComponent(storyId);
       return '' +
@@ -1225,7 +1225,7 @@
         var story = window.AudioHubStories.getById(entry.key);
         coverKey = story && story.coverKey ? String(story.coverKey) : '';
       }
-      var thumbStyle = coverKey ? '' : 'background:linear-gradient(135deg,#6366f1,#8b5cf6)';
+      var thumbStyle = coverKey ? '' : 'background: rgba(255, 255, 255, 0.1)';
       return '' +
         '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
           '<a class="playlist-entry-thumb" href="' + escapeHtml(entry.href || '#') + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
