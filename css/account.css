@@ -2503,66 +2503,7 @@
   font-size: .78rem;
   font-weight: 800;
 }
-.playlist-status-badge--listening { background: rgba(6,182,212,.12); border: 1px solid rgba(6,182,212,.22); color: #22d3ee; }
-.playlist-status-badge--done { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.22); color: #4ade80; }
-.playlist-entry.is-done .playlist-progress-fill { background: linear-gradient(90deg, #22c55e, #16a34a); }
-.playlist-entry-main { flex: 1; min-width: 0; padding-left: 2px; padding-right: 18px; }
-.playlist-entry-main strong { display: block; color: var(--t1); font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere; }
-.playlist-entry-main small { display: block; margin-top: 3px; color: var(--t3); font-size: .88rem; }
-.playlist-list .playlist-item .playlist-actions,
-.playlist-actions { align-content: start; }
-.playlist-list .playlist-item .playlist-main { padding-right: 4px; }
-.playlist-list .playlist-item .playlist-status-trigger,
-.playlist-list .playlist-item .playlist-action-buttons { width: fit-content; }
-.playlist-list .playlist-item .playlist-action-buttons { display: flex; }
-.playlist-detail .playlist-entry-actions { white-space: nowrap; }
-.playlist-list .playlist-item .playlist-status-trigger { text-align: left; }
-.playlist-list .playlist-item .playlist-status-wrap { justify-items: start; }
-.playlist-detail .playlist-entry { justify-content: space-between; }
-.playlist-list .playlist-item .playlist-status-menu { min-width: 160px; }
-.playlist-list .playlist-status-option { padding-block: 10px; }
-.playlist-list .playlist-status-option + .playlist-status-option { border-top: 1px solid rgba(255,255,255,.06); }
-.playlist-list .playlist-item.is-active:hover { border-color: rgba(251,191,36,.42); }
-.playlist-detail .playlist-entry:hover { background: rgba(255,255,255,.03); }
-.playlist-detail .playlist-entry-actions .playlist-btn { border-radius: 999px; }
-.playlist-detail .playlist-item { padding-bottom: 12px; }
-.playlist-detail .playlist-entry,
-.playlist-detail > .playlist-item { overflow: hidden; }
-.playlist-detail .playlist-entry-actions { align-items: center; }
-.playlist-entry small { max-width: 100%; }
-.playlist-actions,
-.playlist-action-buttons { min-width: 0; }
-.playlist-list .playlist-item .playlist-action-buttons .playlist-btn { min-width: 0; }
-.playlist-item.is-active .playlist-action-buttons .playlist-btn { border-color: rgba(255,255,255,.16); }
-.playlist-item.is-active .playlist-action-buttons .playlist-btn:hover { border-color: rgba(255,255,255,.24); }
-.playlist-detail .playlist-entry strong { font-weight: 800; }
-.playlist-empty { font-size: .95rem; }
-.playlist-item,
-.playlist-entry,
-.playlist-list,
-.playlist-detail { min-width: 0; }
-.playlist-detail::-webkit-scrollbar-thumb { border: 1px solid rgba(255,255,255,.08); }
-.playlist-detail::-webkit-scrollbar-track { border: 1px solid rgba(255,255,255,.04); }
-.playlist-detail .playlist-entry-actions .playlist-btn,
-.playlist-list .playlist-btn,
-.playlist-list .playlist-status-trigger { letter-spacing: -.01em; }
-.playlist-list .playlist-item .playlist-status-wrap,
-.playlist-action-buttons { max-width: 100%; }
-.playlist-item.is-active .playlist-name,
-.playlist-detail .playlist-item .playlist-name { text-shadow: 0 1px 0 rgba(0,0,0,.15); }
-.playlist-detail > .playlist-item { border-style: solid; }
-.playlist-list .playlist-item { border-style: solid; }
-.playlist-detail .playlist-entry-actions .playlist-btn { border-radius: 999px; }
-.playlist-detail .playlist-entry > div:first-child { align-self: center; }
-.playlist-list .playlist-item .playlist-main,
-.playlist-detail > .playlist-item > div:first-child { align-self: stretch; }
-.playlist-item.is-active .playlist-meta { opacity: 1; }
-.playlist-detail .playlist-entry { box-shadow: none; }
-.playlist-list .playlist-item { box-shadow: none; }
-.playlist-layout { min-width: 0; }
-.playlist-actions > *,
-.playlist-action-buttons > *,
-.playlist-entry-actions > * { flex-shrink: 0; }
+/* Removed old redundant lines below this */
 
 @media (max-width: 980px) {
   .playlist-layout {
