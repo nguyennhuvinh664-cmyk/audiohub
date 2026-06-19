@@ -1932,10 +1932,9 @@
   color: #ffffff !important;
   line-height: 1.3 !important;
   display: block !important;
-  
-  
   overflow: visible !important;
   word-break: break-word !important;
+  white-space: normal !important;
 }
 
 .playlist-meta {
