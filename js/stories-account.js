@@ -970,12 +970,19 @@
 
   function initContentTabs() {
     if (!contentButtons.length || !contentPanels.length) return;
+
+    // Check hash for tab selection
+    var hash = window.location.hash;
     var initial = readTab();
-    if (!contentButtons.some(function (button) {
+
+    if (hash === '#mycontent-draft') {
+        initial = 'draft';
+    } else if (!contentButtons.some(function (button) {
       return String(button.getAttribute('data-content-tab') || '') === initial;
     })) {
       initial = 'published';
     }
+
     contentButtons.forEach(function (button) {
       button.addEventListener('click', function () {
         setContentPanel(button.getAttribute('data-content-tab'));
