@@ -1931,8 +1931,11 @@
   font-weight: 800 !important;
   color: #ffffff !important;
   line-height: 1.3 !important;
-  display: block !important; /* Thay vì -webkit-box */
-  overflow: visible !important; /* Bỏ hidden để hiện hết */
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  word-break: break-word !important;
 }
 
 .playlist-meta {
