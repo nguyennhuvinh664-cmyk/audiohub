@@ -640,11 +640,13 @@
       if (!type || !key) return;
       if (type === 'history' && window.AudioHubStories && typeof window.AudioHubStories.clearListenHistory === 'function') {
         window.AudioHubStories.clearListenHistory(key);
+        // Force sync để cập nhật UI từ trạng thái mới nhất
+        if (typeof window.AudioHubStories.sync === 'function') {
+            window.AudioHubStories.sync().then(refreshAll);
+        } else {
+            refreshAll();
+        }
       } else {
-        removeFromCollection(type, key);
-      }
-      refreshAll(); // Đảm bảo UI được cập nhật sau khi xóa
-    });
   }
 
   function buildHistoryList(items, page) {
