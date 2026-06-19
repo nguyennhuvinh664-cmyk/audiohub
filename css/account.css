@@ -2039,16 +2039,16 @@
 }
 
 .playlist-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.05);
   color: var(--t2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   transition: all 0.2s ease;
 }
 
@@ -2079,13 +2079,13 @@
 }
 
 .playlist-status-trigger {
-  min-width: 126px;
-  height: 34px;
+  min-width: 140px;
+  height: 40px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.13);
   background: rgba(15,23,42,.82);
   color: var(--t1);
-  padding: 0 12px;
+  padding: 0 16px;
   font-weight: 800;
   text-align: left;
   white-space: nowrap;
