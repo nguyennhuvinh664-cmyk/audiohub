@@ -1880,18 +1880,23 @@
   color: var(--primary);
 }
 
-.playlist-item-old {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px 16px;
-  margin-bottom: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  cursor: pointer;
-  min-height: 140px; /* Sửa theo yêu cầu: từ 167 xuống 140px */
+/* FINAL PLAYLIST FIX - FORCE 140PX */
+.playlist-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  margin-bottom: 12px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  cursor: pointer !important;
+  height: 140px !important;
+  min-height: 140px !important;
+  max-height: 140px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .playlist-entry {
