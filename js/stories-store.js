@@ -355,6 +355,11 @@
     story.updatedAt = new Date().toISOString();
     upsertLocalStory(story);
     notifyStoriesUpdated();
+
+    if (canUseApi() && !String(story.id || '').startsWith('s_')) {
+      window.AudioHubApi.request('/stories/' + encodeURIComponent(String(story.id)) + '/listen/clear', { method: 'POST' })
+        .catch(function (err) { console.error('Failed to clear listen history on API:', err); });
+    }
     return true;
   }
 

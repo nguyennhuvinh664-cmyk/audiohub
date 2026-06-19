@@ -638,8 +638,12 @@
       var type = button.getAttribute('data-library-remove');
       var key = button.getAttribute('data-story-key');
       if (!type || !key) return;
-      removeFromCollection(type, key);
-      renderLibrarySections();
+      if (type === 'history' && window.AudioHubStories && typeof window.AudioHubStories.clearListenHistory === 'function') {
+        window.AudioHubStories.clearListenHistory(key);
+      } else {
+        removeFromCollection(type, key);
+      }
+      refreshAll(); // Đảm bảo UI được cập nhật sau khi xóa
     });
   }
 
