@@ -486,10 +486,62 @@
 
 .account-item-menu-wrap {
   position: relative;
+  flex-shrink: 0;
 }
 
 .account-item-menu-wrap.is-open {
   z-index: 9999;
+}
+
+.account-item-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 10000;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1a1a2e;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.account-item-menu.is-hidden {
+  display: none !important;
+}
+
+.account-item-menu-option {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.account-item-menu-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.account-item-menu-option--danger {
+  color: #f87171;
+}
+
+.account-item-menu-option--danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.account-item-menu-option + .account-item-menu-option {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .account-item-menu-btn {
