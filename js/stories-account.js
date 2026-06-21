@@ -841,7 +841,7 @@
       var coverKey = story.coverKey ? String(story.coverKey) : '';
       var thumbStyle = 'background: rgba(255, 255, 255, 0.1)';
 
-      var editHref = '/html/upload-story.html?edit=' + encodeURIComponent(storyId);
+      var editHref = '/html/upload-story.html?id=' + encodeURIComponent(storyId);
       return '' +
         '<li data-story-item>' +
           '<label class="account-item-checkbox"><input type="checkbox" data-story-checkbox data-story-id="' + escapeHtml(storyId) + '" /></label>' +
