@@ -638,20 +638,17 @@
       var key = button.getAttribute('data-story-key');
       if (!type || !key) return;
 
+      // Xóa item khỏi collection (history hoặc favorites)
+      removeFromCollection(type, key);
+
+      // Nếu là history, xóa cả listenHistory của story
       if (type === 'history') {
         if (window.AudioHubStories && typeof window.AudioHubStories.clearListenHistory === 'function') {
           window.AudioHubStories.clearListenHistory(key);
         }
-        // Force sync to update UI from the latest state
-        if (typeof window.AudioHubStories.sync === 'function') {
-            window.AudioHubStories.sync().then(refreshAll);
-        } else {
-            refreshAll();
-        }
-      } else {
-        removeFromCollection(type, key);
-        renderLibrarySections();
       }
+
+      renderLibrarySections();
     });
   }
 
