@@ -562,8 +562,18 @@
     removeFromCollection(type, key);
 
     // Nếu là history, xóa cả listenHistory của story
+    // Key format: 'story::id::time::index' hoặc chỉ 'id'
     if (type === 'history') {
-      var storyId = String(key || '').indexOf('story::') === 0 ? String(key).slice('story::'.length) : String(key || '');
+      var keyStr = String(key || '');
+      var storyId = '';
+      if (keyStr.indexOf('story::') === 0) {
+        // Parse 'story::id::time::index' -> extract id
+        var parts = keyStr.slice('story::'.length).split('::');
+        storyId = parts[0] || '';
+      } else {
+        storyId = keyStr;
+      }
+
       if (storyId && window.AudioHubStories && typeof window.AudioHubStories.clearListenHistory === 'function') {
         window.AudioHubStories.clearListenHistory(storyId);
       }
