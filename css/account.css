@@ -1929,8 +1929,8 @@
 }
 
 .playlist-name {
-  font-size: 1.1rem;
-  font-weight: 800;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--t1);
   word-wrap: break-word;
   white-space: normal;
@@ -1938,7 +1938,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .playlist-meta {
