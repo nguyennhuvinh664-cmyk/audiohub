@@ -558,13 +558,15 @@
     var type = removeButton.getAttribute('data-library-remove');
     var key = removeButton.getAttribute('data-story-key');
 
+    // Xóa item khỏi danh sách (history hoặc favorites)
+    removeFromCollection(type, key);
+
+    // Nếu là history, xóa cả listenHistory của story
     if (type === 'history') {
-      var storyId = String(key || '').indexOf('story::') === 0 ? String(key).slice('story::'.length) : '';
+      var storyId = String(key || '').indexOf('story::') === 0 ? String(key).slice('story::'.length) : String(key || '');
       if (storyId && window.AudioHubStories && typeof window.AudioHubStories.clearListenHistory === 'function') {
         window.AudioHubStories.clearListenHistory(storyId);
       }
-    } else {
-      removeFromCollection(type, key);
     }
 
     renderAccountLibrary();
