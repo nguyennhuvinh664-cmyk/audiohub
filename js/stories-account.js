@@ -1490,7 +1490,6 @@
   bindPlaylistActions();
   clearLocalDemoStories();
   refreshAll();
-  setContentPanel('published');
 
   window.addEventListener('audiohub:stories-updated', refreshAll);
   window.addEventListener('audiohub:stories-synced', refreshAll);
