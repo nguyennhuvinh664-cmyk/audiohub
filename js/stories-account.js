@@ -1016,7 +1016,13 @@
 
   function initMainTabs() {
     if (!mainTabButtons.length) return;
-    setMainTab('history');
+    // Check if URL has hash to switch to mycontent tab
+    var hash = window.location.hash;
+    var initialMainTab = 'history';
+    if (hash === '#mycontent-draft' || hash === '#mycontent') {
+      initialMainTab = 'mycontent';
+    }
+    setMainTab(initialMainTab);
     mainTabButtons.forEach(function (button) {
       button.addEventListener('click', function () {
         setMainTab(button.getAttribute('data-main-tab'));
