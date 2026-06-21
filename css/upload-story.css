@@ -522,3 +522,41 @@
     padding: 20px 18px;
   }
 }
+
+/* Nút bấm (Buttons) */
+.btn--outline,
+.btn--primary {
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn--outline {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: var(--t1);
+}
+
+.btn--outline:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
+}
+
+.btn--primary {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--primary), #f97316);
+  color: #fff;
+}
+
+.btn--primary:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.upload-hero__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}

@@ -216,8 +216,7 @@
 
   function isDraft(story) {
     var visibility = String(story && story.visibility || '').trim().toLowerCase();
-    return visibility === 'draft' || visibility === 'private' || visibility === 'không công khai'
-      || visibility === 'riêng tư';
+    return visibility === 'riêng tư' || visibility === 'không công khai';
   }
 
   function sortRecentDesc(list) {
@@ -638,8 +637,21 @@
       var type = button.getAttribute('data-library-remove');
       var key = button.getAttribute('data-story-key');
       if (!type || !key) return;
-      removeFromCollection(type, key);
-      renderLibrarySections();
+
+      if (type === 'history') {
+        if (window.AudioHubStories && typeof window.AudioHubStories.clearListenHistory === 'function') {
+          window.AudioHubStories.clearListenHistory(key);
+        }
+        // Force sync to update UI from the latest state
+        if (typeof window.AudioHubStories.sync === 'function') {
+            window.AudioHubStories.sync().then(refreshAll);
+        } else {
+            refreshAll();
+        }
+      } else {
+        removeFromCollection(type, key);
+        renderLibrarySections();
+      }
     });
   }
 
@@ -970,12 +982,19 @@
 
   function initContentTabs() {
     if (!contentButtons.length || !contentPanels.length) return;
+
+    // Check hash for tab selection
+    var hash = window.location.hash;
     var initial = readTab();
-    if (!contentButtons.some(function (button) {
+
+    if (hash === '#mycontent-draft') {
+        initial = 'draft';
+    } else if (!contentButtons.some(function (button) {
       return String(button.getAttribute('data-content-tab') || '') === initial;
     })) {
       initial = 'published';
     }
+
     contentButtons.forEach(function (button) {
       button.addEventListener('click', function () {
         setContentPanel(button.getAttribute('data-content-tab'));
