@@ -832,7 +832,7 @@
       html += '</div>';
     }
 
-    html += '<ul class="account-list account-list--selectable">' + paged.map(function (story) {
+    html += '<div class="yt-grid">' + paged.map(function (story) {
       var title = escapeHtml(story.title || 'Truyện mới');
       var author = escapeHtml(story.author || 'Ẩn danh');
       var genre = escapeHtml(story.genre || 'Truyện audio');
@@ -843,26 +843,29 @@
 
       var editHref = '/html/upload-story.html?id=' + encodeURIComponent(storyId);
       return '' +
-        '<li data-story-item>' +
-          '<label class="account-item-checkbox"><input type="checkbox" data-story-checkbox data-story-id="' + escapeHtml(storyId) + '" /></label>' +
-          '<div class="account-item-thumb" data-story-thumb data-story-id="' + escapeHtml(storyId) + '" data-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
-            '<span>' + escapeHtml((story.title || 'ST').slice(0, 2).toUpperCase()) + '</span>' +
-          '</div>' +
-          '<div class="account-item-body">' +
-            '<strong><a href="' + escapeHtml(storyHref(story)) + '">' + title + '</a></strong>' +
-            '<small>' + author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '') + '</small>' +
-          '</div>' +
-          '<div class="account-item-menu-wrap">' +
-            '<button type="button" class="account-item-menu-btn" data-story-menu="' + escapeHtml(storyId) + '" aria-label="Tùy chọn" title="Tùy chọn"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
-            '<div class="account-item-menu is-hidden" data-story-menu-panel="' + escapeHtml(storyId) + '">' +
-              '<a href="' + escapeHtml(storyHref(story)) + '" class="account-item-menu-option">Xem truyện</a>' +
-              '<button type="button" class="account-item-menu-option" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '">Thêm vào playlist</button>' +
-              '<a href="' + escapeHtml(editHref) + '" class="account-item-menu-option">Sửa audio</a>' +
-              '<button type="button" class="account-item-menu-option account-item-menu-option--danger" data-story-delete-one="' + escapeHtml(storyId) + '">Xóa truyện</button>' +
+        '<div class="yt-card" data-story-item>' +
+          '<div class="yt-card__thumb-wrap">' +
+            '<label class="yt-card__checkbox"><input type="checkbox" data-story-checkbox data-story-id="' + escapeHtml(storyId) + '" /></label>' +
+            '<div class="yt-card__thumb" data-story-thumb data-story-id="' + escapeHtml(storyId) + '" data-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
+              '<span>' + escapeHtml((story.title || 'ST').slice(0, 2).toUpperCase()) + '</span>' +
+            '</div>' +
+            '<div class="yt-card__menu-wrap">' +
+              '<button type="button" class="yt-card__menu-btn" data-story-menu="' + escapeHtml(storyId) + '" aria-label="Tùy chọn" title="Tùy chọn"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
+              '<div class="yt-card__menu is-hidden" data-story-menu-panel="' + escapeHtml(storyId) + '">' +
+                '<a href="' + escapeHtml(storyHref(story)) + '" class="yt-card__menu-item">Xem truyện</a>' +
+                '<button type="button" class="yt-card__menu-item" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '">Thêm vào playlist</button>' +
+                '<a href="' + escapeHtml(editHref) + '" class="yt-card__menu-item">Sửa audio</a>' +
+                '<button type="button" class="yt-card__menu-item yt-card__menu-item--danger" data-story-delete-one="' + escapeHtml(storyId) + '">Xóa truyện</button>' +
+              '</div>' +
             '</div>' +
           '</div>' +
-        '</li>';
-    }).join('') + '</ul>';
+          '<div class="yt-card__body">' +
+            '<h3 class="yt-card__title"><a href="' + escapeHtml(storyHref(story)) + '">' + title + '</a></h3>' +
+            '<p class="yt-card__meta">' + author + '</p>' +
+            '<p class="yt-card__meta">' + genre + (updated ? (' · ' + escapeHtml(updated)) : '') + '</p>' +
+          '</div>' +
+        '</div>';
+    }).join('') + '</div>';
 
     mount.innerHTML = html;
 
