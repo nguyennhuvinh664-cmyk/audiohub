@@ -1250,7 +1250,8 @@
         var story = window.AudioHubStories.getById(entry.key);
         coverKey = story && story.coverKey ? String(story.coverKey) : '';
       }
-      var thumbStyle = coverKey ? '' : 'background: rgba(255, 255, 255, 0.1)';
+      var thumbStyle = coverKey ? '' : 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
+      var genreBadge = entry.genre ? '<span class="genre-badge">' + escapeHtml(entry.genre) + '</span>' : '';
       return '' +
         '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
           '<a class="playlist-entry-thumb" href="' + escapeHtml(entry.href || '#') + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
@@ -1258,7 +1259,7 @@
           '</a>' +
           '<div class="playlist-entry-main">' +
             '<a class="playlist-entry-title" href="' + escapeHtml(entry.href || '#') + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
-            '<small>' + escapeHtml(entry.author || 'Ẩn danh') + ' · ' + escapeHtml(entry.genre || 'Truyện audio') + '</small>' +
+            '<div class="playlist-entry-meta"><span>' + escapeHtml(entry.author || 'Ẩn danh') + '</span>' + genreBadge + '</div>' +
           '</div>' +
           '<div class="playlist-entry-actions">' +
             '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +

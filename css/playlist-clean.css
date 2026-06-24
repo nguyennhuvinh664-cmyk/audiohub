@@ -206,54 +206,182 @@
   border-color: rgba(59, 130, 246, 0.5);
 }
 
-/* Entry (Detail Panel) */
+/* ═══ Entry (Detail Panel) ═══ */
 .playlist-entry {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 10px;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  transition: background 0.2s ease;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 88px;
 }
 
 .playlist-entry:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
+.playlist-entry.is-done {
+  opacity: 0.6;
+}
+
+/* Thumbnail */
 .playlist-entry-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1a1040, #2d1b69);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  position: relative;
 }
 
+.playlist-entry-thumb span {
+  font-family: var(--font-d);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.playlist-entry-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Main Info */
 .playlist-entry-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .playlist-entry-title {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: #fff;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
+}
+
+.playlist-entry-title:hover {
+  color: var(--primary);
 }
 
 .playlist-entry-meta {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 2px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
+.playlist-entry-meta .genre-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 180, 0, 0.12);
+  color: #ffb347;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Actions */
 .playlist-entry-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.playlist-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.playlist-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Play button — gradient */
+.playlist-entry-actions .playlist-btn:first-child {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  border: none;
+  color: #000;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.playlist-entry-actions .playlist-btn:first-child:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+/* Delete button — red hover */
+.playlist-btn--remove {
+  color: rgba(255, 255, 255, 0.4);
+  border-color: transparent;
+  background: transparent;
+}
+
+.playlist-btn--remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .playlist-entry {
+    gap: 12px;
+    padding: 12px;
+    min-height: 76px;
+  }
+
+  .playlist-entry-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+  }
+
+  .playlist-entry-title {
+    font-size: 14px;
+  }
+
+  .playlist-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
 }
 
 /* Pagination */
