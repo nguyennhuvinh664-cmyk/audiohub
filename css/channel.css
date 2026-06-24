@@ -101,6 +101,10 @@ body.channel-page {
   font-size: 0.85rem;
   line-height: 1.5;
   max-width: 480px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .channel-actions {
@@ -299,8 +303,12 @@ body.channel-page {
 
 .ch-featured__info p {
   color: var(--ch-text-2);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .ch-featured__info p[data-featured-meta] {
