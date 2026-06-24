@@ -860,7 +860,7 @@
     }
   }
 
-  function buildStoryPayload(forcePublished) {
+  function buildStoryPayload(forcePublished, forceDraft) {
     var youtubePayload = getYoutubePayload();
     var currentStoryId = editStoryId || '';
     if (!currentStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
@@ -895,7 +895,7 @@
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
         youtubeUrl: youtubePayload.url,
         youtubeId: youtubePayload.id,
-        visibility: forcePublished ? 'Công khai' : (state.visibility || 'Riêng tư'),
+        visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Riêng tư')),
         coverKey: state.coverKey || '',
         audioKey: state.audioKey || '',
         readingText: state.readingText || '',
@@ -909,7 +909,7 @@
       return;
     }
 
-    var built = buildStoryPayload(false);
+    var built = buildStoryPayload(false, true);
     if (!built.ok) {
       showBanner(built.message, false);
       return;

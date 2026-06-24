@@ -216,7 +216,7 @@
 
   function isDraft(story) {
     var visibility = String(story && story.visibility || '').trim().toLowerCase();
-    return visibility === 'riêng tư' || visibility === 'không công khai';
+    return !visibility || visibility === 'riêng tư' || visibility === 'không công khai' || visibility === 'private' || visibility === 'draft';
   }
 
   function sortRecentDesc(list) {
