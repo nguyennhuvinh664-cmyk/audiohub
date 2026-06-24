@@ -124,6 +124,34 @@ body {
   justify-content: center;
   font-weight: 500;
   cursor: pointer;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.channel-auth-container {
+  display: flex;
+  align-items: center;
+}
+
+.channel-avatar-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-home-link {
+  color: var(--text-primary);
+  font-size: 20px;
+  padding: 8px;
+  border-radius: 50%;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-home-link:hover {
+  background: var(--hover);
 }
 
 /* Banner */
@@ -206,6 +234,17 @@ body {
 
 .subscribe-btn:hover {
   background: var(--text-secondary);
+}
+
+.subscribe-btn.subscribed {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.subscribe-btn.subscribed:hover {
+  background: var(--hover);
+  color: var(--text-primary);
 }
 
 .icon-btn {
