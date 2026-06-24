@@ -66,7 +66,8 @@
 
     var authorNode = card.querySelector('.sc__author');
     if (authorNode) {
-      authorNode.innerHTML = '<i class="fa-regular fa-user"></i> ' + (story.author || 'Ẩn danh');
+      var authorName = story.author || 'Ẩn danh';
+      authorNode.innerHTML = '<a href="channel.html?author=' + encodeURIComponent(authorName) + '" style="color:inherit;text-decoration:none" onclick="event.stopPropagation()"><i class="fa-regular fa-user"></i> ' + authorName + '</a>';
     }
 
     var thumb = card.querySelector('.sc__th');
