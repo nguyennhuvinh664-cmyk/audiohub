@@ -114,8 +114,8 @@
           }
 
           // Not in IndexedDB — try API fallback
-          if (canUseApi() && !String(key).startsWith('c_')) {
-            window.AudioHubApi.requestBlob('/stories/cover/' + encodeURIComponent(key))
+          if (canUseApi()) {
+            window.AudioHubApi.requestBlob('/media/covers/' + encodeURIComponent(key))
               .then(function (blob) {
                 if (blob) {
                   // Cache locally for next time

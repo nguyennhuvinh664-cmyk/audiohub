@@ -113,4 +113,32 @@ router.get('/media/audio/:key', async (req: AuthRequest, res) => {
   }
 });
 
+// Public cover serving — no auth required
+const publicRouter = Router();
+
+publicRouter.get('/media/covers/:key', async (req, res) => {
+  const key = String(req.params.key || '');
+  if (!key) {
+    return fail(res, 'Missing cover key', 400);
+  }
+
+  const asset = await prisma.mediaAsset.findFirst({
+    where: { key, kind: MediaKind.COVER }
+  });
+
+  if (!asset) {
+    return fail(res, 'Cover not found', 404);
+  }
+
+  try {
+    const buffer = await fs.readFile(asset.storagePath);
+    res.setHeader('Content-Type', asset.mimeType || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.status(200).send(buffer);
+  } catch {
+    return fail(res, 'Cover file is missing on storage', 404);
+  }
+});
+
+export { publicRouter as coverPublicRouter };
 export default router;

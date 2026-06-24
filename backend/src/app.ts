@@ -6,7 +6,7 @@ import { env } from './config/env.js';
 import { errorHandler } from './shared/middleware/error-handler.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import storiesRoutes from './modules/stories/stories.routes.js';
-import mediaRoutes from './modules/media/media.routes.js';
+import mediaRoutes, { coverPublicRouter } from './modules/media/media.routes.js';
 import trashRoutes from './modules/trash/trash.routes.js';
 import maintenanceRoutes from './modules/maintenance/maintenance.routes.js';
 import playlistsRoutes from './modules/playlists/playlists.routes.js';
@@ -25,6 +25,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/stories', storiesRoutes);
 app.use('/api/v1', mediaRoutes);
+app.use('/api/v1', coverPublicRouter);
 app.use('/api/v1/audio-trash', trashRoutes);
 app.use('/api/v1/maintenance', maintenanceRoutes);
 app.use('/api/v1/playlists', playlistsRoutes);
