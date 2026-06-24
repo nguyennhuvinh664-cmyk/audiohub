@@ -636,9 +636,6 @@
   var coverUrlByNode = new WeakMap();
 
   function bindStoryCover(story) {
-    var coverNode = document.querySelector('.audio-cover');
-    if (!coverNode) return;
-
     var coverKey = story && story.coverKey ? String(story.coverKey) : '';
     if (!coverKey || !window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
 
@@ -646,15 +643,25 @@
       .then(function (blob) {
         if (!blob) return;
         try {
-          var prev = coverUrlByNode.get(coverNode);
-          if (prev) {
-            URL.revokeObjectURL(prev);
+          var url = URL.createObjectURL(blob);
+
+          // Hero cover
+          var heroCover = document.querySelector('[data-detail-cover]');
+          if (heroCover) {
+            var placeholder = heroCover.querySelector('.detail-hero__placeholder');
+            if (placeholder) placeholder.style.display = 'none';
+            heroCover.style.backgroundImage = 'url("' + url + '")';
+            heroCover.style.backgroundSize = 'cover';
+            heroCover.style.backgroundPosition = 'center';
           }
-          var coverUrl = URL.createObjectURL(blob);
-          coverUrlByNode.set(coverNode, coverUrl);
-          coverNode.style.backgroundImage = 'url("' + coverUrl + '")';
-          coverNode.style.backgroundSize = 'cover';
-          coverNode.style.backgroundPosition = 'center';
+
+          // Audio panel cover (small circular)
+          var audioCover = document.querySelector('.audio-cover');
+          if (audioCover) {
+            audioCover.style.backgroundImage = 'url("' + url + '")';
+            audioCover.style.backgroundSize = 'cover';
+            audioCover.style.backgroundPosition = 'center';
+          }
         } catch (error) {}
       })
       .catch(function () {});

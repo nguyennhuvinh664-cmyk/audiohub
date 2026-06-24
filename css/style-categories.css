@@ -640,6 +640,7 @@ button { font:inherit; }
 .detail-layout > *,
 .detail-content,
 .detail-sidebar,
+.detail-hero,
 .story-overview,
 .chapter-reading {
   min-width: 0;
