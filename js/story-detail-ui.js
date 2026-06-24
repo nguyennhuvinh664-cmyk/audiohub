@@ -595,7 +595,12 @@
       var authorName = story.author || 'Ẩn danh';
       if (authorLink) {
         authorLink.href = 'channel.html?author=' + encodeURIComponent(authorName);
-        authorLink.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+        var authorInner = authorLink.querySelector('span');
+        if (authorInner) {
+          authorInner.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+        } else {
+          authorLink.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+        }
       } else if (authorSpan) {
         authorSpan.innerHTML = '<a href="channel.html?author=' + encodeURIComponent(authorName) + '" style="color:inherit;text-decoration:none"><i class="fa-regular fa-user"></i> ' + escapeHtml(authorName) + '</a>';
       }
@@ -703,7 +708,12 @@
       var authorName = story.author || 'Ẩn danh';
       if (authorLink) {
         authorLink.href = 'channel.html?author=' + encodeURIComponent(authorName);
-        authorLink.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+        var authorInner = authorLink.querySelector('span');
+        if (authorInner) {
+          authorInner.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+        } else {
+          authorLink.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+        }
       } else if (authorSpan) {
         authorSpan.innerHTML = '<a href="channel.html?author=' + encodeURIComponent(authorName) + '" style="color:inherit;text-decoration:none"><i class="fa-regular fa-user"></i> ' + escapeHtml(authorName) + '</a>';
       }
