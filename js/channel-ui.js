@@ -169,7 +169,7 @@
           + '</div>'
           + '<div class="ch-card__body">'
           + '<h4 class="ch-card__title">' + esc(s.title) + '</h4>'
-          + '<p class="ch-card__meta">' + views + ' lượt nghe · ' + (s.date || 'Gần đây') + '</p>'
+          + '<p class="ch-card__meta"><i class="fa-solid fa-headphones"></i> ' + views + ' lượt nghe · ' + (s.date || 'Gần đây') + '</p>'
           + '</div></a>';
       }).join('');
 
