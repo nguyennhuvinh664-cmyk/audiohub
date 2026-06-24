@@ -595,7 +595,7 @@
       var authorName = story.author || 'Ẩn danh';
       if (authorLink) {
         authorLink.href = 'channel.html?author=' + encodeURIComponent(authorName);
-        authorLink.querySelector('span').innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+        authorLink.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
       } else if (authorSpan) {
         authorSpan.innerHTML = '<a href="channel.html?author=' + encodeURIComponent(authorName) + '" style="color:inherit;text-decoration:none"><i class="fa-regular fa-user"></i> ' + escapeHtml(authorName) + '</a>';
       }
@@ -637,34 +637,48 @@
 
   function bindStoryCover(story) {
     var coverKey = story && story.coverKey ? String(story.coverKey) : '';
-    if (!coverKey || !window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+    if (!coverKey) return;
 
-    window.AudioHubStoryCover.get(coverKey)
-      .then(function (blob) {
-        if (!blob) return;
-        try {
-          var url = URL.createObjectURL(blob);
+    function applyCoverUrl(blob) {
+      if (!blob) return;
+      try {
+        var url = URL.createObjectURL(blob);
 
-          // Hero cover
-          var heroCover = document.querySelector('[data-detail-cover]');
-          if (heroCover) {
-            var placeholder = heroCover.querySelector('.detail-hero__placeholder');
-            if (placeholder) placeholder.style.display = 'none';
-            heroCover.style.backgroundImage = 'url("' + url + '")';
-            heroCover.style.backgroundSize = 'cover';
-            heroCover.style.backgroundPosition = 'center';
+        // Hero cover
+        var heroCover = document.querySelector('[data-detail-cover]');
+        if (heroCover) {
+          var placeholder = heroCover.querySelector('.detail-hero__placeholder');
+          if (placeholder) placeholder.style.display = 'none';
+          heroCover.style.backgroundImage = 'url("' + url + '")';
+          heroCover.style.backgroundSize = 'cover';
+          heroCover.style.backgroundPosition = 'center';
+        }
+
+        // Audio panel cover (small circular)
+        var audioCover = document.querySelector('.audio-cover');
+        if (audioCover) {
+          audioCover.style.backgroundImage = 'url("' + url + '")';
+          audioCover.style.backgroundSize = 'cover';
+          audioCover.style.backgroundPosition = 'center';
+        }
+      } catch (error) {}
+    }
+
+    // Try IndexedDB first, then API
+    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+      window.AudioHubStoryCover.get(coverKey)
+        .then(function (blob) {
+          if (blob) {
+            applyCoverUrl(blob);
+          } else if (window.AudioHubApi && typeof window.AudioHubApi.requestBlob === 'function') {
+            // Fallback: fetch from API
+            window.AudioHubApi.requestBlob('/media/covers/' + encodeURIComponent(coverKey))
+              .then(function (blob) { applyCoverUrl(blob); })
+              .catch(function () {});
           }
-
-          // Audio panel cover (small circular)
-          var audioCover = document.querySelector('.audio-cover');
-          if (audioCover) {
-            audioCover.style.backgroundImage = 'url("' + url + '")';
-            audioCover.style.backgroundSize = 'cover';
-            audioCover.style.backgroundPosition = 'center';
-          }
-        } catch (error) {}
-      })
-      .catch(function () {});
+        })
+        .catch(function () {});
+    }
   }
 
   function updateAudioHeadingStoryTitle(story) {
@@ -689,7 +703,7 @@
       var authorName = story.author || 'Ẩn danh';
       if (authorLink) {
         authorLink.href = 'channel.html?author=' + encodeURIComponent(authorName);
-        authorLink.querySelector('span').innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+        authorLink.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
       } else if (authorSpan) {
         authorSpan.innerHTML = '<a href="channel.html?author=' + encodeURIComponent(authorName) + '" style="color:inherit;text-decoration:none"><i class="fa-regular fa-user"></i> ' + escapeHtml(authorName) + '</a>';
       }
