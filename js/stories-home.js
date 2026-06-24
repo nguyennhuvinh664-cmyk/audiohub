@@ -397,6 +397,22 @@
     }
   }
 
+  var genreColors = {
+    'tiên hiệp': '#7c3aed', 'kiem hiep': '#0891b2', 'kiếm hiệp': '#0891b2',
+    'ngôn tình': '#be185d', 'huyền huyễn': '#065f46', 'huyen huyen': '#065f46',
+    'đô thị': '#b45309', 'do thi': '#b45309', 'xuyên không': '#4338ca',
+    'xuyen khong': '#4338ca', 'cổ đại': '#9333ea', 'co dai': '#9333ea',
+    'trọng sinh': '#1d4ed8', 'trong sinh': '#1d4ed8', 'đam mỹ': '#ec4899',
+    'dam my': '#ec4899', 'hệ thống': '#0f766e', 'he thong': '#0f766e',
+    'mạt thế': '#dc2626', 'mat the': '#dc2626', 'linh dị': '#7e22ce',
+    'linh di': '#7e22ce'
+  };
+
+  function genreColor(genre) {
+    var key = String(genre || '').trim().toLowerCase();
+    return genreColors[key] || '#334155';
+  }
+
   function buildHomeCardHtml(story) {
     var storyId = String(story && story.id || '').trim();
     var href = storyId ? ('/story-detail.html?id=' + encodeURIComponent(storyId)) : '#';
@@ -405,9 +421,10 @@
     var author = String(story.author || 'Ẩn danh');
     var initials = makeInitials(title);
     var visibility = String(story.visibility || 'Công khai');
+    var color = genreColor(genre);
 
     return '<a href="' + href + '" class="sc" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + visibility + '">'
-      + '<div class="sc__th">'
+      + '<div class="sc__th" style="--c:' + color + '">'
       + '<span class="bx bn">Demo</span>'
       + '<span class="si">' + initials + '</span>'
       + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
