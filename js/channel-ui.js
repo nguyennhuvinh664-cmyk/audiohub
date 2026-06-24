@@ -1,10 +1,7 @@
 (function() {
   'use strict';
 
-  // ── Config ──────────────────────────────────────────────
   var SUBS_STORAGE_KEY = 'audiohub-channel-subs';
-
-  // ── URL params ──────────────────────────────────────────
   var urlParams = new URLSearchParams(window.location.search);
   var authorName = urlParams.get('author');
 
@@ -26,8 +23,7 @@
   }
 
   function isSubscribed(author) {
-    var list = readSubscriptions();
-    return list.some(function(a) {
+    return readSubscriptions().some(function(a) {
       return a.toLowerCase() === author.toLowerCase();
     });
   }
@@ -43,13 +39,13 @@
       list.push(author);
     }
     writeSubscriptions(list);
-    return idx < 0; // true = now subscribed
+    return idx < 0;
   }
 
-  function escapeHtml(text) {
-    var div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  function esc(text) {
+    var d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
   }
 
   // ── Load stories ────────────────────────────────────────
@@ -61,13 +57,10 @@
       var stored = localStorage.getItem('audiohub-stories');
       allStories = stored ? JSON.parse(stored) : [];
     }
-  } catch (e) {
-    console.error('Error loading stories:', e);
-    allStories = [];
-  }
+  } catch (e) { allStories = []; }
 
-  var authorStories = allStories.filter(function(story) {
-    return story.author && story.author.toLowerCase() === authorName.toLowerCase();
+  var authorStories = allStories.filter(function(s) {
+    return s.author && s.author.toLowerCase() === authorName.toLowerCase();
   });
 
   // ── Update channel info ─────────────────────────────────
@@ -88,51 +81,38 @@
   var channelInitials = document.querySelector('[data-channel-initials]');
   if (channelInitials) {
     var words = authorName.split(' ');
-    var initials = words.map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
-    channelInitials.textContent = initials;
+    channelInitials.textContent = words.map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
   }
 
-  // ── Banner enhancement ──────────────────────────────────
+  // ── Banner ──────────────────────────────────────────────
   var banner = document.querySelector('[data-channel-banner]');
-  if (banner && authorStories.length > 0) {
-    var firstStory = authorStories[0];
-    if (firstStory.coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-      window.AudioHubStoryCover.get(firstStory.coverKey).then(function(blob) {
-        if (blob) {
-          var url = URL.createObjectURL(blob);
-          banner.style.backgroundImage = 'url("' + url + '")';
-          banner.style.backgroundSize = 'cover';
-          banner.style.backgroundPosition = 'center';
-        }
-      }).catch(function() {});
-    }
+  if (banner && authorStories.length > 0 && authorStories[0].coverKey && window.AudioHubStoryCover) {
+    window.AudioHubStoryCover.get(authorStories[0].coverKey).then(function(blob) {
+      if (blob) {
+        var url = URL.createObjectURL(blob);
+        banner.style.backgroundImage = 'url("' + url + '")';
+        banner.style.backgroundSize = 'cover';
+        banner.style.backgroundPosition = 'center';
+      }
+    }).catch(function() {});
   }
 
-  // ── Subscribe button ────────────────────────────────────
+  // ── Subscribe ───────────────────────────────────────────
   var subscribeBtn = document.querySelector('.subscribe-btn');
   var bellBtn = document.querySelector('.channel-actions .icon-btn');
 
   function updateSubscribeUI() {
     if (!subscribeBtn) return;
-    var subscribed = isSubscribed(authorName);
-    subscribeBtn.textContent = subscribed ? 'Đã đăng ký' : 'Đăng ký';
-    subscribeBtn.classList.toggle('subscribed', subscribed);
-    if (bellBtn) {
-      bellBtn.classList.toggle('subscribed', subscribed);
-    }
+    var sub = isSubscribed(authorName);
+    subscribeBtn.textContent = sub ? 'Đã đăng ký' : 'Đăng ký';
+    subscribeBtn.classList.toggle('subscribed', sub);
+    if (bellBtn) bellBtn.classList.toggle('subscribed', sub);
   }
 
   if (subscribeBtn) {
     subscribeBtn.addEventListener('click', function() {
-      var nowSubscribed = toggleSubscription(authorName);
+      toggleSubscription(authorName);
       updateSubscribeUI();
-      // Update stats
-      if (channelStats) {
-        var subCount = readSubscriptions().length;
-        var storyCount = authorStories.length;
-        var totalViews = authorStories.reduce(function(sum, s) { return sum + (s.views || s.listenCount || 0); }, 0);
-        channelStats.textContent = totalViews.toLocaleString() + ' lượt nghe · ' + storyCount + ' truyện';
-      }
     });
   }
 
@@ -144,172 +124,105 @@
 
   updateSubscribeUI();
 
-  // ── Header avatar from auth state ───────────────────────
-  function updateHeaderAvatar() {
-    var avatarContainer = document.querySelector('.channel-auth-container');
-    if (!avatarContainer) return;
-
-    // Check if auth-state.js already rendered something
-    if (avatarContainer.querySelector('.auth-menu')) return;
-
-    var profile = null;
-    try {
-      var raw = localStorage.getItem('audiohub-demo-auth');
-      var parsed = raw ? JSON.parse(raw) : null;
-      if (parsed && parsed.isLoggedIn) {
-        profile = parsed;
-      }
-    } catch (e) {}
-
-    if (profile) {
-      var name = profile.name || 'User';
-      var initials = profile.initials || name.split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
-      var avatarHtml = '<a href="account.html" class="avatar-btn channel-avatar-link" title="' + escapeHtml(name) + '"><span>' + escapeHtml(initials) + '</span></a>';
-      avatarContainer.innerHTML = avatarHtml;
-
-      // Apply avatar image if available
-      var avatarKey = 'audiohub-account-avatar-v1';
-      var avatarDataUrl = localStorage.getItem(avatarKey);
-      if (avatarDataUrl) {
-        var avatarEl = avatarContainer.querySelector('.avatar-btn');
-        if (avatarEl) {
-          avatarEl.style.backgroundImage = 'url("' + avatarDataUrl.replace(/"/g, '&quot;') + '")';
-          avatarEl.style.backgroundSize = 'cover';
-          avatarEl.style.backgroundPosition = 'center';
-          avatarEl.querySelector('span').textContent = '';
-        }
-      }
-    } else {
-      avatarContainer.innerHTML = '<a href="login.html" class="avatar-btn channel-avatar-link"><span><i class="fa-solid fa-user"></i></span></a>';
-    }
-  }
-
-  // Wait for auth-state.js to potentially render, then fallback
-  setTimeout(updateHeaderAvatar, 100);
-  setTimeout(updateHeaderAvatar, 400);
-
-  // ── Render featured audio ───────────────────────────────
+  // ── Featured ────────────────────────────────────────────
   var featured = document.querySelector('[data-featured]');
   if (featured && authorStories.length > 0) {
     var first = authorStories[0];
-    var featuredTitle = featured.querySelector('[data-featured-title]');
-    var featuredMeta = featured.querySelector('[data-featured-meta]');
-    var featuredDesc = featured.querySelector('[data-featured-desc]');
-    var featuredThumb = featured.querySelector('.audio-thumb');
+    var ft = featured.querySelector('[data-featured-title]');
+    var fm = featured.querySelector('[data-featured-meta]');
+    var fd = featured.querySelector('[data-featured-desc]');
+    var fi = featured.querySelector('[data-featured-initials]');
 
-    if (featuredTitle) featuredTitle.textContent = first.title;
-    if (featuredMeta) {
-      var views = first.views || first.listenCount || 0;
-      featuredMeta.textContent = views.toLocaleString() + ' lượt nghe · ' + (first.date || 'Gần đây');
-    }
-    if (featuredDesc) featuredDesc.textContent = first.description || '';
-    if (featuredThumb) {
-      var featuredInitials = (first.title || 'TH').substring(0, 2).toUpperCase();
-      // Update thumb placeholder
-      var thumbSpan = featuredThumb.querySelector('span');
-      if (thumbSpan) thumbSpan.textContent = featuredInitials;
+    if (ft) ft.textContent = first.title;
+    if (fm) fm.textContent = (first.views || first.listenCount || 0).toLocaleString() + ' lượt nghe · ' + (first.date || 'Gần đây');
+    if (fd) fd.textContent = first.description || '';
+    if (fi) fi.textContent = (first.title || 'TH').substring(0, 2).toUpperCase();
 
-      // Hydrate cover
-      if (first.coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+    // Cover
+    if (first.coverKey && window.AudioHubStoryCover) {
+      var thumb = featured.querySelector('.ch-featured__thumb');
+      if (thumb) {
         window.AudioHubStoryCover.get(first.coverKey).then(function(blob) {
           if (blob) {
-            var url = URL.createObjectURL(blob);
-            featuredThumb.style.backgroundImage = 'url("' + url + '")';
-            featuredThumb.style.backgroundSize = 'cover';
-            featuredThumb.style.backgroundPosition = 'center';
-          }
-        }).catch(function() {});
-      }
-    }
-  }
-
-  // ── Render audios grid (home tab) ───────────────────────
-  var audiosGrid = document.querySelector('[data-audios-grid]');
-  if (audiosGrid) {
-    if (authorStories.length === 0) {
-      audiosGrid.innerHTML = '<div class="empty-state"><i class="fa-solid fa-book"></i><p>Tác giả chưa có truyện nào</p></div>';
-    } else {
-      var gridHtml = authorStories.map(function(story) {
-        var initials = (story.title || 'TH').substring(0, 2).toUpperCase();
-        var views = story.views || story.listenCount || 0;
-        return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="audio-card">'
-          + '<div class="card-thumb" data-cover-key="' + (story.coverKey || '') + '">'
-          + '<span>' + initials + '</span>'
-          + (story.duration ? '<div class="duration">' + story.duration + '</div>' : '')
-          + '</div>'
-          + '<div class="card-info">'
-          + '<h4>' + escapeHtml(story.title) + '</h4>'
-          + '<p class="card-meta">' + views.toLocaleString() + ' lượt nghe · ' + (story.date || 'Gần đây') + '</p>'
-          + '</div></a>';
-      }).join('');
-      audiosGrid.innerHTML = gridHtml;
-
-      // Hydrate covers
-      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-        audiosGrid.querySelectorAll('.card-thumb[data-cover-key]').forEach(function(thumb) {
-          var coverKey = thumb.getAttribute('data-cover-key');
-          if (!coverKey) return;
-          window.AudioHubStoryCover.get(coverKey).then(function(blob) {
-            if (blob) {
-              var url = URL.createObjectURL(blob);
-              thumb.style.backgroundImage = 'url("' + url + '")';
-              thumb.style.backgroundSize = 'cover';
-              thumb.style.backgroundPosition = 'center';
-            }
-          }).catch(function() {});
-        });
-      }
-    }
-  }
-
-  // ── Render audios list (audios tab) ─────────────────────
-  var audiosList = document.querySelector('[data-audios-list]');
-
-  function renderAudiosList(stories, container) {
-    if (!container) return;
-    if (stories.length === 0) {
-      container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-book"></i><p>Tác giả chưa có truyện nào</p></div>';
-      return;
-    }
-    var listHtml = stories.map(function(story) {
-      var initials = (story.title || 'TH').substring(0, 2).toUpperCase();
-      var views = story.views || story.listenCount || 0;
-      return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="audio-row">'
-        + '<div class="row-thumb" data-cover-key="' + (story.coverKey || '') + '">'
-        + '<span>' + initials + '</span>'
-        + (story.duration ? '<div class="duration">' + story.duration + '</div>' : '')
-        + '</div>'
-        + '<div class="row-info">'
-        + '<h4>' + escapeHtml(story.title) + '</h4>'
-        + '<p class="row-meta">' + views.toLocaleString() + ' lượt nghe · ' + (story.date || 'Gần đây') + '</p>'
-        + '<p class="row-desc">' + escapeHtml(story.description || '') + '</p>'
-        + '</div></a>';
-    }).join('');
-    container.innerHTML = listHtml;
-
-    // Hydrate covers
-    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-      container.querySelectorAll('.row-thumb[data-cover-key]').forEach(function(thumb) {
-        var coverKey = thumb.getAttribute('data-cover-key');
-        if (!coverKey) return;
-        window.AudioHubStoryCover.get(coverKey).then(function(blob) {
-          if (blob) {
-            var url = URL.createObjectURL(blob);
-            thumb.style.backgroundImage = 'url("' + url + '")';
+            thumb.style.backgroundImage = 'url("' + URL.createObjectURL(blob) + '")';
             thumb.style.backgroundSize = 'cover';
             thumb.style.backgroundPosition = 'center';
           }
         }).catch(function() {});
-      });
+      }
     }
   }
 
-  if (audiosList) {
-    renderAudiosList(authorStories, audiosList);
+  // ── Grid (home tab) ─────────────────────────────────────
+  var grid = document.querySelector('[data-audios-grid]');
+  if (grid) {
+    if (authorStories.length === 0) {
+      grid.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book"></i><p>Tác giả chưa có truyện nào</p></div>';
+    } else {
+      grid.innerHTML = authorStories.map(function(s) {
+        var ini = (s.title || 'TH').substring(0, 2).toUpperCase();
+        var views = (s.views || s.listenCount || 0).toLocaleString();
+        return '<a href="story-detail.html?id=' + encodeURIComponent(s.id) + '" class="ch-card">'
+          + '<div class="ch-card__thumb" data-cover="' + (s.coverKey || '') + '">'
+          + '<span>' + ini + '</span>'
+          + (s.duration ? '<div class="ch-card__duration">' + s.duration + '</div>' : '')
+          + '</div>'
+          + '<div class="ch-card__body">'
+          + '<h4 class="ch-card__title">' + esc(s.title) + '</h4>'
+          + '<p class="ch-card__meta">' + views + ' lượt nghe · ' + (s.date || 'Gần đây') + '</p>'
+          + '</div></a>';
+      }).join('');
+
+      hydrateCovers(grid);
+    }
   }
 
-  // ── Tab switching ───────────────────────────────────────
-  var tabBtns = document.querySelectorAll('.tab-btn');
+  // ── List (audios tab) ───────────────────────────────────
+  var listEl = document.querySelector('[data-audios-list]');
+
+  function renderList(stories, container) {
+    if (!container) return;
+    if (stories.length === 0) {
+      container.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book"></i><p>Tác giả chưa có truyện nào</p></div>';
+      return;
+    }
+    container.innerHTML = stories.map(function(s) {
+      var ini = (s.title || 'TH').substring(0, 2).toUpperCase();
+      var views = (s.views || s.listenCount || 0).toLocaleString();
+      return '<a href="story-detail.html?id=' + encodeURIComponent(s.id) + '" class="ch-row">'
+        + '<div class="ch-row__thumb" data-cover="' + (s.coverKey || '') + '">'
+        + '<span>' + ini + '</span>'
+        + '</div>'
+        + '<div class="ch-row__info">'
+        + '<h4 class="ch-row__title">' + esc(s.title) + '</h4>'
+        + '<p class="ch-row__meta">' + views + ' lượt nghe · ' + (s.date || 'Gần đây') + '</p>'
+        + '<p class="ch-row__desc">' + esc(s.description || '') + '</p>'
+        + '</div></a>';
+    }).join('');
+
+    hydrateCovers(container);
+  }
+
+  if (listEl) renderList(authorStories, listEl);
+
+  // ── Cover hydration ─────────────────────────────────────
+  function hydrateCovers(root) {
+    if (!window.AudioHubStoryCover) return;
+    root.querySelectorAll('[data-cover]').forEach(function(el) {
+      var key = el.getAttribute('data-cover');
+      if (!key) return;
+      window.AudioHubStoryCover.get(key).then(function(blob) {
+        if (!blob) return;
+        var url = URL.createObjectURL(blob);
+        el.style.backgroundImage = 'url("' + url + '")';
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundPosition = 'center';
+      }).catch(function() {});
+    });
+  }
+
+  // ── Tabs ────────────────────────────────────────────────
+  var tabBtns = document.querySelectorAll('.channel-tab');
   var tabContents = document.querySelectorAll('.tab-content');
 
   tabBtns.forEach(function(btn) {
@@ -323,24 +236,21 @@
     });
   });
 
-  // ── Sort functionality ──────────────────────────────────
-  var sortBtns = document.querySelectorAll('.sort-btn');
+  // ── Sort ────────────────────────────────────────────────
+  var sortBtns = document.querySelectorAll('.ch-sort-btn');
   sortBtns.forEach(function(btn) {
     btn.addEventListener('click', function() {
       sortBtns.forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      var sortType = btn.textContent.toLowerCase();
+      var type = btn.textContent.toLowerCase();
       var sorted = authorStories.slice();
-      if (sortType === 'phổ biến') {
-        sorted.sort(function(a, b) { return (b.views || b.listenCount || 0) - (a.views || a.listenCount || 0); });
-      } else if (sortType === 'cũ nhất') {
-        sorted.reverse();
-      }
-      renderAudiosList(sorted, audiosList);
+      if (type === 'phổ biến') sorted.sort(function(a, b) { return (b.views || b.listenCount || 0) - (a.views || a.listenCount || 0); });
+      else if (type === 'cũ nhất') sorted.reverse();
+      renderList(sorted, listEl);
     });
   });
 
-  // ── Play All button ─────────────────────────────────────
+  // ── Play All ────────────────────────────────────────────
   var playAllBtn = document.querySelector('.play-all-btn');
   if (playAllBtn) {
     playAllBtn.addEventListener('click', function() {
@@ -350,31 +260,19 @@
     });
   }
 
-  // ── Search functionality ────────────────────────────────
-  var searchInput = document.querySelector('.header-search input');
-  var searchBtn = document.querySelector('.header-search button');
+  // ── Search ──────────────────────────────────────────────
+  var searchInput = document.querySelector('.header__inner input[type="text"], .header__inner input[type="search"]');
+  var searchBtn = document.querySelector('.header__inner .btn--primary');
 
   function doSearch() {
-    var query = searchInput ? searchInput.value.trim() : '';
-    if (query) {
-      window.location.href = 'new-posts.html?q=' + encodeURIComponent(query);
-    }
+    var q = searchInput ? searchInput.value.trim() : '';
+    if (q) window.location.href = 'new-posts.html?q=' + encodeURIComponent(q);
   }
 
-  if (searchInput) {
-    searchInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        doSearch();
-      }
-    });
-  }
+  if (searchInput) searchInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+  if (searchBtn) searchBtn.addEventListener('click', doSearch);
 
-  if (searchBtn) {
-    searchBtn.addEventListener('click', doSearch);
-  }
-
-  // ── About section ───────────────────────────────────────
+  // ── About ───────────────────────────────────────────────
   var aboutDesc = document.querySelector('[data-about-desc]');
   var aboutJoined = document.querySelector('[data-about-joined]');
   var aboutViews = document.querySelector('[data-about-views]');
@@ -384,18 +282,12 @@
   }
 
   if (aboutJoined && authorStories.length > 0) {
-    var oldestStory = authorStories.slice().sort(function(a, b) {
-      return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-    })[0];
-    if (oldestStory.createdAt) {
-      var date = new Date(oldestStory.createdAt);
-      aboutJoined.textContent = date.toLocaleDateString('vi-VN');
-    }
+    var oldest = authorStories.slice().sort(function(a, b) { return new Date(a.createdAt || 0) - new Date(b.createdAt || 0); })[0];
+    if (oldest.createdAt) aboutJoined.textContent = new Date(oldest.createdAt).toLocaleDateString('vi-VN');
   }
 
   if (aboutViews) {
-    var totalViews = authorStories.reduce(function(sum, s) { return sum + (s.views || s.listenCount || 0); }, 0);
-    aboutViews.textContent = totalViews.toLocaleString();
+    aboutViews.textContent = authorStories.reduce(function(sum, s) { return sum + (s.views || s.listenCount || 0); }, 0).toLocaleString();
   }
 
 })();

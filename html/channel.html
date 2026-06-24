@@ -2,149 +2,143 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#09090f" />
   <title>Tác Giả | AudioHub</title>
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="../css/style-categories.css" />
+  <link rel="stylesheet" href="../css/auth-state.css" />
   <link rel="stylesheet" href="../css/channel.css" />
 </head>
-<body>
-  <header class="channel-header">
-    <div class="header-left">
-      <button class="menu-btn" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
-      <a href="index.html" class="logo"><i class="fa-solid fa-headphones"></i> AudioHub</a>
-    </div>
-    <div class="header-search">
-      <input type="text" placeholder="Tìm kiếm" />
-      <button aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
-    </div>
-    <div class="header-right">
-      <a href="index.html" class="header-home-link" aria-label="Trang chủ"><i class="fa-solid fa-headphones"></i></a>
-      <button aria-label="Notifications"><i class="fa-solid fa-bell"></i></button>
-      <div data-auth-container class="channel-auth-container"></div>
+<body class="channel-page">
+  <header class="site-header">
+    <div class="container header__inner">
+      <a href="index.html" class="logo"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></a>
+      <nav class="site-nav" aria-label="Điều hướng chính">
+        <a href="index.html">Trang Chủ</a>
+        <a href="categories.html">Thể Loại</a>
+        <a href="new-posts.html">Mới Đăng</a>
+        <a href="hall-of-fame.html">Vinh Danh</a>
+      </nav>
+      <div class="header__actions" data-auth-container data-auth-variant="inner"></div>
     </div>
   </header>
 
-  <div class="channel-banner" data-channel-banner>
-    <div class="banner-overlay"></div>
-  </div>
+  <div class="channel-banner" data-channel-banner></div>
 
-  <div class="channel-info">
-    <div class="channel-avatar" data-channel-avatar>
-      <span data-channel-initials>LL</span>
+  <section class="channel-info">
+    <div class="container channel-info__inner">
+      <div class="channel-avatar" data-channel-avatar>
+        <span data-channel-initials>LL</span>
+      </div>
+      <div class="channel-details">
+        <h1 class="channel-name" data-channel-name>Lưu Lang</h1>
+        <p class="channel-stats" data-channel-stats>0 lượt nghe · 0 truyện</p>
+        <p class="channel-desc" data-channel-desc>Tác giả truyện audio trên AudioHub.</p>
+      </div>
+      <div class="channel-actions">
+        <button class="btn btn--primary subscribe-btn">Đăng ký</button>
+        <button class="btn btn--outline icon-btn" aria-label="Thông báo"><i class="fa-solid fa-bell"></i></button>
+      </div>
     </div>
-    <div class="channel-details">
-      <h1 class="channel-name" data-channel-name>Lưu Lang</h1>
-      <p class="channel-stats" data-channel-stats>12 người đăng ký · 5 truyện</p>
-      <p class="channel-description" data-channel-desc>Tác giả truyện audio trên AudioHub. Chuyên viết về thể loại Cổ Đại, Trọng Sinh.</p>
-    </div>
-    <div class="channel-actions">
-      <button class="subscribe-btn">Đăng ký</button>
-      <button class="icon-btn"><i class="fa-solid fa-bell"></i></button>
-    </div>
-  </div>
+  </section>
 
-  <nav class="channel-tabs">
-    <button class="tab-btn active" data-tab="home">Trang chủ</button>
-    <button class="tab-btn" data-tab="audios">Audio</button>
-    <button class="tab-btn" data-tab="playlists">Playlist</button>
-    <button class="tab-btn" data-tab="community">Cộng đồng</button>
-    <button class="tab-btn" data-tab="about">Giới thiệu</button>
+  <nav class="channel-tabs" data-channel-tabs>
+    <div class="container channel-tabs__inner">
+      <button class="channel-tab active" data-tab="home">Trang chủ</button>
+      <button class="channel-tab" data-tab="audios">Audio</button>
+      <button class="channel-tab" data-tab="playlists">Playlist</button>
+      <button class="channel-tab" data-tab="community">Cộng đồng</button>
+      <button class="channel-tab" data-tab="about">Giới thiệu</button>
+    </div>
   </nav>
 
   <main class="channel-main">
-    <!-- Tab: Trang chủ -->
-    <section class="tab-content active" data-tab-content="home">
-      <div class="featured-section">
-        <div class="featured-audio" data-featured>
-          <div class="audio-thumb">
-            <span class="thumb-placeholder">TH</span>
+    <div class="container">
+      <!-- Tab: Trang chủ -->
+      <section class="tab-content active" data-tab-content="home">
+        <div class="ch-featured" data-featured>
+          <div class="ch-featured__thumb">
+            <span data-featured-initials>TH</span>
           </div>
-          <div class="featured-info">
+          <div class="ch-featured__info">
+            <span class="eyebrow"><i class="fa-solid fa-star"></i> Nổi bật</span>
             <h2 data-featured-title>Truyện nổi bật</h2>
-            <p data-featured-meta>100 lượt nghe · 2 ngày trước</p>
+            <p data-featured-meta>0 lượt nghe · Gần đây</p>
             <p data-featured-desc>Mô tả truyện sẽ hiển thị ở đây...</p>
           </div>
         </div>
-      </div>
 
-      <div class="audios-section">
-        <div class="section-header">
-          <h3>Audio phổ biến</h3>
-          <button class="play-all-btn"><i class="fa-solid fa-play"></i> Phát tất cả</button>
+        <div class="ch-section">
+          <div class="ch-section__head">
+            <h3 class="ch-section__title">Audio phổ biến</h3>
+            <button class="btn btn--outline play-all-btn"><i class="fa-solid fa-play"></i> Phát tất cả</button>
+          </div>
+          <div class="ch-grid" data-audios-grid></div>
         </div>
-        <div class="audios-grid" data-audios-grid>
-          <!-- Audios will be rendered here by JS -->
+      </section>
+
+      <!-- Tab: Audio -->
+      <section class="tab-content" data-tab-content="audios">
+        <div class="ch-sort">
+          <button class="ch-sort-btn active">Mới nhất</button>
+          <button class="ch-sort-btn">Phổ biến</button>
+          <button class="ch-sort-btn">Cũ nhất</button>
         </div>
-      </div>
-    </section>
+        <div class="ch-list" data-audios-list></div>
+      </section>
 
-    <!-- Tab: Audio -->
-    <section class="tab-content" data-tab-content="audios">
-      <div class="sort-bar">
-        <button class="sort-btn active">Mới nhất</button>
-        <button class="sort-btn">Phổ biến</button>
-        <button class="sort-btn">Cũ nhất</button>
-      </div>
-      <div class="audios-list" data-audios-list>
-        <!-- Audios will be rendered here by JS -->
-      </div>
-    </section>
-
-    <!-- Tab: Playlist -->
-    <section class="tab-content" data-tab-content="playlists">
-      <div class="playlists-grid" data-playlists-grid>
-        <div class="empty-state">
+      <!-- Tab: Playlist -->
+      <section class="tab-content" data-tab-content="playlists">
+        <div class="ch-empty" data-playlists-grid>
           <i class="fa-solid fa-list"></i>
           <p>Tác giả chưa tạo playlist nào</p>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Tab: Cộng đồng -->
-    <section class="tab-content" data-tab-content="community">
-      <div class="community-posts" data-community-posts>
-        <div class="empty-state">
+      <!-- Tab: Cộng đồng -->
+      <section class="tab-content" data-tab-content="community">
+        <div class="ch-empty" data-community-posts>
           <i class="fa-solid fa-comments"></i>
           <p>Chưa có bài đăng cộng đồng</p>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Tab: Giới thiệu -->
-    <section class="tab-content" data-tab-content="about">
-      <div class="about-section">
-        <div class="about-main">
-          <h3>Mô tả</h3>
-          <p data-about-desc>Tác giả truyện audio trên AudioHub.</p>
-
-          <h3>Liên kết</h3>
-          <div class="about-links">
-            <a href="#" class="about-link"><i class="fa-brands fa-facebook"></i> Facebook</a>
-            <a href="#" class="about-link"><i class="fa-brands fa-youtube"></i> YouTube</a>
+      <!-- Tab: Giới thiệu -->
+      <section class="tab-content" data-tab-content="about">
+        <div class="ch-about">
+          <div class="ch-about__main">
+            <h3>Mô tả</h3>
+            <p data-about-desc>Tác giả truyện audio trên AudioHub.</p>
+            <h3>Liên kết</h3>
+            <div class="ch-about__links">
+              <a href="#" class="ch-about__link"><i class="fa-brands fa-facebook"></i> Facebook</a>
+              <a href="#" class="ch-about__link"><i class="fa-brands fa-youtube"></i> YouTube</a>
+            </div>
+          </div>
+          <div class="ch-about__side">
+            <div class="ch-stat">
+              <span class="ch-stat__label">Tham gia</span>
+              <span class="ch-stat__value" data-about-joined>—</span>
+            </div>
+            <div class="ch-stat">
+              <span class="ch-stat__label">Lượt xem</span>
+              <span class="ch-stat__value" data-about-views>0</span>
+            </div>
           </div>
         </div>
-        <div class="about-stats">
-          <div class="stat-item">
-            <span class="stat-label">Tham gia</span>
-            <span class="stat-value" data-about-joined>01/01/2024</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Lượt xem</span>
-            <span class="stat-value" data-about-views>0</span>
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </main>
 
-  <footer class="channel-footer">
-    <p>&copy; 2026 AudioHub.net. All rights reserved.</p>
+  <footer class="site-footer">
+    <div class="container"><p>&copy; 2026 AudioHub.net. All rights reserved.</p></div>
   </footer>
 
   <script src="../js/api-client.js"></script>
