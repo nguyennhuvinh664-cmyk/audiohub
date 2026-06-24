@@ -414,7 +414,7 @@
       + '<div class="sc__in">'
       + '<p class="sc__genre">' + genre + '</p>'
       + '<p class="sc__nm">' + title + '</p>'
-      + '<p class="sc__author"><i class="fa-regular fa-user"></i> ' + author + '</p>'
+      + '<p class="sc__author"><a href="channel.html?author=' + encodeURIComponent(story.author || '') + '" style="color:inherit;text-decoration:none;" onclick="event.stopPropagation()"><i class="fa-regular fa-user"></i> ' + author + '</a></p>'
       + '</div></a>';
   }
 

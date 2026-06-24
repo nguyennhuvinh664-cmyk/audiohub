@@ -590,8 +590,15 @@
 
     var meta = storyNode.querySelector('.detail-meta');
     if (meta) {
+      var authorLink = meta.querySelector('a[href*="channel.html"]');
       var authorSpan = meta.querySelector('span');
-      if (authorSpan) authorSpan.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(story.author || 'áº¨n danh');
+      var authorName = story.author || 'Ẩn danh';
+      if (authorLink) {
+        authorLink.href = 'channel.html?author=' + encodeURIComponent(authorName);
+        authorLink.querySelector('span').innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+      } else if (authorSpan) {
+        authorSpan.innerHTML = '<a href="channel.html?author=' + encodeURIComponent(authorName) + '" style="color:inherit;text-decoration:none"><i class="fa-regular fa-user"></i> ' + escapeHtml(authorName) + '</a>';
+      }
     }
     renderStoryMeta(storyNode, story);
 
@@ -670,8 +677,15 @@
 
     var meta = document.querySelector('[data-detail-story] .detail-meta');
     if (meta) {
-      var spans = meta.querySelectorAll('span');
-      if (spans && spans[0]) spans[0].innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(story.author || 'áº¨n danh');
+      var authorLink = meta.querySelector('a[href*="channel.html"]');
+      var authorSpan = meta.querySelector('span');
+      var authorName = story.author || 'Ẩn danh';
+      if (authorLink) {
+        authorLink.href = 'channel.html?author=' + encodeURIComponent(authorName);
+        authorLink.querySelector('span').innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+      } else if (authorSpan) {
+        authorSpan.innerHTML = '<a href="channel.html?author=' + encodeURIComponent(authorName) + '" style="color:inherit;text-decoration:none"><i class="fa-regular fa-user"></i> ' + escapeHtml(authorName) + '</a>';
+      }
     }
 
     var detailStoryNode = document.querySelector('[data-detail-story]');

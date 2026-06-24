@@ -38,7 +38,7 @@
       '<div class="story-card__body">' +
       '<div class="story-meta"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> —</span></div>' +
       '<h2 class="story-title">' + title + '</h2>' +
-      '<div class="story-footer"><span><i class="fa-regular fa-user"></i> ' + author + '</span><span class="story-rating"><i class="fa-solid fa-star"></i> —</span></div>' +
+      '<div class="story-footer"><a href="channel.html?author=' + encodeURIComponent(story.author || '') + '" style="color:inherit;text-decoration:none;" onclick="event.stopPropagation()"><span><i class="fa-regular fa-user"></i> ' + author + '</span></a><span class="story-rating"><i class="fa-solid fa-star"></i> —</span></div>' +
       '</div>' +
       '</a>'
     );
