@@ -50,7 +50,28 @@
     return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   }
 
+  function storeLocal(key, blob) {
+    return openDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(STORE_NAME, 'readwrite');
+        var store = tx.objectStore(STORE_NAME);
+        store.put({ key: key, blob: blob, createdAt: new Date().toISOString() });
+
+        tx.oncomplete = function () {
+          try { db.close(); } catch (e) {}
+          resolve(key);
+        };
+
+        tx.onerror = function () {
+          try { db.close(); } catch (e) {}
+          reject(tx.error || new Error('Failed to store cover'));
+        };
+      });
+    });
+  }
+
   function putCover(blob, storyId) {
+    // API path: upload to server AND save locally
     if (canUseApi() && storyId && !String(storyId).startsWith('s_') && blob) {
       var form = new FormData();
       form.append('cover', blob, blob.name || 'cover.jpg');
@@ -58,34 +79,17 @@
         method: 'POST',
         body: form
       }).then(function (result) {
-        return result && result.coverKey ? String(result.coverKey) : '';
+        var serverKey = result && result.coverKey ? String(result.coverKey) : '';
+        // Also store blob locally so getCover() can find it
+        var localKey = serverKey || makeKey();
+        storeLocal(localKey, blob).catch(function () {});
+        return serverKey || localKey;
       });
     }
 
-    return openDb().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        var key = makeKey();
-        var tx = db.transaction(STORE_NAME, 'readwrite');
-        var store = tx.objectStore(STORE_NAME);
-        store.put({ key: key, blob: blob, createdAt: new Date().toISOString() });
-
-        tx.oncomplete = function () {
-          try {
-            db.close();
-          } catch (error) {
-          }
-          resolve(key);
-        };
-
-        tx.onerror = function () {
-          try {
-            db.close();
-          } catch (error) {
-          }
-          reject(tx.error || new Error('Failed to store cover'));
-        };
-      });
-    });
+    // Local-only path
+    var localKey = makeKey();
+    return storeLocal(localKey, blob);
   }
 
   function getCover(key) {
@@ -101,18 +105,37 @@
 
         request.onsuccess = function () {
           var value = request.result;
-          try {
-            db.close();
-          } catch (error) {
+          try { db.close(); } catch (e) {}
+
+          // Found locally
+          if (value && value.blob) {
+            resolve(value.blob);
+            return;
           }
-          resolve(value && value.blob ? value.blob : null);
+
+          // Not in IndexedDB — try API fallback
+          if (canUseApi() && !String(key).startsWith('c_')) {
+            window.AudioHubApi.requestBlob('/stories/cover/' + encodeURIComponent(key))
+              .then(function (blob) {
+                if (blob) {
+                  // Cache locally for next time
+                  storeLocal(key, blob).catch(function () {});
+                  resolve(blob);
+                } else {
+                  resolve(null);
+                }
+              })
+              .catch(function () {
+                resolve(null);
+              });
+            return;
+          }
+
+          resolve(null);
         };
 
         request.onerror = function () {
-          try {
-            db.close();
-          } catch (error) {
-          }
+          try { db.close(); } catch (e) {}
           reject(request.error || new Error('Failed to load cover'));
         };
       });
@@ -131,18 +154,12 @@
         store.delete(key);
 
         tx.oncomplete = function () {
-          try {
-            db.close();
-          } catch (error) {
-          }
+          try { db.close(); } catch (e) {}
           resolve(true);
         };
 
         tx.onerror = function () {
-          try {
-            db.close();
-          } catch (error) {
-          }
+          try { db.close(); } catch (e) {}
           reject(tx.error || new Error('Failed to delete cover'));
         };
       });
@@ -160,10 +177,7 @@
         request.onsuccess = function () {
           var cursor = request.result;
           if (!cursor) {
-            try {
-              db.close();
-            } catch (error) {
-            }
+            try { db.close(); } catch (e) {}
             resolve(keys);
             return;
           }
@@ -175,10 +189,7 @@
         };
 
         request.onerror = function () {
-          try {
-            db.close();
-          } catch (error) {
-          }
+          try { db.close(); } catch (e) {}
           reject(request.error || new Error('Failed to list cover keys'));
         };
       });

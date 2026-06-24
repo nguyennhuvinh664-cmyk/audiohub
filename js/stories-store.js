@@ -178,7 +178,7 @@
       chapterTitle: normalize(story && story.chapterTitle, 'Chương 1'),
       visibility: normalize(story && story.visibility, 'Riêng tư'),
       audioStatus: normalize(story && story.audioStatus, story && story.audioKey ? 'Sẵn sàng' : 'Chưa có'),
-      coverDataUrl: '',
+      coverDataUrl: story && story.coverDataUrl ? String(story.coverDataUrl) : '',
       coverKey: story && story.coverKey ? String(story.coverKey) : '',
       audioKey: story && story.audioKey ? String(story.audioKey) : '',
       youtubeUrl: youtubeUrl,

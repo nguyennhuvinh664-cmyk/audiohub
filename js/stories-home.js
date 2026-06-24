@@ -26,20 +26,32 @@
     var color = genreColor(story.genre);
     thumb.style.background = 'linear-gradient(145deg, ' + color + ', ' + color + 'aa)';
 
-    if (!story.coverKey) return;
-    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+    // Try coverKey (IndexedDB → API fallback)
+    if (story.coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+      window.AudioHubStoryCover.get(story.coverKey)
+        .then(function (blob) {
+          if (!blob) return;
+          try {
+            var url = URL.createObjectURL(blob);
+            thumb.style.backgroundImage = 'url("' + url + '")';
+            thumb.style.backgroundSize = 'cover';
+            thumb.style.backgroundPosition = 'center';
+          } catch (e) {}
+        })
+        .catch(function () {});
+      return;
+    }
 
-    window.AudioHubStoryCover.get(story.coverKey)
-      .then(function (blob) {
-        if (!blob) return;
-        try {
-          var url = URL.createObjectURL(blob);
-          thumb.style.backgroundImage = 'url("' + url + '")';
-          thumb.style.backgroundSize = 'cover';
-          thumb.style.backgroundPosition = 'center';
-        } catch (e) {}
-      })
-      .catch(function () {});
+    // Fallback: try coverDataUrl (base64 or URL)
+    if (story.coverDataUrl) {
+      var imgUrl = story.coverDataUrl;
+      // If it's a valid data URL or http URL, use it directly
+      if (imgUrl.indexOf('data:image') === 0 || imgUrl.indexOf('http') === 0) {
+        thumb.style.backgroundImage = 'url("' + imgUrl + '")';
+        thumb.style.backgroundSize = 'cover';
+        thumb.style.backgroundPosition = 'center';
+      }
+    }
   }
 
   function setCard(card, story) {
