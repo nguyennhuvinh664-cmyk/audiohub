@@ -20,29 +20,26 @@
   }
 
   function setThumbImage(thumb, story) {
-    if (!thumb || !story || !story.coverKey) {
-      return;
-    }
+    if (!thumb || !story) return;
 
-    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') {
-      return;
-    }
+    // Apply genre gradient as fallback FIRST
+    var color = genreColor(story.genre);
+    thumb.style.background = 'linear-gradient(145deg, ' + color + ', ' + color + 'aa)';
+
+    if (!story.coverKey) return;
+    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
 
     window.AudioHubStoryCover.get(story.coverKey)
       .then(function (blob) {
-        if (!blob) {
-          return;
-        }
+        if (!blob) return;
         try {
           var url = URL.createObjectURL(blob);
           thumb.style.backgroundImage = 'url("' + url + '")';
           thumb.style.backgroundSize = 'cover';
           thumb.style.backgroundPosition = 'center';
-        } catch (error) {
-        }
+        } catch (e) {}
       })
-      .catch(function () {
-      });
+      .catch(function () {});
   }
 
   function setCard(card, story) {

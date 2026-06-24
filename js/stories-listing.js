@@ -17,11 +17,29 @@
       .replace(/'/g, '&#39;');
   }
 
+  var genreColors = {
+    'tiên hiệp': '#7c3aed', 'kiem hiep': '#0891b2', 'kiếm hiệp': '#0891b2',
+    'ngôn tình': '#be185d', 'huyền huyễn': '#065f46', 'huyen huyen': '#065f46',
+    'đô thị': '#b45309', 'do thi': '#b45309', 'xuyên không': '#4338ca',
+    'xuyen khong': '#4338ca', 'cổ đại': '#9333ea', 'co dai': '#9333ea',
+    'trọng sinh': '#1d4ed8', 'trong sinh': '#1d4ed8', 'đam mỹ': '#ec4899',
+    'dam my': '#ec4899', 'hệ thống': '#0f766e', 'he thong': '#0f766e',
+    'mạt thế': '#dc2626', 'mat the': '#dc2626', 'linh dị': '#7e22ce',
+    'linh di': '#7e22ce', 'ngọt sủng': '#e11d48', 'nu cuong': '#9333ea',
+    'nữ cường': '#9333ea', 'sát thủ': '#991b1b', 'thú nhân': '#065f46'
+  };
+
+  function genreColor(genre) {
+    var key = String(genre || '').trim().toLowerCase();
+    return genreColors[key] || '#334155';
+  }
+
   function buildStoryCard(story) {
     var title = escapeHtml(story.title);
     var author = escapeHtml(story.author);
     var genre = escapeHtml(story.genre);
     var href = '/story-detail.html?id=' + encodeURIComponent(story.id);
+    var color = genreColor(story.genre);
 
     var note = story.visibility ? ('Visibility: ' + story.visibility) : 'Truyện demo từ AudioHub Studio.';
 
@@ -31,7 +49,7 @@
       '<a href="' + href + '" class="story-card" data-story-card ' +
       'data-story-id="' + escapeHtml(story.id) + '" data-title="' + title + '" data-author="' + author + '" data-genre="' + genre + '" data-description="' + description + '" ' +
       'data-progress="Demo" data-note="' + escapeHtml(note) + '">' +
-      '<div class="story-card__thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '">' +
+      '<div class="story-card__thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '" style="background:linear-gradient(135deg,' + color + ',' + color + 'aa)">' +
       '<button class="story-fav" type="button" data-library-favorite aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>' +
       '<span class="story-chapters">Demo</span>' +
       '</div>' +
