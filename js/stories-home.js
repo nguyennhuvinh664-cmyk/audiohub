@@ -280,7 +280,10 @@
     });
 
     var newStories = selectedGenre
-      ? newStoriesBase.filter(function (story) { return String(story && story.genre || '').trim() === selectedGenre; })
+      ? newStoriesBase.filter(function (story) {
+          var storyGenre = String(story && story.genre || '').trim().toLowerCase();
+          return storyGenre === selectedGenre.toLowerCase();
+        })
       : newStoriesBase;
 
     var completedStories = publicStories.filter(function (story) {
