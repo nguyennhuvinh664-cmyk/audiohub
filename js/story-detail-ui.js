@@ -1559,9 +1559,10 @@
     var stateNode = document.querySelector('[data-player-state]');
     var progressFill = document.querySelector('[data-player-progress-fill]');
     var progressText = document.querySelector('[data-player-progress-text]');
+    var progressThumb = document.querySelector('.sd-progress__thumb');
     var chapterLabelNode = document.querySelector('[data-player-current-chapter]');
-    var nextTitleNode = document.querySelector('.audio-nextup__title');
-    var nextMetaNode = document.querySelector('.audio-nextup__meta');
+    var nextTitleNode = document.querySelector('.sd-nextup__title');
+    var nextMetaNode = document.querySelector('.sd-nextup__meta');
     var speedNodes = Array.prototype.slice.call(document.querySelectorAll('[data-player-speed]'));
     var speedValue = document.querySelector('[data-player-speed-value]');
     var volumeSlider = document.querySelector('[data-player-volume-slider]');
@@ -1994,12 +1995,13 @@
       if (stateNode) stateNode.textContent = playerState.playing ? 'Đang phát' : 'Tạm dừng';
       if (playIcon) playIcon.className = playerState.playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
       if (progressFill) progressFill.style.width = playerState.progress + '%';
+      if (progressThumb) progressThumb.style.left = playerState.progress + '%';
       if (progressText) progressText.textContent = 'Tiếp tục từ ' + playerState.progress + '%';
       if (chapterLabelNode) chapterLabelNode.textContent = playerState.chapter;
       if (nextTitleNode) nextTitleNode.textContent = playerState.next;
       if (nextMetaNode) nextMetaNode.textContent = overrideState
-        ? 'Tự động lấy chương kế tiếp từ playlist hiện tại.'
-        : 'Tự động lấy chương kế tiếp từ danh sách chương hiện tại.';
+        ? 'Tự động từ playlist hiện tại.'
+        : 'Tự động từ danh sách chương.';
       if (speedValue) speedValue.textContent = playerState.speed;
       if (volumeValue) volumeValue.textContent = playerState.volume;
       if (volumeSlider) volumeSlider.value = playerState.volume.replace('%', '');
@@ -2275,8 +2277,10 @@
           var cur = Number(nativeAudio.currentTime);
           if (currentTimeEl) currentTimeEl.textContent = formatTime(cur);
           if (durationEl) durationEl.textContent = formatTime(dur);
-          if (progressFill && !isNaN(dur) && dur > 0) {
-            progressFill.style.width = (cur / dur * 100) + '%';
+          if (!isNaN(dur) && dur > 0) {
+            var pct = (cur / dur * 100);
+            if (progressFill) progressFill.style.width = pct + '%';
+            if (progressThumb) progressThumb.style.left = pct + '%';
           }
         });
       }
