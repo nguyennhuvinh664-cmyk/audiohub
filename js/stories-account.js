@@ -1165,24 +1165,20 @@
 
       return '' +
         '<div class="pl-card' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
-          '<div class="pl-card__top">' +
-            '<div class="pl-card__text">' +
-              '<div class="pl-card__name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
-              '<div class="pl-card__meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
-            '</div>' +
-            '<div class="pl-card__actions">' +
-              '<div class="pl-card__state-wrap">' +
-                '<button type="button" class="pl-badge ' + stateClass + '" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' +
-                  '<i class="' + stateIcon + '"></i> ' + escapeHtml(stateLabel) +
-                '</button>' +
-                '<div class="pl-card__state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
-                  '<button type="button" class="pl-card__state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-play"></i> Đang ra</button>' +
-                  '<button type="button" class="pl-card__state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-check"></i> Đã hoàn thành</button>' +
-                '</div>' +
+          '<div class="pl-card__name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
+          '<div class="pl-card__meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
+          '<div class="pl-card__actions">' +
+            '<div class="pl-card__state-wrap">' +
+              '<button type="button" class="pl-badge ' + stateClass + '" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' +
+                '<i class="' + stateIcon + '"></i> ' + escapeHtml(stateLabel) +
+              '</button>' +
+              '<div class="pl-card__state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
+                '<button type="button" class="pl-card__state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-play"></i> Đang ra</button>' +
+                '<button type="button" class="pl-card__state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-check"></i> Đã hoàn thành</button>' +
               '</div>' +
-              '<button type="button" class="pl-icon-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
-              '<button type="button" class="pl-icon-btn pl-icon-btn--danger" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
             '</div>' +
+            '<button type="button" class="pl-icon-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
+            '<button type="button" class="pl-icon-btn pl-icon-btn--danger" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
           '</div>' +
         '</div>';
     }).join('');

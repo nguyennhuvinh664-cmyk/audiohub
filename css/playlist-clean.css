@@ -45,7 +45,6 @@
 
 /* ═══ Playlist Card — Modern ═══ */
 .pl-card {
-  display: block;
   padding: 20px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -63,26 +62,16 @@
   background: rgba(59, 130, 246, 0.05);
 }
 
-/* Top row: text + actions */
-.pl-card__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.pl-card__text {
-  flex: 1;
-  min-width: 0;
-}
-
 /* Title */
 .pl-card__name {
   font-size: 18px;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Meta */
@@ -90,7 +79,10 @@
   font-size: 14px;
   color: rgba(255, 255, 255, 0.5);
   font-weight: 500;
-  margin: 0;
+  margin: 0 0 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Actions row */
