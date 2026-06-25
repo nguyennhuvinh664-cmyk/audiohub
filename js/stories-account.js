@@ -1151,7 +1151,7 @@
       var statusLabel = '';
       if (count > 0) {
         if (listeningCount > 0 && doneCount > 0) {
-          statusLabel = listeningCount + ' đang nghe, ' + doneCount + ' đã xong';
+          statusLabel = listeningCount + ' đang nghe · ' + doneCount + ' đã xong';
         } else if (listeningCount > 0) {
           statusLabel = listeningCount + ' đang nghe';
         } else if (doneCount > 0) {
@@ -1160,24 +1160,32 @@
       }
       var state = String(pl.state || (doneCount > 0 ? 'done' : 'ongoing'));
       var stateLabel = state === 'done' ? 'Đã hoàn thành' : 'Đang ra';
+      var stateIcon = state === 'done' ? 'fa-solid fa-check' : 'fa-solid fa-play';
+      var stateClass = state === 'done' ? 'pl-badge--done' : 'pl-badge--ongoing';
+
       return '' +
-        '<div class="playlist-item' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
-          '<div class="playlist-name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
-          '<div class="playlist-meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
-          '<div class="playlist-actions-row">' +
-            '<div class="playlist-state-wrap">' +
-              '<button type="button" class="playlist-state-trigger" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' + escapeHtml(stateLabel) + ' <i class="fa-solid fa-chevron-down"></i></button>' +
-              '<div class="playlist-state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
-                '<button type="button" class="playlist-state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đang ra</button>' +
-                '<button type="button" class="playlist-state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '">Đã hoàn thành</button>' +
-              '</div>' +
+        '<div class="pl-card' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
+          '<div class="pl-card__top">' +
+            '<div class="pl-card__text">' +
+              '<div class="pl-card__name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
+              '<div class="pl-card__meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
             '</div>' +
-            '<div class="playlist-action-buttons">' +
-              '<button type="button" class="playlist-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
-              '<button type="button" class="playlist-btn" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
+            '<div class="pl-card__actions">' +
+              '<div class="pl-card__state-wrap">' +
+                '<button type="button" class="pl-badge ' + stateClass + '" data-playlist-state-trigger="' + escapeHtml(pl.id) + '">' +
+                  '<i class="' + stateIcon + '"></i> ' + escapeHtml(stateLabel) +
+                '</button>' +
+                '<div class="pl-card__state-menu is-hidden" data-playlist-state-menu="' + escapeHtml(pl.id) + '">' +
+                  '<button type="button" class="pl-card__state-option" data-playlist-state="ongoing" data-playlist-state-set="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-play"></i> Đang ra</button>' +
+                  '<button type="button" class="pl-card__state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-check"></i> Đã hoàn thành</button>' +
+                '</div>' +
+              '</div>' +
+              '<button type="button" class="pl-icon-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
+              '<button type="button" class="pl-icon-btn pl-icon-btn--danger" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
             '</div>' +
           '</div>' +
-        '</div>';    }).join('');
+        '</div>';
+    }).join('');
 
     var paginationWrapLeft = document.querySelector('[data-pagination-wrap="playlist-list"]');
     if (paginationWrapLeft) {
