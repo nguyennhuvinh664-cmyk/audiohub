@@ -1080,9 +1080,26 @@
   }
 
   function setPlaylistState(id, state) {
+    var isDone = state === 'done';
     var list = readPlaylists();
     list.forEach(function (p) {
-      if (p.id === id) p.state = state === 'done' ? 'done' : 'ongoing';
+      if (p.id === id) {
+        p.state = isDone ? 'done' : 'ongoing';
+        // Sync isCompleted on stories in this playlist
+        if (p.entries && Array.isArray(p.entries)) {
+          p.entries.forEach(function (entry) {
+            if (entry.key && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+              var story = window.AudioHubStories.getById(entry.key);
+              if (story) {
+                story.isCompleted = isDone;
+                story.status = isDone ? 'Hoàn thành' : '';
+                story.updatedAt = new Date().toISOString();
+                window.AudioHubStories.upsert(story);
+              }
+            }
+          });
+        }
+      }
     });
     writePlaylists(list);
   }
