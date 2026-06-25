@@ -95,6 +95,10 @@ class ContentSearch {
   }
 
   searchInData(tabType, query) {
+    // Refresh playlist data before searching (it may have changed since init)
+    if (tabType === 'playlist') {
+      this.refreshPlaylistData();
+    }
     const data = this.allData[tabType];
 
     return data.filter(item => {
@@ -279,6 +283,26 @@ class ContentSearch {
     this.allData.draft = draft;
 
     // Read playlists from localStorage
+    var playlists = [];
+    try {
+      var rawPl = window.localStorage.getItem('audiohub-playlists-v1');
+      if (rawPl) {
+        var parsed = JSON.parse(rawPl);
+        playlists = Array.isArray(parsed) ? parsed.map(function(pl) {
+          return {
+            id: pl.id || '',
+            title: pl.name || 'Playlist',
+            count: Array.isArray(pl.entries) ? pl.entries.length : 0,
+            duration: 'Đang cập nhật',
+            description: ''
+          };
+        }) : [];
+      }
+    } catch (e) {}
+    this.allData.playlist = playlists;
+  }
+
+  refreshPlaylistData() {
     var playlists = [];
     try {
       var rawPl = window.localStorage.getItem('audiohub-playlists-v1');
