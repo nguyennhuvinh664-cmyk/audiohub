@@ -74,6 +74,7 @@
   top: 86px;
   min-width: 0;
   align-self: start;
+  overflow: visible;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.025), 0 20px 48px rgba(0,0,0,.22);
 }
 
