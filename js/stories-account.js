@@ -1094,7 +1094,16 @@
     document.querySelectorAll('[data-playlist-state-menu]').forEach(function (node) {
       node.classList.add('is-hidden');
     });
-    if (!isOpen) menu.classList.remove('is-hidden');
+    if (!isOpen) {
+      menu.classList.remove('is-hidden');
+      // Position the fixed dropdown
+      var trigger = document.querySelector('[data-playlist-state-trigger="' + playlistId + '"]');
+      if (trigger) {
+        var rect = trigger.getBoundingClientRect();
+        menu.style.left = rect.left + 'px';
+        menu.style.top = (rect.bottom + 6) + 'px';
+      }
+    }
   }
 
   function closePlaylistStateMenus() {
