@@ -10,7 +10,7 @@
 
 .playlist-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(400px, 1.5fr);
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.5fr);
   gap: 20px;
   height: 600px;
 }
@@ -18,6 +18,15 @@
 @media (max-width: 980px) {
   .playlist-layout {
     grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .playlist-layout {
+    height: auto;
+  }
+}
     height: auto;
   }
 }

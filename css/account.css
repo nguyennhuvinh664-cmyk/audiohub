@@ -1435,3 +1435,34 @@
   }
 }
 
+/* ═══ Mobile responsive fixes ═══ */
+@media (max-width: 620px) {
+  .account-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .account-hero {
+    padding: 20px;
+  }
+
+  .account-name {
+    font-size: 1.3rem;
+  }
+
+  .account-tabs--row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .account-bulk-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .account-bulk-actions .btn--danger {
+    min-width: 0;
+    width: 100%;
+  }
+}
+

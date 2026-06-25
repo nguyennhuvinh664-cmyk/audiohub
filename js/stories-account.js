@@ -1539,4 +1539,26 @@
       refreshAll();
     }
   });
+
+  // ── Mobile nav drawer ──────────────────────────────────
+  var navToggle = document.querySelector('[data-nav-toggle]');
+  var navDrawer = document.querySelector('[data-nav-drawer]');
+  var navOverlay = document.querySelector('[data-nav-overlay]');
+  var navClose = document.querySelector('[data-nav-close]');
+
+  function openNav() {
+    if (navDrawer) navDrawer.classList.add('is-open');
+    if (navOverlay) navOverlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeNav() {
+    if (navDrawer) navDrawer.classList.remove('is-open');
+    if (navOverlay) navOverlay.classList.remove('is-open');
+    document.body.style.overflow = '';
+  }
+
+  if (navToggle) navToggle.addEventListener('click', openNav);
+  if (navClose) navClose.addEventListener('click', closeNav);
+  if (navOverlay) navOverlay.addEventListener('click', closeNav);
 })();
