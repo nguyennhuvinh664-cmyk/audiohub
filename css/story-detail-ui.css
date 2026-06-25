@@ -39,6 +39,10 @@
   border-radius: 0;
 }
 
+.audio-player-body {
+  width: 100%;
+}
+
 .audio-top {
   width: 100%;
   display: flex;
@@ -980,15 +984,24 @@
   }
 
   .audio-top {
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    width: auto;
+    width: 160px;
+    flex-shrink: 0;
     margin-bottom: 0;
   }
 
   .audio-cover { width: 140px; height: 140px; }
 
-  .audio-headings { text-align: left; }
+  .audio-headings { text-align: center; }
+
+  .audio-player-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
 
   .audio-status {
     display: grid;

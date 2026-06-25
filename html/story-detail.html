@@ -74,92 +74,94 @@
               </div>
             </div>
 
-            <div class="audio-status">
-              <div class="audio-status__card"><span class="audio-status__label">Trạng thái</span><strong class="audio-status__value" data-player-state>Đang phát</strong></div>
-              <div class="audio-status__card"><span class="audio-status__label">Tốc độ phát</span><strong class="audio-status__value" data-player-speed-value>1.0x</strong></div>
-              <div class="audio-status__card"><span class="audio-status__label">Âm lượng</span><strong class="audio-status__value" data-player-volume-value>72%</strong></div>
-            </div>
-
-            <audio class="audio-native is-hidden" controls preload="metadata" data-story-audio></audio>
-            <div class="audio-native-note is-hidden" data-story-audio-note></div>
-
-            <!-- Custom Progress Bar -->
-            <div class="sd-progress" data-player-progress-wrap>
-              <div class="sd-progress__bar" data-player-progress-bar>
-                <div class="sd-progress__fill" data-player-progress-fill></div>
-              </div>
-              <div class="sd-progress__times">
-                <span data-player-current-time>0:00</span>
-                <span data-player-duration>0:00</span>
-              </div>
-            </div>
-
-            <!-- Main Controls -->
-            <div class="sd-controls">
-              <div class="sd-controls__main">
-                <button type="button" class="sd-btn sd-btn--sm" data-player-shuffle><i class="fa-solid fa-shuffle"></i></button>
-                <button type="button" class="sd-btn" data-player-prev-chapter><i class="fa-solid fa-backward-step"></i></button>
-                <button type="button" class="sd-btn" data-player-seek-back><i class="fa-solid fa-rotate-left"></i><span style="font-size:10px;position:absolute;font-weight:700">10</span></button>
-                <button type="button" class="sd-btn sd-btn--play" data-player-toggle><i class="fa-solid fa-play"></i></button>
-                <button type="button" class="sd-btn" data-player-seek-forward><i class="fa-solid fa-rotate-right"></i><span style="font-size:10px;position:absolute;font-weight:700">10</span></button>
-                <button type="button" class="sd-btn" data-player-next-chapter><i class="fa-solid fa-forward-step"></i></button>
-                <button type="button" class="sd-btn sd-btn--sm" data-player-repeat><i class="fa-solid fa-repeat"></i></button>
+            <div class="audio-player-body">
+              <div class="audio-status">
+                <div class="audio-status__card"><span class="audio-status__label">Trạng thái</span><strong class="audio-status__value" data-player-state>Đang phát</strong></div>
+                <div class="audio-status__card"><span class="audio-status__label">Tốc độ phát</span><strong class="audio-status__value" data-player-speed-value>1.0x</strong></div>
+                <div class="audio-status__card"><span class="audio-status__label">Âm lượng</span><strong class="audio-status__value" data-player-volume-value>72%</strong></div>
               </div>
 
-              <div class="sd-controls__secondary">
-                <button type="button" class="sd-speed-chip" data-player-settings-toggle>1.0x <i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
-              </div>
-            </div>
+              <audio class="audio-native is-hidden" controls preload="metadata" data-story-audio></audio>
+              <div class="audio-native-note is-hidden" data-story-audio-note></div>
 
-            <!-- Settings Bottom Sheet -->
-            <div class="sd-sheet-overlay" data-sheet-overlay></div>
-            <div class="sd-sheet" data-player-settings-menu>
-              <div class="sd-sheet__handle"></div>
-
-              <div class="sd-sheet__section">
-                <div class="sd-sheet__title">Tốc độ phát</div>
-                <div class="sd-sheet__speeds">
-                  <button type="button" class="sd-sheet__speed-btn" data-player-speed="0.75x">0.75x</button>
-                  <button type="button" class="sd-sheet__speed-btn is-active" data-player-speed="1.0x">1.0x</button>
-                  <button type="button" class="sd-sheet__speed-btn" data-player-speed="1.25x">1.25x</button>
-                  <button type="button" class="sd-sheet__speed-btn" data-player-speed="1.5x">1.5x</button>
-                  <button type="button" class="sd-sheet__speed-btn" data-player-speed="2.0x">2.0x</button>
+              <!-- Custom Progress Bar -->
+              <div class="sd-progress" data-player-progress-wrap>
+                <div class="sd-progress__bar" data-player-progress-bar>
+                  <div class="sd-progress__fill" data-player-progress-fill></div>
+                </div>
+                <div class="sd-progress__times">
+                  <span data-player-current-time>0:00</span>
+                  <span data-player-duration>0:00</span>
                 </div>
               </div>
 
-              <div class="sd-sheet__section">
-                <div class="sd-sheet__title">Âm lượng</div>
-                <div class="sd-sheet__volume">
-                  <i class="fa-solid fa-volume-low"></i>
-                  <input type="range" min="0" max="100" step="1" value="72" data-player-volume-slider />
-                  <i class="fa-solid fa-volume-high"></i>
+              <!-- Main Controls -->
+              <div class="sd-controls">
+                <div class="sd-controls__main">
+                  <button type="button" class="sd-btn sd-btn--sm" data-player-shuffle><i class="fa-solid fa-shuffle"></i></button>
+                  <button type="button" class="sd-btn" data-player-prev-chapter><i class="fa-solid fa-backward-step"></i></button>
+                  <button type="button" class="sd-btn" data-player-seek-back><i class="fa-solid fa-rotate-left"></i><span style="font-size:10px;position:absolute;font-weight:700">10</span></button>
+                  <button type="button" class="sd-btn sd-btn--play" data-player-toggle><i class="fa-solid fa-play"></i></button>
+                  <button type="button" class="sd-btn" data-player-seek-forward><i class="fa-solid fa-rotate-right"></i><span style="font-size:10px;position:absolute;font-weight:700">10</span></button>
+                  <button type="button" class="sd-btn" data-player-next-chapter><i class="fa-solid fa-forward-step"></i></button>
+                  <button type="button" class="sd-btn sd-btn--sm" data-player-repeat><i class="fa-solid fa-repeat"></i></button>
+                </div>
+
+                <div class="sd-controls__secondary">
+                  <button type="button" class="sd-speed-chip" data-player-settings-toggle>1.0x <i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
                 </div>
               </div>
 
-              <div class="sd-sheet__section">
-                <div class="sd-sheet__title">Hẹn giờ tắt</div>
-                <div class="sd-sheet__timer-options">
-                  <button type="button" class="sd-sheet__timer-btn" data-sleep-option="15 phút">15 phút</button>
-                  <button type="button" class="sd-sheet__timer-btn" data-sleep-option="30 phút">30 phút</button>
-                  <button type="button" class="sd-sheet__timer-btn" data-sleep-option="45 phút">45 phút</button>
-                  <button type="button" class="sd-sheet__timer-btn" data-sleep-option="60 phút">60 phút</button>
-                </div>
-                <div class="sd-sheet__custom">
-                  <input type="number" min="1" max="240" placeholder="Số phút" data-sleep-custom-input />
-                  <button type="button" data-sleep-custom-apply>Áp dụng</button>
-                </div>
-                <p class="sd-sheet__timer-status" data-sleep-status>Chưa đặt hẹn giờ.</p>
-              </div>
-            </div>
+              <!-- Settings Bottom Sheet -->
+              <div class="sd-sheet-overlay" data-sheet-overlay></div>
+              <div class="sd-sheet" data-player-settings-menu>
+                <div class="sd-sheet__handle"></div>
 
-            <!-- Next Up -->
-            <div class="sd-nextup" data-nextup>
-              <div class="sd-nextup__thumb">C2</div>
-              <div class="sd-nextup__info">
-                <span class="sd-nextup__label">Sắp phát tiếp</span>
-                <span class="sd-nextup__title">Chương 2: Kẻ đứng sau bức màn</span>
+                <div class="sd-sheet__section">
+                  <div class="sd-sheet__title">Tốc độ phát</div>
+                  <div class="sd-sheet__speeds">
+                    <button type="button" class="sd-sheet__speed-btn" data-player-speed="0.75x">0.75x</button>
+                    <button type="button" class="sd-sheet__speed-btn is-active" data-player-speed="1.0x">1.0x</button>
+                    <button type="button" class="sd-sheet__speed-btn" data-player-speed="1.25x">1.25x</button>
+                    <button type="button" class="sd-sheet__speed-btn" data-player-speed="1.5x">1.5x</button>
+                    <button type="button" class="sd-sheet__speed-btn" data-player-speed="2.0x">2.0x</button>
+                  </div>
+                </div>
+
+                <div class="sd-sheet__section">
+                  <div class="sd-sheet__title">Âm lượng</div>
+                  <div class="sd-sheet__volume">
+                    <i class="fa-solid fa-volume-low"></i>
+                    <input type="range" min="0" max="100" step="1" value="72" data-player-volume-slider />
+                    <i class="fa-solid fa-volume-high"></i>
+                  </div>
+                </div>
+
+                <div class="sd-sheet__section">
+                  <div class="sd-sheet__title">Hẹn giờ tắt</div>
+                  <div class="sd-sheet__timer-options">
+                    <button type="button" class="sd-sheet__timer-btn" data-sleep-option="15 phút">15 phút</button>
+                    <button type="button" class="sd-sheet__timer-btn" data-sleep-option="30 phút">30 phút</button>
+                    <button type="button" class="sd-sheet__timer-btn" data-sleep-option="45 phút">45 phút</button>
+                    <button type="button" class="sd-sheet__timer-btn" data-sleep-option="60 phút">60 phút</button>
+                  </div>
+                  <div class="sd-sheet__custom">
+                    <input type="number" min="1" max="240" placeholder="Số phút" data-sleep-custom-input />
+                    <button type="button" data-sleep-custom-apply>Áp dụng</button>
+                  </div>
+                  <p class="sd-sheet__timer-status" data-sleep-status>Chưa đặt hẹn giờ.</p>
+                </div>
               </div>
-              <button type="button" class="sd-nextup__play"><i class="fa-solid fa-play"></i></button>
+
+              <!-- Next Up -->
+              <div class="sd-nextup" data-nextup>
+                <div class="sd-nextup__thumb">C2</div>
+                <div class="sd-nextup__info">
+                  <span class="sd-nextup__label">Sắp phát tiếp</span>
+                  <span class="sd-nextup__title">Chương 2: Kẻ đứng sau bức màn</span>
+                </div>
+                <button type="button" class="sd-nextup__play"><i class="fa-solid fa-play"></i></button>
+              </div>
             </div>
           </section>
 
