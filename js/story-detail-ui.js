@@ -2212,9 +2212,74 @@
 
     if (settingsToggle && settingsMenu) {
       settingsToggle.addEventListener('click', function () {
-        var hidden = settingsMenu.classList.toggle('is-hidden');
-        settingsToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+        var sheet = document.querySelector('[data-player-settings-menu]');
+        var overlay = document.querySelector('[data-sheet-overlay]');
+        if (sheet) sheet.classList.toggle('is-open');
+        if (overlay) overlay.classList.toggle('is-open');
       });
+
+      // Close sheet on overlay click
+      var sheetOverlay = document.querySelector('[data-sheet-overlay]');
+      if (sheetOverlay) {
+        sheetOverlay.addEventListener('click', function () {
+          var sheet = document.querySelector('[data-player-settings-menu]');
+          if (sheet) sheet.classList.remove('is-open');
+          sheetOverlay.classList.remove('is-open');
+        });
+      }
+
+      // New speed buttons (sheet)
+      var sheetSpeedBtns = Array.prototype.slice.call(document.querySelectorAll('[data-player-speed]'));
+      sheetSpeedBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var speed = btn.getAttribute('data-player-speed');
+          if (speed && nativeAudio) {
+            nativeAudio.playbackRate = parseFloat(speed);
+            playerState.speed = speed;
+            renderPlayer();
+          }
+          // Update active state
+          sheetSpeedBtns.forEach(function (b) { b.classList.remove('is-active'); });
+          btn.classList.add('is-active');
+          // Update chip text
+          var chip = document.querySelector('.sd-speed-chip');
+          if (chip) chip.innerHTML = speed + ' <i class="fa-solid fa-chevron-down" style="font-size:10px"></i>';
+        });
+      });
+
+      // Progress bar click to seek
+      var progressBar = document.querySelector('[data-player-progress-bar]');
+      if (progressBar && nativeAudio) {
+        progressBar.addEventListener('click', function (e) {
+          var rect = progressBar.getBoundingClientRect();
+          var pct = (e.clientX - rect.left) / rect.width;
+          var duration = Number(nativeAudio.duration);
+          if (!isNaN(duration) && duration > 0) {
+            nativeAudio.currentTime = pct * duration;
+          }
+        });
+      }
+
+      // Time update
+      var currentTimeEl = document.querySelector('[data-player-current-time]');
+      var durationEl = document.querySelector('[data-player-duration]');
+      function formatTime(sec) {
+        if (isNaN(sec) || sec < 0) return '0:00';
+        var m = Math.floor(sec / 60);
+        var s = Math.floor(sec % 60);
+        return m + ':' + (s < 10 ? '0' : '') + s;
+      }
+      if (nativeAudio) {
+        nativeAudio.addEventListener('timeupdate', function () {
+          var dur = Number(nativeAudio.duration);
+          var cur = Number(nativeAudio.currentTime);
+          if (currentTimeEl) currentTimeEl.textContent = formatTime(cur);
+          if (durationEl) durationEl.textContent = formatTime(dur);
+          if (progressFill && !isNaN(dur) && dur > 0) {
+            progressFill.style.width = (cur / dur * 100) + '%';
+          }
+        });
+      }
     }
 
     renderPlayer();

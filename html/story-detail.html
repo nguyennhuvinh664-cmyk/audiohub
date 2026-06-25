@@ -83,65 +83,83 @@
             <audio class="audio-native is-hidden" controls preload="metadata" data-story-audio></audio>
             <div class="audio-native-note is-hidden" data-story-audio-note></div>
 
-            <div class="audio-controls-wrap">
-              <div class="audio-controls">
-                <button type="button" data-player-shuffle><i class="fa-solid fa-shuffle"></i></button>
-                <button type="button" data-player-prev-chapter><i class="fa-solid fa-backward-step"></i></button>
-                <button type="button" data-player-seek-back><i class="fa-solid fa-backward"></i></button>
-                <button type="button" class="audio-play" data-player-toggle><i class="fa-solid fa-pause"></i></button>
-                <button type="button" data-player-seek-forward><i class="fa-solid fa-forward"></i></button>
-                <button type="button" data-player-next-chapter><i class="fa-solid fa-forward-step"></i></button>
-                <button type="button" data-player-repeat><i class="fa-solid fa-repeat"></i></button>
-                <button type="button" data-player-settings-toggle aria-expanded="false"><i class="fa-solid fa-gear"></i></button>
+            <!-- Custom Progress Bar -->
+            <div class="sd-progress" data-player-progress-wrap>
+              <div class="sd-progress__bar" data-player-progress-bar>
+                <div class="sd-progress__fill" data-player-progress-fill></div>
               </div>
-
-              <div class="audio-settings is-hidden" data-player-settings-menu>
-                <section class="audio-settings__section">
-                  <div class="audio-settings__title">Tốc độ phát</div>
-                  <div class="audio-speed">
-                    <button type="button" class="audio-speed__chip" data-player-speed="0.75x">0.75x</button>
-                    <button type="button" class="audio-speed__chip" data-player-speed="1.0x">1.0x</button>
-                    <button type="button" class="audio-speed__chip" data-player-speed="1.25x">1.25x</button>
-                    <button type="button" class="audio-speed__chip" data-player-speed="1.5x">1.5x</button>
-                    <button type="button" class="audio-speed__chip" data-player-speed="2.0x">2.0x</button>
-                  </div>
-                </section>
-
-                <section class="audio-settings__section">
-                  <div class="audio-settings__title">Âm lượng</div>
-                  <div class="audio-volume audio-volume--slider">
-                    <i class="fa-solid fa-volume-low audio-volume__icon"></i>
-                    <input class="audio-volume__slider" type="range" min="0" max="100" step="1" value="72" data-player-volume-slider />
-                    <i class="fa-solid fa-volume-high audio-volume__icon"></i>
-                  </div>
-                </section>
-
-                <section class="audio-settings__section">
-                  <button type="button" class="audio-action" data-sleep-toggle aria-expanded="false"><i class="fa-regular fa-moon"></i> Hẹn giờ tắt</button>
-                  <div class="audio-sleep is-hidden" data-sleep-panel>
-                    <div class="audio-sleep__options">
-                      <button type="button" class="audio-sleep__option" data-sleep-option="15 phút">15 phút</button>
-                      <button type="button" class="audio-sleep__option" data-sleep-option="30 phút">30 phút</button>
-                      <button type="button" class="audio-sleep__option" data-sleep-option="45 phút">45 phút</button>
-                      <button type="button" class="audio-sleep__option" data-sleep-option="60 phút">60 phút</button>
-                    </div>
-                    <div class="audio-sleep__custom">
-                      <label>Tùy chỉnh theo phút</label>
-                      <div class="audio-sleep__input-row">
-                        <input type="number" min="1" max="240" placeholder="Nhập số phút" data-sleep-custom-input />
-                        <button type="button" class="audio-sleep__apply" data-sleep-custom-apply>Áp dụng</button>
-                      </div>
-                    </div>
-                    <p class="audio-sleep__status" data-sleep-status>Chưa đặt hẹn giờ ngủ.</p>
-                  </div>
-                </section>
+              <div class="sd-progress__times">
+                <span data-player-current-time>0:00</span>
+                <span data-player-duration>0:00</span>
               </div>
             </div>
 
-            <div class="audio-nextup">
-              <span class="audio-nextup__label">Sắp phát tiếp</span>
-              <strong class="audio-nextup__title">Chương 2: Kẻ đứng sau bức màn</strong>
-              <p class="audio-nextup__meta">Bản demo mô phỏng đầy đủ player: đổi tốc độ, đổi chương, lưu tiến trình và đồng bộ lịch sử nghe.</p>
+            <!-- Main Controls -->
+            <div class="sd-controls">
+              <div class="sd-controls__main">
+                <button type="button" class="sd-btn sd-btn--sm" data-player-shuffle><i class="fa-solid fa-shuffle"></i></button>
+                <button type="button" class="sd-btn" data-player-prev-chapter><i class="fa-solid fa-backward-step"></i></button>
+                <button type="button" class="sd-btn" data-player-seek-back><i class="fa-solid fa-rotate-left"></i><span style="font-size:10px;position:absolute;font-weight:700">10</span></button>
+                <button type="button" class="sd-btn sd-btn--play" data-player-toggle><i class="fa-solid fa-play"></i></button>
+                <button type="button" class="sd-btn" data-player-seek-forward><i class="fa-solid fa-rotate-right"></i><span style="font-size:10px;position:absolute;font-weight:700">10</span></button>
+                <button type="button" class="sd-btn" data-player-next-chapter><i class="fa-solid fa-forward-step"></i></button>
+                <button type="button" class="sd-btn sd-btn--sm" data-player-repeat><i class="fa-solid fa-repeat"></i></button>
+              </div>
+
+              <div class="sd-controls__secondary">
+                <button type="button" class="sd-speed-chip" data-player-settings-toggle>1.0x <i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
+              </div>
+            </div>
+
+            <!-- Settings Bottom Sheet -->
+            <div class="sd-sheet-overlay" data-sheet-overlay></div>
+            <div class="sd-sheet" data-player-settings-menu>
+              <div class="sd-sheet__handle"></div>
+
+              <div class="sd-sheet__section">
+                <div class="sd-sheet__title">Tốc độ phát</div>
+                <div class="sd-sheet__speeds">
+                  <button type="button" class="sd-sheet__speed-btn" data-player-speed="0.75x">0.75x</button>
+                  <button type="button" class="sd-sheet__speed-btn is-active" data-player-speed="1.0x">1.0x</button>
+                  <button type="button" class="sd-sheet__speed-btn" data-player-speed="1.25x">1.25x</button>
+                  <button type="button" class="sd-sheet__speed-btn" data-player-speed="1.5x">1.5x</button>
+                  <button type="button" class="sd-sheet__speed-btn" data-player-speed="2.0x">2.0x</button>
+                </div>
+              </div>
+
+              <div class="sd-sheet__section">
+                <div class="sd-sheet__title">Âm lượng</div>
+                <div class="sd-sheet__volume">
+                  <i class="fa-solid fa-volume-low"></i>
+                  <input type="range" min="0" max="100" step="1" value="72" data-player-volume-slider />
+                  <i class="fa-solid fa-volume-high"></i>
+                </div>
+              </div>
+
+              <div class="sd-sheet__section">
+                <div class="sd-sheet__title">Hẹn giờ tắt</div>
+                <div class="sd-sheet__timer-options">
+                  <button type="button" class="sd-sheet__timer-btn" data-sleep-option="15 phút">15 phút</button>
+                  <button type="button" class="sd-sheet__timer-btn" data-sleep-option="30 phút">30 phút</button>
+                  <button type="button" class="sd-sheet__timer-btn" data-sleep-option="45 phút">45 phút</button>
+                  <button type="button" class="sd-sheet__timer-btn" data-sleep-option="60 phút">60 phút</button>
+                </div>
+                <div class="sd-sheet__custom">
+                  <input type="number" min="1" max="240" placeholder="Số phút" data-sleep-custom-input />
+                  <button type="button" data-sleep-custom-apply>Áp dụng</button>
+                </div>
+                <p class="sd-sheet__timer-status" data-sleep-status>Chưa đặt hẹn giờ.</p>
+              </div>
+            </div>
+
+            <!-- Next Up -->
+            <div class="sd-nextup" data-nextup>
+              <div class="sd-nextup__thumb">C2</div>
+              <div class="sd-nextup__info">
+                <span class="sd-nextup__label">Sắp phát tiếp</span>
+                <span class="sd-nextup__title">Chương 2: Kẻ đứng sau bức màn</span>
+              </div>
+              <button type="button" class="sd-nextup__play"><i class="fa-solid fa-play"></i></button>
             </div>
           </section>
 
