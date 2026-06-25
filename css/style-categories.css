@@ -922,3 +922,44 @@ button { font:inherit; }
   .auth-main { padding:28px 0 72px; }
   .auth-title { font-size:2rem; }
 }
+
+/* ═══ Mobile overrides for inner pages ═══ */
+@media (max-width: 768px) {
+  .site-header { height: 52px; }
+  .site-header .container { padding: 0 14px; min-height: 52px; }
+  .header__inner { min-height: 52px; gap: 10px; }
+  .logo { font-size: 1rem; gap: 6px; }
+  .logo i { font-size: 1rem; }
+  .site-nav { display: none !important; }
+  .hamburger { display: flex; }
+
+  .detail-layout { grid-template-columns: 1fr !important; gap: 14px; }
+  .detail-title { font-size: 1.3rem !important; line-height: 1.2; }
+  .detail-meta { font-size: .78rem; flex-wrap: wrap; gap: 6px 12px; }
+  .breadcrumb { font-size: .72rem; margin-bottom: 10px; }
+
+  .panel { padding: 14px; border-radius: 14px; }
+  .story-card { border-radius: 12px; }
+  .story-card__body { padding: 10px 12px; }
+  .story-title { font-size: .88rem; }
+  .story-footer { font-size: .72rem; }
+
+  .section-heading { margin-bottom: 12px; }
+  .section-heading h2 { font-size: 1rem; }
+
+  .related-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  .comment-item { padding: 10px 0; }
+  .comment-entry { padding: 12px; }
+
+  .btn { min-height: 44px; font-size: .88rem; }
+
+  .story-filter-panel { padding: 12px; }
+  .story-filter-field { min-width: 0; }
+  .story-filter-input { font-size: .88rem; padding: 10px 12px; }
+}
+
+@media (max-width: 480px) {
+  .related-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .story-card__thumb { aspect-ratio: 16/9; }
+}

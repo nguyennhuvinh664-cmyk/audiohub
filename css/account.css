@@ -1464,5 +1464,46 @@
     min-width: 0;
     width: 100%;
   }
+
+  .account-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .account-sidebar {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .account-avatar {
+    width: 72px;
+    height: 72px;
+    font-size: 1.5rem;
+  }
+
+  .account-name {
+    font-size: 1.2rem;
+  }
+
+  .account-badge {
+    font-size: .78rem;
+    padding: 6px 12px;
+  }
+
+  .account-hero {
+    padding: 16px;
+  }
+
+  .account-hero h2 {
+    font-size: 1rem;
+  }
+
+  .account-navcards {
+    gap: 8px;
+  }
+
+  .account-navcard {
+    padding: 12px;
+    font-size: .88rem;
+  }
 }
 
