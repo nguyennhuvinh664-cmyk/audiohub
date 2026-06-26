@@ -2312,22 +2312,21 @@
       }
     }
 
-    // Volume — inline row
+    // Volume — inline in ubar
     var volTrack = document.querySelector('[data-vol-track]');
     var volFill = document.querySelector('[data-vol-fill]');
     var volThumb = document.querySelector('[data-vol-thumb]');
-    var volValueEl = document.querySelector('[data-vol-value]');
+    var volTip = document.querySelector('[data-vol-value]');
+    var volIcon = document.querySelector('[data-vol-icon]');
 
     function updateVolUI(pct) {
       if (volFill) volFill.style.width = pct + '%';
       if (volThumb) volThumb.style.left = pct + '%';
-      if (volValueEl) volValueEl.textContent = Math.round(pct) + '%';
-      // Update row icon
-      var rowIcon = document.querySelector('.sd-vol-row__icon');
-      if (rowIcon) {
-        if (pct === 0) rowIcon.className = 'fa-solid fa-volume-xmark sd-vol-row__icon';
-        else if (pct < 40) rowIcon.className = 'fa-solid fa-volume-low sd-vol-row__icon';
-        else rowIcon.className = 'fa-solid fa-volume-high sd-vol-row__icon';
+      if (volTip) volTip.textContent = Math.round(pct) + '%';
+      if (volIcon) {
+        if (pct === 0) volIcon.className = 'fa-solid fa-volume-xmark sd-vol-icon';
+        else if (pct < 40) volIcon.className = 'fa-solid fa-volume-low sd-vol-icon';
+        else volIcon.className = 'fa-solid fa-volume-high sd-vol-icon';
       }
     }
 
