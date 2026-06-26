@@ -112,7 +112,16 @@
             <div class="sd-sec">
               <div class="sd-sec__left">
                 <span class="sd-status" data-player-state><span class="sd-status__dot"></span> Đang phát</span>
-                <button type="button" class="sd-speed" data-speed-toggle data-player-speed-value>1.0x</button>
+                <div class="sd-speed-wrap">
+                  <button type="button" class="sd-speed" data-speed-toggle data-player-speed-value>1.0x</button>
+                  <div class="sd-speed-popup is-hidden" data-speed-popup>
+                    <button type="button" data-pick-speed="0.75x">0.75x</button>
+                    <button type="button" data-pick-speed="1.0x" class="is-active">1.0x</button>
+                    <button type="button" data-pick-speed="1.25x">1.25x</button>
+                    <button type="button" data-pick-speed="1.5x">1.5x</button>
+                    <button type="button" data-pick-speed="2.0x">2.0x</button>
+                  </div>
+                </div>
               </div>
               <div class="sd-sec__right">
                 <div class="sd-vol">

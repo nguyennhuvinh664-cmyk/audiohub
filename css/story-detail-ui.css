@@ -245,6 +245,10 @@
 
 .sd-status.is-paused .sd-status__dot { background: var(--sd-text-3); }
 
+.sd-speed-wrap {
+  position: relative;
+}
+
 .sd-speed {
   font-size: .78rem;
   font-weight: 700;
@@ -253,9 +257,47 @@
   padding: 4px 8px;
   border-radius: 6px;
   transition: all .15s;
+  background: none;
+  border: none;
 }
 
 .sd-speed:hover { color: var(--sd-text); background: rgba(255,255,255,.06); }
+
+.sd-speed-popup {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--sd-surface-2);
+  border: 1px solid var(--sd-border);
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  z-index: 50;
+  min-width: 72px;
+}
+
+.sd-speed-popup.is-hidden { display: none; }
+
+.sd-speed-popup button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sd-text-2);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all .1s;
+  white-space: nowrap;
+}
+
+.sd-speed-popup button:hover { background: rgba(255,255,255,.06); color: var(--sd-text); }
+.sd-speed-popup button.is-active { background: rgba(245,158,11,.12); color: var(--sd-primary); }
 
 .sd-vol {
   display: flex;

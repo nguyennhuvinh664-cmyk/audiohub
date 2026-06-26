@@ -2307,17 +2307,37 @@
       }
     }
 
-    // Speed toggle — OUTSIDE if block, always bind
+    // Speed toggle — show popup with options
     var speedToggle = document.querySelector('[data-speed-toggle]');
-    var speedOptions = ['0.75x', '1.0x', '1.25x', '1.5x', '2.0x'];
-    if (speedToggle) {
-      speedToggle.addEventListener('click', function () {
-        var current = playerState.speed;
-        var idx = speedOptions.indexOf(current);
-        var next = speedOptions[(idx + 1) % speedOptions.length];
-        playerState.speed = next;
-        if (nativeAudio) nativeAudio.playbackRate = parseFloat(next);
-        renderPlayer();
+    var speedPopup = document.querySelector('[data-speed-popup]');
+    var speedPickBtns = Array.prototype.slice.call(document.querySelectorAll('[data-pick-speed]'));
+
+    if (speedToggle && speedPopup) {
+      speedToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        speedPopup.classList.toggle('is-hidden');
+      });
+
+      // Pick a speed
+      speedPickBtns.forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var speed = btn.getAttribute('data-pick-speed');
+          if (speed) {
+            playerState.speed = speed;
+            if (nativeAudio) nativeAudio.playbackRate = parseFloat(speed);
+            renderPlayer();
+            // Update active states
+            speedPickBtns.forEach(function (b) { b.classList.remove('is-active'); });
+            btn.classList.add('is-active');
+          }
+          speedPopup.classList.add('is-hidden');
+        });
+      });
+
+      // Close popup on outside click
+      document.addEventListener('click', function () {
+        speedPopup.classList.add('is-hidden');
       });
     }
 
