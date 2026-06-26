@@ -2236,7 +2236,7 @@
 
     // Settings panel — expand/collapse
     var settingsPanel = document.querySelector('[data-settings-panel]');
-    var settingsGear = document.querySelector('[data-player-settings-toggle]');
+    var settingsGear = document.querySelector('[data-settings-toggle]');
 
     if (settingsGear && settingsPanel) {
       settingsGear.addEventListener('click', function () {
