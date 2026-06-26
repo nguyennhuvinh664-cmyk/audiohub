@@ -649,7 +649,7 @@
       try {
         var url = URL.createObjectURL(blob);
 
-        // Hero cover
+        // Hero cover (old format)
         var heroCover = document.querySelector('[data-detail-cover]');
         if (heroCover) {
           var placeholder = heroCover.querySelector('.detail-hero__placeholder');
@@ -659,7 +659,15 @@
           heroCover.style.backgroundPosition = 'center';
         }
 
-        // Audio panel cover (small circular)
+        // Player cover (new format)
+        var playerCover = document.querySelector('[data-cover]');
+        if (playerCover) {
+          playerCover.style.backgroundImage = 'url("' + url + '")';
+          playerCover.style.backgroundSize = 'cover';
+          playerCover.style.backgroundPosition = 'center';
+        }
+
+        // Audio panel cover (old format)
         var audioCover = document.querySelector('.audio-cover');
         if (audioCover) {
           audioCover.style.backgroundImage = 'url("' + url + '")';
@@ -2228,6 +2236,17 @@
         if (sheet) sheet.classList.toggle('is-open');
         if (overlay) overlay.classList.toggle('is-open');
       });
+
+      // Speed toggle also opens settings
+      var speedToggle = document.querySelector('[data-speed-toggle]');
+      if (speedToggle) {
+        speedToggle.addEventListener('click', function () {
+          var sheet = document.querySelector('[data-player-settings-menu]');
+          var overlay = document.querySelector('[data-sheet-overlay]');
+          if (sheet) sheet.classList.toggle('is-open');
+          if (overlay) overlay.classList.toggle('is-open');
+        });
+      }
 
       // Close sheet on overlay click
       var sheetOverlay = document.querySelector('[data-sheet-overlay]');
