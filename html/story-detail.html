@@ -66,56 +66,48 @@
           </article>
 
           <section class="sd-player" data-player-root>
-            <!-- LEFT: Artwork -->
-            <div class="sd-player__artwork">
-              <div class="sd-player__cover" data-cover></div>
-              <div class="sd-player__chapters-info">
-                <h2 class="sd-player__chapter" data-player-current-chapter>Chương 1: Trở về phủ tướng quân</h2>
-                <p class="sd-player__story">Nữ Quan Thần Y Cổ Đại Trọng Sinh</p>
+            <!-- Cover Art -->
+            <div class="sd-cover">
+              <div class="sd-cover__img" data-cover></div>
+            </div>
+
+            <!-- Title -->
+            <div class="sd-info">
+              <h2 class="sd-info__chapter" data-player-current-chapter>Chương 1: Trở về phủ tướng quân</h2>
+              <p class="sd-info__story">Nữ Quan Thần Y Cổ Đại Trọng Sinh</p>
+            </div>
+
+            <!-- Progress -->
+            <div class="sd-progress-wrap">
+              <div class="sd-progress" data-player-progress-bar>
+                <div class="sd-progress__fill" data-player-progress-fill></div>
+                <div class="sd-progress__thumb"></div>
+              </div>
+              <div class="sd-times">
+                <span data-player-current-time>0:00</span>
+                <span data-player-duration>0:00</span>
               </div>
             </div>
 
-            <!-- RIGHT: Controls -->
-            <div class="sd-player__controls">
-              <!-- Status chips -->
-              <div class="sd-player__chips">
-                <span class="sd-chip" data-player-state>Đang phát</span>
-                <span class="sd-chip" data-player-speed-value>1.0x</span>
-                <span class="sd-chip" data-player-volume-value>72%</span>
-              </div>
+            <!-- Main Controls -->
+            <div class="sd-main">
+              <button type="button" class="sd-btn" data-player-seek-back title="Lùi 10s"><i class="fa-solid fa-rotate-left"></i><span class="sd-btn__num">10</span></button>
+              <button type="button" class="sd-btn" data-player-prev-chapter title="Chương trước"><i class="fa-solid fa-backward-step"></i></button>
+              <button type="button" class="sd-btn sd-play" data-player-toggle title="Phát / Tạm dừng"><i class="fa-solid fa-play"></i></button>
+              <button type="button" class="sd-btn" data-player-next-chapter title="Chương sau"><i class="fa-solid fa-forward-step"></i></button>
+              <button type="button" class="sd-btn" data-player-seek-forward title="Tiến 10s"><i class="fa-solid fa-rotate-right"></i><span class="sd-btn__num">10</span></button>
+            </div>
 
-              <!-- Progress -->
-              <div class="sd-player__progress">
-                <div class="sd-progress" data-player-progress-bar>
-                  <div class="sd-progress__fill" data-player-progress-fill></div>
-                  <div class="sd-progress__thumb"></div>
-                </div>
-                <div class="sd-player__times">
-                  <span data-player-current-time>0:00</span>
-                  <span data-player-duration>0:00</span>
-                </div>
+            <!-- Secondary Controls -->
+            <div class="sd-secondary">
+              <button type="button" class="sd-btn-sm" data-player-shuffle title="Trộn"><i class="fa-solid fa-shuffle"></i></button>
+              <button type="button" class="sd-btn-sm" data-player-repeat title="Lặp lại"><i class="fa-solid fa-repeat"></i></button>
+              <button type="button" class="sd-btn-sm" data-player-settings-toggle title="Tốc độ"><span class="sd-speed-label" data-player-speed-value>1.0x</span></button>
+              <div class="sd-vol-wrap">
+                <i class="fa-solid fa-volume-low sd-vol-icon"></i>
+                <input type="range" min="0" max="100" step="1" value="72" data-player-volume-slider class="sd-vol" />
               </div>
-
-              <!-- Main controls -->
-              <div class="sd-player__buttons">
-                <button type="button" class="sd-btn" data-player-shuffle title="Trộn"><i class="fa-solid fa-shuffle"></i></button>
-                <button type="button" class="sd-btn" data-player-prev-chapter title="Chương trước"><i class="fa-solid fa-backward-step"></i></button>
-                <button type="button" class="sd-btn" data-player-seek-back title="Lùi 10s"><i class="fa-solid fa-rotate-left"></i><span class="sd-btn__label">10</span></button>
-                <button type="button" class="sd-btn sd-btn--play" data-player-toggle title="Phát / Tạm dừng"><i class="fa-solid fa-play"></i></button>
-                <button type="button" class="sd-btn" data-player-seek-forward title="Tiến 10s"><i class="fa-solid fa-rotate-right"></i><span class="sd-btn__label">10</span></button>
-                <button type="button" class="sd-btn" data-player-next-chapter title="Chương sau"><i class="fa-solid fa-forward-step"></i></button>
-                <button type="button" class="sd-btn" data-player-repeat title="Lặp lại"><i class="fa-solid fa-repeat"></i></button>
-              </div>
-
-              <!-- Secondary controls -->
-              <div class="sd-player__secondary">
-                <div class="sd-player__volume">
-                  <i class="fa-solid fa-volume-low"></i>
-                  <input type="range" min="0" max="100" step="1" value="72" data-player-volume-slider class="sd-volume-slider" />
-                  <i class="fa-solid fa-volume-high"></i>
-                </div>
-                <button type="button" class="sd-btn sd-btn--sm" data-player-settings-toggle title="Cài đặt"><i class="fa-solid fa-gear"></i></button>
-              </div>
+              <button type="button" class="sd-btn-sm" data-player-settings-toggle2 title="Cài đặt"><i class="fa-solid fa-gear"></i></button>
             </div>
 
             <!-- Native audio (hidden) -->
@@ -159,20 +151,20 @@
                 <p class="sd-sheet__timer-status" data-sleep-status>Chưa đặt hẹn giờ.</p>
               </div>
             </div>
-
-            <!-- Next Up -->
-            <div class="sd-nextup" data-nextup>
-              <div class="sd-nextup__label"><i class="fa-solid fa-forward"></i> Sắp phát tiếp</div>
-              <div class="sd-nextup__card">
-                <div class="sd-nextup__thumb">C2</div>
-                <div class="sd-nextup__info">
-                  <span class="sd-nextup__title">Chương 2: Kẻ đứng sau bức màn</span>
-                  <span class="sd-nextup__meta">Tự động lấy chương kế tiếp</span>
-                </div>
-                <button type="button" class="sd-nextup__play" data-player-next-chapter><i class="fa-solid fa-play"></i></button>
-              </div>
-            </div>
           </section>
+
+          <!-- Next Up — BELOW player -->
+          <div class="sd-nextup" data-nextup>
+            <div class="sd-nextup__label"><i class="fa-solid fa-forward"></i> Sắp phát tiếp</div>
+            <div class="sd-nextup__card">
+              <div class="sd-nextup__thumb">C2</div>
+              <div class="sd-nextup__info">
+                <span class="sd-nextup__title">Chương 2: Kẻ đứng sau bức màn</span>
+                <span class="sd-nextup__meta">Tự động lấy chương kế tiếp</span>
+              </div>
+              <button type="button" class="sd-nextup__play" data-player-next-chapter><i class="fa-solid fa-play"></i></button>
+            </div>
+          </div>
 
           <article class="panel chapter-reading" id="chapter-reading">
             <div class="section-heading"><h2><i class="fa-regular fa-file-lines"></i> Đọc Truyện Chữ - Chương 1</h2><a href="#chapter-reading">Bản in</a></div>

@@ -1564,6 +1564,7 @@
     var nextTitleNode = document.querySelector('.sd-nextup__title');
     var nextMetaNode = document.querySelector('.sd-nextup__meta');
     var speedNodes = Array.prototype.slice.call(document.querySelectorAll('[data-player-speed]'));
+    var speedLabel = document.querySelector('[data-player-speed-value]');
     var speedValue = document.querySelector('[data-player-speed-value]');
     var volumeSlider = document.querySelector('[data-player-volume-slider]');
     var volumeValue = document.querySelector('[data-player-volume-value]');
@@ -2002,6 +2003,7 @@
       if (nextMetaNode) nextMetaNode.textContent = overrideState
         ? 'Tự động từ playlist hiện tại.'
         : 'Tự động từ danh sách chương.';
+      if (speedLabel) speedLabel.textContent = playerState.speed;
       if (speedValue) speedValue.textContent = playerState.speed;
       if (volumeValue) volumeValue.textContent = playerState.volume;
       if (volumeSlider) volumeSlider.value = playerState.volume.replace('%', '');
@@ -2246,6 +2248,8 @@
           // Update chip text
           var chip = document.querySelector('.sd-speed-chip');
           if (chip) chip.innerHTML = speed + ' <i class="fa-solid fa-chevron-down" style="font-size:10px"></i>';
+          var speedLbl = document.querySelector('[data-player-speed-value]');
+          if (speedLbl) speedLbl.textContent = speed;
         });
       });
 
