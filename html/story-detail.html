@@ -136,29 +136,46 @@
             <audio class="is-hidden" preload="metadata" data-story-audio></audio>
             <div class="is-hidden" data-story-audio-note></div>
 
-            <!-- Settings Popover -->
-            <div class="sd-popover is-hidden" data-settings-popover>
-              <div class="sd-popover__section">
-                <div class="sd-popover__label">Hẹn giờ tắt</div>
-                <div class="sd-popover__row">
-                  <button type="button" class="sd-popover__pill" data-sleep-option="15 phút">15 phút</button>
-                  <button type="button" class="sd-popover__pill" data-sleep-option="30 phút">30 phút</button>
-                  <button type="button" class="sd-popover__pill" data-sleep-option="45 phút">45 phút</button>
-                  <button type="button" class="sd-popover__pill" data-sleep-option="60 phút">60 phút</button>
+            <!-- Settings Panel (expandable) -->
+            <div class="sd-settings" data-settings-panel>
+              <div class="sd-settings__inner">
+                <div class="sd-settings__col">
+                  <div class="sd-settings__label">Hẹn giờ tắt</div>
+                  <div class="sd-settings__pills">
+                    <button type="button" class="sd-settings__pill" data-sleep-option="15 phút">15 phút</button>
+                    <button type="button" class="sd-settings__pill" data-sleep-option="30 phút">30 phút</button>
+                    <button type="button" class="sd-settings__pill" data-sleep-option="45 phút">45 phút</button>
+                    <button type="button" class="sd-settings__pill" data-sleep-option="60 phút">60 phút</button>
+                  </div>
+                  <div class="sd-settings__custom">
+                    <input type="number" min="1" max="240" placeholder="Phút" data-sleep-custom-input />
+                    <button type="button" data-sleep-custom-apply>Áp dụng</button>
+                  </div>
+                  <p class="sd-settings__note" data-sleep-status>Chưa đặt hẹn giờ.</p>
                 </div>
-                <div class="sd-popover__row">
-                  <input type="number" min="1" max="240" placeholder="Phút" data-sleep-custom-input class="sd-popover__input" />
-                  <button type="button" data-sleep-custom-apply class="sd-popover__apply">Áp dụng</button>
+                <div class="sd-settings__divider"></div>
+                <div class="sd-settings__col">
+                  <div class="sd-settings__label">Tự động</div>
+                  <label class="sd-settings__toggle">
+                    <span>Tiếp tục chương sau</span>
+                    <input type="checkbox" checked data-player-auto-next />
+                    <span class="sd-settings__switch"></span>
+                  </label>
+                  <label class="sd-settings__toggle">
+                    <span>Tự động cuộn</span>
+                    <input type="checkbox" data-player-auto-scroll />
+                    <span class="sd-settings__switch"></span>
+                  </label>
                 </div>
-                <p class="sd-popover__note" data-sleep-status>Chưa đặt hẹn giờ.</p>
-              </div>
-              <div class="sd-popover__divider"></div>
-              <div class="sd-popover__section">
-                <label class="sd-popover__toggle">
-                  <span>Tiếp tục chương sau</span>
-                  <input type="checkbox" checked data-player-auto-next />
-                  <span class="sd-popover__switch"></span>
-                </label>
+                <div class="sd-settings__divider"></div>
+                <div class="sd-settings__col">
+                  <div class="sd-settings__label">Giao diện</div>
+                  <div class="sd-settings__pills">
+                    <button type="button" class="sd-settings__pill is-active">Dark</button>
+                    <button type="button" class="sd-settings__pill">AMOLED</button>
+                    <button type="button" class="sd-settings__pill">Midnight</button>
+                  </div>
+                </div>
               </div>
             </div>
           </section>

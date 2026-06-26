@@ -2234,47 +2234,18 @@
       renderPlayer();
     });
 
-    // Settings popover — anchored to gear icon
-    var settingsPopover = document.querySelector('[data-settings-popover]');
+    // Settings panel — expand/collapse
+    var settingsPanel = document.querySelector('[data-settings-panel]');
     var settingsGear = document.querySelector('[data-player-settings-toggle]');
 
-    if (settingsGear && settingsPopover) {
-      settingsGear.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var isOpen = !settingsPopover.classList.contains('is-hidden');
-        // Close first
-        settingsPopover.classList.add('is-hidden');
-        if (!isOpen) {
-          // Position popover above gear
-          var gearRect = settingsGear.getBoundingClientRect();
-          var popW = 320;
-          var popLeft = gearRect.right - popW;
-          // If would go off left edge, align left
-          if (popLeft < 8) popLeft = 8;
-          // If would go off right edge
-          if (popLeft + popW > window.innerWidth - 8) {
-            popLeft = window.innerWidth - popW - 8;
-          }
-          settingsPopover.style.left = popLeft + 'px';
-          settingsPopover.style.bottom = (window.innerHeight - gearRect.top + 8) + 'px';
-          settingsPopover.style.right = 'auto';
-          settingsPopover.classList.remove('is-hidden');
-        }
+    if (settingsGear && settingsPanel) {
+      settingsGear.addEventListener('click', function () {
+        settingsPanel.classList.toggle('is-open');
+        // Rotate gear icon
+        var isOpen = settingsPanel.classList.contains('is-open');
+        settingsGear.style.transform = isOpen ? 'rotate(90deg)' : '';
       });
-
-      // Close on outside click
-      document.addEventListener('click', function (e) {
-        if (settingsPopover && !settingsPopover.contains(e.target) && !settingsGear.contains(e.target)) {
-          settingsPopover.classList.add('is-hidden');
-        }
-      });
-
-      // Close on ESC
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && settingsPopover && !settingsPopover.classList.contains('is-hidden')) {
-          settingsPopover.classList.add('is-hidden');
-        }
-      });
+    }
 
       // New speed buttons (sheet)
       var sheetSpeedBtns = Array.prototype.slice.call(document.querySelectorAll('[data-player-speed]'));
