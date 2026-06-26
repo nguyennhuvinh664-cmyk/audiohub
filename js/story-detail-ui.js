@@ -2252,6 +2252,18 @@
         });
       }
 
+      // Close sheet on ESC
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          var sheet = document.querySelector('[data-player-settings-menu]');
+          var overlay = document.querySelector('[data-sheet-overlay]');
+          if (sheet && sheet.classList.contains('is-open')) {
+            sheet.classList.remove('is-open');
+            if (overlay) overlay.classList.remove('is-open');
+          }
+        }
+      });
+
       // New speed buttons (sheet)
       var sheetSpeedBtns = Array.prototype.slice.call(document.querySelectorAll('[data-player-speed]'));
       sheetSpeedBtns.forEach(function (btn) {
