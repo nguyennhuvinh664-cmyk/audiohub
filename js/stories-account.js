@@ -1214,6 +1214,9 @@
       paginationWrapLeft.innerHTML = totalListPages > 1 ? buildPagination(currentPlaylistListPage, totalListPages, 'playlist-list') : '';
     }
 
+    // Scroll playlist list to top on page change
+    playlistListMount.scrollTop = 0;
+
     renderPlaylistDetail();
   }
 
