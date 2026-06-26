@@ -32,18 +32,38 @@
 /* ── Cover ── */
 .sd-cover { margin-bottom: 16px; }
 
+.sd-cover {
+  position: relative;
+}
+
 .sd-cover__img {
   width: 200px;
   height: 200px;
-  border-radius: var(--sd-r);
+  border-radius: 50%;
   background: linear-gradient(135deg, #1a1040 0%, #2d1b69 50%, #0f3460 100%);
-  box-shadow: 0 16px 48px rgba(0,0,0,.45);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), inset 0 0 0 8px rgba(255,255,255,.06);
   transition: transform .4s cubic-bezier(.4,0,.2,1), box-shadow .4s;
+  position: relative;
+}
+
+.sd-cover__img::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sd-surface);
+  border: 3px solid rgba(255,255,255,.08);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .sd-player.is-playing .sd-cover__img {
-  animation: coverSpin 20s linear infinite;
-  box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 40px var(--sd-glow);
+  animation: coverSpin 4s linear infinite;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), inset 0 0 0 8px rgba(255,255,255,.06), 0 0 40px var(--sd-glow);
 }
 
 @keyframes coverSpin {
