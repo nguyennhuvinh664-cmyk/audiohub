@@ -2307,6 +2307,77 @@
       }
     }
 
+    // Volume — wow control
+    var volWrap = document.querySelector('[data-vol-wrap]');
+    var volToggle = document.querySelector('[data-vol-toggle]');
+    var volSliderWrap = document.querySelector('[data-vol-slider-wrap]');
+    var volTrack = document.querySelector('[data-vol-track]');
+    var volFill = document.querySelector('[data-vol-fill]');
+    var volThumb = document.querySelector('[data-vol-thumb]');
+    var volValue = document.querySelector('[data-vol-value]');
+    var volRing = document.querySelector('[data-vol-ring]');
+    var volIcon = document.querySelector('[data-vol-icon]');
+
+    function updateVolUI(pct) {
+      if (volFill) volFill.style.height = pct + '%';
+      if (volThumb) volThumb.style.bottom = pct + '%';
+      if (volValue) volValue.textContent = Math.round(pct);
+      if (volRing) {
+        var circumference = 94.25;
+        var offset = circumference - (circumference * pct / 100);
+        volRing.style.strokeDashoffset = offset;
+      }
+      // Update icon based on level
+      if (volIcon) {
+        if (pct === 0) volIcon.className = 'fa-solid fa-volume-xmark sd-vol-icon';
+        else if (pct < 33) volIcon.className = 'fa-solid fa-volume-low sd-vol-icon';
+        else if (pct < 66) volIcon.className = 'fa-solid fa-volume-low sd-vol-icon';
+        else volIcon.className = 'fa-solid fa-volume-high sd-vol-icon';
+      }
+    }
+
+    if (volToggle && volSliderWrap) {
+      volToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        volSliderWrap.classList.toggle('is-hidden');
+      });
+
+      // Click on track to set volume
+      if (volTrack) {
+        volTrack.addEventListener('click', function (e) {
+          var rect = volTrack.getBoundingClientRect();
+          var pct = Math.max(0, Math.min(100, ((rect.bottom - e.clientY) / rect.height) * 100));
+          if (nativeAudio) nativeAudio.volume = pct / 100;
+          playerState.volume = Math.round(pct) + '%';
+          updateVolUI(pct);
+          renderPlayer();
+        });
+
+        // Drag on track
+        var volDragging = false;
+        volTrack.addEventListener('mousedown', function (e) { volDragging = true; });
+        document.addEventListener('mousemove', function (e) {
+          if (!volDragging) return;
+          var rect = volTrack.getBoundingClientRect();
+          var pct = Math.max(0, Math.min(100, ((rect.bottom - e.clientY) / rect.height) * 100));
+          if (nativeAudio) nativeAudio.volume = pct / 100;
+          playerState.volume = Math.round(pct) + '%';
+          updateVolUI(pct);
+          renderPlayer();
+        });
+        document.addEventListener('mouseup', function () { volDragging = false; });
+      }
+
+      // Close on outside click
+      document.addEventListener('click', function () {
+        if (volSliderWrap) volSliderWrap.classList.add('is-hidden');
+      });
+    }
+
+    // Initialize vol UI
+    var initVol = parseInt(playerState.volume) || 72;
+    updateVolUI(initVol);
+
     // Speed toggle — show popup with options
     var speedToggle = document.querySelector('[data-speed-toggle]');
     var speedPopup = document.querySelector('[data-speed-popup]');

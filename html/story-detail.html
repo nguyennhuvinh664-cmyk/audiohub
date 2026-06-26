@@ -124,9 +124,21 @@
                 </div>
               </div>
               <div class="sd-sec__right">
-                <div class="sd-vol">
-                  <i class="fa-solid fa-volume-low"></i>
-                  <input type="range" min="0" max="100" step="1" value="72" data-player-volume-slider />
+                <div class="sd-vol-wrap" data-vol-wrap>
+                  <button type="button" class="sd-vol-btn" data-vol-toggle title="Âm lượng">
+                    <svg class="sd-vol-ring" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/>
+                      <circle cx="18" cy="18" r="15" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="26.4" transform="rotate(-90 18 18)" data-vol-ring/>
+                    </svg>
+                    <i class="fa-solid fa-volume-high sd-vol-icon" data-vol-icon></i>
+                  </button>
+                  <div class="sd-vol-slider-wrap is-hidden" data-vol-slider-wrap>
+                    <div class="sd-vol-slider-track" data-vol-track>
+                      <div class="sd-vol-slider-fill" data-vol-fill style="height:72%"></div>
+                      <div class="sd-vol-slider-thumb" data-vol-thumb style="bottom:72%"></div>
+                    </div>
+                    <span class="sd-vol-value" data-vol-value>72</span>
+                  </div>
                 </div>
                 <button type="button" class="sd-btn-sm" data-player-settings-toggle title="Cài đặt"><i class="fa-solid fa-ellipsis-vertical"></i></button>
               </div>
