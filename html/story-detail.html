@@ -108,19 +108,10 @@
               <button type="button" class="sd-icon" data-player-repeat title="Lặp lại"><i class="fa-solid fa-repeat"></i></button>
             </div>
 
-            <!-- Row 2: Volume -->
-            <div class="sd-row sd-row--vol">
-              <i class="fa-solid fa-volume-low sd-vol-icon" data-vol-icon></i>
-              <div class="sd-vol-track" data-vol-track>
-                <div class="sd-vol-fill" data-vol-fill></div>
-                <div class="sd-vol-thumb" data-vol-thumb></div>
-              </div>
-              <span class="sd-vol-badge" data-vol-value>72%</span>
-            </div>
-
-            <!-- Row 3: Status + Speed + Settings -->
-            <div class="sd-row sd-row--meta">
+            <!-- Utility Bar -->
+            <div class="sd-ubar">
               <span class="sd-badge" data-player-state><span class="sd-badge__dot"></span> Đang phát</span>
+              <div class="sd-ubar__div"></div>
               <div class="sd-speed-wrap">
                 <button type="button" class="sd-chip" data-speed-toggle data-player-speed-value>1.0x <i class="fa-solid fa-chevron-down" style="font-size:9px;margin-left:2px"></i></button>
                 <div class="sd-speed-popup is-hidden" data-speed-popup>
@@ -131,7 +122,15 @@
                   <button type="button" data-pick-speed="2.0x">2.0x</button>
                 </div>
               </div>
-              <button type="button" class="sd-icon sd-icon--settings" data-player-settings-toggle title="Cài đặt"><i class="fa-solid fa-gear"></i></button>
+              <div class="sd-ubar__div"></div>
+              <i class="fa-solid fa-volume-low sd-vol-icon" data-vol-icon></i>
+              <div class="sd-vol-track" data-vol-track>
+                <div class="sd-vol-fill" data-vol-fill></div>
+                <div class="sd-vol-thumb" data-vol-thumb></div>
+              </div>
+              <span class="sd-vol-badge" data-vol-value>72%</span>
+              <div class="sd-ubar__div"></div>
+              <button type="button" class="sd-ubar__gear" data-player-settings-toggle title="Cài đặt"><i class="fa-solid fa-gear"></i></button>
             </div>
 
             <!-- Native audio (hidden) -->
