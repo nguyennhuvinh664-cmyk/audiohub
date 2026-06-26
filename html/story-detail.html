@@ -97,32 +97,32 @@
               </div>
             </div>
 
-            <!-- Controls Row -->
-            <div class="sd-controls">
-              <button type="button" class="sd-btn sd-btn--icon" data-player-shuffle title="Trộn"><i class="fa-solid fa-shuffle"></i></button>
-              <button type="button" class="sd-btn sd-btn--icon" data-player-prev-chapter title="Chương trước"><i class="fa-solid fa-backward-step"></i></button>
-              <button type="button" class="sd-btn sd-btn--icon" data-player-seek-back title="Lùi 10s"><i class="fa-solid fa-rotate-left"></i><span class="sd-btn__num">10</span></button>
-              <button type="button" class="sd-btn sd-play" data-player-toggle title="Phát / Tạm dừng"><i class="fa-solid fa-play"></i></button>
-              <button type="button" class="sd-btn sd-btn--icon" data-player-seek-forward title="Tiến 10s"><i class="fa-solid fa-rotate-right"></i><span class="sd-btn__num">10</span></button>
-              <button type="button" class="sd-btn sd-btn--icon" data-player-next-chapter title="Chương sau"><i class="fa-solid fa-forward-step"></i></button>
-              <button type="button" class="sd-btn sd-btn--icon" data-player-repeat title="Lặp lại"><i class="fa-solid fa-repeat"></i></button>
+            <!-- Row 1: Controls -->
+            <div class="sd-row sd-row--controls">
+              <button type="button" class="sd-icon" data-player-shuffle title="Trộn"><i class="fa-solid fa-shuffle"></i></button>
+              <button type="button" class="sd-icon" data-player-prev-chapter title="Chương trước"><i class="fa-solid fa-backward-step"></i></button>
+              <button type="button" class="sd-icon" data-player-seek-back title="Lùi 10s"><i class="fa-solid fa-rotate-left"></i><span class="sd-icon__num">10</span></button>
+              <button type="button" class="sd-play" data-player-toggle title="Phát / Tạm dừng"><i class="fa-solid fa-play"></i></button>
+              <button type="button" class="sd-icon" data-player-seek-forward title="Tiến 10s"><i class="fa-solid fa-rotate-right"></i><span class="sd-icon__num">10</span></button>
+              <button type="button" class="sd-icon" data-player-next-chapter title="Chương sau"><i class="fa-solid fa-forward-step"></i></button>
+              <button type="button" class="sd-icon" data-player-repeat title="Lặp lại"><i class="fa-solid fa-repeat"></i></button>
             </div>
 
-            <!-- Volume Row (inline) -->
-            <div class="sd-vol-row">
-              <i class="fa-solid fa-volume-low sd-vol-row__icon"></i>
-              <div class="sd-vol-row__track" data-vol-track>
-                <div class="sd-vol-row__fill" data-vol-fill></div>
-                <div class="sd-vol-row__thumb" data-vol-thumb></div>
+            <!-- Row 2: Volume -->
+            <div class="sd-row sd-row--vol">
+              <i class="fa-solid fa-volume-low sd-vol-icon" data-vol-icon></i>
+              <div class="sd-vol-track" data-vol-track>
+                <div class="sd-vol-fill" data-vol-fill></div>
+                <div class="sd-vol-thumb" data-vol-thumb></div>
               </div>
-              <span class="sd-vol-row__pct" data-vol-value>72%</span>
+              <span class="sd-vol-badge" data-vol-value>72%</span>
             </div>
 
-            <!-- Status + Speed + Settings -->
-            <div class="sd-meta">
-              <span class="sd-status" data-player-state><span class="sd-status__dot"></span> Đang phát</span>
+            <!-- Row 3: Status + Speed + Settings -->
+            <div class="sd-row sd-row--meta">
+              <span class="sd-badge" data-player-state><span class="sd-badge__dot"></span> Đang phát</span>
               <div class="sd-speed-wrap">
-                <button type="button" class="sd-speed" data-speed-toggle data-player-speed-value>1.0x</button>
+                <button type="button" class="sd-chip" data-speed-toggle data-player-speed-value>1.0x <i class="fa-solid fa-chevron-down" style="font-size:9px;margin-left:2px"></i></button>
                 <div class="sd-speed-popup is-hidden" data-speed-popup>
                   <button type="button" data-pick-speed="0.75x">0.75x</button>
                   <button type="button" data-pick-speed="1.0x" class="is-active">1.0x</button>
@@ -131,7 +131,7 @@
                   <button type="button" data-pick-speed="2.0x">2.0x</button>
                 </div>
               </div>
-              <button type="button" class="sd-btn-sm" data-player-settings-toggle title="Cài đặt"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <button type="button" class="sd-icon sd-icon--settings" data-player-settings-toggle title="Cài đặt"><i class="fa-solid fa-gear"></i></button>
             </div>
 
             <!-- Native audio (hidden) -->

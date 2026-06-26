@@ -2002,7 +2002,12 @@
 
     function renderPlayer() {
       if (stateNode) {
-        stateNode.textContent = playerState.playing ? 'Đang phát' : 'Tạm dừng';
+        var dot = stateNode.querySelector('.sd-badge__dot');
+        if (dot) {
+          stateNode.innerHTML = '';
+          stateNode.appendChild(dot);
+          stateNode.appendChild(document.createTextNode(playerState.playing ? ' Đang phát' : ' Tạm dừng'));
+        }
         stateNode.classList.toggle('is-paused', !playerState.playing);
       }
       if (playIcon) playIcon.className = playerState.playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
