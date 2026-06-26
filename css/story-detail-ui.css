@@ -27,7 +27,6 @@
   border-radius: var(--sd-r);
   border: 1px solid var(--sd-border);
   gap: 0;
-  contain: layout;
 }
 
 /* ── Cover ── */
