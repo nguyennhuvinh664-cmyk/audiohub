@@ -684,7 +684,7 @@
 
     var paginationWrap = document.querySelector('[data-pagination-wrap="history"]');
     if (paginationWrap) {
-      paginationWrap.innerHTML = buildPagination(page, totalPages, 'history');
+      paginationWrap.innerHTML = totalPages > 1 ? buildPagination(page, totalPages, 'history') : '';
     }
 
     hydrateLibraryThumbs(historyMount);
@@ -722,7 +722,7 @@
 
     var paginationWrap = document.querySelector('[data-pagination-wrap="favorites"]');
     if (paginationWrap) {
-      paginationWrap.innerHTML = buildPagination(page, totalPages, 'favorites');
+      paginationWrap.innerHTML = totalPages > 1 ? buildPagination(page, totalPages, 'favorites') : '';
     }
 
     hydrateLibraryThumbs(favoritesMount);
@@ -871,7 +871,7 @@
 
     var paginationWrap = document.querySelector('[data-pagination-wrap="' + type + '"]');
     if (paginationWrap) {
-      paginationWrap.innerHTML = buildPagination(page, totalPages, type);
+      paginationWrap.innerHTML = totalPages > 1 ? buildPagination(page, totalPages, type) : '';
     }
 
     hydrateStoryThumbs(mount);

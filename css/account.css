@@ -620,6 +620,10 @@
   background: var(--bg-card);
 }
 
+.account-pagination-wrap:empty {
+  display: none;
+}
+
 /* visible rail to ensure users see a scrollbar area even when OS hides native scrollbars */
 .account-scroll-list::after {
   content: "";
@@ -657,40 +661,58 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 16px 0;
-  margin-top: 16px;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  width: 100%;
+  animation: pagination-fade-in .18s ease both;
 }
 
 .account-page-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
+  min-width: 36px;
   height: 36px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.15);
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.03);
   color: var(--t1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all .2s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease, opacity .18s ease;
 }
 
 .account-page-btn:hover:not(:disabled) {
-  border-color: rgba(245,158,11,.3);
-  background: rgba(245,158,11,.1);
+  transform: translateY(-1px) scale(1.03);
+  border-color: rgba(245,158,11,.35);
+  background: rgba(245,158,11,.12);
   color: var(--primary);
+  box-shadow: 0 8px 18px rgba(245,158,11,.08);
+}
+
+.account-page-btn.is-active {
+  border-color: rgba(245,158,11,.45);
+  background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(6,182,212,.14));
+  color: #fff7ed;
+  box-shadow: 0 10px 24px rgba(245,158,11,.14);
+  transform: translateY(-1px) scale(1.05);
 }
 
 .account-page-btn:disabled {
-  opacity: 0.3;
+  opacity: .3;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .account-page-info {
-  font-weight: 700;
+  font-weight: 800;
   color: var(--t2);
-  font-size: .9rem;
+  font-size: .92rem;
+  letter-spacing: .01em;
+  padding-inline: 2px;
 }
 
 .account-content-panels {
@@ -913,60 +935,6 @@
   cursor: not-allowed;
 }
 
-.account-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 4px;
-  padding: 3px 10px;
-  border-top: 1px solid rgba(255,255,255,.05);
-  transform: scale(.7);
-  transform-origin: top center;
-  width: 100%;
-}
-
-.account-pagination {
-  animation: pagination-fade-in .18s ease both;
-}
-
-.account-page-btn {
-  min-width: 36px;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.03);
-  color: var(--t1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
-  transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease, opacity .18s ease;
-}
-
-.account-page-btn:hover:not(:disabled) {
-  transform: translateY(-1px) scale(1.03);
-  border-color: rgba(245,158,11,.35);
-  background: rgba(245,158,11,.12);
-  color: var(--primary);
-  box-shadow: 0 8px 18px rgba(245,158,11,.08);
-}
-
-.account-page-btn.is-active {
-  border-color: rgba(245,158,11,.45);
-  background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(6,182,212,.14));
-  color: #fff7ed;
-  box-shadow: 0 10px 24px rgba(245,158,11,.14);
-  transform: translateY(-1px) scale(1.05);
-}
-
-.account-page-btn:disabled {
-  opacity: .3;
-  cursor: not-allowed;
-  box-shadow: none;
-}
 
 .account-page-ellipsis {
   color: var(--t3);
@@ -976,8 +944,8 @@
 }
 
 @keyframes pagination-fade-in {
-  from { opacity: 0; transform: translateY(4px) scale(.7); }
-  to { opacity: 1; transform: translateY(0) scale(.7); }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .account-page-info {

@@ -27,9 +27,6 @@
     height: auto;
   }
 }
-    height: auto;
-  }
-}
 
 .playlist-list-wrap,
 .playlist-detail-wrap {
@@ -434,29 +431,14 @@
   }
 }
 
-/* Pagination */
-.playlist-pagination {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 0;
+/* Pagination inside playlist panels */
+.playlist-list-wrap .account-pagination-wrap,
+.playlist-detail-wrap .account-pagination-wrap {
+  flex-shrink: 0;
+  min-height: 0;
 }
 
-.playlist-pagination button {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: #fff;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.playlist-pagination button:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.playlist-pagination button.active {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.5);
+.playlist-list-wrap .account-pagination-wrap:empty,
+.playlist-detail-wrap .account-pagination-wrap:empty {
+  display: none;
 }
