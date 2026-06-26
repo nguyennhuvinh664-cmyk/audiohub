@@ -531,6 +531,7 @@
 }
 
 .sd-sheet {
+  display: none;
   position: fixed;
   bottom: 0;
   left: 0;
@@ -541,20 +542,17 @@
   padding: 0 20px calc(16px + env(safe-area-inset-bottom, 0px));
   max-height: 80vh;
   overflow-y: auto;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(20px);
-  opacity: 0;
-  transition: transform .25s cubic-bezier(.32,.72,0,1), opacity .25s ease, visibility 0s .25s;
   box-shadow: 0 -8px 32px rgba(0,0,0,.4);
 }
 
 .sd-sheet.is-open {
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0);
-  opacity: 1;
-  transition: transform .25s cubic-bezier(.32,.72,0,1), opacity .25s ease, visibility 0s 0s;
+  display: block;
+  animation: sheetUp .25s cubic-bezier(.32,.72,0,1);
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 .sd-sheet__handle { width: 36px; height: 4px; background: rgba(255,255,255,.12); border-radius: 2px; margin: 0 auto 16px; }
 .sd-sheet__section { margin-bottom: 24px; }
@@ -746,11 +744,16 @@
     right: auto;
     width: min(440px, 90vw);
     border-radius: 20px;
-    transform: translateX(-50%) translateY(20px);
   }
 
   .sd-sheet.is-open {
-    transform: translateX(-50%) translateY(0);
+    display: block;
+    animation: sheetUpCenter .25s cubic-bezier(.32,.72,0,1);
+  }
+
+  @keyframes sheetUpCenter {
+    from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
   }
   .reading-toolbar__row { display: grid; grid-template-columns: repeat(2, 1fr); }
   .reading-toolbar__row.is-open { display: grid; }
