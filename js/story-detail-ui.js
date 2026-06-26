@@ -2305,7 +2305,6 @@
           }
         });
       }
-    }
 
     // Volume — inline in ubar
     var volTrack = document.querySelector('[data-vol-track]');
