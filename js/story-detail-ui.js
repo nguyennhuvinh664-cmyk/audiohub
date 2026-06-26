@@ -2307,24 +2307,22 @@
       }
     }
 
-    // Volume — horizontal popup
-    var volWrap = document.querySelector('[data-vol-wrap]');
-    var volToggle = document.querySelector('[data-vol-toggle]');
-    var volPopup = document.querySelector('[data-vol-popup]');
+    // Volume — inline row
     var volTrack = document.querySelector('[data-vol-track]');
     var volFill = document.querySelector('[data-vol-fill]');
     var volThumb = document.querySelector('[data-vol-thumb]');
     var volValueEl = document.querySelector('[data-vol-value]');
-    var volIcon = document.querySelector('[data-vol-icon]');
 
     function updateVolUI(pct) {
       if (volFill) volFill.style.width = pct + '%';
       if (volThumb) volThumb.style.left = pct + '%';
       if (volValueEl) volValueEl.textContent = Math.round(pct) + '%';
-      if (volIcon) {
-        if (pct === 0) volIcon.className = 'fa-solid fa-volume-xmark';
-        else if (pct < 40) volIcon.className = 'fa-solid fa-volume-low';
-        else volIcon.className = 'fa-solid fa-volume-high';
+      // Update row icon
+      var rowIcon = document.querySelector('.sd-vol-row__icon');
+      if (rowIcon) {
+        if (pct === 0) rowIcon.className = 'fa-solid fa-volume-xmark sd-vol-row__icon';
+        else if (pct < 40) rowIcon.className = 'fa-solid fa-volume-low sd-vol-row__icon';
+        else rowIcon.className = 'fa-solid fa-volume-high sd-vol-row__icon';
       }
     }
 
@@ -2338,26 +2336,12 @@
       renderPlayer();
     }
 
-    if (volToggle && volPopup) {
-      volToggle.addEventListener('click', function (e) {
-        e.stopPropagation();
-        volPopup.classList.toggle('is-hidden');
-      });
-
-      if (volTrack) {
-        volTrack.addEventListener('click', setVolFromEvent);
-
-        var volDragging = false;
-        volTrack.addEventListener('mousedown', function (e) { volDragging = true; setVolFromEvent(e); });
-        document.addEventListener('mousemove', function (e) { if (volDragging) setVolFromEvent(e); });
-        document.addEventListener('mouseup', function () { volDragging = false; });
-      }
-
-      document.addEventListener('click', function (e) {
-        if (volWrap && !volWrap.contains(e.target)) {
-          volPopup.classList.add('is-hidden');
-        }
-      });
+    if (volTrack) {
+      volTrack.addEventListener('click', setVolFromEvent);
+      var volDragging = false;
+      volTrack.addEventListener('mousedown', function (e) { volDragging = true; setVolFromEvent(e); });
+      document.addEventListener('mousemove', function (e) { if (volDragging) setVolFromEvent(e); });
+      document.addEventListener('mouseup', function () { volDragging = false; });
     }
 
     // Init

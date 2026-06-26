@@ -97,7 +97,7 @@
               </div>
             </div>
 
-            <!-- Main Controls -->
+            <!-- Controls Row -->
             <div class="sd-controls">
               <button type="button" class="sd-btn sd-btn--icon" data-player-shuffle title="Trộn"><i class="fa-solid fa-shuffle"></i></button>
               <button type="button" class="sd-btn sd-btn--icon" data-player-prev-chapter title="Chương trước"><i class="fa-solid fa-backward-step"></i></button>
@@ -108,37 +108,30 @@
               <button type="button" class="sd-btn sd-btn--icon" data-player-repeat title="Lặp lại"><i class="fa-solid fa-repeat"></i></button>
             </div>
 
-            <!-- Secondary Controls -->
-            <div class="sd-sec">
-              <div class="sd-sec__left">
-                <span class="sd-status" data-player-state><span class="sd-status__dot"></span> Đang phát</span>
-                <div class="sd-speed-wrap">
-                  <button type="button" class="sd-speed" data-speed-toggle data-player-speed-value>1.0x</button>
-                  <div class="sd-speed-popup is-hidden" data-speed-popup>
-                    <button type="button" data-pick-speed="0.75x">0.75x</button>
-                    <button type="button" data-pick-speed="1.0x" class="is-active">1.0x</button>
-                    <button type="button" data-pick-speed="1.25x">1.25x</button>
-                    <button type="button" data-pick-speed="1.5x">1.5x</button>
-                    <button type="button" data-pick-speed="2.0x">2.0x</button>
-                  </div>
+            <!-- Volume Row (inline) -->
+            <div class="sd-vol-row">
+              <i class="fa-solid fa-volume-low sd-vol-row__icon"></i>
+              <div class="sd-vol-row__track" data-vol-track>
+                <div class="sd-vol-row__fill" data-vol-fill></div>
+                <div class="sd-vol-row__thumb" data-vol-thumb></div>
+              </div>
+              <span class="sd-vol-row__pct" data-vol-value>72%</span>
+            </div>
+
+            <!-- Status + Speed + Settings -->
+            <div class="sd-meta">
+              <span class="sd-status" data-player-state><span class="sd-status__dot"></span> Đang phát</span>
+              <div class="sd-speed-wrap">
+                <button type="button" class="sd-speed" data-speed-toggle data-player-speed-value>1.0x</button>
+                <div class="sd-speed-popup is-hidden" data-speed-popup>
+                  <button type="button" data-pick-speed="0.75x">0.75x</button>
+                  <button type="button" data-pick-speed="1.0x" class="is-active">1.0x</button>
+                  <button type="button" data-pick-speed="1.25x">1.25x</button>
+                  <button type="button" data-pick-speed="1.5x">1.5x</button>
+                  <button type="button" data-pick-speed="2.0x">2.0x</button>
                 </div>
               </div>
-              <div class="sd-sec__right">
-                <div class="sd-vol" data-vol-wrap>
-                  <button type="button" class="sd-vol-btn" data-vol-toggle title="Âm lượng">
-                    <i class="fa-solid fa-volume-high" data-vol-icon></i>
-                  </button>
-                  <div class="sd-vol-popup is-hidden" data-vol-popup>
-                    <i class="fa-solid fa-volume-low sd-vol-popup__icon"></i>
-                    <div class="sd-vol-popup__track" data-vol-track>
-                      <div class="sd-vol-popup__fill" data-vol-fill></div>
-                      <div class="sd-vol-popup__thumb" data-vol-thumb></div>
-                    </div>
-                    <span class="sd-vol-popup__pct" data-vol-value>72%</span>
-                  </div>
-                </div>
-                <button type="button" class="sd-btn-sm" data-player-settings-toggle title="Cài đặt"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-              </div>
+              <button type="button" class="sd-btn-sm" data-player-settings-toggle title="Cài đặt"><i class="fa-solid fa-ellipsis-vertical"></i></button>
             </div>
 
             <!-- Native audio (hidden) -->

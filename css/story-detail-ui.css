@@ -227,6 +227,17 @@
   gap: 12px;
 }
 
+/* Meta row */
+.sd-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 8px;
+}
+
 .sd-status {
   display: flex;
   align-items: center;
@@ -299,73 +310,35 @@
 .sd-speed-popup button:hover { background: rgba(255,255,255,.06); color: var(--sd-text); }
 .sd-speed-popup button.is-active { background: rgba(245,158,11,.12); color: var(--sd-primary); }
 
-/* ═══ Volume — Spotify horizontal popup ═══ */
-.sd-vol { position: relative; }
-
-.sd-vol-btn {
-  width: 36px;
-  height: 36px;
-  background: none;
-  border: none;
-  color: var(--sd-text-3);
-  font-size: 15px;
-  cursor: pointer;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all .15s;
-}
-
-.sd-vol-btn:hover { color: var(--sd-text); background: rgba(255,255,255,.06); }
-
-/* Horizontal popup */
-.sd-vol-popup {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  right: 0;
-  width: 240px;
-  height: 56px;
-  padding: 0 16px;
+/* ═══ Volume Row — inline ═══ */
+.sd-vol-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(29, 34, 50, .95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.03);
-  z-index: 50;
-  animation: volPopIn .18s ease-out;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 16px;
 }
 
-.sd-vol-popup.is-hidden { display: none; }
-
-@keyframes volPopIn {
-  from { opacity: 0; transform: translateY(6px) scale(.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.sd-vol-popup__icon {
+.sd-vol-row__icon {
   font-size: 13px;
   color: var(--sd-text-3);
   flex-shrink: 0;
 }
 
-/* Track */
-.sd-vol-popup__track {
+.sd-vol-row__track {
   flex: 1;
   height: 6px;
   background: #32384a;
   border-radius: 3px;
   position: relative;
   cursor: pointer;
+  transition: height .15s;
 }
 
-.sd-vol-popup__track:hover { height: 8px; }
+.sd-vol-row__track:hover { height: 8px; }
 
-.sd-vol-popup__fill {
+.sd-vol-row__fill {
   height: 100%;
   background: linear-gradient(90deg, #ffb347, #ff9800, #ff6d00);
   border-radius: 3px;
@@ -373,7 +346,7 @@
   position: relative;
 }
 
-.sd-vol-popup__thumb {
+.sd-vol-row__thumb {
   position: absolute;
   right: -7px;
   top: 50%;
@@ -388,11 +361,10 @@
   pointer-events: none;
 }
 
-.sd-vol-popup__track:hover .sd-vol-popup__thumb { transform: translateY(-50%) scale(1.15); }
-.sd-vol-popup__track:active .sd-vol-popup__thumb { transform: translateY(-50%) scale(1.25); }
+.sd-vol-row__track:hover .sd-vol-row__thumb { transform: translateY(-50%) scale(1.15); }
+.sd-vol-row__track:active .sd-vol-row__thumb { transform: translateY(-50%) scale(1.25); }
 
-/* Percentage */
-.sd-vol-popup__pct {
+.sd-vol-row__pct {
   font-size: .75rem;
   font-weight: 700;
   color: var(--sd-text-2);
