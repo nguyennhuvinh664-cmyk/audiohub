@@ -1993,7 +1993,10 @@
     }
 
     function renderPlayer() {
-      if (stateNode) stateNode.textContent = playerState.playing ? 'Đang phát' : 'Tạm dừng';
+      if (stateNode) {
+        stateNode.textContent = playerState.playing ? 'Đang phát' : 'Tạm dừng';
+        stateNode.classList.toggle('is-paused', !playerState.playing);
+      }
       if (playIcon) playIcon.className = playerState.playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
       if (progressFill) progressFill.style.width = playerState.progress + '%';
       if (progressThumb) progressThumb.style.left = playerState.progress + '%';
@@ -2009,6 +2012,10 @@
       if (volumeSlider) volumeSlider.value = playerState.volume.replace('%', '');
       setActive(speedNodes, playerState.speed, 'data-player-speed');
       setActive(chapterNodes, playerState.chapter, 'data-player-chapter');
+
+      // Playing state animation
+      var playerRoot = document.querySelector('[data-player-root]');
+      if (playerRoot) playerRoot.classList.toggle('is-playing', playerState.playing);
     }
 
     var chapterListRoot = document.querySelector('.chapter-list');
@@ -2250,6 +2257,8 @@
           if (chip) chip.innerHTML = speed + ' <i class="fa-solid fa-chevron-down" style="font-size:10px"></i>';
           var speedLbl = document.querySelector('[data-player-speed-value]');
           if (speedLbl) speedLbl.textContent = speed;
+          var speedTag = document.querySelector('.sd-speed');
+          if (speedTag) speedTag.textContent = speed;
         });
       });
 
