@@ -2234,33 +2234,45 @@
       renderPlayer();
     });
 
-    if (settingsToggle && settingsMenu) {
-      settingsToggle.addEventListener('click', function () {
-        var sheet = document.querySelector('[data-player-settings-menu]');
-        var overlay = document.querySelector('[data-sheet-overlay]');
-        if (sheet) sheet.classList.toggle('is-open');
-        if (overlay) overlay.classList.toggle('is-open');
+    // Settings popover — anchored to gear icon
+    var settingsPopover = document.querySelector('[data-settings-popover]');
+    var settingsGear = document.querySelector('[data-player-settings-toggle]');
+
+    if (settingsGear && settingsPopover) {
+      settingsGear.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var isOpen = !settingsPopover.classList.contains('is-hidden');
+        // Close first
+        settingsPopover.classList.add('is-hidden');
+        if (!isOpen) {
+          // Position popover above gear
+          var gearRect = settingsGear.getBoundingClientRect();
+          var popW = 320;
+          var popLeft = gearRect.right - popW;
+          // If would go off left edge, align left
+          if (popLeft < 8) popLeft = 8;
+          // If would go off right edge
+          if (popLeft + popW > window.innerWidth - 8) {
+            popLeft = window.innerWidth - popW - 8;
+          }
+          settingsPopover.style.left = popLeft + 'px';
+          settingsPopover.style.bottom = (window.innerHeight - gearRect.top + 8) + 'px';
+          settingsPopover.style.right = 'auto';
+          settingsPopover.classList.remove('is-hidden');
+        }
       });
 
-      // Close sheet on overlay click
-      var sheetOverlay = document.querySelector('[data-sheet-overlay]');
-      if (sheetOverlay) {
-        sheetOverlay.addEventListener('click', function () {
-          var sheet = document.querySelector('[data-player-settings-menu]');
-          if (sheet) sheet.classList.remove('is-open');
-          sheetOverlay.classList.remove('is-open');
-        });
-      }
+      // Close on outside click
+      document.addEventListener('click', function (e) {
+        if (settingsPopover && !settingsPopover.contains(e.target) && !settingsGear.contains(e.target)) {
+          settingsPopover.classList.add('is-hidden');
+        }
+      });
 
-      // Close sheet on ESC
+      // Close on ESC
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-          var sheet = document.querySelector('[data-player-settings-menu]');
-          var overlay = document.querySelector('[data-sheet-overlay]');
-          if (sheet && sheet.classList.contains('is-open')) {
-            sheet.classList.remove('is-open');
-            if (overlay) overlay.classList.remove('is-open');
-          }
+        if (e.key === 'Escape' && settingsPopover && !settingsPopover.classList.contains('is-hidden')) {
+          settingsPopover.classList.add('is-hidden');
         }
       });
 
