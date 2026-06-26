@@ -2234,18 +2234,35 @@
       renderPlayer();
     });
 
-    // Settings panel — expand/collapse
+    // Settings popover — toggle, click-outside, ESC
     var settingsPanel = document.querySelector('[data-settings-panel]');
     var settingsGear = document.querySelector('[data-settings-toggle]');
+    var settingsWrap = document.querySelector('[data-settings-toggle-wrap]');
+
+    function closeSettingsPopover() {
+      if (settingsPanel) settingsPanel.classList.remove('is-open');
+    }
 
     if (settingsGear && settingsPanel) {
-      settingsGear.addEventListener('click', function () {
+      settingsGear.addEventListener('click', function (e) {
+        e.stopPropagation();
         settingsPanel.classList.toggle('is-open');
-        // Rotate gear icon
-        var isOpen = settingsPanel.classList.contains('is-open');
-        settingsGear.style.transform = isOpen ? 'rotate(90deg)' : '';
       });
     }
+
+    if (settingsPanel) {
+      settingsPanel.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    }
+
+    document.addEventListener('click', function () {
+      closeSettingsPopover();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeSettingsPopover();
+    });
 
       // New speed buttons (sheet)
       var sheetSpeedBtns = Array.prototype.slice.call(document.querySelectorAll('[data-player-speed]'));

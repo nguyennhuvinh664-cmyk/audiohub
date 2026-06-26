@@ -511,30 +511,45 @@
 
 .sd-nextup__play:hover { background: var(--sd-primary); color: #000; }
 
-/* ═══ Settings Panel — expandable ═══ */
+/* ═══ Gear Wrap — anchor for popover ═══ */
+.sd-ubar__gear-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ═══ Settings Popover ═══ */
 .sd-settings {
-  width: 100%;
-  max-width: 480px;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height .3s cubic-bezier(.4,0,.2,1), opacity .25s ease;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: 330px;
+  background: #18181b;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04);
+  z-index: 100;
   opacity: 0;
+  visibility: hidden;
+  transform: scale(.95) translateY(4px);
+  transform-origin: bottom right;
+  transition: opacity .18s ease, transform .18s ease, visibility .18s;
+  pointer-events: none;
 }
 
 .sd-settings.is-open {
-  max-height: 400px;
   opacity: 1;
+  visibility: visible;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
 }
 
-.sd-settings__inner {
-  padding: 20px 0 0;
+.sd-settings__section {
   display: flex;
   flex-direction: column;
   gap: 0;
-}
-
-.sd-settings__col {
-  padding: 16px 0;
 }
 
 .sd-settings__label {
