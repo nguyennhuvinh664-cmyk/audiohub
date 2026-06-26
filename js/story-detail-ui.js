@@ -2237,20 +2237,6 @@
         if (overlay) overlay.classList.toggle('is-open');
       });
 
-      // Speed toggle — cycles through speeds
-      var speedToggle = document.querySelector('[data-speed-toggle]');
-      var speedOptions = ['0.75x', '1.0x', '1.25x', '1.5x', '2.0x'];
-      if (speedToggle) {
-        speedToggle.addEventListener('click', function () {
-          var current = playerState.speed;
-          var idx = speedOptions.indexOf(current);
-          var next = speedOptions[(idx + 1) % speedOptions.length];
-          playerState.speed = next;
-          if (nativeAudio) nativeAudio.playbackRate = parseFloat(next);
-          renderPlayer();
-        });
-      }
-
       // Close sheet on overlay click
       var sheetOverlay = document.querySelector('[data-sheet-overlay]');
       if (sheetOverlay) {
@@ -2319,6 +2305,20 @@
           }
         });
       }
+    }
+
+    // Speed toggle — OUTSIDE if block, always bind
+    var speedToggle = document.querySelector('[data-speed-toggle]');
+    var speedOptions = ['0.75x', '1.0x', '1.25x', '1.5x', '2.0x'];
+    if (speedToggle) {
+      speedToggle.addEventListener('click', function () {
+        var current = playerState.speed;
+        var idx = speedOptions.indexOf(current);
+        var next = speedOptions[(idx + 1) % speedOptions.length];
+        playerState.speed = next;
+        if (nativeAudio) nativeAudio.playbackRate = parseFloat(next);
+        renderPlayer();
+      });
     }
 
     renderPlayer();
