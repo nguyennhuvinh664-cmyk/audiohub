@@ -129,45 +129,44 @@
                 </div>
                 <span class="sd-vol-tip" data-vol-value>72%</span>
               </div>
-              <span class="sd-ubar__gear-wrap" data-settings-toggle-wrap>
-                <button type="button" class="sd-ubar__gear" data-settings-toggle title="Cài đặt"><i class="fa-solid fa-gear"></i></button>
-                <!-- Settings Popover -->
-                <div class="sd-settings" data-settings-panel>
-                  <div class="sd-settings__section">
-                    <div class="sd-settings__label">Hẹn giờ tắt</div>
-                    <div class="sd-settings__pills">
-                      <button type="button" class="sd-settings__pill" data-sleep-option="15 phút">15 phút</button>
-                      <button type="button" class="sd-settings__pill" data-sleep-option="30 phút">30 phút</button>
-                      <button type="button" class="sd-settings__pill" data-sleep-option="45 phút">45 phút</button>
-                      <button type="button" class="sd-settings__pill" data-sleep-option="60 phút">60 phút</button>
-                    </div>
-                    <div class="sd-settings__custom">
-                      <input type="number" min="1" max="240" placeholder="Phút" data-sleep-custom-input />
-                      <button type="button" data-sleep-custom-apply>Áp dụng</button>
-                    </div>
-                    <p class="sd-settings__note" data-sleep-status>Chưa đặt hẹn giờ.</p>
-                  </div>
-                  <div class="sd-settings__divider"></div>
-                  <div class="sd-settings__section">
-                    <div class="sd-settings__label">Tự động</div>
-                    <label class="sd-settings__toggle">
-                      <span>Tiếp tục chương sau</span>
-                      <input type="checkbox" checked data-player-auto-next />
-                      <span class="sd-settings__switch"></span>
-                    </label>
-                    <label class="sd-settings__toggle">
-                      <span>Tự động cuộn</span>
-                      <input type="checkbox" data-player-auto-scroll />
-                      <span class="sd-settings__switch"></span>
-                    </label>
-                  </div>
-                </div>
-              </span>
+              <button type="button" class="sd-ubar__gear" data-settings-toggle title="Cài đặt"><i class="fa-solid fa-gear"></i></button>
             </div>
 
             <!-- Native audio (hidden) -->
             <audio class="is-hidden" preload="metadata" data-story-audio></audio>
             <div class="is-hidden" data-story-audio-note></div>
+
+            <!-- Settings Popover (positioned via JS) -->
+            <div class="sd-settings" data-settings-panel>
+              <div class="sd-settings__section">
+                <div class="sd-settings__label">Hẹn giờ tắt</div>
+                <div class="sd-settings__pills">
+                  <button type="button" class="sd-settings__pill" data-sleep-option="15 phút">15 phút</button>
+                  <button type="button" class="sd-settings__pill" data-sleep-option="30 phút">30 phút</button>
+                  <button type="button" class="sd-settings__pill" data-sleep-option="45 phút">45 phút</button>
+                  <button type="button" class="sd-settings__pill" data-sleep-option="60 phút">60 phút</button>
+                </div>
+                <div class="sd-settings__custom">
+                  <input type="number" min="1" max="240" placeholder="Phút" data-sleep-custom-input />
+                  <button type="button" data-sleep-custom-apply>Áp dụng</button>
+                </div>
+                <p class="sd-settings__note" data-sleep-status>Chưa đặt hẹn giờ.</p>
+              </div>
+              <div class="sd-settings__divider"></div>
+              <div class="sd-settings__section">
+                <div class="sd-settings__label">Tự động</div>
+                <label class="sd-settings__toggle">
+                  <span>Tiếp tục chương sau</span>
+                  <input type="checkbox" checked data-player-auto-next />
+                  <span class="sd-settings__switch"></span>
+                </label>
+                <label class="sd-settings__toggle">
+                  <span>Tự động cuộn</span>
+                  <input type="checkbox" data-player-auto-scroll />
+                  <span class="sd-settings__switch"></span>
+                </label>
+              </div>
+            </div>
           </section>
 
           <!-- Next Up -->

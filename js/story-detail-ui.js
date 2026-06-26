@@ -2238,15 +2238,36 @@
     var settingsPanel = document.querySelector('[data-settings-panel]');
     var settingsGear = document.querySelector('[data-settings-toggle]');
     var settingsWrap = document.querySelector('[data-settings-toggle-wrap]');
+    var playerRoot = document.querySelector('[data-player-root]');
 
     function closeSettingsPopover() {
       if (settingsPanel) settingsPanel.classList.remove('is-open');
     }
 
+    function positionSettingsPopover() {
+      if (!settingsGear || !settingsPanel || !playerRoot) return;
+      var gearRect = settingsGear.getBoundingClientRect();
+      var playerRect = playerRoot.getBoundingClientRect();
+      var popWidth = 330;
+      var gap = 10;
+      // Position below gear, right-aligned to gear
+      var top = gearRect.bottom - playerRect.top + gap;
+      var right = playerRect.right - gearRect.right;
+      // Clamp to not overflow left
+      if (right + popWidth > playerRect.width) {
+        right = playerRect.width - popWidth - 12;
+      }
+      if (right < 12) right = 12;
+      settingsPanel.style.top = top + 'px';
+      settingsPanel.style.right = right + 'px';
+    }
+
     if (settingsGear && settingsPanel) {
       settingsGear.addEventListener('click', function (e) {
         e.stopPropagation();
+        var willOpen = !settingsPanel.classList.contains('is-open');
         settingsPanel.classList.toggle('is-open');
+        if (willOpen) positionSettingsPopover();
       });
     }
 
