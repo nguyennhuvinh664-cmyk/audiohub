@@ -299,102 +299,107 @@
 .sd-speed-popup button:hover { background: rgba(255,255,255,.06); color: var(--sd-text); }
 .sd-speed-popup button.is-active { background: rgba(245,158,11,.12); color: var(--sd-primary); }
 
-/* Volume — wow style */
-.sd-vol-wrap {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-}
+/* ═══ Volume — Spotify horizontal popup ═══ */
+.sd-vol { position: relative; }
 
 .sd-vol-btn {
-  position: relative;
   width: 36px;
   height: 36px;
   background: none;
   border: none;
+  color: var(--sd-text-3);
+  font-size: 15px;
   cursor: pointer;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform .2s;
+  transition: all .15s;
 }
 
-.sd-vol-btn:hover { transform: scale(1.1); }
-.sd-vol-btn:active { transform: scale(.95); }
+.sd-vol-btn:hover { color: var(--sd-text); background: rgba(255,255,255,.06); }
 
-.sd-vol-ring {
+/* Horizontal popup */
+.sd-vol-popup {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.sd-vol-icon {
-  font-size: 14px;
-  color: var(--sd-text-3);
-  z-index: 1;
-  transition: color .2s;
-}
-
-.sd-vol-btn:hover .sd-vol-icon { color: var(--sd-text); }
-
-/* Vertical slider popup */
-.sd-vol-slider-wrap {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: 240px;
+  height: 56px;
+  padding: 0 16px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 12px 8px;
-  background: var(--sd-surface-2);
-  border: 1px solid var(--sd-border);
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  gap: 12px;
+  background: rgba(29, 34, 50, .95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.03);
   z-index: 50;
+  animation: volPopIn .18s ease-out;
 }
 
-.sd-vol-slider-wrap.is-hidden { display: none; }
+.sd-vol-popup.is-hidden { display: none; }
 
-.sd-vol-slider-track {
-  width: 6px;
-  height: 120px;
-  background: rgba(255,255,255,.08);
+@keyframes volPopIn {
+  from { opacity: 0; transform: translateY(6px) scale(.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.sd-vol-popup__icon {
+  font-size: 13px;
+  color: var(--sd-text-3);
+  flex-shrink: 0;
+}
+
+/* Track */
+.sd-vol-popup__track {
+  flex: 1;
+  height: 6px;
+  background: #32384a;
   border-radius: 3px;
   position: relative;
   cursor: pointer;
 }
 
-.sd-vol-slider-fill {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: linear-gradient(180deg, var(--sd-primary), #fb923c);
+.sd-vol-popup__track:hover { height: 8px; }
+
+.sd-vol-popup__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffb347, #ff9800, #ff6d00);
   border-radius: 3px;
-  transition: height .1s;
+  width: 72%;
+  position: relative;
 }
 
-.sd-vol-slider-thumb {
+.sd-vol-popup__thumb {
   position: absolute;
-  left: 50%;
-  transform: translate(-50%, 50%);
-  width: 14px;
-  height: 14px;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,.3);
-  transition: bottom .1s;
+  border: 2px solid #ff9800;
+  box-shadow: 0 0 8px rgba(255,152,0,.35);
+  transition: transform .15s;
   pointer-events: none;
 }
 
-.sd-vol-value {
-  font-size: .72rem;
+.sd-vol-popup__track:hover .sd-vol-popup__thumb { transform: translateY(-50%) scale(1.15); }
+.sd-vol-popup__track:active .sd-vol-popup__thumb { transform: translateY(-50%) scale(1.25); }
+
+/* Percentage */
+.sd-vol-popup__pct {
+  font-size: .75rem;
   font-weight: 700;
-  color: var(--sd-text-3);
+  color: var(--sd-text-2);
+  min-width: 32px;
+  text-align: right;
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .sd-btn-sm {

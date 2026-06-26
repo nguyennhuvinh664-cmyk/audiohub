@@ -2307,74 +2307,60 @@
       }
     }
 
-    // Volume — wow control
+    // Volume — horizontal popup
     var volWrap = document.querySelector('[data-vol-wrap]');
     var volToggle = document.querySelector('[data-vol-toggle]');
-    var volSliderWrap = document.querySelector('[data-vol-slider-wrap]');
+    var volPopup = document.querySelector('[data-vol-popup]');
     var volTrack = document.querySelector('[data-vol-track]');
     var volFill = document.querySelector('[data-vol-fill]');
     var volThumb = document.querySelector('[data-vol-thumb]');
-    var volValue = document.querySelector('[data-vol-value]');
-    var volRing = document.querySelector('[data-vol-ring]');
+    var volValueEl = document.querySelector('[data-vol-value]');
     var volIcon = document.querySelector('[data-vol-icon]');
 
     function updateVolUI(pct) {
-      if (volFill) volFill.style.height = pct + '%';
-      if (volThumb) volThumb.style.bottom = pct + '%';
-      if (volValue) volValue.textContent = Math.round(pct);
-      if (volRing) {
-        var circumference = 94.25;
-        var offset = circumference - (circumference * pct / 100);
-        volRing.style.strokeDashoffset = offset;
-      }
-      // Update icon based on level
+      if (volFill) volFill.style.width = pct + '%';
+      if (volThumb) volThumb.style.left = pct + '%';
+      if (volValueEl) volValueEl.textContent = Math.round(pct) + '%';
       if (volIcon) {
-        if (pct === 0) volIcon.className = 'fa-solid fa-volume-xmark sd-vol-icon';
-        else if (pct < 33) volIcon.className = 'fa-solid fa-volume-low sd-vol-icon';
-        else if (pct < 66) volIcon.className = 'fa-solid fa-volume-low sd-vol-icon';
-        else volIcon.className = 'fa-solid fa-volume-high sd-vol-icon';
+        if (pct === 0) volIcon.className = 'fa-solid fa-volume-xmark';
+        else if (pct < 40) volIcon.className = 'fa-solid fa-volume-low';
+        else volIcon.className = 'fa-solid fa-volume-high';
       }
     }
 
-    if (volToggle && volSliderWrap) {
+    function setVolFromEvent(e) {
+      if (!volTrack) return;
+      var rect = volTrack.getBoundingClientRect();
+      var pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      if (nativeAudio) nativeAudio.volume = pct / 100;
+      playerState.volume = Math.round(pct) + '%';
+      updateVolUI(pct);
+      renderPlayer();
+    }
+
+    if (volToggle && volPopup) {
       volToggle.addEventListener('click', function (e) {
         e.stopPropagation();
-        volSliderWrap.classList.toggle('is-hidden');
+        volPopup.classList.toggle('is-hidden');
       });
 
-      // Click on track to set volume
       if (volTrack) {
-        volTrack.addEventListener('click', function (e) {
-          var rect = volTrack.getBoundingClientRect();
-          var pct = Math.max(0, Math.min(100, ((rect.bottom - e.clientY) / rect.height) * 100));
-          if (nativeAudio) nativeAudio.volume = pct / 100;
-          playerState.volume = Math.round(pct) + '%';
-          updateVolUI(pct);
-          renderPlayer();
-        });
+        volTrack.addEventListener('click', setVolFromEvent);
 
-        // Drag on track
         var volDragging = false;
-        volTrack.addEventListener('mousedown', function (e) { volDragging = true; });
-        document.addEventListener('mousemove', function (e) {
-          if (!volDragging) return;
-          var rect = volTrack.getBoundingClientRect();
-          var pct = Math.max(0, Math.min(100, ((rect.bottom - e.clientY) / rect.height) * 100));
-          if (nativeAudio) nativeAudio.volume = pct / 100;
-          playerState.volume = Math.round(pct) + '%';
-          updateVolUI(pct);
-          renderPlayer();
-        });
+        volTrack.addEventListener('mousedown', function (e) { volDragging = true; setVolFromEvent(e); });
+        document.addEventListener('mousemove', function (e) { if (volDragging) setVolFromEvent(e); });
         document.addEventListener('mouseup', function () { volDragging = false; });
       }
 
-      // Close on outside click
-      document.addEventListener('click', function () {
-        if (volSliderWrap) volSliderWrap.classList.add('is-hidden');
+      document.addEventListener('click', function (e) {
+        if (volWrap && !volWrap.contains(e.target)) {
+          volPopup.classList.add('is-hidden');
+        }
       });
     }
 
-    // Initialize vol UI
+    // Init
     var initVol = parseInt(playerState.volume) || 72;
     updateVolUI(initVol);
 
