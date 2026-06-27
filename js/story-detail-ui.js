@@ -1092,17 +1092,19 @@
         ? ('Chương ' + chapterNum + ' - ' + chapterTitle)
         : ('Chương ' + chapterNum);
 
-      // ── Determine lock state per chapter ──
-      var isFree = ch.isFree === true;
-      var isUnlocked = ch.isUnlocked === true;
-      var isLocked = !isFree && !isUnlocked;
+      // ── Lock state: only locked if backend provides chapter data with isFree/isUnlocked ──
+      var isLocked = false;
+      if (storyChapters.length > 0 && ch.id) {
+        var playable = ch.isFree || ch.isUnlocked || (ch.unlockAt && new Date(ch.unlockAt).getTime() <= Date.now());
+        isLocked = !playable;
+      }
 
       // ── Dot content ──
       var dotContent = isActive
         ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>'
         : '<span class="chapter-num">' + chapterNum + '</span>';
 
-      // ── Lock hint per chapter ──
+      // ── Lock hint ──
       var lockHint = '';
       var lockIcon = '';
       if (isLocked) {
