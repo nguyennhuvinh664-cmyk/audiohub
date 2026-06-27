@@ -452,7 +452,7 @@
     if (!chapterList) return;
 
     var chapterCountNode = document.querySelector('.detail-sidebar .section-heading span');
-    var chapterHeading = document.querySelector('.detail-sidebar .section-heading h3');
+    var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
     var total = Math.max(6, Number(story && story.chapterCount) || 12);
     var rows = [];
 
@@ -1053,7 +1053,7 @@
     if (!chapterList) return null;
 
     var chapterCountNode = document.querySelector('.detail-sidebar .section-heading span');
-    var chapterHeading = document.querySelector('.detail-sidebar .section-heading h3');
+    var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
 
     if (context && context.playlist && Array.isArray(context.playlist.items)) {
       var chapters = context.playlist.items.map(function (item, index) {
