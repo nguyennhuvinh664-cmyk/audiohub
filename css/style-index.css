@@ -295,6 +295,7 @@ body.no-scroll { overflow:hidden; }
 .pov {
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   background:rgba(0,0,0,.5); opacity:0; transition:var(--ease); font-size:26px; color:#fff;
+  pointer-events:none;
 }
 .sc:hover .pov { opacity:1; }
 .sc__genre { font-size:11px; color:var(--accent); margin-bottom:4px; font-weight:700; }
