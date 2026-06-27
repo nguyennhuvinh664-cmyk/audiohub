@@ -1094,25 +1094,51 @@
       return { chapters: chapters, activeIndex: activeIndex, chapterLabel: chapters[activeIndex] ? chapters[activeIndex].label : 'Chương 1' };
     }
 
-    var stories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
-    var genre = currentStory && currentStory.genre ? String(currentStory.genre) : '';
-    var currentId = currentStory && currentStory.id ? String(currentStory.id) : '';
-    var recommendations = (stories || []).filter(function (item) {
-      if (!item || !item.id) return false;
-      if (currentId && String(item.id) === currentId) return false;
-      if (!genre) return true;
-      return String(item.genre || '') === genre;
-    }).slice(0, 12);
+    // Default mode: render actual chapters of the story
+    var total = Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
+    var currentChapterTitle = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
+    var activeChapterIndex = 0; // first chapter is active by default
 
-    chapterList.innerHTML = recommendations.length
-      ? recommendations.map(function (item) {
-          return '<a href="story-detail.html?id=' + encodeURIComponent(String(item.id)) + '" class="chapter-item">'
-            + '<span class="chapter-dot"></span><span>' + escapeHtml(String(item.title || 'Truyện')) + '</span></a>';
-        }).join('')
-      : '<div class="chapter-item"><span class="chapter-dot"></span><span>Chưa có truyện cùng thể loại.</span></div>';
+    // Try to determine active chapter from player state
+    var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
+    if (currentChapterLabel) {
+      var match = currentChapterLabel.match(/(\d+)/);
+      if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
+    }
 
-    if (chapterHeading) chapterHeading.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Gợi ý cùng thể loại';
-    if (chapterCountNode) chapterCountNode.textContent = recommendations.length + ' truyện';
+    var chapterRows = [];
+    for (var i = 0; i < total; i++) {
+      var chapterNum = i + 1;
+      var isActive = i === activeChapterIndex;
+      var chapterName = isActive && currentChapterTitle ? currentChapterTitle : ('Chương ' + chapterNum);
+      var isLocked = i > 0; // only first chapter is free in demo
+
+      var dotContent = isActive
+        ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>'
+        : '<span class="chapter-num">' + chapterNum + '</span>';
+
+      var lockHtml = isLocked
+        ? '<span class="chapter-lock-hint"><i class="fa-solid fa-lock"></i> Đăng nhập để xem</span>'
+        : '';
+
+      chapterRows.push(
+        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + '" data-player-chapter="' + escapeHtml('Chương ' + chapterNum) + '" data-chapter-index="' + i + '">'
+        + '<span class="chapter-dot">' + dotContent + '</span>'
+        + '<span class="chapter-item-text"><span class="chapter-label">Chương ' + chapterNum + ':</span> ' + escapeHtml(chapterName) + '</span>'
+        + (isLocked ? '<span class="chapter-lock-icon"><i class="fa-solid fa-lock"></i></span>' : '')
+        + '</a>'
+      );
+    }
+
+    chapterList.innerHTML = chapterRows.join('');
+    if (chapterHeading) chapterHeading.innerHTML = '<i class="fa-solid fa-music"></i> Danh sách chương';
+    if (chapterCountNode) chapterCountNode.textContent = total + ' chương';
+
+    // Scroll to active item
+    setTimeout(function () {
+      var activeItem = chapterList.querySelector('.chapter-item.is-active');
+      if (activeItem) activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 100);
 
     return null;
   }

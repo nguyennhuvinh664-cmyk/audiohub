@@ -734,30 +734,98 @@
 
 /* Chapter list */
 .chapter-list {
-  max-height: 300px;
+  max-height: 360px;
   overflow-y: auto;
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 .chapter-item {
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   position: relative;
+  transition: background .15s;
+}
+.chapter-item:hover:not(.is-active) {
+  background: rgba(255,255,255,.04);
 }
 .chapter-item.is-active {
-  background: rgba(245,158,11,.1);
-  border: 1px solid rgba(245,158,11,.3);
+  background: rgba(245,158,11,.08);
+  border: 1px solid rgba(245,158,11,.25);
 }
+.chapter-item:not(.is-active) {
+  border: 1px solid transparent;
+}
+
+/* Number dot */
+.chapter-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255,255,255,.06);
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--t3);
+}
+.chapter-item.is-active .chapter-dot {
+  background: var(--accent);
+  color: #fff;
+}
+.chapter-num {
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+/* Chapter text */
 .chapter-item-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: .88rem;
+  color: var(--t2);
+  line-height: 1.4;
 }
+.chapter-item.is-active .chapter-item-text {
+  color: var(--t1);
+  font-weight: 600;
+}
+.chapter-label {
+  font-weight: 700;
+  color: var(--t3);
+}
+.chapter-item.is-active .chapter-label {
+  color: var(--primary);
+}
+
+/* Lock icon */
+.chapter-lock-icon {
+  flex-shrink: 0;
+  color: var(--t3);
+  font-size: .75rem;
+  opacity: .6;
+}
+.chapter-lock-hint {
+  display: block;
+  font-size: .72rem;
+  color: var(--t3);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chapter-item.is-active .chapter-lock-hint {
+  color: rgba(245,158,11,.5);
+}
+
+/* Playing badge (playlist mode) */
 .chapter-playing-badge {
   display: inline-flex;
   align-items: center;
@@ -770,6 +838,14 @@
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* Chapter item locked state */
+.chapter-item.is-locked {
+  opacity: .6;
+}
+.chapter-item.is-locked .chapter-item-text {
+  color: var(--t3);
 }
 
 /* Trending — tall scrollable */
