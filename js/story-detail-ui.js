@@ -1079,12 +1079,9 @@
       var chapterTitle = ch.title || '';
       var isActive = i === activeChapterIndex;
 
-      // Fallback title: active chapter → story.title, first chapter → story.title
-      if (!chapterTitle && isActive && currentStory && currentStory.chapterTitle) {
+      // Fallback: use story.chapterTitle only if chapter has no own title
+      if (!chapterTitle && i === 0 && currentStory && currentStory.chapterTitle) {
         chapterTitle = String(currentStory.chapterTitle);
-      }
-      if (!chapterTitle && i === 0 && storyTitle) {
-        chapterTitle = storyTitle;
       }
 
       // Format: "Chương {number} - {title}"
