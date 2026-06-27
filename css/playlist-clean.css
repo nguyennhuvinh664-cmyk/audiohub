@@ -4,15 +4,19 @@
 
 /* Layout */
 .playlist-root {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+  flex: 1;
+  min-height: 0;
 }
 
 .playlist-layout {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.5fr);
   gap: 20px;
-  height: 600px;
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 980px) {
