@@ -270,6 +270,8 @@
       .replace(/'/g, '&#39;');
   }
 
+  var selectedHomePlaylistId = null;
+
   function renderCompletedPlaylistsHome() {
     var grid = document.querySelector('[data-home-completed-grid]');
     if (!grid) return;
@@ -299,16 +301,15 @@
       var firstEntry = entries[0] || {};
       var coverKey = String(firstEntry.coverKey || '');
 
-      // Try to get cover from story data if entry doesn't have one
       if (!coverKey && firstEntry.key && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
         var story = window.AudioHubStories.getById(firstEntry.key);
         if (story && story.coverKey) coverKey = String(story.coverKey);
       }
 
       var color = '#10b981';
-      var href = '/account.html#mycontent';
+      var isActive = pl.id === selectedHomePlaylistId;
 
-      return '<a href="' + href + '" class="sc">'
+      return '<div class="sc' + (isActive ? ' is-active' : '') + '" data-home-playlist-card="' + escapeHtml(pl.id) + '" role="button" tabindex="0">'
         + '<div class="sc__th" style="--c:' + color + '" data-cover-key="' + escapeHtml(coverKey) + '">'
         + '<span class="bx bf">Full</span>'
         + '<span class="si">' + escapeHtml((pl.name || 'PL').slice(0, 3).toUpperCase()) + '</span>'
@@ -317,12 +318,109 @@
         + '<div class="sc__in">'
         + '<p class="sc__nm">' + escapeHtml(pl.name || 'Playlist') + '</p>'
         + '<p class="sc__mt"><i class="fa-solid fa-circle-check"></i> ' + doneCount + '/' + count + ' truyện</p>'
-        + '</div></a>';
+        + '</div></div>';
     }).join('');
+
+    // Bind click handlers
+    grid.querySelectorAll('[data-home-playlist-card]').forEach(function (card) {
+      card.addEventListener('click', function () {
+        var plId = card.getAttribute('data-home-playlist-card');
+        selectedHomePlaylistId = selectedHomePlaylistId === plId ? null : plId;
+        renderCompletedPlaylistsHome();
+        renderHomePlaylistDetail();
+      });
+    });
 
     // Hydrate cover images
     if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
       grid.querySelectorAll('[data-cover-key]').forEach(function (node) {
+        var key = node.getAttribute('data-cover-key');
+        if (!key) return;
+        window.AudioHubStoryCover.get(key).then(function (blob) {
+          if (!blob) return;
+          var url = URL.createObjectURL(blob);
+          node.style.backgroundImage = 'url("' + url + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
+        }).catch(function () {});
+      });
+    }
+  }
+
+  function renderHomePlaylistDetail() {
+    var detail = document.querySelector('[data-home-playlist-detail]');
+    if (!detail) return;
+
+    if (!selectedHomePlaylistId) {
+      detail.style.display = 'none';
+      return;
+    }
+
+    var playlists = [];
+    try {
+      var raw = window.localStorage.getItem('audiohub-playlists-v1');
+      var parsed = raw ? JSON.parse(raw) : [];
+      playlists = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      playlists = [];
+    }
+
+    var pl = null;
+    playlists.forEach(function (p) { if (p.id === selectedHomePlaylistId) pl = p; });
+
+    if (!pl) {
+      detail.style.display = 'none';
+      return;
+    }
+
+    var entries = pl.entries || [];
+
+    detail.style.display = 'block';
+    detail.style.opacity = '0';
+
+    if (!entries.length) {
+      detail.innerHTML = '<div style="padding:24px;text-align:center;color:var(--t3);">'
+        + '<i class="fa-solid fa-folder-open" style="font-size:2rem;margin-bottom:12px;display:block;color:var(--t2);"></i>'
+        + '<p style="margin-bottom:12px;">Playlist này chưa có truyện.</p>'
+        + '<a href="account.html#mycontent" class="btn btn--primary" style="display:inline-flex;min-width:auto;padding:0 20px;">Thêm truyện</a>'
+        + '</div>';
+      setTimeout(function () { detail.style.opacity = '1'; }, 10);
+      return;
+    }
+
+    var html = '<div style="padding:0 0 8px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+      + '<h3 style="font-size:1.1rem;font-weight:800;color:var(--t1);">' + escapeHtml(pl.name) + ' <span style="color:var(--t3);font-weight:600;font-size:.88rem;">(' + entries.length + ' truyện)</span></h3>'
+      + '<a href="account.html#mycontent" style="color:var(--accent);font-size:.85rem;font-weight:700;text-decoration:none;">Xem đầy đủ →</a>'
+      + '</div>';
+
+    html += '<div class="pl-detail-list">';
+    entries.forEach(function (entry, index) {
+      var status = entry.status || 'listening';
+      var isDone = status === 'done';
+      var coverKey = String(entry.coverKey || '');
+      if (!coverKey && entry.key && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+        var story = window.AudioHubStories.getById(entry.key);
+        if (story && story.coverKey) coverKey = String(story.coverKey);
+      }
+      var href = entry.href || '/story-detail.html?id=' + encodeURIComponent(entry.key || '');
+
+      html += '<a href="' + escapeHtml(href) + '" class="pl-detail-item">'
+        + '<span class="pl-detail-idx" style="color:' + (isDone ? 'var(--green)' : 'var(--t3)') + ';">' + (isDone ? '<i class="fa-solid fa-check"></i>' : (index + 1)) + '</span>'
+        + '<div class="pl-detail-cover" data-cover-key="' + escapeHtml(coverKey) + '" style="background:linear-gradient(135deg,#1a1040,#2d1b69);"></div>'
+        + '<div class="pl-detail-info">'
+        + '<p class="pl-detail-title">' + escapeHtml(entry.title || 'Truyện audio') + '</p>'
+        + '<p class="pl-detail-meta">' + escapeHtml(entry.author || 'Ẩn danh') + (entry.genre ? (' · ' + escapeHtml(entry.genre)) : '') + '</p>'
+        + '</div>'
+        + '</a>';
+    });
+    html += '</div>';
+
+    detail.innerHTML = html;
+    setTimeout(function () { detail.style.opacity = '1'; }, 10);
+
+    // Hydrate covers
+    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+      detail.querySelectorAll('[data-cover-key]').forEach(function (node) {
         var key = node.getAttribute('data-cover-key');
         if (!key) return;
         window.AudioHubStoryCover.get(key).then(function (blob) {
