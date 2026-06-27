@@ -1,3 +1,28 @@
+/* ═══ Custom Scrollbar ═══ */
+.account-page *::-webkit-scrollbar {
+  width: 8px;
+}
+.account-page *::-webkit-scrollbar-track {
+  background: #1A2030;
+  border-radius: 999px;
+}
+.account-page *::-webkit-scrollbar-thumb {
+  background: #39445C;
+  border-radius: 999px;
+  border: 2px solid #1A2030;
+  transition: background .2s;
+}
+.account-page *::-webkit-scrollbar-thumb:hover {
+  background: #55627E;
+}
+.account-page *::-webkit-scrollbar-thumb:active {
+  background: #FFAA1D;
+}
+.account-page * {
+  scrollbar-width: thin;
+  scrollbar-color: #39445C #1A2030;
+}
+
 .account-page {
   background:
     radial-gradient(circle at top center, rgba(245,158,11,.14), transparent 22%),
