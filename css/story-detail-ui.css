@@ -732,9 +732,9 @@
 /* ═══ SIDEBAR ═══ */
 .detail-sidebar { position: static; margin-top: 24px; gap: 22px; }
 
-/* Chapter list — compact */
+/* Chapter list */
 .chapter-list {
-  max-height: 140px;
+  max-height: 300px;
   overflow-y: auto;
   display: grid;
   gap: 6px;
@@ -742,6 +742,34 @@
 .chapter-item {
   padding: 10px 12px;
   border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+.chapter-item.is-active {
+  background: rgba(245,158,11,.1);
+  border: 1px solid rgba(245,158,11,.3);
+}
+.chapter-item-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chapter-playing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(245,158,11,.2);
+  color: var(--primary);
+  font-size: .7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Trending — tall scrollable */

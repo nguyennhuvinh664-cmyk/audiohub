@@ -1034,10 +1034,17 @@
 
     if (context && context.playlist && Array.isArray(context.playlist.items)) {
       var chapters = context.playlist.items.map(function (item, index) {
+        var itemStoryId = item && item.storyId ? String(item.storyId) : '';
+        var itemTitle = item && item.storyTitle ? String(item.storyTitle) : '';
+        // Fallback: look up story title from store if not in playlist item
+        if (!itemTitle && itemStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+          var s = window.AudioHubStories.getById(itemStoryId);
+          if (s) itemTitle = String(s.title || '');
+        }
         return {
           label: item && item.chapterLabel ? String(item.chapterLabel) : ('Chương ' + (index + 1)),
-          storyId: item && item.storyId ? String(item.storyId) : '',
-          storyTitle: item && item.storyTitle ? String(item.storyTitle) : '',
+          storyId: itemStoryId,
+          storyTitle: itemTitle,
           index: typeof item.chapterIndex === 'number' ? item.chapterIndex : index
         };
       });
@@ -1047,12 +1054,19 @@
       if (activeIndex < 0 || activeIndex >= chapters.length) activeIndex = 0;
 
       chapterList.innerHTML = chapters.map(function (chapter, idx) {
-        var text = chapter.storyTitle ? (chapter.label + ': ' + chapter.storyTitle) : chapter.label;
-        return '<a href="#chapter-reading" class="chapter-item' + (idx === activeIndex ? ' active is-active' : '') + '" data-player-chapter="' + escapeHtml(chapter.label) + '" data-player-story-id="' + escapeHtml(chapter.storyId || '') + '"><span class="chapter-dot"></span><span>' + escapeHtml(text) + '</span></a>';
+        var text = chapter.storyTitle || chapter.label;
+        var isActive = idx === activeIndex;
+        var badge = isActive ? '<span class="chapter-playing-badge"><i class="fa-solid fa-play"></i> Đang phát</span>' : '';
+        return '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + '" data-player-chapter="' + escapeHtml(chapter.label) + '" data-player-story-id="' + escapeHtml(chapter.storyId || '') + '">'
+          + '<span class="chapter-dot">' + (isActive ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>' : '') + '</span>'
+          + '<span class="chapter-item-text">' + escapeHtml(text) + '</span>'
+          + badge
+          + '</a>';
       }).join('');
 
-      if (chapterHeading) chapterHeading.innerHTML = '<i class="fa-solid fa-music"></i> Danh sách chương';
-      if (chapterCountNode) chapterCountNode.textContent = chapters.length + ' chương';
+      var playlistName = context.playlist.name || 'Playlist';
+      if (chapterHeading) chapterHeading.innerHTML = '<i class="fa-solid fa-list"></i> ' + escapeHtml(playlistName);
+      if (chapterCountNode) chapterCountNode.textContent = chapters.length + ' truyện';
 
       return { chapters: chapters, activeIndex: activeIndex, chapterLabel: chapters[activeIndex] ? chapters[activeIndex].label : 'Chương 1' };
     }
@@ -2121,9 +2135,10 @@
       var link = chapterNodes[safeIndex];
       if (!link) return;
 
+      var nextStory = null;
+      var playlistItem = null;
       if (overrideState && Array.isArray(overrideState.chapters) && overrideState.chapters[safeIndex]) {
-        var playlistItem = overrideState.chapters[safeIndex];
-        var nextStory = null;
+        playlistItem = overrideState.chapters[safeIndex];
         if (playlistItem.storyId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
           nextStory = window.AudioHubStories.getById(String(playlistItem.storyId));
         }
@@ -2134,15 +2149,57 @@
         }
       }
 
+      // Update active chapter classes
+      chapterNodes.forEach(function (node, idx) {
+        node.classList.toggle('active', idx === safeIndex);
+        node.classList.toggle('is-active', idx === safeIndex);
+        var dot = node.querySelector('.chapter-dot');
+        if (dot) dot.innerHTML = idx === safeIndex ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>' : '';
+        var oldBadge = node.querySelector('.chapter-playing-badge');
+        if (oldBadge) oldBadge.remove();
+        if (idx === safeIndex) {
+          var badge = document.createElement('span');
+          badge.className = 'chapter-playing-badge';
+          badge.innerHTML = '<i class="fa-solid fa-play"></i> Đang phát';
+          node.appendChild(badge);
+        }
+      });
+
       playerState.chapter = link.getAttribute('data-player-chapter') || playerState.chapter;
       playerState.progress = safeIndex === 0 ? 36 : 12 * (safeIndex + 1);
       playerState.next = getNextChapterText(safeIndex);
       playerState.playing = false;
-      if (overrideState && Array.isArray(overrideState.chapters) && overrideState.chapters[safeIndex]) {
-        applyStoryOverviewFromPlaylistItem(overrideState.chapters[safeIndex]);
+
+      // Update overview and URL
+      if (playlistItem) {
+        applyStoryOverviewFromPlaylistItem(playlistItem);
+        // Update URL without reload
+        var newUrl = 'story-detail.html?id=' + encodeURIComponent(playlistItem.storyId || '');
+        if (overrideState && overrideState.chapters && overrideState.chapters[0]) {
+          var playlistId = getQueryParam('playlistId') || '';
+          if (playlistId) newUrl += '&playlistId=' + encodeURIComponent(playlistId);
+        }
+        history.replaceState({}, '', newUrl);
       }
+
       renderPlayer();
-      if (nativeAudio && nativeAudio.getAttribute('src')) {
+
+      // Re-fetch audio for the new story
+      if (nextStory) {
+        bindStoryAudio(nextStory);
+        // Wait for audio to load then play
+        setTimeout(function () {
+          if (nativeAudio) {
+            nativeAudio.play().then(function () {
+              playerState.playing = true;
+              renderPlayer();
+            }).catch(function () {
+              playerState.playing = false;
+              renderPlayer();
+            });
+          }
+        }, 300);
+      } else if (nativeAudio && nativeAudio.getAttribute('src')) {
         nativeAudio.currentTime = 0;
         nativeAudio.play().then(function () {
           playerState.playing = true;
