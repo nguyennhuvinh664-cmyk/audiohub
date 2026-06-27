@@ -45,20 +45,28 @@
 
     var description = escapeHtml(story.description || '');
 
+    var views = story.listenCount || story.listenCount7d || 0;
+    var viewsLabel = views >= 1000 ? (views / 1000).toFixed(1) + 'K' : String(views);
+
     return (
-      '<a href="' + href + '" class="story-card" data-story-card ' +
+      '<div class="story-card" data-story-card ' +
       'data-story-id="' + escapeHtml(story.id) + '" data-title="' + title + '" data-author="' + author + '" data-genre="' + genre + '" data-description="' + description + '" ' +
       'data-progress="Demo" data-note="' + escapeHtml(note) + '">' +
+      '<a href="' + href + '" class="story-card__link">' +
       '<div class="story-card__thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '" style="background:linear-gradient(135deg,' + color + ',' + color + 'aa)">' +
-      '<button class="story-fav" type="button" data-library-favorite aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>' +
       '<span class="story-chapters">Demo</span>' +
       '</div>' +
       '<div class="story-card__body">' +
-      '<div class="story-meta"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> —</span></div>' +
+      '<div class="story-meta"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> ' + viewsLabel + '</span></div>' +
       '<h2 class="story-title">' + title + '</h2>' +
       '<div class="story-footer"><a href="channel.html?author=' + encodeURIComponent(story.author || '') + '" style="color:inherit;text-decoration:none;" onclick="event.stopPropagation()"><span><i class="fa-regular fa-user"></i> ' + author + '</span></a><span class="story-rating"><i class="fa-solid fa-star"></i> —</span></div>' +
+      '<div class="story-card__actions">' +
+      '<button type="button" class="story-card__fav" data-library-favorite aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i> Yêu thích</button>' +
+      '<a href="' + href + '" class="story-card__listen"><i class="fa-solid fa-play"></i> Nghe ngay</a>' +
       '</div>' +
-      '</a>'
+      '</div>' +
+      '</a>' +
+      '</div>'
     );
   }
 
@@ -280,7 +288,7 @@
   }
 
   function readSeedStoriesFromCards() {
-    var cards = Array.prototype.slice.call(root.querySelectorAll('a.story-card[data-title][data-author][data-genre]'));
+    var cards = Array.prototype.slice.call(root.querySelectorAll('.story-card[data-title][data-author][data-genre]'));
     return cards.map(function (card, index) {
       var title = String(card.getAttribute('data-title') || '').trim();
       var author = String(card.getAttribute('data-author') || '').trim();
@@ -369,19 +377,19 @@
   root.addEventListener('click', function (event) {
     var target = event.target;
     if (!(target instanceof Element)) return;
-    var card = target.closest('a.story-card');
-    if (!card) return;
 
-    var href = String(card.getAttribute('href') || '');
-    var storyId = String(card.getAttribute('data-story-id') || '').trim();
-    if (!storyId) {
+    var favBtn = target.closest('[data-library-favorite]');
+    if (favBtn) {
       event.preventDefault();
+      event.stopPropagation();
       return;
     }
 
-    if (href === 'story-detail' || href === 'story-detail.html' || href === 'story-detail.html' || (href.indexOf('/story-detail.html?id=') < 0 && href.indexOf('/story-detail.html?id=') < 0)) {
-      card.setAttribute('href', '/story-detail.html?id=' + encodeURIComponent(storyId));
-    }
+    var card = target.closest('.story-card');
+    if (!card) return;
+
+    var storyId = String(card.getAttribute('data-story-id') || '').trim();
+    if (!storyId) return;
 
     var stories = window.AudioHubStories.read() || [];
     var matched = stories.find(function (story) {
