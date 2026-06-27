@@ -221,9 +221,9 @@
 
   function sortRecentDesc(list) {
     return list.slice().sort(function (a, b) {
-      var ta = Date.parse(String((b && b.updatedAt) || (b && b.createdAt) || '')) || 0;
-      var tb = Date.parse(String((a && a.updatedAt) || (a && a.createdAt) || '')) || 0;
-      return ta - tb;
+      var ta = Date.parse(String((a && a.updatedAt) || (a && a.createdAt) || '')) || 0;
+      var tb = Date.parse(String((b && b.updatedAt) || (b && b.createdAt) || '')) || 0;
+      return tb - ta;
     });
   }
 
