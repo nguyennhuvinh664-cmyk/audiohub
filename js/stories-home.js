@@ -298,11 +298,18 @@
       var doneCount = entries.filter(function (e) { return e.status === 'done'; }).length;
       var firstEntry = entries[0] || {};
       var coverKey = String(firstEntry.coverKey || '');
+
+      // Try to get cover from story data if entry doesn't have one
+      if (!coverKey && firstEntry.key && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+        var story = window.AudioHubStories.getById(firstEntry.key);
+        if (story && story.coverKey) coverKey = String(story.coverKey);
+      }
+
       var color = '#10b981';
       var href = '/account.html#mycontent';
 
       return '<a href="' + href + '" class="sc">'
-        + '<div class="sc__th" style="--c:' + color + '">'
+        + '<div class="sc__th" style="--c:' + color + '" data-cover-key="' + escapeHtml(coverKey) + '">'
         + '<span class="bx bf">Full</span>'
         + '<span class="si">' + escapeHtml((pl.name || 'PL').slice(0, 3).toUpperCase()) + '</span>'
         + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
@@ -312,6 +319,21 @@
         + '<p class="sc__mt"><i class="fa-solid fa-circle-check"></i> ' + doneCount + '/' + count + ' truyện</p>'
         + '</div></a>';
     }).join('');
+
+    // Hydrate cover images
+    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+      grid.querySelectorAll('[data-cover-key]').forEach(function (node) {
+        var key = node.getAttribute('data-cover-key');
+        if (!key) return;
+        window.AudioHubStoryCover.get(key).then(function (blob) {
+          if (!blob) return;
+          var url = URL.createObjectURL(blob);
+          node.style.backgroundImage = 'url("' + url + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
+        }).catch(function () {});
+      });
+    }
   }
 
   function renderHomeStoriesFrom(stories) {
