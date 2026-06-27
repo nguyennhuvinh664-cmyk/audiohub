@@ -763,7 +763,7 @@
     var list = document.querySelector('.mini-list');
     if (!list || !window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return;
 
-    var stories = pickTrendingStories(window.AudioHubStories.read() || []).slice(0, 12);
+    var stories = pickTrendingStories(window.AudioHubStories.read() || []).slice(0, 8);
 
     if (!stories.length) {
       list.innerHTML = '';
