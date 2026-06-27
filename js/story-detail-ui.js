@@ -1069,8 +1069,8 @@
       if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
     }
 
-    // Check login status
-    var loggedIn = isLoggedIn();
+    // Check login status (use isMemberSession which checks both localStorage AND API token)
+    var loggedIn = !!(window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function' && window.AudioHubAccess.isMember()) || isLoggedIn();
 
     // Build chapter rows from story.chapters[] or generate from chapterCount
     var chapterRows = [];
