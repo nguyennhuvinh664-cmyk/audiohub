@@ -261,6 +261,59 @@
     });
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderCompletedPlaylistsHome() {
+    var grid = document.querySelector('[data-home-completed-grid]');
+    if (!grid) return;
+
+    var playlists = [];
+    try {
+      var raw = window.localStorage.getItem('audiohub-playlists-v1');
+      var parsed = raw ? JSON.parse(raw) : [];
+      playlists = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      playlists = [];
+    }
+
+    var completed = playlists.filter(function (p) {
+      return String(p.state || '').trim() === 'done';
+    });
+
+    if (!completed.length) {
+      grid.innerHTML = '<p style="color:var(--t3);font-size:.9rem;padding:20px 0;text-align:center;grid-column:1/-1;">Chưa có playlist nào hoàn thành. Hãy tạo playlist và đánh dấu hoàn thành trên trang Tài khoản.</p>';
+      return;
+    }
+
+    grid.innerHTML = completed.slice(0, 12).map(function (pl) {
+      var entries = pl.entries || [];
+      var count = entries.length;
+      var doneCount = entries.filter(function (e) { return e.status === 'done'; }).length;
+      var firstEntry = entries[0] || {};
+      var coverKey = String(firstEntry.coverKey || '');
+      var color = '#10b981';
+      var href = '/account.html#mycontent';
+
+      return '<a href="' + href + '" class="sc">'
+        + '<div class="sc__th" style="--c:' + color + '">'
+        + '<span class="bx bf">Full</span>'
+        + '<span class="si">' + escapeHtml((pl.name || 'PL').slice(0, 3).toUpperCase()) + '</span>'
+        + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
+        + '</div>'
+        + '<div class="sc__in">'
+        + '<p class="sc__nm">' + escapeHtml(pl.name || 'Playlist') + '</p>'
+        + '<p class="sc__mt"><i class="fa-solid fa-circle-check"></i> ' + doneCount + '/' + count + ' truyện</p>'
+        + '</div></a>';
+    }).join('');
+  }
+
   function renderHomeStoriesFrom(stories) {
     if (!stories || !stories.length) {
       return;
@@ -293,7 +346,9 @@
     renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 12));
     renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
     renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
-    renderCardList(document.querySelector('[data-home-completed-grid]'), completedStories.slice(0, 12));
+
+    // Render completed playlists from localStorage
+    renderCompletedPlaylistsHome();
   }
 
   function renderHomeStories() {

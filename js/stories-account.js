@@ -1218,7 +1218,6 @@
     playlistListMount.scrollTop = 0;
 
     renderPlaylistDetail();
-    renderCompletedPlaylists();
   }
 
   var STATUS_LABELS = {
@@ -1349,37 +1348,6 @@
       playlistDetailMount.classList.remove('is-fading');
       playlistDetailMount.scrollTop = 0;
     }, 150);
-  }
-
-  function renderCompletedPlaylists() {
-    var mount = document.querySelector('[data-completed-playlists]');
-    if (!mount) return;
-    var list = readPlaylists();
-    var completed = list.filter(function (p) {
-      return String(p.state || '').trim() === 'done';
-    });
-
-    if (!completed.length) {
-      mount.innerHTML = '<p class="playlist-empty">Chưa có playlist nào được đánh dấu hoàn thành.</p>';
-      return;
-    }
-
-    mount.innerHTML = completed.map(function (pl) {
-      var entries = pl.entries || [];
-      var count = entries.length;
-      var doneCount = entries.filter(function (e) { return e.status === 'done'; }).length;
-      var entryList = entries.slice(0, 5).map(function (e) {
-        return '<li style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);color:var(--t2);font-size:.88rem;">' + escapeHtml(e.title || 'Truyện') + '</li>';
-      }).join('');
-      var moreText = count > 5 ? '<li style="padding:6px 0;color:var(--t3);font-size:.82rem;">… và ' + (count - 5) + ' truyện nữa</li>' : '';
-
-      return '' +
-        '<div class="pl-card" style="margin-bottom:12px;">' +
-          '<div class="pl-card__name">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
-          '<div class="pl-card__meta">' + count + ' truyện · ' + doneCount + ' đã xong</div>' +
-          '<ul style="list-style:none;padding:0;margin:8px 0 0;">' + entryList + moreText + '</ul>' +
-        '</div>';
-    }).join('');
   }
 
   function bindPlaylistActions() {
