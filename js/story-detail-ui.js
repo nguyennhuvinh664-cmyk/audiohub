@@ -1069,6 +1069,9 @@
       if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
     }
 
+    // Check login status
+    var loggedIn = isLoggedIn();
+
     // Build chapter rows from story.chapters[] or generate from chapterCount
     var chapterRows = [];
     for (var i = 0; i < total; i++) {
@@ -1096,9 +1099,15 @@
         ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>'
         : '<span class="chapter-num">' + chapterNum + '</span>';
 
-      var lockHint = isLocked
-        ? '<span class="chapter-lock-hint"><i class="fa-solid fa-lock"></i> Đăng nhập để xem lịch mở khóa.</span>'
-        : '';
+      // Lock hint based on login status
+      var lockHint = '';
+      if (isLocked) {
+        if (!loggedIn) {
+          lockHint = '<span class="chapter-lock-hint"><i class="fa-solid fa-lock"></i> Đăng nhập để xem lịch mở khóa.</span>';
+        } else {
+          lockHint = '<span class="chapter-lock-hint"><i class="fa-solid fa-lock"></i> Chưa mở khóa</span>';
+        }
+      }
 
       chapterRows.push(
         '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml('Chương ' + chapterNum) + '" data-chapter-index="' + i + '">'
