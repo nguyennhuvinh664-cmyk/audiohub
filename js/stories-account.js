@@ -1252,91 +1252,102 @@
   function renderPlaylistDetail() {
     var playlistDetailMount = document.querySelector('[data-playlist-detail]');
     if (!playlistDetailMount) return;
-    if (!activePlaylistId) {
-      playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một playlist để xem chi tiết.</p>';
-      return;
-    }
-    var list = readPlaylists();
-    var pl = null;
-    list.forEach(function (p) { if (p.id === activePlaylistId) pl = p; });
-    if (!pl) {
-      playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist không tồn tại.</p>';
-      return;
-    }
-    var entries = pl.entries || [];
-    if (!entries.length) {
-      playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist chưa có truyện nào.</p>';
-      return;
-    }
 
-    var start = (currentPlaylistDetailPage - 1) * PLAYLIST_ITEMS_PER_PAGE;
-    var end = start + PLAYLIST_ITEMS_PER_PAGE;
-    var paged = entries.slice(start, end);
-    var totalPages = Math.max(1, Math.ceil(entries.length / PLAYLIST_ITEMS_PER_PAGE));
-
-    playlistDetailMount.innerHTML = paged.map(function (entry) {
-      var progress = Number(entry.progress) || 0;
-      var status = entry.status || 'listening';
-      var isDone = status === 'done';
-      var coverKey = String(entry.coverKey || '');
-      if (!coverKey && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
-        var story = window.AudioHubStories.getById(entry.key);
-        coverKey = story && story.coverKey ? String(story.coverKey) : '';
+    function renderContent() {
+      if (!activePlaylistId) {
+        playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một playlist để xem chi tiết.</p>';
+        return;
       }
-      var thumbStyle = coverKey ? '' : 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
-      var genreBadge = entry.genre ? '<span class="genre-badge">' + escapeHtml(entry.genre) + '</span>' : '';
-      return '' +
-        '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
-          '<a class="playlist-entry-thumb" href="' + escapeHtml(entry.href || '#') + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
-            '<span>' + escapeHtml((entry.title || 'AH').slice(0,2).toUpperCase()) + '</span>' +
-          '</a>' +
-          '<div class="playlist-entry-main">' +
-            '<a class="playlist-entry-title" href="' + escapeHtml(entry.href || '#') + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
-            '<div class="playlist-entry-meta"><span>' + escapeHtml(entry.author || 'Ẩn danh') + '</span>' + genreBadge + '</div>' +
-          '</div>' +
-          '<div class="playlist-entry-actions">' +
-            '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
-            '<button type="button" class="playlist-btn playlist-btn--remove" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
-          '</div>' +
-        '</div>';
-    }).join('');
+      var list = readPlaylists();
+      var pl = null;
+      list.forEach(function (p) { if (p.id === activePlaylistId) pl = p; });
+      if (!pl) {
+        playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist không tồn tại.</p>';
+        return;
+      }
+      var entries = pl.entries || [];
+      if (!entries.length) {
+        playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist chưa có truyện nào.</p>';
+        return;
+      }
 
-    var paginationWrapPlaylist = document.querySelector('[data-pagination-wrap="playlist"]');
-    if (paginationWrapPlaylist) {
-      paginationWrapPlaylist.innerHTML = totalPages > 1 ? buildPagination(currentPlaylistDetailPage, totalPages, 'playlist', pl.id) : '';
-    }
+      var start = (currentPlaylistDetailPage - 1) * PLAYLIST_ITEMS_PER_PAGE;
+      var end = start + PLAYLIST_ITEMS_PER_PAGE;
+      var paged = entries.slice(start, end);
+      var totalPages = Math.max(1, Math.ceil(entries.length / PLAYLIST_ITEMS_PER_PAGE));
 
-    // bind slider input live
-    var detailMount2 = document.querySelector('[data-playlist-detail]');
-    if (detailMount2 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-      detailMount2.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
-        var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
-        if (!coverKey) return;
-        window.AudioHubStoryCover.get(coverKey).then(function (blob) {
-          if (!blob) return;
-          var url = URL.createObjectURL(blob);
-          node.style.backgroundImage = 'url("' + url + '")';
-          node.style.backgroundSize = 'cover';
-          node.style.backgroundPosition = 'center';
-          node.classList.add('is-cover-ready');
-        }).catch(function () {});
+      playlistDetailMount.innerHTML = paged.map(function (entry) {
+        var progress = Number(entry.progress) || 0;
+        var status = entry.status || 'listening';
+        var isDone = status === 'done';
+        var coverKey = String(entry.coverKey || '');
+        if (!coverKey && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+          var story = window.AudioHubStories.getById(entry.key);
+          coverKey = story && story.coverKey ? String(story.coverKey) : '';
+        }
+        var thumbStyle = coverKey ? '' : 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
+        var genreBadge = entry.genre ? '<span class="genre-badge">' + escapeHtml(entry.genre) + '</span>' : '';
+        return '' +
+          '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
+            '<a class="playlist-entry-thumb" href="' + escapeHtml(entry.href || '#') + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
+              '<span>' + escapeHtml((entry.title || 'AH').slice(0,2).toUpperCase()) + '</span>' +
+            '</a>' +
+            '<div class="playlist-entry-main">' +
+              '<a class="playlist-entry-title" href="' + escapeHtml(entry.href || '#') + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
+              '<div class="playlist-entry-meta"><span>' + escapeHtml(entry.author || 'Ẩn danh') + '</span>' + genreBadge + '</div>' +
+            '</div>' +
+            '<div class="playlist-entry-actions">' +
+              '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
+              '<button type="button" class="playlist-btn playlist-btn--remove" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
+            '</div>' +
+          '</div>';
+      }).join('');
+
+      var paginationWrapPlaylist = document.querySelector('[data-pagination-wrap="playlist"]');
+      if (paginationWrapPlaylist) {
+        paginationWrapPlaylist.innerHTML = totalPages > 1 ? buildPagination(currentPlaylistDetailPage, totalPages, 'playlist', pl.id) : '';
+      }
+
+      // hydrate covers
+      var detailMount2 = document.querySelector('[data-playlist-detail]');
+      if (detailMount2 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        detailMount2.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
+          var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
+          if (!coverKey) return;
+          window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+            if (!blob) return;
+            var url = URL.createObjectURL(blob);
+            node.style.backgroundImage = 'url("' + url + '")';
+            node.style.backgroundSize = 'cover';
+            node.style.backgroundPosition = 'center';
+            node.classList.add('is-cover-ready');
+          }).catch(function () {});
+        });
+      }
+
+      if (detailMount2) detailMount2.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
+        slider.addEventListener('input', function () {
+          var val = slider.value;
+          var fill = slider.closest('.playlist-entry').querySelector('.playlist-progress-fill');
+          var pct = slider.closest('.playlist-entry').querySelector('.playlist-progress-pct');
+          if (fill) fill.style.width = val + '%';
+          if (pct) pct.textContent = val + '%';
+        });
+        slider.addEventListener('change', function () {
+          var key = slider.getAttribute('data-slider-key');
+          var plId = slider.getAttribute('data-slider-pl');
+          updateEntryProgress(plId, key, slider.value);
+        });
       });
     }
 
-    if (detailMount2) detailMount2.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
-      slider.addEventListener('input', function () {
-        var val = slider.value;
-        var fill = slider.closest('.playlist-entry').querySelector('.playlist-progress-fill');
-        var pct = slider.closest('.playlist-entry').querySelector('.playlist-progress-pct');
-        if (fill) fill.style.width = val + '%';
-        if (pct) pct.textContent = val + '%';
-      });
-      slider.addEventListener('change', function () {
-        var key = slider.getAttribute('data-slider-key');
-        var plId = slider.getAttribute('data-slider-pl');
-        updateEntryProgress(plId, key, slider.value);
-      });
-    });
+    // Fade transition on page change
+    playlistDetailMount.classList.add('is-fading');
+    setTimeout(function () {
+      renderContent();
+      playlistDetailMount.classList.remove('is-fading');
+      playlistDetailMount.scrollTop = 0;
+    }, 150);
   }
 
   function bindPlaylistActions() {
