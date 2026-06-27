@@ -782,9 +782,15 @@
   font-weight: 700;
 }
 
+/* Chapter body wrapper */
+.chapter-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Chapter text */
 .chapter-item-text {
-  flex: 1;
+  display: block;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

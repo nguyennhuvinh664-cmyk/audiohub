@@ -1097,7 +1097,8 @@
     // Default mode: render actual chapters of the story
     var total = Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
     var currentChapterTitle = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
-    var activeChapterIndex = 0; // first chapter is active by default
+    var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
+    var activeChapterIndex = 0;
 
     // Try to determine active chapter from player state
     var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
@@ -1110,21 +1111,28 @@
     for (var i = 0; i < total; i++) {
       var chapterNum = i + 1;
       var isActive = i === activeChapterIndex;
-      var chapterName = isActive && currentChapterTitle ? currentChapterTitle : ('Chương ' + chapterNum);
-      var isLocked = i > 0; // only first chapter is free in demo
 
+      // Get chapter title from data or fallback
+      var chData = storyChapters[i] || {};
+      var chapterTitle = chData.title || (isActive && currentChapterTitle ? currentChapterTitle : '');
+      var isLocked = typeof chData.isLocked === 'boolean' ? chData.isLocked : (i > 0);
+
+      var displayName = chapterTitle || ('Chương ' + chapterNum);
       var dotContent = isActive
         ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>'
         : '<span class="chapter-num">' + chapterNum + '</span>';
 
-      var lockHtml = isLocked
-        ? '<span class="chapter-lock-hint"><i class="fa-solid fa-lock"></i> Đăng nhập để xem</span>'
+      var lockHint = isLocked
+        ? '<span class="chapter-lock-hint"><i class="fa-solid fa-lock"></i> Đăng nhập để xem lịch mở khóa.</span>'
         : '';
 
       chapterRows.push(
-        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + '" data-player-chapter="' + escapeHtml('Chương ' + chapterNum) + '" data-chapter-index="' + i + '">'
+        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml('Chương ' + chapterNum) + '" data-chapter-index="' + i + '">'
         + '<span class="chapter-dot">' + dotContent + '</span>'
-        + '<span class="chapter-item-text"><span class="chapter-label">Chương ' + chapterNum + ':</span> ' + escapeHtml(chapterName) + '</span>'
+        + '<div class="chapter-item-body">'
+        + '<span class="chapter-item-text"><span class="chapter-label">Chương ' + chapterNum + ':</span> ' + escapeHtml(displayName) + '</span>'
+        + lockHint
+        + '</div>'
         + (isLocked ? '<span class="chapter-lock-icon"><i class="fa-solid fa-lock"></i></span>' : '')
         + '</a>'
       );
