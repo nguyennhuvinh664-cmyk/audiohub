@@ -186,6 +186,8 @@
       listenCount: normalizeNumber(story && story.listenCount),
       listenCount2d: normalizeNumber(story && story.listenCount2d),
       listenCount7d: normalizeNumber(story && story.listenCount7d),
+      chapters: Array.isArray(story && story.chapters) ? story.chapters : [],
+      chapterCount: normalizeNumber(story && story.chapterCount),
       status: normalize(story && story.status, ''),
       isCompleted: normalizeCompleted(story),
       listenHistory: pruneListenHistory(story && story.listenHistory),
@@ -276,6 +278,7 @@
   }
 
   function mapStoryPayload(story) {
+    var chapters = Array.isArray(story && story.chapters) ? story.chapters : [];
     return {
       title: normalize(story && story.title, 'Truyện mới'),
       author: normalize(sanitizeAuthor(story && story.author), resolveAuthorFallback()),
@@ -284,6 +287,8 @@
       readingText: normalize(story && story.readingText, ''),
       hashtags: normalizeHashtags(story && story.hashtags),
       chapterTitle: normalize(story && story.chapterTitle, 'Chương 1'),
+      chapters: JSON.stringify(chapters),
+      chapterCount: chapters.length || Number(story && story.chapterCount) || 0,
       visibility: normalize(story && story.visibility, 'Riêng tư'),
       audioStatus: normalize(story && story.audioStatus, story && story.audioKey ? 'Sẵn sàng' : 'Chưa có'),
       coverKey: story && story.coverKey ? String(story.coverKey) : null,

@@ -33,6 +33,8 @@ model Story {
   description  String             @default("")
   readingText  String             @default("") @map("reading_text")
   chapterTitle String             @default("Chương 1") @map("chapter_title")
+  chapters     String             @default("[]") @map("chapters")
+  chapterCount Int                @default(0) @map("chapter_count")
   visibility   StoryVisibility    @default(PRIVATE)
   audioStatus  AudioStatus        @default(READY) @map("audio_status")
   status       String             @default("")
