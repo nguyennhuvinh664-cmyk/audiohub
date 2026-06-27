@@ -1063,6 +1063,9 @@
     var total = storyChapters.length || Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
 
+    console.log('[ChapterList] story.chapters:', storyChapters);
+    console.log('[ChapterList] total:', total, 'chapterTitle:', currentStory && currentStory.chapterTitle);
+
     // Parse chapter titles from readingText if no chapters[] data
     var chapterTitlesFromText = [];
     if (!storyChapters.length && currentStory && currentStory.readingText) {
