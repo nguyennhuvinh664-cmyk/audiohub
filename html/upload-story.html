@@ -76,6 +76,13 @@
                 <label class="upload-field"><span>Tác giả</span><input type="text" placeholder="Tự động theo tài khoản đăng nhập" data-upload-author readonly aria-readonly="true" /></label>
                 <label class="upload-field"><span>Thể loại</span><select data-upload-genre><option value="">Chọn thể loại</option><option>Cổ Đại</option><option>Cổ Tích</option><option>Đam Mỹ</option><option>Dị Năng</option><option>Fanfic</option><option>Hệ Thống</option><option>Hiện Đại</option><option>Hoàng Đế</option><option>Huyền Huyễn</option><option>Không Gian</option><option>Kiếm Hiệp</option><option>Linh Dị</option><option>Mạt Thế</option><option>Ngôn Tình</option><option>Ngọt Sủng</option><option>Nữ Cường</option><option>Quân Nhân</option><option>Sát Thủ</option><option>Sủng Thú</option><option>Tận Thế</option><option>Thập Niên</option><option>Thú Nhân</option><option>Tinh Tế</option><option>Trọng Sinh</option><option>Tiên Hiệp</option><option>Xuyên Không</option><option>Đô Thị</option></select></label>
                 <label class="upload-field"><span>Tên chương</span><input type="text" placeholder="Ví dụ: Chương 1 - Khai màn" data-upload-chapter /></label>
+                <div class="upload-field" style="grid-column:1/-1;">
+                  <span>Danh sách chương</span>
+                  <div class="chapter-builder" data-chapter-builder>
+                    <div class="chapter-builder__list" data-chapter-builder-list></div>
+                    <button type="button" class="btn btn--outline" data-chapter-builder-add style="min-width:auto;padding:8px 16px;font-size:.85rem;"><i class="fa-solid fa-plus"></i> Thêm chương</button>
+                  </div>
+                </div>
                 <label class="upload-field"><span>Link YouTube</span><input type="url" placeholder="https://www.youtube.com/watch?v=..." data-upload-youtube-url /></label>
               </div>
               <label class="upload-field"><span>Mô tả truyện</span><textarea placeholder="Mô tả ngắn nội dung truyện" data-upload-description></textarea><small>Tối đa 1.000 ký tự</small></label>

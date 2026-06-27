@@ -4,6 +4,15 @@
     return;
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   var titleInput = document.querySelector('[data-upload-title]');
   var descriptionInput = document.querySelector('[data-upload-description]');
   var authorInput = document.querySelector('[data-upload-author]');
@@ -289,8 +298,60 @@
     coverKey: '',
     audioKey: '',
     readingText: '',
-    submitting: false
+    submitting: false,
+    chapters: []
   };
+
+  // ── Chapter builder ──
+  var chapterBuilderList = document.querySelector('[data-chapter-builder-list]');
+  var chapterBuilderAdd = document.querySelector('[data-chapter-builder-add]');
+
+  function renderChapterBuilder() {
+    if (!chapterBuilderList) return;
+    chapterBuilderList.innerHTML = state.chapters.map(function (ch, i) {
+      return '<div class="chapter-builder__item" data-chapter-builder-index="' + i + '">'
+        + '<span>' + (i + 1) + '</span>'
+        + '<input type="text" value="' + escapeHtml(ch.title) + '" placeholder="Chương ' + (i + 1) + ' - Tên chương" data-chapter-builder-title="' + i + '" />'
+        + '<button type="button" class="chapter-builder__remove" data-chapter-builder-remove="' + i + '" title="Xóa"><i class="fa-solid fa-xmark"></i></button>'
+        + '</div>';
+    }).join('');
+
+    // Bind title inputs
+    chapterBuilderList.querySelectorAll('[data-chapter-builder-title]').forEach(function (input) {
+      input.addEventListener('input', function () {
+        var idx = Number(input.getAttribute('data-chapter-builder-title'));
+        state.chapters[idx].title = input.value.trim();
+      });
+    });
+
+    // Bind remove buttons
+    chapterBuilderList.querySelectorAll('[data-chapter-builder-remove]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = Number(btn.getAttribute('data-chapter-builder-remove'));
+        state.chapters.splice(idx, 1);
+        // Re-number
+        state.chapters.forEach(function (ch, i) { ch.chapterNumber = i + 1; });
+        renderChapterBuilder();
+      });
+    });
+  }
+
+  if (chapterBuilderAdd) {
+    chapterBuilderAdd.addEventListener('click', function () {
+      var num = state.chapters.length + 1;
+      state.chapters.push({ chapterNumber: num, title: '' });
+      renderChapterBuilder();
+      // Focus last input
+      var lastInput = chapterBuilderList.querySelector('[data-chapter-builder-title="' + (num - 1) + '"]');
+      if (lastInput) lastInput.focus();
+    });
+  }
+
+  // Auto-add first chapter if empty
+  if (state.chapters.length === 0) {
+    state.chapters.push({ chapterNumber: 1, title: '' });
+    renderChapterBuilder();
+  }
 
   function clearObjectUrl(value) {
     if (!value) {
@@ -539,6 +600,16 @@
     setFieldValue(descriptionInput, story.description);
     setFieldValue(genreSelect, story.genre);
     setFieldValue(chapterInput, story.chapterTitle);
+
+    // Load chapters into builder
+    if (Array.isArray(story.chapters) && story.chapters.length) {
+      state.chapters = story.chapters.map(function (ch, i) {
+        return { chapterNumber: ch.chapterNumber || (i + 1), title: ch.title || '' };
+      });
+    } else if (story.chapterTitle) {
+      state.chapters = [{ chapterNumber: 1, title: story.chapterTitle }];
+    }
+    renderChapterBuilder();
     setFieldValue(youtubeInput, story.youtubeUrl);
     setFieldValue(visibilitySelect, story.visibility || 'Riêng tư');
     state.visibility = visibilitySelect && visibilitySelect.value ? visibilitySelect.value : (story.visibility || 'Riêng tư');
@@ -893,6 +964,8 @@
         channelName: resolvedAuthor,
         genre: genreSelect ? genreSelect.value : '',
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
+        chapters: state.chapters.length ? state.chapters : [{ chapterNumber: 1, title: chapterInput ? chapterInput.value.trim() : '' }],
+        chapterCount: state.chapters.length || 1,
         youtubeUrl: youtubePayload.url,
         youtubeId: youtubePayload.id,
         visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Riêng tư')),
