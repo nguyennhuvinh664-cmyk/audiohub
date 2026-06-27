@@ -15,8 +15,7 @@
   display: grid;
   grid-template-columns: minmax(260px, 40%) 1fr;
   gap: 16px;
-  flex: 1;
-  min-height: 0;
+  height: 720px;
 }
 
 @media (max-width: 980px) {
