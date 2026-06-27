@@ -1079,8 +1079,8 @@
       var chapterTitle = ch.title || '';
       var isActive = i === activeChapterIndex;
 
-      // Fallback: use story.chapterTitle only if chapter has no own title
-      if (!chapterTitle && i === 0 && currentStory && currentStory.chapterTitle) {
+      // Fallback: use story.chapterTitle for chapters without own title
+      if (!chapterTitle && currentStory && currentStory.chapterTitle) {
         chapterTitle = String(currentStory.chapterTitle);
       }
 
