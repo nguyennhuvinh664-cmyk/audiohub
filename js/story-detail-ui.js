@@ -1055,69 +1055,33 @@
     var chapterCountNode = document.querySelector('.detail-sidebar .section-heading span');
     var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
 
-    if (context && context.playlist && Array.isArray(context.playlist.items)) {
-      var chapters = context.playlist.items.map(function (item, index) {
-        var itemStoryId = item && item.storyId ? String(item.storyId) : '';
-        var itemTitle = item && item.storyTitle ? String(item.storyTitle) : '';
-        // Fallback: look up story title from store if not in playlist item
-        if (!itemTitle && itemStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
-          var s = window.AudioHubStories.getById(itemStoryId);
-          if (s) itemTitle = String(s.title || '');
-        }
-        return {
-          label: item && item.chapterLabel ? String(item.chapterLabel) : ('Chương ' + (index + 1)),
-          storyId: itemStoryId,
-          storyTitle: itemTitle,
-          index: typeof item.chapterIndex === 'number' ? item.chapterIndex : index
-        };
-      });
-
-      var activeIndex = chapters.findIndex(function (chapter) { return String(chapter.label) === String(context.chapterLabel); });
-      if (activeIndex < 0) activeIndex = context.chapterIndex;
-      if (activeIndex < 0 || activeIndex >= chapters.length) activeIndex = 0;
-
-      chapterList.innerHTML = chapters.map(function (chapter, idx) {
-        var text = chapter.storyTitle || chapter.label;
-        var isActive = idx === activeIndex;
-        var badge = isActive ? '<span class="chapter-playing-badge"><i class="fa-solid fa-play"></i> Đang phát</span>' : '';
-        return '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + '" data-player-chapter="' + escapeHtml(chapter.label) + '" data-player-story-id="' + escapeHtml(chapter.storyId || '') + '">'
-          + '<span class="chapter-dot">' + (isActive ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>' : '') + '</span>'
-          + '<span class="chapter-item-text">' + escapeHtml(text) + '</span>'
-          + badge
-          + '</a>';
-      }).join('');
-
-      var playlistName = context.playlist.name || 'Playlist';
-      if (chapterHeading) chapterHeading.innerHTML = '<i class="fa-solid fa-list"></i> ' + escapeHtml(playlistName);
-      if (chapterCountNode) chapterCountNode.textContent = chapters.length + ' truyện';
-
-      return { chapters: chapters, activeIndex: activeIndex, chapterLabel: chapters[activeIndex] ? chapters[activeIndex].label : 'Chương 1' };
-    }
-
-    // Default mode: render actual chapters of the story
-    var total = Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
-    var currentChapterTitle = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
+    // Get chapters from story data
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
-    var activeChapterIndex = 0;
+    var total = storyChapters.length || Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
+    var currentChapterTitle = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
 
-    // Try to determine active chapter from player state
+    // Determine active chapter index
+    var activeChapterIndex = 0;
     var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
     if (currentChapterLabel) {
       var match = currentChapterLabel.match(/(\d+)/);
       if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
     }
 
+    // Build chapter rows from story.chapters[] or generate from chapterCount
     var chapterRows = [];
     for (var i = 0; i < total; i++) {
-      var chapterNum = i + 1;
+      var chData = storyChapters[i] || {};
+      var chapterNum = chData.chapterNumber || (i + 1);
+      var chapterTitle = chData.title || '';
+      var isLocked = typeof chData.isLocked === 'boolean' ? chData.isLocked : (i > 0);
       var isActive = i === activeChapterIndex;
 
-      // Get chapter title from data or fallback
-      var chData = storyChapters[i] || {};
-      var chapterTitle = chData.title || (isActive && currentChapterTitle ? currentChapterTitle : '');
-      var isLocked = typeof chData.isLocked === 'boolean' ? chData.isLocked : (i > 0);
+      // Format: "Chương {number} - {title}" or fallback "Chương {number}"
+      var displayName = chapterTitle
+        ? ('Chương ' + chapterNum + ' - ' + chapterTitle)
+        : ('Chương ' + chapterNum);
 
-      var displayName = chapterTitle || ('Chương ' + chapterNum);
       var dotContent = isActive
         ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>'
         : '<span class="chapter-num">' + chapterNum + '</span>';
@@ -1130,7 +1094,7 @@
         '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml('Chương ' + chapterNum) + '" data-chapter-index="' + i + '">'
         + '<span class="chapter-dot">' + dotContent + '</span>'
         + '<div class="chapter-item-body">'
-        + '<span class="chapter-item-text"><span class="chapter-label">Chương ' + chapterNum + ':</span> ' + escapeHtml(displayName) + '</span>'
+        + '<span class="chapter-item-text">' + escapeHtml(displayName) + '</span>'
         + lockHint
         + '</div>'
         + (isLocked ? '<span class="chapter-lock-icon"><i class="fa-solid fa-lock"></i></span>' : '')
@@ -1147,6 +1111,22 @@
       var activeItem = chapterList.querySelector('.chapter-item.is-active');
       if (activeItem) activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }, 100);
+
+    // For playlist mode, return override state
+    if (context && context.playlist && Array.isArray(context.playlist.items)) {
+      var chapters = context.playlist.items.map(function (item, index) {
+        return {
+          label: 'Chương ' + (index + 1),
+          storyId: item && item.storyId ? String(item.storyId) : '',
+          storyTitle: item && item.storyTitle ? String(item.storyTitle) : '',
+          index: typeof item.chapterIndex === 'number' ? item.chapterIndex : index
+        };
+      });
+      var playlistActiveIndex = chapters.findIndex(function (ch) { return String(ch.storyId) === String(context.storyId); });
+      if (playlistActiveIndex < 0) playlistActiveIndex = context.chapterIndex;
+      if (playlistActiveIndex < 0 || playlistActiveIndex >= chapters.length) playlistActiveIndex = 0;
+      return { chapters: chapters, activeIndex: playlistActiveIndex, chapterLabel: chapters[playlistActiveIndex] ? chapters[playlistActiveIndex].label : 'Chương 1' };
+    }
 
     return null;
   }
