@@ -1055,13 +1055,15 @@
     var chapterCountNode = document.querySelector('.detail-sidebar .section-heading span');
     var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
 
-    // Get chapters from story data
+    // ── Login status ──
+    var loggedIn = !!(window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function' && window.AudioHubAccess.isMember()) || isLoggedIn();
+
+    // ── Chapter data ──
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
     var total = storyChapters.length || Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
-    var currentChapterTitle = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
 
-    // Determine active chapter index
+    // ── Active chapter index ──
     var activeChapterIndex = 0;
     var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
     if (currentChapterLabel) {
@@ -1069,39 +1071,42 @@
       if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
     }
 
-    // Check login status (use isMemberSession which checks both localStorage AND API token)
-    var loggedIn = !!(window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function' && window.AudioHubAccess.isMember()) || isLoggedIn();
-
-    // Build chapter rows from story.chapters[] or generate from chapterCount
+    // ── Build chapter rows ──
     var chapterRows = [];
     for (var i = 0; i < total; i++) {
-      var chData = storyChapters[i] || {};
-      var chapterNum = chData.chapterNumber || (i + 1);
-      var chapterTitle = chData.title || '';
-      var isLocked = typeof chData.isLocked === 'boolean' ? chData.isLocked : (i > 0);
+      var ch = storyChapters[i] || {};
+      var chapterNum = ch.chapterNumber || (i + 1);
+      var chapterTitle = ch.title || '';
       var isActive = i === activeChapterIndex;
 
-      // Use chapterTitle from story data for active chapter
-      if (!chapterTitle && isActive && currentChapterTitle) {
-        chapterTitle = currentChapterTitle;
+      // Fallback title: active chapter → story.title, first chapter → story.title
+      if (!chapterTitle && isActive && currentStory && currentStory.chapterTitle) {
+        chapterTitle = String(currentStory.chapterTitle);
       }
-      // Fallback: use story title for first chapter
       if (!chapterTitle && i === 0 && storyTitle) {
         chapterTitle = storyTitle;
       }
 
-      // Format: "Chương {number} - {title}" or fallback "Chương {number}"
+      // Format: "Chương {number} - {title}"
       var displayName = chapterTitle
         ? ('Chương ' + chapterNum + ' - ' + chapterTitle)
         : ('Chương ' + chapterNum);
 
+      // ── Determine lock state per chapter ──
+      var isFree = ch.isFree === true;
+      var isUnlocked = ch.isUnlocked === true;
+      var isLocked = !isFree && !isUnlocked;
+
+      // ── Dot content ──
       var dotContent = isActive
         ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>'
         : '<span class="chapter-num">' + chapterNum + '</span>';
 
-      // Lock hint based on login status
+      // ── Lock hint per chapter ──
       var lockHint = '';
+      var lockIcon = '';
       if (isLocked) {
+        lockIcon = '<span class="chapter-lock-icon"><i class="fa-solid fa-lock"></i></span>';
         if (!loggedIn) {
           lockHint = '<span class="chapter-lock-hint"><i class="fa-solid fa-lock"></i> Đăng nhập để xem lịch mở khóa.</span>';
         } else {
@@ -1116,7 +1121,7 @@
         + '<span class="chapter-item-text">' + escapeHtml(displayName) + '</span>'
         + lockHint
         + '</div>'
-        + (isLocked ? '<span class="chapter-lock-icon"><i class="fa-solid fa-lock"></i></span>' : '')
+        + lockIcon
         + '</a>'
       );
     }
