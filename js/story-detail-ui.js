@@ -1063,6 +1063,20 @@
     var total = storyChapters.length || Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
 
+    // Parse chapter titles from readingText if no chapters[] data
+    var chapterTitlesFromText = [];
+    if (!storyChapters.length && currentStory && currentStory.readingText) {
+      var lines = String(currentStory.readingText).split(/\r?\n/);
+      lines.forEach(function (line) {
+        var trimmed = line.trim();
+        // Match patterns: "Chương 1: Title", "Chuong 1 - Title", "Chapter 1: Title", "# Chương 1 Title"
+        var m = trimmed.match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter|CHƯƠNG|CHƯONG|CHAPTER)\s+(\d+)\s*[:\-–—]\s*(.+)/i);
+        if (m) {
+          chapterTitlesFromText[Number(m[1]) - 1] = m[2].trim();
+        }
+      });
+    }
+
     // ── Active chapter index ──
     var activeChapterIndex = 0;
     var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
@@ -1079,7 +1093,10 @@
       var chapterTitle = ch.title || '';
       var isActive = i === activeChapterIndex;
 
-      // Fallback: use story.chapterTitle for chapters without own title
+      // Fallback chain: ch.title → parsed from readingText → story.chapterTitle
+      if (!chapterTitle && chapterTitlesFromText[i]) {
+        chapterTitle = chapterTitlesFromText[i];
+      }
       if (!chapterTitle && currentStory && currentStory.chapterTitle) {
         chapterTitle = String(currentStory.chapterTitle);
       }
