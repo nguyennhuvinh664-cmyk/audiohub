@@ -340,6 +340,28 @@
     var playlists = safeParse(window.localStorage.getItem('audiohub-playlists-v1') || '', []);
     if (!Array.isArray(playlists)) return null;
 
+    // Normalize: convert entries[] to items[] if needed
+    playlists.forEach(function (pl) {
+      if (!pl) return;
+      if (Array.isArray(pl.items) && pl.items.length) return;
+      if (Array.isArray(pl.entries) && pl.entries.length) {
+        pl.items = pl.entries.map(function (entry, i) {
+          return {
+            storyId: String(entry.key || entry.storyId || ''),
+            storyTitle: String(entry.title || entry.storyTitle || ''),
+            storyAuthor: String(entry.author || entry.storyAuthor || ''),
+            chapterLabel: entry.title || entry.storyTitle || ('Chương ' + (i + 1)),
+            chapterIndex: i
+          };
+        });
+      }
+    });
+
+    function findStoryInPl(pl, sid) {
+      if (!pl || !Array.isArray(pl.items)) return -1;
+      return pl.items.findIndex(function (item) { return item && String(item.storyId || '') === String(sid); });
+    }
+
     var queryPlaylistId = getQueryParam('playlistId');
     var candidateIds = [
       queryPlaylistId,
@@ -352,26 +374,27 @@
 
     candidateIds.some(function (id) {
       var pl = playlists.find(function (entry) { return entry && String(entry.id || '') === String(id); });
-      if (!pl || !Array.isArray(pl.items)) return false;
-      var idx = pl.items.findIndex(function (item) { return item && String(item.storyId || '') === String(storyId); });
-      if (idx < 0) return false;
-      chosen = pl;
-      chosenIndex = idx;
-      return true;
+      if (!pl) return false;
+      var idx = findStoryInPl(pl, storyId);
+      if (idx >= 0) { chosen = pl; chosenIndex = idx; return true; }
+      if (pl.items && pl.items.length) { chosen = pl; chosenIndex = 0; return true; }
+      return false;
     });
 
     if (!chosen) {
       playlists.some(function (pl) {
-        if (!pl || !Array.isArray(pl.items)) return false;
-        var idx = pl.items.findIndex(function (item) { return item && String(item.storyId || '') === String(storyId); });
-        if (idx < 0) return false;
-        chosen = pl;
-        chosenIndex = idx;
-        return true;
+        var idx = findStoryInPl(pl, storyId);
+        if (idx >= 0) { chosen = pl; chosenIndex = idx; return true; }
+        return false;
       });
     }
 
-    if (!chosen || chosenIndex < 0) return null;
+    if (!chosen) return null;
+    if (!Array.isArray(chosen.items) || !chosen.items.length) return null;
+    if (chosenIndex < 0 || !chosen.items[chosenIndex]) {
+      chosenIndex = findStoryInPl(chosen, storyId);
+      if (chosenIndex < 0) chosenIndex = 0;
+    }
 
     var playlistId = String(chosen.id || '');
     var matchedItem = chosen.items[chosenIndex] || {};
