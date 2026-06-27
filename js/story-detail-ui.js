@@ -1059,6 +1059,7 @@
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
     var total = storyChapters.length || Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
     var currentChapterTitle = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
+    var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
 
     // Determine active chapter index
     var activeChapterIndex = 0;
@@ -1076,6 +1077,15 @@
       var chapterTitle = chData.title || '';
       var isLocked = typeof chData.isLocked === 'boolean' ? chData.isLocked : (i > 0);
       var isActive = i === activeChapterIndex;
+
+      // Use chapterTitle from story data for active chapter
+      if (!chapterTitle && isActive && currentChapterTitle) {
+        chapterTitle = currentChapterTitle;
+      }
+      // Fallback: use story title for first chapter
+      if (!chapterTitle && i === 0 && storyTitle) {
+        chapterTitle = storyTitle;
+      }
 
       // Format: "Chương {number} - {title}" or fallback "Chương {number}"
       var displayName = chapterTitle
