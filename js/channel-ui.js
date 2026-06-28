@@ -134,14 +134,15 @@
         var doneCount = (pl.entries || []).filter(function(e) { return e.status === 'done'; }).length;
         var firstEntry = (pl.entries || [])[0] || {};
         var coverKey = String(firstEntry.coverKey || '');
-        var firstStoryId = String(firstEntry.storyId || firstEntry.key || '');
+        var firstStoryId = String(firstEntry.storyId || '');
         var href = firstStoryId ? ('story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
         var state = String(pl.state || '').trim();
         var badgeText = state === 'done' ? 'Bản Full' : (count + ' truyện');
+        var thumbStyle = coverKey ? '' : 'background:linear-gradient(135deg,#1a1040,#2d1b69)';
         return '<div class="ch-playlist-card">'
           + '<a href="' + href + '" class="ch-playlist-card__link">'
-          + '<div class="ch-playlist-card__thumb" data-cover="' + coverKey + '">'
-          + '<i class="fa-solid fa-list"></i>'
+          + '<div class="ch-playlist-card__thumb" data-cover="' + coverKey + '" style="' + thumbStyle + '">'
+          + (coverKey ? '' : '<i class="fa-solid fa-list"></i>')
           + '<span class="ch-playlist-card__badge">' + badgeText + '</span>'
           + '</div>'
           + '<h3 class="ch-playlist-card__title">' + esc(pl.name || 'Playlist') + '</h3>'
@@ -149,7 +150,8 @@
           + '<span class="ch-playlist-card__link-text">Xem toàn bộ danh sách</span>'
           + '</a></div>';
       }).join('') + '</div>';
-      hydrateCovers(playlistTab);
+      // Hydrate covers after DOM update
+      requestAnimationFrame(function() { hydrateCovers(playlistTab); });
     }
   }
 
@@ -216,6 +218,15 @@
       window.AudioHubStoryCover.get(key).then(function(blob) {
         if (!blob) return;
         var url = URL.createObjectURL(blob);
+        // Use img element for playlist thumbnails (better display)
+        var img = el.querySelector('img');
+        if (!img) {
+          img = document.createElement('img');
+          img.loading = 'lazy';
+          el.appendChild(img);
+        }
+        img.src = url;
+        // Also set as background fallback
         el.style.backgroundImage = 'url("' + url + '")';
         el.style.backgroundSize = 'cover';
         el.style.backgroundPosition = 'center';
