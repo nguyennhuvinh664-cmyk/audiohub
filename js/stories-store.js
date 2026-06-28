@@ -191,12 +191,6 @@
         var stored = sid ? getChaptersForStory(sid) : [];
         return stored.length ? stored : [];
       })(),
-      // DEBUG
-      (function () {
-        var ch = Array.isArray(story && story.chapters) ? story.chapters : [];
-        console.log('[normalizeStory] id:', story && story.id, 'input.chapters:', ch.length, ch.length ? ch[0].title : 'EMPTY');
-        return ch;
-      })(),
       chapterCount: normalizeNumber(story && story.chapterCount) || (function () {
         var sid = story && story.id ? String(story.id) : '';
         var stored = sid ? getChaptersForStory(sid) : [];
@@ -261,12 +255,7 @@
   function getChaptersForStory(sid) {
     if (!sid) return [];
     var store = readChaptersStore();
-    var result = Array.isArray(store[sid]) ? store[sid] : [];
-    console.log('[getChaptersForStory] sid:', sid, 'found:', result.length);
-    if (result.length) {
-      result.forEach(function (ch, i) { console.log('[getChaptersForStory]', i, ch.chapterNumber, ch.title); });
-    }
-    return result;
+    return Array.isArray(store[sid]) ? store[sid] : [];
   }
 
   function upsertLocalStory(story) {
@@ -342,10 +331,6 @@
 
   function mapStoryPayload(story) {
     var chapters = Array.isArray(story && story.chapters) ? story.chapters : [];
-    console.log('[mapStoryPayload] chapters count:', chapters.length);
-    if (chapters.length) {
-      chapters.forEach(function (ch, i) { console.log('[mapStoryPayload] ch', i, ':', ch.chapterNumber, ch.title); });
-    }
     return {
       title: normalize(story && story.title, 'Truyện mới'),
       author: normalize(sanitizeAuthor(story && story.author), resolveAuthorFallback()),

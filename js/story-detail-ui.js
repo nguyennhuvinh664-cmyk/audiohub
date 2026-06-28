@@ -1064,15 +1064,10 @@
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
 
     console.log('[ChapterList] story.chapters:', JSON.stringify(storyChapters));
-    console.log('[ChapterList] story.chapters.length:', storyChapters.length);
     console.log('[ChapterList] total:', total, 'chapterTitle:', currentStory && currentStory.chapterTitle);
     storyChapters.forEach(function (ch, i) {
       console.log('[ChapterList] chapter', i, ':', ch.chapterNumber, '-', ch.title);
     });
-    if (!storyChapters.length) {
-      console.log('[ChapterList] EMPTY chapters array! story.chapters is missing or empty.');
-      console.log('[ChapterList] currentStory keys:', Object.keys(currentStory || {}));
-    }
 
     // Parse chapter titles from readingText if no chapters[] data
     var chapterTitlesFromText = [];
@@ -1645,7 +1640,6 @@
       }
     }
     var story = initStoryDetailFromStore(storyId);
-    console.log('[initPlayer] story from initStoryDetailFromStore:', story && story.id, 'chapters:', story && Array.isArray(story.chapters) ? story.chapters.length : 'MISSING');
     if (!story && storyId && !isSyntheticStoryId(storyId)) {
       markPendingStorySync(storyId);
       scheduleStoryDetailRetry(storyId, 0);
@@ -1655,12 +1649,6 @@
       story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
         ? window.AudioHubStories.getById(String(story.id))
         : story;
-      console.log('[initPlayer] story after getById:', story && story.id, 'chapters:', story && Array.isArray(story.chapters) ? story.chapters.length : 'MISSING');
-      if (story && Array.isArray(story.chapters) && story.chapters.length) {
-        story.chapters.forEach(function (ch, i) {
-          console.log('[initPlayer] ch', i, ':', ch.chapterNumber, '-', ch.title);
-        });
-      }
       var detailStoryNode = document.querySelector('[data-detail-story]');
       renderStoryMeta(detailStoryNode, story);
     }
