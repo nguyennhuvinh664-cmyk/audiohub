@@ -543,13 +543,18 @@
 
     // Load chapters into textarea
     if (chaptersTextarea) {
+      console.log('[upload] story.chapters:', story.chapters);
       if (Array.isArray(story.chapters) && story.chapters.length) {
         chaptersTextarea.value = story.chapters.map(function (ch) {
           return 'Chương ' + (ch.chapterNumber || 0) + ' - ' + (ch.title || '');
         }).join('\n');
+        console.log('[upload] loaded', story.chapters.length, 'chapters into textarea');
       } else if (story.chapterTitle) {
         chaptersTextarea.value = 'Chương 1 - ' + story.chapterTitle;
+        console.log('[upload] no chapters, fallback to chapterTitle');
       }
+    } else {
+      console.log('[upload] chaptersTextarea NOT FOUND');
     }
     setFieldValue(youtubeInput, story.youtubeUrl);
     setFieldValue(visibilitySelect, story.visibility || 'Riêng tư');
