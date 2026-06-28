@@ -186,8 +186,16 @@
       listenCount: normalizeNumber(story && story.listenCount),
       listenCount2d: normalizeNumber(story && story.listenCount2d),
       listenCount7d: normalizeNumber(story && story.listenCount7d),
-      chapters: Array.isArray(story && story.chapters) ? story.chapters : [],
-      chapterCount: normalizeNumber(story && story.chapterCount),
+      chapters: Array.isArray(story && story.chapters) ? story.chapters : (function () {
+        var sid = story && story.id ? String(story.id) : '';
+        var stored = sid ? getChaptersForStory(sid) : [];
+        return stored.length ? stored : [];
+      })(),
+      chapterCount: normalizeNumber(story && story.chapterCount) || (function () {
+        var sid = story && story.id ? String(story.id) : '';
+        var stored = sid ? getChaptersForStory(sid) : [];
+        return stored.length ? stored.length : 0;
+      })(),
       status: normalize(story && story.status, ''),
       isCompleted: normalizeCompleted(story),
       listenHistory: pruneListenHistory(story && story.listenHistory),
@@ -230,9 +238,46 @@
     };
   }
 
+  // ── Chapters localStorage layer (backup until DB migration runs) ──
+  var CHAPTERS_KEY = 'audiohub-chapters-v1';
+  function readChaptersStore() {
+    try { return JSON.parse(localStorage.getItem(CHAPTERS_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function writeChaptersStore(obj) {
+    try { localStorage.setItem(CHAPTERS_KEY, JSON.stringify(obj)); } catch (e) {}
+  }
+  function saveChaptersForStory(sid, chapters) {
+    if (!sid || !Array.isArray(chapters)) return;
+    var store = readChaptersStore();
+    store[sid] = chapters;
+    writeChaptersStore(store);
+  }
+  function getChaptersForStory(sid) {
+    if (!sid) return [];
+    var store = readChaptersStore();
+    return Array.isArray(store[sid]) ? store[sid] : [];
+  }
+
   function upsertLocalStory(story) {
     var stories = readLocalStories();
     var entry = normalizeStory(story);
+
+    // Save chapters to separate localStorage if present
+    if (Array.isArray(story.chapters) && story.chapters.length) {
+      saveChaptersForStory(entry.id, story.chapters);
+      entry.chapters = story.chapters;
+      entry.chapterCount = story.chapters.length;
+    }
+
+    // Merge chapters from localStorage if not in entry
+    if (!entry.chapters || !entry.chapters.length) {
+      var stored = getChaptersForStory(entry.id);
+      if (stored.length) {
+        entry.chapters = stored;
+        entry.chapterCount = stored.length;
+      }
+    }
+
     var existingIndex = stories.findIndex(function (item) {
       return item.id === entry.id;
     });
