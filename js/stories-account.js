@@ -1380,8 +1380,24 @@
         var entryKey = removeBtn.getAttribute('data-entry-remove');
         var plId = removeBtn.getAttribute('data-playlist-id');
         if (entryKey && plId) {
-          removeEntryFromPlaylist(plId, entryKey);
-          renderPlaylist();
+          // Animate item out then update
+          var itemEl = removeBtn.closest('.playlist-entry');
+          if (itemEl) {
+            itemEl.style.transition = 'opacity .15s ease, max-height .2s ease, margin .2s ease, padding .2s ease';
+            itemEl.style.opacity = '0';
+            itemEl.style.maxHeight = '0';
+            itemEl.style.margin = '0';
+            itemEl.style.padding = '0';
+            itemEl.style.overflow = 'hidden';
+            setTimeout(function () {
+              removeEntryFromPlaylist(plId, entryKey);
+              // Only re-render detail panel, not full playlist
+              renderPlaylistDetail();
+            }, 200);
+          } else {
+            removeEntryFromPlaylist(plId, entryKey);
+            renderPlaylistDetail();
+          }
         }
         return;
       }
@@ -1516,7 +1532,7 @@
       if (found) { writePlaylists(list); renderPlaylist(); }
       return found;
     },
-    remove: function (playlistId, entryKey) { removeEntryFromPlaylist(playlistId, entryKey); renderPlaylist(); }
+    remove: function (playlistId, entryKey) { removeEntryFromPlaylist(playlistId, entryKey); renderPlaylistDetail(); }
   };
 
   // ── End Playlist ──────────────────────────────────────────────────────────
