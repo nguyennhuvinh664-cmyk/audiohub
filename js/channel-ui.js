@@ -111,25 +111,51 @@
     if (!stories.length) {
       grid.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book"></i><p>Tác giả chưa có audio nào</p></div>';
     } else {
-      grid.innerHTML = stories.slice(0, 8).map(function(s) {
-        var ini = (s.title || 'AH').substring(0, 2).toUpperCase();
-        var views = fmt(s.listenCount || s.views);
-        var href = 'story-detail.html?id=' + encodeURIComponent(s.id);
-        return '<div class="ch-card">'
-          + '<a href="' + href + '" class="ch-card__thumb" data-cover="' + (s.coverKey || '') + '">'
-          + '<span>' + ini + '</span>'
-          + '</a>'
-          + '<div class="ch-card__body">'
-          + '<h4 class="ch-card__title"><a href="' + href + '">' + esc(s.title) + '</a></h4>'
-          + '<p class="ch-card__meta"><i class="fa-solid fa-headphones"></i> ' + views + ' lượt nghe</p>'
-          + '<div class="ch-card__actions">'
-          + '<a href="' + href + '" class="ch-card__btn ch-card__btn--play"><i class="fa-solid fa-play"></i> Nghe ngay</a>'
-          + '<button type="button" class="ch-card__btn ch-card__btn--fav" data-fav><i class="fa-regular fa-heart"></i></button>'
-          + '</div>'
-          + '</div></div>';
-      }).join('');
+      grid.innerHTML = stories.slice(0, 8).map(function(s) { return buildStoryCard(s); }).join('');
       hydrateCovers(grid);
     }
+  }
+
+  // ── Genre colors (same as homepage) ──
+  var genreColors = {
+    'tiên hiệp': '#7c3aed', 'kiem hiep': '#0891b2', 'kiếm hiệp': '#0891b2',
+    'ngôn tình': '#be185d', 'huyền huyễn': '#065f46', 'huyen huyen': '#065f46',
+    'đô thị': '#b45309', 'do thi': '#b45309', 'xuyên không': '#4338ca',
+    'xuyen khong': '#4338ca', 'cổ đại': '#9333ea', 'co dai': '#9333ea',
+    'trọng sinh': '#1d4ed8', 'trong sinh': '#1d4ed8', 'đam mỹ': '#ec4899',
+    'dam my': '#ec4899', 'hệ thống': '#0f766e', 'he thong': '#0f766e',
+    'mạt thế': '#dc2626', 'mat the': '#dc2626', 'linh dị': '#7e22ce',
+    'linh di': '#7e22ce', 'ngọt sủng': '#e11d48', 'nu cuong': '#9333ea',
+    'nữ cường': '#9333ea', 'sát thủ': '#991b1b', 'thú nhân': '#065f46'
+  };
+  function genreColor(genre) { return genreColors[String(genre || '').trim().toLowerCase()] || '#334155'; }
+  function makeInitials(title) { return String(title || 'AH').split(/\s+/).filter(Boolean).slice(0, 2).map(function(w) { return w[0]; }).join('').toUpperCase(); }
+
+  // ── Build homepage-style card ──
+  function buildStoryCard(story) {
+    var storyId = String(story && story.id || '').trim();
+    var href = storyId ? ('story-detail.html?id=' + encodeURIComponent(storyId)) : '#';
+    var title = String(story.title || 'Truyện mới');
+    var genre = String(story.genre || 'Khác');
+    var author = String(story.author || 'Ẩn danh');
+    var initials = makeInitials(title);
+    var visibility = String(story.visibility || 'Công khai');
+    var color = genreColor(genre);
+
+    return '<a href="' + href + '" class="story-card" data-story-id="' + storyId + '" data-story-visibility="' + visibility + '">'
+      + '<div class="story-card__link">'
+      + '<div class="story-card__thumb" data-cover="' + (story.coverKey || '') + '" style="background:linear-gradient(135deg,' + color + ',' + color + 'aa)">'
+      + '<span class="story-chapters">Demo</span>'
+      + '</div>'
+      + '<div class="story-card__body">'
+      + '<div class="story-meta"><span>' + esc(genre) + '</span><span><i class="fa-regular fa-eye"></i> ' + fmt(story.listenCount || story.views) + '</span></div>'
+      + '<h2 class="story-title">' + esc(title) + '</h2>'
+      + '<div class="story-footer"><span><i class="fa-regular fa-user"></i> ' + esc(author) + '</span><span class="story-rating"><i class="fa-solid fa-star"></i> —</span></div>'
+      + '<div class="story-card__actions">'
+      + '<a href="' + href + '" class="story-card__listen"><i class="fa-solid fa-play"></i> Nghe ngay</a>'
+      + '<button type="button" class="story-card__fav" data-fav><i class="fa-regular fa-heart"></i> Yêu thích</button>'
+      + '</div>'
+      + '</div></div></a>';
   }
 
   // ── List (audios tab) ──
@@ -137,18 +163,7 @@
   function renderList(items) {
     if (!listEl) return;
     if (!items.length) { listEl.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book"></i><p>Không có audio</p></div>'; return; }
-    listEl.innerHTML = items.map(function(s) {
-      var ini = (s.title || 'AH').substring(0, 2).toUpperCase();
-      var views = fmt(s.listenCount || s.views);
-      var href = 'story-detail.html?id=' + encodeURIComponent(s.id);
-      return '<a href="' + href + '" class="ch-row">'
-        + '<div class="ch-row__thumb" data-cover="' + (s.coverKey || '') + '"><span>' + ini + '</span></div>'
-        + '<div class="ch-row__info">'
-        + '<h4 class="ch-row__title">' + esc(s.title) + '</h4>'
-        + '<p class="ch-row__meta">' + views + ' lượt nghe</p>'
-        + '<p class="ch-row__desc">' + esc(s.description || '') + '</p>'
-        + '</div></a>';
-    }).join('');
+    listEl.innerHTML = items.map(function(s) { return buildStoryCard(s); }).join('');
     hydrateCovers(listEl);
   }
   renderList(stories);
