@@ -370,6 +370,8 @@
           if (!created || !created.id) {
             return;
           }
+          // Preserve chapters from local entry before removing
+          var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
           removeLocalStory(localEntry.id);
           upsertLocalStory({
             id: created.id,
@@ -380,6 +382,8 @@
             readingText: localEntry.readingText,
             hashtags: localEntry.hashtags,
             chapterTitle: localEntry.chapterTitle,
+            chapters: savedChapters,
+            chapterCount: savedChapters.length || localEntry.chapterCount || 0,
             visibility: localEntry.visibility,
             audioStatus: localEntry.audioStatus,
             coverKey: localEntry.coverKey,
