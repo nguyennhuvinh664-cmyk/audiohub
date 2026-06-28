@@ -1101,12 +1101,9 @@
       var chapterTitle = ch.title || '';
       var isActive = i === activeChapterIndex;
 
-      // Fallback chain: ch.title → parsed from readingText → story.chapterTitle
+      // Fallback chain: ch.title → parsed from readingText
       if (!chapterTitle && chapterTitlesFromText[i]) {
         chapterTitle = chapterTitlesFromText[i];
-      }
-      if (!chapterTitle && currentStory && currentStory.chapterTitle) {
-        chapterTitle = String(currentStory.chapterTitle);
       }
 
       // Format: "Chương {number} - {title}"
