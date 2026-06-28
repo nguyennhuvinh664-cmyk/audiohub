@@ -9,7 +9,6 @@
   var authorInput = document.querySelector('[data-upload-author]');
   var genreSelect = document.querySelector('[data-upload-genre]');
   var chapterInput = document.querySelector('[data-upload-chapter]');
-  var chaptersTextarea = document.querySelector('[data-upload-chapters]');
   var youtubeInput = document.querySelector('[data-upload-youtube-url]');
   var visibilitySelect = document.querySelector('[data-upload-visibility]');
 
@@ -540,22 +539,6 @@
     setFieldValue(descriptionInput, story.description);
     setFieldValue(genreSelect, story.genre);
     setFieldValue(chapterInput, story.chapterTitle);
-
-    // Load chapters into textarea
-    if (chaptersTextarea) {
-      console.log('[upload] story.chapters:', story.chapters);
-      if (Array.isArray(story.chapters) && story.chapters.length) {
-        chaptersTextarea.value = story.chapters.map(function (ch) {
-          return 'Chương ' + (ch.chapterNumber || 0) + ' - ' + (ch.title || '');
-        }).join('\n');
-        console.log('[upload] loaded', story.chapters.length, 'chapters into textarea');
-      } else if (story.chapterTitle) {
-        chaptersTextarea.value = 'Chương 1 - ' + story.chapterTitle;
-        console.log('[upload] no chapters, fallback to chapterTitle');
-      }
-    } else {
-      console.log('[upload] chaptersTextarea NOT FOUND');
-    }
     setFieldValue(youtubeInput, story.youtubeUrl);
     setFieldValue(visibilitySelect, story.visibility || 'Riêng tư');
     state.visibility = visibilitySelect && visibilitySelect.value ? visibilitySelect.value : (story.visibility || 'Riêng tư');
@@ -910,14 +893,6 @@
         channelName: resolvedAuthor,
         genre: genreSelect ? genreSelect.value : '',
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
-        chapters: (function () {
-          var text = chaptersTextarea ? chaptersTextarea.value.trim() : '';
-          if (!text) return [];
-          var lines = text.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
-          return lines.map(function (line, i) {
-            return { chapterNumber: i + 1, title: line };
-          });
-        })(),
         youtubeUrl: youtubePayload.url,
         youtubeId: youtubePayload.id,
         visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Riêng tư')),
