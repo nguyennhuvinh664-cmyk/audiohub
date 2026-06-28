@@ -1062,27 +1062,27 @@
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
     var total = storyChapters.length || Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
+    var chapterTitleFallback = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
 
-    // If no chapters data, auto-generate from chapterCount + chapterTitle
-    if (!storyChapters.length) {
-      var ct = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
-      for (var ci = 0; ci < total; ci++) {
-        storyChapters.push({ chapterNumber: ci + 1, title: ct || '' });
-      }
-    }
-
-    // Parse chapter titles from readingText if no chapters[] data
+    // Parse chapter titles from readingText
     var chapterTitlesFromText = [];
-    if (!storyChapters.length && currentStory && currentStory.readingText) {
+    if (currentStory && currentStory.readingText) {
       var lines = String(currentStory.readingText).split(/\r?\n/);
       lines.forEach(function (line) {
         var trimmed = line.trim();
-        // Match patterns: "Chương 1: Title", "Chuong 1 - Title", "Chapter 1: Title", "# Chương 1 Title"
         var m = trimmed.match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter|CHƯƠNG|CHƯONG|CHAPTER)\s+(\d+)\s*[:\-–—]\s*(.+)/i);
         if (m) {
           chapterTitlesFromText[Number(m[1]) - 1] = m[2].trim();
         }
       });
+    }
+
+    // If no chapters data, auto-generate from readingText or chapterTitle
+    if (!storyChapters.length) {
+      for (var ci = 0; ci < total; ci++) {
+        var autoTitle = chapterTitlesFromText[ci] || chapterTitleFallback || '';
+        storyChapters.push({ chapterNumber: ci + 1, title: autoTitle });
+      }
     }
 
     // ── Active chapter index ──
