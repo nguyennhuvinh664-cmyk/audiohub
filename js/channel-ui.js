@@ -128,7 +128,10 @@
     'linh di': '#7e22ce', 'ngọt sủng': '#e11d48', 'nu cuong': '#9333ea',
     'nữ cường': '#9333ea', 'sát thủ': '#991b1b', 'thú nhân': '#065f46'
   };
-  function genreColor(genre) { return genreColors[String(genre || '').trim().toLowerCase()] || '#334155'; }
+  function genreColor(genre) {
+    var key = String(genre || '').trim().toLowerCase();
+    return (typeof genreColors !== 'undefined' && genreColors[key]) || '#334155';
+  }
   function makeInitials(title) { return String(title || 'AH').split(/\s+/).filter(Boolean).slice(0, 2).map(function(w) { return w[0]; }).join('').toUpperCase(); }
 
   // ── Build homepage-style card ──
