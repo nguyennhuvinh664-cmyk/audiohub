@@ -131,17 +131,23 @@
     if (authorPlaylists.length) {
       playlistTab.innerHTML = '<div class="ch-playlists-grid">' + authorPlaylists.map(function(pl) {
         var count = (pl.entries || []).length;
+        var doneCount = (pl.entries || []).filter(function(e) { return e.status === 'done'; }).length;
         var firstEntry = (pl.entries || [])[0] || {};
         var coverKey = String(firstEntry.coverKey || '');
         var firstStoryId = String(firstEntry.storyId || firstEntry.key || '');
         var href = firstStoryId ? ('story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
+        var state = String(pl.state || '').trim();
+        var badgeText = state === 'done' ? 'Bản Full' : (count + ' truyện');
         return '<div class="ch-playlist-card">'
           + '<a href="' + href + '" class="ch-playlist-card__link">'
-          + '<div class="ch-playlist-card__thumb" data-cover="' + coverKey + '"><i class="fa-solid fa-list"></i></div>'
-          + '<div class="ch-playlist-card__info">'
-          + '<h3>' + esc(pl.name || 'Playlist') + '</h3>'
-          + '<p>' + count + ' truyện</p>'
-          + '</div></a></div>';
+          + '<div class="ch-playlist-card__thumb" data-cover="' + coverKey + '">'
+          + '<i class="fa-solid fa-list"></i>'
+          + '<span class="ch-playlist-card__badge">' + badgeText + '</span>'
+          + '</div>'
+          + '<h3 class="ch-playlist-card__title">' + esc(pl.name || 'Playlist') + '</h3>'
+          + '<p class="ch-playlist-card__meta">Cập nhật hôm qua</p>'
+          + '<span class="ch-playlist-card__link-text">Xem toàn bộ danh sách</span>'
+          + '</a></div>';
       }).join('') + '</div>';
       hydrateCovers(playlistTab);
     }
