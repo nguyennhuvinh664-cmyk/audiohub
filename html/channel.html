@@ -13,11 +13,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="../css/style-categories.css" />
-  <link rel="stylesheet" href="../css/auth-state.css" />
   <link rel="stylesheet" href="../css/mobile-shared.css" />
+  <link rel="stylesheet" href="../css/auth-state.css" />
   <link rel="stylesheet" href="../css/channel.css" />
 </head>
 <body class="channel-page">
+
   <header class="site-header">
     <div class="container header__inner">
       <button class="hamburger" data-nav-toggle aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
@@ -42,118 +43,141 @@
     <a href="account.html" class="nav-drawer__link"><i class="fa-solid fa-user"></i> Tài Khoản</a>
   </nav>
 
-  <div class="channel-banner" data-channel-banner></div>
+  <!-- Banner -->
+  <div class="ch-banner" data-channel-banner>
+    <div class="ch-banner__fade"></div>
+  </div>
 
-  <section class="channel-info">
-    <div class="container channel-info__inner">
-      <div class="channel-avatar" data-channel-avatar>
-        <span data-channel-initials>LL</span>
-      </div>
-      <div class="channel-details">
-        <h1 class="channel-name" data-channel-name>Lưu Lang</h1>
-        <p class="channel-stats" data-channel-stats>0 lượt nghe · 0 truyện</p>
-        <p class="channel-desc" data-channel-desc>Tác giả truyện audio trên AudioHub.</p>
-      </div>
-      <div class="channel-actions">
-        <button class="btn btn--primary subscribe-btn">Đăng ký</button>
-        <button class="btn btn--outline icon-btn" aria-label="Thông báo"><i class="fa-solid fa-bell"></i></button>
+  <!-- Channel Info -->
+  <section class="ch-info">
+    <div class="container">
+      <div class="ch-info__inner">
+        <div class="ch-info__avatar" data-channel-avatar><span data-channel-initials>AH</span></div>
+        <div class="ch-info__text">
+          <h1 class="ch-info__name" data-channel-name>Tác giả</h1>
+          <div class="ch-info__badges">
+            <span class="ch-badge ch-badge--role"><i class="fa-solid fa-headphones"></i> Tác giả Audio</span>
+            <span class="ch-badge ch-badge--verified"><i class="fa-solid fa-circle-check"></i> Verified</span>
+          </div>
+          <div class="ch-info__stats" data-channel-stats>
+            <div class="ch-stat"><strong>0</strong><span>Lượt nghe</span></div>
+            <div class="ch-stat"><strong>0</strong><span>Audio</span></div>
+            <div class="ch-stat"><strong>0</strong><span>Playlist</span></div>
+            <div class="ch-stat"><strong>0</strong><span>Follower</span></div>
+          </div>
+        </div>
+        <div class="ch-info__actions">
+          <button type="button" class="btn btn--primary ch-sub-btn" data-subscribe-btn><i class="fa-solid fa-bell"></i> Đăng ký</button>
+          <button type="button" class="btn btn--outline ch-sub-btn ch-sub-btn--active" data-subscribe-btn-subscribed style="display:none"><i class="fa-solid fa-bell"></i> Đã đăng ký</button>
+        </div>
       </div>
     </div>
   </section>
 
-  <nav class="channel-tabs" data-channel-tabs>
-    <div class="container channel-tabs__inner">
-      <button class="channel-tab active" data-tab="home">Trang chủ</button>
-      <button class="channel-tab" data-tab="audios">Audio</button>
-      <button class="channel-tab" data-tab="playlists">Playlist</button>
-      <button class="channel-tab" data-tab="community">Cộng đồng</button>
-      <button class="channel-tab" data-tab="about">Giới thiệu</button>
+  <!-- Tabs -->
+  <nav class="ch-tabs" data-channel-tabs>
+    <div class="container">
+      <div class="ch-tabs__inner">
+        <button type="button" class="ch-tab is-active" data-tab="home"><i class="fa-solid fa-house"></i> Trang chủ</button>
+        <button type="button" class="ch-tab" data-tab="audio"><i class="fa-solid fa-headphones"></i> Audio</button>
+        <button type="button" class="ch-tab" data-tab="playlist"><i class="fa-solid fa-list"></i> Playlist</button>
+        <button type="button" class="ch-tab" data-tab="community"><i class="fa-solid fa-users"></i> Cộng đồng</button>
+        <button type="button" class="ch-tab" data-tab="about"><i class="fa-solid fa-circle-info"></i> Giới thiệu</button>
+      </div>
     </div>
   </nav>
 
-  <main class="channel-main">
+  <!-- Main -->
+  <main class="ch-main">
     <div class="container">
-      <!-- Tab: Trang chủ -->
-      <section class="tab-content active" data-tab-content="home">
-        <div class="ch-featured" data-featured>
-          <div class="ch-featured__thumb">
-            <span data-featured-initials>TH</span>
+
+      <!-- Home -->
+      <div class="ch-tab-content is-active" data-tab-content="home">
+        <section class="ch-featured" data-featured>
+          <div class="ch-featured__cover">
+            <div class="ch-featured__thumb" data-cover><span data-featured-initials>AH</span></div>
+            <div class="ch-featured__play"><i class="fa-solid fa-play"></i></div>
           </div>
           <div class="ch-featured__info">
-            <span class="eyebrow"><i class="fa-solid fa-star"></i> Nổi bật</span>
-            <h2 data-featured-title>Truyện nổi bật</h2>
-            <p data-featured-meta>0 lượt nghe · Gần đây</p>
-            <p data-featured-desc>Mô tả truyện sẽ hiển thị ở đây...</p>
+            <span class="ch-eyebrow"><i class="fa-solid fa-star"></i> Nổi bật</span>
+            <h2 class="ch-featured__title" data-featured-title>Chưa có audio</h2>
+            <p class="ch-featured__meta" data-featured-meta></p>
+            <p class="ch-featured__desc" data-featured-desc></p>
+            <div class="ch-featured__actions">
+              <a href="#" class="btn btn--primary"><i class="fa-solid fa-play"></i> Nghe ngay</a>
+              <button type="button" class="btn btn--outline"><i class="fa-regular fa-heart"></i> Yêu thích</button>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="ch-section">
+        <section class="ch-stats-row">
+          <div class="ch-stat-card"><i class="fa-solid fa-headphones"></i><strong data-stat-listens>0</strong><span>Lượt nghe</span></div>
+          <div class="ch-stat-card"><i class="fa-solid fa-music"></i><strong data-stat-audios>0</strong><span>Audio</span></div>
+          <div class="ch-stat-card"><i class="fa-solid fa-list"></i><strong data-stat-playlists>0</strong><span>Playlist</span></div>
+          <div class="ch-stat-card"><i class="fa-solid fa-users"></i><strong data-stat-followers>0</strong><span>Follower</span></div>
+        </section>
+
+        <section class="ch-section">
           <div class="ch-section__head">
-            <h3 class="ch-section__title">Audio phổ biến</h3>
-            <button class="btn btn--outline play-all-btn"><i class="fa-solid fa-play"></i> Phát tất cả</button>
+            <h2>Audio phổ biến</h2>
+            <a href="#" class="ch-more" data-tab-link="audio">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
           </div>
           <div class="ch-grid" data-audios-grid></div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <!-- Tab: Audio -->
-      <section class="tab-content" data-tab-content="audios">
-        <div class="ch-sort">
-          <button class="ch-sort-btn active">Mới nhất</button>
-          <button class="ch-sort-btn">Phổ biến</button>
-          <button class="ch-sort-btn">Cũ nhất</button>
+      <!-- Audio -->
+      <div class="ch-tab-content" data-tab-content="audio" hidden>
+        <div class="ch-sort-bar">
+          <button type="button" class="ch-sort-btn is-active" data-sort="newest">Mới nhất</button>
+          <button type="button" class="ch-sort-btn" data-sort="popular">Phổ biến</button>
+          <button type="button" class="ch-sort-btn" data-sort="oldest">Cũ nhất</button>
         </div>
-        <div class="ch-list" data-audios-list></div>
-      </section>
+        <div class="ch-audio-list" data-audios-list></div>
+      </div>
 
-      <!-- Tab: Playlist -->
-      <section class="tab-content" data-tab-content="playlists">
-        <div class="ch-empty" data-playlists-grid>
-          <i class="fa-solid fa-list"></i>
-          <p>Tác giả chưa tạo playlist nào</p>
-        </div>
-      </section>
+      <!-- Playlist -->
+      <div class="ch-tab-content" data-tab-content="playlist" hidden>
+        <div class="ch-empty"><i class="fa-solid fa-list"></i><p>Tác giả chưa tạo playlist nào</p></div>
+      </div>
 
-      <!-- Tab: Cộng đồng -->
-      <section class="tab-content" data-tab-content="community">
-        <div class="ch-empty" data-community-posts>
-          <i class="fa-solid fa-comments"></i>
-          <p>Chưa có bài đăng cộng đồng</p>
-        </div>
-      </section>
+      <!-- Community -->
+      <div class="ch-tab-content" data-tab-content="community" hidden>
+        <div class="ch-empty"><i class="fa-solid fa-comments"></i><p>Chưa có bài viết cộng đồng</p></div>
+      </div>
 
-      <!-- Tab: Giới thiệu -->
-      <section class="tab-content" data-tab-content="about">
+      <!-- About -->
+      <div class="ch-tab-content" data-tab-content="about" hidden>
         <div class="ch-about">
           <div class="ch-about__main">
-            <h3>Mô tả</h3>
-            <p data-about-desc>Tác giả truyện audio trên AudioHub.</p>
-            <h3>Liên kết</h3>
-            <div class="ch-about__links">
-              <a href="#" class="ch-about__link"><i class="fa-brands fa-facebook"></i> Facebook</a>
-              <a href="#" class="ch-about__link"><i class="fa-brands fa-youtube"></i> YouTube</a>
-            </div>
+            <h3>Giới thiệu</h3>
+            <p data-about-desc>Chưa có mô tả.</p>
           </div>
           <div class="ch-about__side">
-            <div class="ch-stat">
-              <span class="ch-stat__label">Tham gia</span>
-              <span class="ch-stat__value" data-about-joined>—</span>
-            </div>
-            <div class="ch-stat">
-              <span class="ch-stat__label">Lượt xem</span>
-              <span class="ch-stat__value" data-about-views>0</span>
+            <div class="ch-about__stat"><i class="fa-solid fa-calendar"></i><div><strong>Tham gia</strong><span data-about-joined>--</span></div></div>
+            <div class="ch-about__stat"><i class="fa-solid fa-headphones"></i><div><strong>Tổng lượt nghe</strong><span data-about-views>0</span></div></div>
+            <div class="ch-about__stat"><i class="fa-solid fa-music"></i><div><strong>Audio</strong><span data-about-audios>0</span></div></div>
+            <div class="ch-about__stat"><i class="fa-solid fa-list"></i><div><strong>Playlist</strong><span data-about-playlists>0</span></div></div>
+            <div class="ch-about__socials">
+              <a href="#" class="ch-social-btn" data-social-facebook><i class="fa-brands fa-facebook-f"></i> Facebook</a>
+              <a href="#" class="ch-social-btn" data-social-youtube><i class="fa-brands fa-youtube"></i> YouTube</a>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+
     </div>
   </main>
 
   <footer class="site-footer">
-    <div class="container"><p>&copy; 2026 AudioHub.net. All rights reserved.</p></div>
+    <div class="container footer__inner">
+      <div class="footer-col footer-col--brand"><h4>AudioHub.net</h4><p>Trải nghiệm nghe truyện đỉnh cao.</p></div>
+      <div class="footer-col"><h4>Khám Phá</h4><ul><li><a href="categories.html">Thể loại</a></li><li><a href="new-posts.html">Truyện mới</a></li></ul></div>
+      <div class="footer-col"><h4>Thông Tin</h4><ul><li><a href="terms.html">Điều khoản</a></li><li><a href="privacy.html">Bảo mật</a></li></ul></div>
+    </div>
+    <div class="container footer__bottom"><p>© 2026 AudioHub.net</p></div>
   </footer>
 
-  <!-- Bottom Nav (mobile) -->
   <nav class="bnav">
     <div class="bnav__inner">
       <a href="index.html" class="bnav__item"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>
@@ -168,5 +192,13 @@
   <script src="../js/auth-state.js"></script>
   <script src="../js/stories-store.js"></script>
   <script src="../js/channel-ui.js"></script>
+  <script>
+  (function(){
+    var t=document.querySelector('[data-nav-toggle]'),d=document.querySelector('[data-nav-drawer]'),o=document.querySelector('[data-nav-overlay]'),c=document.querySelector('[data-nav-close]');
+    function open(){if(d)d.classList.add('is-open');if(o)o.classList.add('is-open');document.body.style.overflow='hidden';}
+    function close(){if(d)d.classList.remove('is-open');if(o)o.classList.remove('is-open');document.body.style.overflow='';}
+    if(t)t.addEventListener('click',open);if(c)c.addEventListener('click',close);if(o)o.addEventListener('click',close);
+  })();
+  </script>
 </body>
 </html>
