@@ -1063,11 +1063,13 @@
     var total = storyChapters.length || Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
 
-    console.log('[ChapterList] story.chapters:', JSON.stringify(storyChapters));
-    console.log('[ChapterList] total:', total, 'chapterTitle:', currentStory && currentStory.chapterTitle);
-    storyChapters.forEach(function (ch, i) {
-      console.log('[ChapterList] chapter', i, ':', ch.chapterNumber, '-', ch.title);
-    });
+    // If no chapters data, auto-generate from chapterCount + chapterTitle
+    if (!storyChapters.length) {
+      var ct = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
+      for (var ci = 0; ci < total; ci++) {
+        storyChapters.push({ chapterNumber: ci + 1, title: ct || '' });
+      }
+    }
 
     // Parse chapter titles from readingText if no chapters[] data
     var chapterTitlesFromText = [];
