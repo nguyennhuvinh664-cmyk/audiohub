@@ -35,6 +35,19 @@
 
   var totalViews = stories.reduce(function(sum, s) { return sum + (s.listenCount || s.views || 0); }, 0);
 
+  // ── Load playlists ──
+  var playlists = [];
+  try {
+    var plRaw = localStorage.getItem('audiohub-playlists-v1');
+    playlists = plRaw ? JSON.parse(plRaw) : [];
+    if (!Array.isArray(playlists)) playlists = [];
+  } catch (e) { playlists = []; }
+  var authorPlaylists = playlists.filter(function(p) {
+    return p.entries && p.entries.some(function(e) {
+      return e.author && e.author.toLowerCase() === authorName.toLowerCase();
+    });
+  });
+
   // ── Channel info ──
   var nameEl = document.querySelector('[data-channel-name]');
   if (nameEl) nameEl.textContent = authorName;
@@ -60,7 +73,7 @@
   var sf = document.querySelector('[data-stat-followers]');
   if (sl) sl.textContent = fmt(totalViews);
   if (sa) sa.textContent = stories.length;
-  if (sp) sp.textContent = '0';
+  if (sp) sp.textContent = authorPlaylists.length;
   if (sf) sf.textContent = '0';
 
   // ── Banner cover ──
@@ -113,6 +126,28 @@
     } else {
       grid.innerHTML = stories.slice(0, 8).map(function(s) { return buildStoryCard(s); }).join('');
       hydrateCovers(grid);
+    }
+  }
+
+  // ── Playlist tab ──
+  var playlistTab = document.querySelector('[data-tab-content="playlist"]');
+  if (playlistTab) {
+    if (authorPlaylists.length) {
+      playlistTab.innerHTML = '<div class="ch-grid">' + authorPlaylists.map(function(pl) {
+        var count = (pl.entries || []).length;
+        var firstEntry = (pl.entries || [])[0] || {};
+        var coverKey = String(firstEntry.coverKey || '');
+        var firstStoryId = String(firstEntry.storyId || firstEntry.key || '');
+        var href = firstStoryId ? ('story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
+        return '<div class="ch-playlist-card">'
+          + '<a href="' + href + '" class="ch-playlist-card__link">'
+          + '<div class="ch-playlist-card__thumb" data-cover="' + coverKey + '"><i class="fa-solid fa-list"></i></div>'
+          + '<div class="ch-playlist-card__info">'
+          + '<h3>' + esc(pl.name || 'Playlist') + '</h3>'
+          + '<p>' + count + ' truyện</p>'
+          + '</div></a></div>';
+      }).join('') + '</div>';
+      hydrateCovers(playlistTab);
     }
   }
 
