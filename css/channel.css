@@ -238,7 +238,7 @@ body.channel-page { background: var(--ch-bg); color: var(--ch-text); }
   box-shadow: 0 8px 24px rgba(0,0,0,.25);
 }
 .ch-playlist-card__link {
-  display: flex; align-items: center; gap: 16px;
+  display: flex; align-items: center; gap: 14px;
   padding: 14px 16px; text-decoration: none; color: inherit;
 }
 .ch-playlist-card__thumb {
@@ -317,6 +317,13 @@ body.channel-page { background: var(--ch-bg); color: var(--ch-text); }
   border-top: 1px solid var(--ch-border); background: #030712;
 }
 .channel-page .site-footer .container p { text-align: center; color: var(--ch-text-3); font-size: .82rem; }
+
+/* ═══ Playlist Grid ═══ */
+.ch-playlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
 
 /* ═══ Responsive ═══ */
 @media (max-width: 1080px) {

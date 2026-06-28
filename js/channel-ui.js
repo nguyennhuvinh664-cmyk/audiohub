@@ -129,7 +129,7 @@
   var playlistTab = document.querySelector('[data-tab-content="playlist"]');
   if (playlistTab) {
     if (authorPlaylists.length) {
-      playlistTab.innerHTML = '<div class="ch-grid">' + authorPlaylists.map(function(pl) {
+      playlistTab.innerHTML = '<div class="ch-playlists-grid">' + authorPlaylists.map(function(pl) {
         var count = (pl.entries || []).length;
         var firstEntry = (pl.entries || [])[0] || {};
         var coverKey = String(firstEntry.coverKey || '');
