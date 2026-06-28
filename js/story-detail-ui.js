@@ -1080,7 +1080,7 @@
     // If no chapters data, auto-generate from readingText or chapterTitle
     if (!storyChapters.length) {
       for (var ci = 0; ci < total; ci++) {
-        var autoTitle = chapterTitlesFromText[ci] || chapterTitleFallback || '';
+        var autoTitle = chapterTitlesFromText[ci] || '';
         storyChapters.push({ chapterNumber: ci + 1, title: autoTitle });
       }
     }
