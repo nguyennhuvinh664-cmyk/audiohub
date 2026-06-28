@@ -247,6 +247,31 @@ router.post('/', async (req: AuthRequest, res) => {
       youtubeUrl,
       youtubeId
     }
+  }).catch(async (err: any) => {
+    // If chapters column doesn't exist yet, retry without it
+    if (String(err?.message || '').includes('chapters') || String(err?.message || '').includes('chapter_count')) {
+      console.warn('[StoryCreate] chapters column missing, retrying without it');
+      return prisma.story.create({
+        data: {
+          userId,
+          title: body.title,
+          author: body.author,
+          genre: body.genre,
+          description: body.description,
+          readingText: body.readingText,
+          chapterTitle: body.chapterTitle,
+          visibility: parseVisibility(body.visibility, StoryVisibility.PRIVATE),
+          audioStatus: parseAudioStatus(body.audioStatus, AudioStatus.READY),
+          status: parseCompletedStatus(body.status, ''),
+          isCompleted: parseIsCompleted(body.isCompleted, String(body.status || ''), false),
+          coverKey: body.coverKey === undefined ? null : body.coverKey,
+          audioKey: body.audioKey === undefined ? null : body.audioKey,
+          youtubeUrl,
+          youtubeId
+        }
+      });
+    }
+    throw err;
   });
 
   return ok(res, await toStoryResponse(story), 201);
@@ -319,6 +344,32 @@ router.patch('/:id', async (req: AuthRequest, res) => {
       youtubeUrl: nextYoutubeUrl,
       youtubeId: nextYoutubeId
     }
+  }).catch(async (err: any) => {
+    if (String(err?.message || '').includes('chapters') || String(err?.message || '').includes('chapter_count')) {
+      console.warn('[StoryUpdate] chapters column missing, retrying without it');
+      return prisma.story.update({
+        where: { id: existing.id },
+        data: {
+          title: body.title ?? existing.title,
+          author: body.author ?? existing.author,
+          genre: body.genre ?? existing.genre,
+          description: body.description ?? existing.description,
+          readingText: body.readingText ?? existing.readingText,
+          chapterTitle: body.chapterTitle ?? existing.chapterTitle,
+          visibility: body.visibility === undefined ? existing.visibility : parseVisibility(body.visibility, existing.visibility),
+          audioStatus: body.audioStatus === undefined ? existing.audioStatus : parseAudioStatus(body.audioStatus, existing.audioStatus),
+          status: body.status === undefined ? existing.status : parseCompletedStatus(body.status, existing.status || ''),
+          isCompleted: body.isCompleted === undefined
+            ? parseIsCompleted(undefined, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted)
+            : parseIsCompleted(body.isCompleted, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted),
+          coverKey: body.coverKey === undefined ? existing.coverKey : body.coverKey,
+          audioKey: body.audioKey === undefined ? existing.audioKey : body.audioKey,
+          youtubeUrl: nextYoutubeUrl,
+          youtubeId: nextYoutubeId
+        }
+      });
+    }
+    throw err;
   });
 
   return ok(res, await toStoryResponse(updated));
