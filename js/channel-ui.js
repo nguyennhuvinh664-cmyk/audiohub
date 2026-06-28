@@ -138,12 +138,11 @@
     var title = String(story.title || 'Truyện mới');
     var genre = String(story.genre || 'Khác');
     var author = String(story.author || 'Ẩn danh');
-    var initials = makeInitials(title);
     var visibility = String(story.visibility || 'Công khai');
     var color = genreColor(genre);
 
-    return '<a href="' + href + '" class="story-card" data-story-id="' + storyId + '" data-story-visibility="' + visibility + '">'
-      + '<div class="story-card__link">'
+    return '<div class="story-card" data-story-id="' + storyId + '" data-story-visibility="' + visibility + '">'
+      + '<a href="' + href + '" class="story-card__link">'
       + '<div class="story-card__thumb" data-cover="' + (story.coverKey || '') + '" style="background:linear-gradient(135deg,' + color + ',' + color + 'aa)">'
       + '<span class="story-chapters">Demo</span>'
       + '</div>'
@@ -155,7 +154,7 @@
       + '<a href="' + href + '" class="story-card__listen"><i class="fa-solid fa-play"></i> Nghe ngay</a>'
       + '<button type="button" class="story-card__fav" data-fav><i class="fa-regular fa-heart"></i> Yêu thích</button>'
       + '</div>'
-      + '</div></div></a>';
+      + '</div></a></div>';
   }
 
   // ── List (audios tab) ──
