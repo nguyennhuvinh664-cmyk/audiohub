@@ -1249,7 +1249,7 @@
     writePlaylists(list);
   }
 
-  function renderPlaylistDetail() {
+  function renderPlaylistDetail(skipFade) {
     var playlistDetailMount = document.querySelector('[data-playlist-detail]');
     if (!playlistDetailMount) return;
 
@@ -1341,13 +1341,17 @@
       });
     }
 
-    // Fade transition on page change
-    playlistDetailMount.classList.add('is-fading');
-    setTimeout(function () {
+    // Fade transition on page change (skip for entry removal)
+    if (skipFade) {
       renderContent();
-      playlistDetailMount.classList.remove('is-fading');
-      playlistDetailMount.scrollTop = 0;
-    }, 150);
+    } else {
+      playlistDetailMount.classList.add('is-fading');
+      setTimeout(function () {
+        renderContent();
+        playlistDetailMount.classList.remove('is-fading');
+        playlistDetailMount.scrollTop = 0;
+      }, 150);
+    }
   }
 
   function bindPlaylistActions() {
@@ -1391,12 +1395,12 @@
             itemEl.style.overflow = 'hidden';
             setTimeout(function () {
               removeEntryFromPlaylist(plId, entryKey);
-              // Only re-render detail panel, not full playlist
-              renderPlaylistDetail();
+              // Only re-render detail panel, not full playlist, no fade
+              renderPlaylistDetail(true);
             }, 200);
           } else {
             removeEntryFromPlaylist(plId, entryKey);
-            renderPlaylistDetail();
+            renderPlaylistDetail(true);
           }
         }
         return;
