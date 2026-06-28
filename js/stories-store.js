@@ -494,6 +494,11 @@
     if (!merged.youtubeUrl && localEntry.youtubeUrl) merged.youtubeUrl = String(localEntry.youtubeUrl);
     if (!merged.youtubeId && localEntry.youtubeId) merged.youtubeId = String(localEntry.youtubeId);
     if (!merged.readingText && localEntry.readingText) merged.readingText = String(localEntry.readingText);
+    // Preserve local chapters if remote has none
+    if ((!merged.chapters || !merged.chapters.length) && Array.isArray(localEntry.chapters) && localEntry.chapters.length) {
+      merged.chapters = localEntry.chapters;
+      merged.chapterCount = localEntry.chapters.length;
+    }
 
     var mergedAuthor = sanitizeAuthor(merged.author);
     var localAuthor = sanitizeAuthor(localEntry && localEntry.author);
