@@ -42,11 +42,7 @@
     playlists = plRaw ? JSON.parse(plRaw) : [];
     if (!Array.isArray(playlists)) playlists = [];
   } catch (e) { playlists = []; }
-  var authorPlaylists = playlists.filter(function(p) {
-    return p.entries && p.entries.some(function(e) {
-      return e.author && e.author.toLowerCase() === authorName.toLowerCase();
-    });
-  });
+  var authorPlaylists = playlists;
 
   // ── Channel info ──
   var nameEl = document.querySelector('[data-channel-name]');
