@@ -191,7 +191,7 @@ body { overflow-x: hidden; }
   .site-nav { display: none !important; }
   .hamburger { display: flex; }
   .header__actions .btn { display: none !important; }
-  .bnav { display: block; }
+  .bnav { display: flex; }
   .bnav__inner { display: flex; }
   body { padding-bottom: 64px; }
 
