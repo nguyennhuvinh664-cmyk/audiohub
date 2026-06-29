@@ -455,6 +455,11 @@
       btn.classList.toggle('is-active', btn.getAttribute('data-ua-tab') === tabName);
     });
 
+    // Update bottom nav
+    $$('.ua-bottomnav__item').forEach(function(btn) {
+      btn.classList.toggle('is-active', btn.getAttribute('data-ua-btab') === tabName);
+    });
+
     // Update panels
     $$('.ua-panel').forEach(function(panel) {
       var isActive = panel.getAttribute('data-ua-panel') === tabName;
@@ -481,6 +486,17 @@
     btn.addEventListener('click', function() {
       var tab = btn.getAttribute('data-ua-tab');
       switchTab(tab);
+    });
+  });
+
+  // Bottom nav clicks (mobile)
+  $$('.ua-bottomnav__item').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var tab = btn.getAttribute('data-ua-btab');
+      switchTab(tab);
+      // Update bottom nav active state
+      $$('.ua-bottomnav__item').forEach(function(b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
     });
   });
 

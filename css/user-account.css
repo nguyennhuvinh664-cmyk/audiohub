@@ -534,6 +534,34 @@ body.user-account-page {
 .ua-page-btn.is-active { background: var(--ua-primary); color: #000; border-color: var(--ua-primary); }
 .ua-page-btn:disabled { opacity: .4; cursor: not-allowed; }
 
+/* ═══ BOTTOM NAV (Mobile) ═══ */
+.ua-bottomnav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 100;
+  background: rgba(9,9,15,.96);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--ua-border);
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+}
+.ua-bottomnav__item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  background: none; border: none;
+  color: var(--ua-text-3); font-size: .65rem; font-weight: 700;
+  cursor: pointer; padding: 6px 4px;
+  transition: color var(--ua-ease);
+  font-family: inherit;
+}
+.ua-bottomnav__item i { font-size: 1.1rem; }
+.ua-bottomnav__item.is-active { color: var(--ua-primary); }
+.ua-bottomnav__item:hover { color: var(--ua-text-2); }
+
+/* ═══ MOBILE PROFILE ROW ═══ */
+.ua-profile-row {
+  display: none;
+}
+
 /* ═══════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════ */
@@ -574,6 +602,7 @@ body.user-account-page {
 
 /* ── 768px ── */
 @media (max-width: 768px) {
+  .ua-bottomnav { display: flex; }
   .ua-wallet-hero { flex-direction: column; text-align: center; padding: 24px; }
   .ua-wallet-hero__info span { margin-bottom: 4px; }
   .ua-panel-header { flex-direction: column; align-items: flex-start; }
@@ -581,11 +610,12 @@ body.user-account-page {
   .ua-panel-actions .ua-input { flex: 1; }
   .ua-list-item { grid-template-columns: 50px 1fr; }
   .ua-list-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .ua-main { padding-bottom: 100px; }
 }
 
 /* ── 620px ── */
 @media (max-width: 620px) {
-  .ua-main { padding: 16px 0 80px; }
+  .ua-main { padding: 16px 0 100px; }
   .ua-sidebar { padding: 16px; }
   .ua-avatar { width: 80px; height: 80px; font-size: 30px; }
   .ua-name { font-size: 1.05rem; }
@@ -597,10 +627,16 @@ body.user-account-page {
   .ua-stat-card strong { font-size: 1rem; }
   .ua-hero-card { padding: 20px; }
   .ua-title { font-size: 1.25rem; }
-  .ua-quick-links { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ua-quick-links { grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .ua-playlist-grid { grid-template-columns: 1fr 1fr; }
   .ua-chapter-group__header { padding: 12px 16px; }
   .ua-chapter-item { padding: 8px 16px; }
+  .ua-info-grid { grid-template-columns: 1fr 1fr; }
+  /* Mobile: show profile as horizontal row */
+  .ua-profile { display: flex; align-items: center; gap: 16px; text-align: left; margin-bottom: 16px; }
+  .ua-avatar-wrap { margin-bottom: 0; flex-shrink: 0; }
+  .ua-profile > *:not(.ua-avatar-wrap) { text-align: left; }
+  .ua-badge { margin-left: 0; }
 }
 
 /* ── 480px (Mobile) ── */
@@ -608,7 +644,9 @@ body.user-account-page {
   .ua-stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .ua-stat-card { flex-direction: column; text-align: center; gap: 8px; padding: 14px 10px; }
   .ua-stat-card i { width: 36px; height: 36px; font-size: .85rem; }
-  .ua-quick-links { grid-template-columns: 1fr; }
+  .ua-quick-links { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .ua-quick-link { padding: 10px 6px; font-size: .72rem; gap: 4px; flex-direction: column; text-align: center; }
+  .ua-quick-link i { font-size: 1rem; }
   .ua-playlist-grid { grid-template-columns: 1fr; }
   .ua-list-item { grid-template-columns: 1fr; gap: 10px; }
   .ua-list-thumb { width: 100%; height: 140px; border-radius: 10px; }
