@@ -6,4 +6,4 @@
  *
  * For production: set to false or remove this file entirely.
  */
-window.DEV_MODE = false;
+window.DEV_MODE = true;
