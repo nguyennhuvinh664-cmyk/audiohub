@@ -58,7 +58,7 @@
     statsEl.innerHTML =
       '<div class="ch-stat"><strong>' + fmt(totalViews) + '</strong><span>Lượt nghe</span></div>' +
       '<div class="ch-stat"><strong>' + stories.length + '</strong><span>Audio</span></div>' +
-      '<div class="ch-stat"><strong>0</strong><span>Playlist</span></div>' +
+      '<div class="ch-stat"><strong>' + authorPlaylists.length + '</strong><span>Playlist</span></div>' +
       '<div class="ch-stat"><strong>0</strong><span>Follower</span></div>';
   }
 
@@ -288,7 +288,7 @@
   }
   if (aboutViews) aboutViews.textContent = fmt(totalViews);
   if (aboutAudios) aboutAudios.textContent = stories.length;
-  if (aboutPlaylists) aboutPlaylists.textContent = '0';
+  if (aboutPlaylists) aboutPlaylists.textContent = authorPlaylists.length;
 
   // ── Mobile nav ──
   var navToggle = document.querySelector('[data-nav-toggle]');

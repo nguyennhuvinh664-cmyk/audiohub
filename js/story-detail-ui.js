@@ -608,7 +608,7 @@
 
     if (story.genre) {
       var crumb = document.querySelector('.breadcrumb');
-      if (crumb) crumb.innerHTML = '<a href="index.html">Home</a> <span>/</span> <a href="categories.html">' + story.genre + '</a> <span>/</span> <a href="new-posts.html">' + (story.title || 'Chi tiết truyện') + '</a>';
+      if (crumb) crumb.innerHTML = '<a href="index.html">Home</a> <span>/</span> <a href="categories.html">' + escapeHtml(story.genre) + '</a> <span>/</span> <a href="new-posts.html">' + escapeHtml(story.title || 'Chi tiết truyện') + '</a>';
     }
 
     var meta = storyNode.querySelector('.detail-meta');

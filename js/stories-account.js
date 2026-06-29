@@ -186,7 +186,8 @@
 
   function getStories() {
     if (!window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return [];
-    return Array.isArray(window.AudioHubStories.read()) ? window.AudioHubStories.read() : [];
+    var stories = window.AudioHubStories.read();
+    return Array.isArray(stories) ? stories : [];
   }
 
   // Truyện chỉ lưu local (chưa upload lên backend) có ID bắt đầu bằng 's_'
@@ -909,53 +910,6 @@
     });
   }
 
-
-  function readLibrary() {
-    try {
-      var raw = window.localStorage.getItem('audiohub-library');
-      var parsed = raw ? JSON.parse(raw) : {};
-      return {
-        history: Array.isArray(parsed.history) ? parsed.history : [],
-        favorites: Array.isArray(parsed.favorites) ? parsed.favorites : []
-      };
-    } catch (error) {
-      return { history: [], favorites: [] };
-    }
-  }
-
-  function renderLibrarySections() {
-    var lib = readLibrary();
-    buildHistoryList(sortRecentDesc(lib.history || []), currentHistoryPage);
-    buildFavoriteList(lib.favorites || [], currentFavoritesPage);
-
-    var allStories = getStories();
-    var storiesCount = isRealLogin()
-      ? allStories.filter(function(s) { return !isLocalOnlyStory(s); }).length
-      : allStories.length;
-
-    var stats = {
-      favorites: (lib.favorites || []).length,
-      history: (lib.history || []).length,
-      stories: storiesCount
-    };
-    document.querySelectorAll('[data-library-stat="favorites"]').forEach(function (node) { node.textContent = String(stats.favorites); });
-    document.querySelectorAll('[data-library-stat="history"]').forEach(function (node) { node.textContent = String(stats.history); });
-    document.querySelectorAll('[data-library-stat="stories"]').forEach(function (node) { node.textContent = String(stats.stories); });
-    var cards = Array.prototype.slice.call(document.querySelectorAll('[data-account-tab]'));
-    cards.forEach(function (card) {
-      var key = card.getAttribute('data-account-tab') || '';
-      var countNode = card.querySelector('strong');
-      if (!countNode) return;
-      if (key === 'content') countNode.textContent = String(stats.stories);
-      if (key === 'history') countNode.textContent = String(stats.history);
-      if (key === 'favorites') countNode.textContent = String(stats.favorites);
-    });
-
-    if (typeof window.renderAccountLibrary === 'function') {
-      window.renderAccountLibrary();
-    }
-  }
-
   function renderTrash() {
     if (!trashMount) return;
     trashMount.innerHTML = '<p class="library-empty">Thùng rác audio sẽ hiển thị ở đây.</p>';
@@ -1489,7 +1443,7 @@
         && !event.target.closest('[data-page-next]')) {
         var plId = item.getAttribute('data-playlist-id');
         if (plId && plId !== activePlaylistId) {
-          currentPlaylistPage = 1;
+          currentPlaylistListPage = 1;
           activePlaylistId = plId;
           renderPlaylist();
         }

@@ -262,15 +262,11 @@
     var stories = readLocalStories();
     var entry = normalizeStory(story);
 
-    console.log('[upsertLocalStory] story.chapters:', story.chapters);
-    console.log('[upsertLocalStory] entry.chapters after normalize:', entry.chapters);
-
     // Save chapters to separate localStorage if present
     if (Array.isArray(story.chapters) && story.chapters.length) {
       saveChaptersForStory(entry.id, story.chapters);
       entry.chapters = story.chapters;
       entry.chapterCount = story.chapters.length;
-      console.log('[upsertLocalStory] SAVED to localStorage:', story.chapters.length, 'chapters');
     }
 
     // Merge chapters from localStorage if not in entry
@@ -279,9 +275,6 @@
       if (stored.length) {
         entry.chapters = stored;
         entry.chapterCount = stored.length;
-        console.log('[upsertLocalStory] LOADED from localStorage:', stored.length, 'chapters');
-      } else {
-        console.log('[upsertLocalStory] NO chapters found anywhere');
       }
     }
 

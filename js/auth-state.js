@@ -289,8 +289,9 @@
     // Check if user is admin
     var isAdmin = false;
     try {
-      var authData = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
-      isAdmin = authData && authData.isAdmin;
+      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var authData = raw ? JSON.parse(raw) : null;
+      isAdmin = !!(authData && authData.isAdmin);
     } catch(e) {}
 
     // Only show upload link for admin
@@ -492,7 +493,8 @@
   // Hide admin-only elements for non-admin users
   (function hideAdminOnly() {
     try {
-      var auth = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
+      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var auth = raw ? JSON.parse(raw) : null;
       if (!auth || !auth.isAdmin) {
         document.querySelectorAll('[data-admin-only]').forEach(function(el) {
           el.style.display = 'none';

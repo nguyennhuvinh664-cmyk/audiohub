@@ -163,7 +163,7 @@
     var avatarEl = $('[data-ua-avatar]');
     var avatar = getAvatar();
     if (avatarEl && avatar) {
-      avatarEl.innerHTML = '<img src="' + avatar + '" alt="Avatar" />';
+      avatarEl.innerHTML = '<img src="' + esc(avatar) + '" alt="Avatar" />';
     }
 
     // Stats
@@ -532,7 +532,7 @@
         var dataUrl = ev.target.result;
         localStorage.setItem('audiohub-account-avatar-v1', dataUrl);
         var avatarEl = $('[data-ua-avatar]');
-        if (avatarEl) avatarEl.innerHTML = '<img src="' + dataUrl + '" alt="Avatar" />';
+        if (avatarEl) avatarEl.innerHTML = '<img src="' + esc(dataUrl) + '" alt="Avatar" />';
         showToast('Đã cập nhật ảnh đại diện');
       };
       reader.readAsDataURL(file);

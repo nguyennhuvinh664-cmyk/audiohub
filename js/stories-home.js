@@ -169,7 +169,7 @@
       var score = Number(story.listenCount2d || 0);
       var width = maxScore > 0 ? Math.max(10, Math.round(score * 100 / maxScore)) : 10;
       var rankClass = rank === 1 ? ' gold' : (rank === 2 ? ' silver' : (rank === 3 ? ' bronze' : ''));
-      return '<a href="/story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
+      return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
         + '<span class="trk' + rankClass + '">' + rank + '</span>'
         + '<div class="tth">' + makeInitials(story.title) + '</div>'
         + '<div class="tin"><p class="tnm">' + String(story.title || 'Truyện mới') + '</p><p class="tmt">' + String(story.genre || 'Khác') + ' • ' + score + ' lượt nghe (2 ngày)</p></div>'
@@ -247,7 +247,7 @@
     var localStories = window.AudioHubStories.read() || [];
     var localPublic = localStories.filter(function (story) { return isPublicVisibility(story); });
     if (localPublic.length) {
-      return Promise.resolve(localStories);
+      return Promise.resolve(localPublic);
     }
     return fetchPublicStories().then(function (publicStories) {
       return publicStories.length ? publicStories : localStories;
