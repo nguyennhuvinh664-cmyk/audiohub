@@ -26,11 +26,17 @@ body { overflow-x: hidden; }
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255,255,255,.06);
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
   padding: 0 8px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bnav__inner {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 100%;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .bnav__item {
@@ -185,7 +191,8 @@ body { overflow-x: hidden; }
   .site-nav { display: none !important; }
   .hamburger { display: flex; }
   .header__actions .btn { display: none !important; }
-  .bnav { display: flex; }
+  .bnav { display: block; }
+  .bnav__inner { display: flex; }
   body { padding-bottom: 64px; }
 
   /* Buttons — bigger touch targets */

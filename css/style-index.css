@@ -546,7 +546,6 @@ body.no-scroll { overflow:hidden; }
 
   /* ─ Bottom nav ─ */
   .bnav {
-    display:flex; justify-content:space-around; align-items:center;
     position:fixed; bottom:0; left:0; right:0; z-index:150;
     height:64px;
     background:rgba(10,10,20,.97);
@@ -554,6 +553,10 @@ body.no-scroll { overflow:hidden; }
     border-top:1px solid var(--border);
     padding:0 8px;
     padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+  .bnav__inner {
+    display:flex; justify-content:space-around; align-items:center;
+    height:100%; max-width:500px; margin:0 auto;
   }
   .bnav__item {
     display:flex; flex-direction:column; align-items:center; justify-content:center;
