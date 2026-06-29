@@ -359,7 +359,7 @@
     var wallet = getWallet();
     var balanceEl = $('[data-ua-wallet-balance]');
     var txContainer = $('[data-ua-wallet-transactions]');
-    var badge = $('[data-ua-wallet-badge']);
+    var badge = $('[data-ua-wallet-badge]');
 
     if (balanceEl) balanceEl.textContent = fmt(wallet.balance) + '₫';
     if (badge) {
