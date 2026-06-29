@@ -234,19 +234,19 @@
         }
         refreshInfo();
         showToast('Chuyen sang role: ' + role.toUpperCase());
-        // Detect if we're in root or html/ folder
-        var inHtmlFolder = (window.location.pathname.indexOf('/html/') > -1 || window.location.pathname.indexOf('\\html\\') > -1);
-        var prefix = inHtmlFolder ? '' : 'html/';
-        // Redirect to appropriate page based on role
-        setTimeout(function () {
-          if (role === 'visitor') {
-            window.location.href = inHtmlFolder ? '../index.html' : 'index.html';
-          } else if (role === 'user') {
-            window.location.href = prefix + 'user-account.html';
-          } else if (role === 'admin') {
-            window.location.href = prefix + 'account.html';
-          }
-        }, 400);
+        // Build target URL based on role
+        var target = '';
+        var currentPath = window.location.pathname;
+        var inHtml = currentPath.indexOf('/html/') !== -1 || currentPath.indexOf('\\html\\') !== -1 || currentPath.endsWith('/html');
+        if (role === 'visitor') {
+          target = inHtml ? '../index.html' : 'index.html';
+        } else if (role === 'user') {
+          target = inHtml ? 'user-account.html' : 'html/user-account.html';
+        } else if (role === 'admin') {
+          target = inHtml ? 'account.html' : 'html/account.html';
+        }
+        // Force redirect immediately
+        window.location.replace(target);
       });
     });
 
