@@ -286,6 +286,18 @@
       ? '<span class="auth-menu__meta"><span class="auth-menu__label">' + profile.name + '</span><span class="auth-menu__email">' + profile.email + '</span></span>'
       : '<span class="auth-menu__meta"><span class="auth-menu__label">' + profile.name + '</span><span class="auth-menu__email">' + profile.email + '</span></span>';
 
+    // Check if user is admin
+    var isAdmin = false;
+    try {
+      var authData = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
+      isAdmin = authData && authData.isAdmin;
+    } catch(e) {}
+
+    // Only show upload link for admin
+    var uploadLink = isAdmin
+      ? '<a href="upload-story.html" class="auth-menu__link"><i class="fa-solid fa-upload"></i> Đăng truyện</a>'
+      : '';
+
     return '<div class="auth-menu">'
       + '<button type="button" class="btn btn--outline auth-menu__trigger" aria-expanded="false">'
       + '<span class="auth-menu__avatar">' + profile.initials + '</span>'
@@ -295,7 +307,7 @@
       + '<div class="auth-menu__dropdown" hidden>'
       + summary
       + '<a href="account.html" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
-      + '<a href="upload-story.html" class="auth-menu__link" data-admin-only><i class="fa-solid fa-upload"></i> Đăng truyện</a>'
+      + uploadLink
       + '<a href="change-password.html" class="auth-menu__link"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>'
       + '<button type="button" class="auth-menu__action" data-auth-switch><i class="fa-solid fa-repeat"></i> Chuyển đổi tài khoản</button>'
       + '<button type="button" class="auth-menu__action auth-menu__action--danger" data-auth-logout><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>'
