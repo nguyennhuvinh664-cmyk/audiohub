@@ -3,21 +3,29 @@
    Dark theme · Compact · Responsive
    ═══════════════════════════════════════ */
 
-/* ── Floating Button ── */
+/* ── Floating Button (FAB) ── */
 .dm-fab {
-  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-  width: auto; height: 44px; padding: 0 16px;
-  border-radius: 999px; border: none;
+  position: fixed; bottom: 80px; right: 16px; z-index: 9999;
+  width: 52px; height: 52px; padding: 0;
+  border-radius: 50%; border: none;
   background: #1e293b; color: #f59e0b;
   font-family: 'Nunito', sans-serif; font-size: .82rem; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0;
   box-shadow: 0 4px 20px rgba(0,0,0,.5);
   transition: all .3s cubic-bezier(.4,0,.2,1);
   user-select: none;
 }
 .dm-fab:hover { background: #334155; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.6); }
-.dm-fab i { font-size: 1rem; }
+.dm-fab i { font-size: 1.2rem; }
 .dm-fab.is-open { background: #f59e0b; color: #000; }
+.dm-fab__label { white-space: nowrap; }
+
+/* Mobile: hide label, show only icon */
+@media (max-width: 768px) {
+  .dm-fab { width: 48px; height: 48px; bottom: 76px; right: 14px; }
+  .dm-fab__label { display: none; }
+  .dm-fab i { font-size: 1.1rem; }
+}
 
 /* ── Backdrop ── */
 .dm-backdrop {

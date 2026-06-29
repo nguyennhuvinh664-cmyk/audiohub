@@ -540,21 +540,28 @@ body.user-account-page {
   display: none;
   position: fixed; bottom: 0; left: 0; right: 0;
   z-index: 100;
-  background: rgba(9,9,15,.96);
+  height: 64px;
+  background: rgba(9,9,15,.97);
   backdrop-filter: blur(20px);
   border-top: 1px solid var(--ua-border);
-  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .ua-bottomnav__item {
   flex: 1; display: flex; flex-direction: column;
-  align-items: center; gap: 3px;
+  align-items: center; justify-content: center; gap: 2px;
   background: none; border: none;
-  color: var(--ua-text-3); font-size: .65rem; font-weight: 700;
+  color: var(--ua-text-3); font-size: 10px; font-weight: 700;
   cursor: pointer; padding: 6px 4px;
   transition: color var(--ua-ease);
   font-family: inherit;
+  max-width: 72px;
 }
-.ua-bottomnav__item i { font-size: 1.1rem; }
+.ua-bottomnav__item i { font-size: 20px; line-height: 1; }
+.ua-bottomnav__item span { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
 .ua-bottomnav__item.is-active { color: var(--ua-primary); }
 .ua-bottomnav__item:hover { color: var(--ua-text-2); }
 

@@ -71,7 +71,12 @@
   var fab = document.createElement('button');
   fab.className = 'dm-fab';
   fab.id = 'dm-fab';
-  fab.innerHTML = '<i class="fa-solid fa-bug"></i> Developer Mode';
+  fab.innerHTML = '<i class="fa-solid fa-bug"></i><span class="dm-fab__label"> Developer Mode</span>';
+  // Hide label on mobile
+  if (window.innerWidth <= 768) {
+    var label = fab.querySelector('.dm-fab__label');
+    if (label) label.style.display = 'none';
+  }
 
   // Backdrop
   var backdrop = document.createElement('div');

@@ -455,7 +455,7 @@ body.no-scroll { overflow:hidden; }
 /* ── Mobile  ≤ 768px ── */
 @media (max-width:768px) {
   /* body padding for bottom nav */
-  body { padding-bottom:66px; }
+  body { padding-bottom:64px; }
 
   /* Container tighter */
   .container { padding:0 16px; }
@@ -548,26 +548,31 @@ body.no-scroll { overflow:hidden; }
   .bnav {
     display:flex; justify-content:space-around; align-items:center;
     position:fixed; bottom:0; left:0; right:0; z-index:150;
+    height:64px;
     background:rgba(10,10,20,.97);
     backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
     border-top:1px solid var(--border);
-    padding-bottom:max(8px, env(safe-area-inset-bottom));
+    padding:0 8px;
+    padding-bottom:env(safe-area-inset-bottom, 0px);
   }
   .bnav__item {
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:3px; padding:8px 4px; color:var(--t3);
-    font-size:10px; font-weight:700; transition:var(--ease); min-height:52px;
+    gap:2px; padding:6px 4px; color:var(--t3);
+    font-size:10px; font-weight:700; transition:var(--ease);
+    flex:1; min-width:0; max-width:72px;
   }
-  .bnav__item i   { font-size:19px; transition:var(--ease); }
+  .bnav__item i   { font-size:20px; transition:var(--ease); line-height:1; }
+  .bnav__item span { font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1; }
   .bnav__item.active     { color:var(--primary); }
   .bnav__item.active i   { filter:drop-shadow(0 0 6px var(--pri-glow)); }
-  .bnav__fab-wrap  { position:relative; top:-12px; }
+  .bnav__fab-wrap  { position:relative; top:0; }
   .bnav__fab {
-    width:50px; height:50px; border-radius:50%;
+    width:44px; height:44px; border-radius:50%;
     background:linear-gradient(135deg,var(--primary),#f97316);
     display:flex; align-items:center; justify-content:center;
-    font-size:21px; color:#000; box-shadow:0 4px 20px var(--pri-glow);
+    font-size:18px; color:#000; box-shadow:0 4px 16px var(--pri-glow);
   }
+  .bnav__fab-wrap span { display:none; }
 }
 
 /* ── Phone  ≤ 480px ── */
