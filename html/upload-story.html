@@ -166,6 +166,18 @@
   </footer>
 
   <script src="../js/auth-state.js"></script>
+  <!-- Role guard: only Admin can upload stories -->
+  <script>
+  (function() {
+    try {
+      var auth = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
+      if (!auth || !auth.isAdmin) {
+        window.location.replace('index.html');
+        return;
+      }
+    } catch(e) {}
+  })();
+  </script>
   <script src="../js/api-client.js"></script>
   <script src="../js/stories-store.js"></script>
   <script src="../js/stories-cover-store.js"></script>

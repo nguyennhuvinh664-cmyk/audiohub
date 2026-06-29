@@ -295,7 +295,7 @@
       + '<div class="auth-menu__dropdown" hidden>'
       + summary
       + '<a href="account.html" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
-      + '<a href="upload-story.html" class="auth-menu__link"><i class="fa-solid fa-upload"></i> Đăng truyện</a>'
+      + '<a href="upload-story.html" class="auth-menu__link" data-admin-only><i class="fa-solid fa-upload"></i> Đăng truyện</a>'
       + '<a href="change-password.html" class="auth-menu__link"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>'
       + '<button type="button" class="auth-menu__action" data-auth-switch><i class="fa-solid fa-repeat"></i> Chuyển đổi tài khoản</button>'
       + '<button type="button" class="auth-menu__action auth-menu__action--danger" data-auth-logout><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>'
