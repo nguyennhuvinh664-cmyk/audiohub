@@ -129,12 +129,20 @@
   var playlistTab = document.querySelector('[data-tab-content="playlist"]');
   if (playlistTab) {
     if (authorPlaylists.length) {
+      // Build a map of storyId -> coverKey for quick lookup
+      var storyCoverMap = {};
+      stories.forEach(function(s) {
+        var sid = String(s.id || '').trim();
+        if (sid && s.coverKey) storyCoverMap[sid] = s.coverKey;
+      });
+
       playlistTab.innerHTML = '<div class="ch-playlists-grid">' + authorPlaylists.map(function(pl) {
         var count = (pl.entries || []).length;
         var doneCount = (pl.entries || []).filter(function(e) { return e.status === 'done'; }).length;
         var firstEntry = (pl.entries || [])[0] || {};
-        var coverKey = String(firstEntry.coverKey || '');
-        var firstStoryId = String(firstEntry.storyId || '');
+        var firstStoryId = String(firstEntry.key || firstEntry.storyId || '');
+        // Look up cover from the story itself
+        var coverKey = firstStoryId ? (storyCoverMap[firstStoryId] || '') : '';
         var href = firstStoryId ? ('story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
         var state = String(pl.state || '').trim();
         var badgeText = state === 'done' ? 'Bản Full' : (count + ' truyện');
@@ -211,25 +219,19 @@
 
   // ── Covers ──
   function hydrateCovers(root) {
-    if (!window.AudioHubStoryCover) return;
     root.querySelectorAll('[data-cover]').forEach(function(el) {
       var key = el.getAttribute('data-cover');
       if (!key) return;
+      if (!window.AudioHubStoryCover) return;
       window.AudioHubStoryCover.get(key).then(function(blob) {
         if (!blob) return;
         var url = URL.createObjectURL(blob);
-        // Use img element for playlist thumbnails (better display)
-        var img = el.querySelector('img');
-        if (!img) {
-          img = document.createElement('img');
-          img.loading = 'lazy';
-          el.appendChild(img);
-        }
-        img.src = url;
-        // Also set as background fallback
         el.style.backgroundImage = 'url("' + url + '")';
         el.style.backgroundSize = 'cover';
         el.style.backgroundPosition = 'center';
+        // Remove placeholder icon if present
+        var icon = el.querySelector('i');
+        if (icon) icon.style.display = 'none';
       }).catch(function() {});
     });
   }
