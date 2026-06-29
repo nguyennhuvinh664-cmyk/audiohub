@@ -31,6 +31,10 @@ body { overflow-x: hidden; }
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255,255,255,.06);
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  padding: 4px 0 max(6px, env(safe-area-inset-bottom));
 }
 
 .bnav__item {
@@ -178,12 +182,7 @@ body { overflow-x: hidden; }
   .site-nav { display: none !important; }
   .hamburger { display: flex; }
   .header__actions .btn { display: none !important; }
-  .bnav {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 4px 0 max(6px, env(safe-area-inset-bottom));
-  }
+  .bnav { display: flex; }
   body { padding-bottom: 68px; }
 
   /* Buttons — bigger touch targets */
