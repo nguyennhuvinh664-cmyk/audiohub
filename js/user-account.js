@@ -518,17 +518,19 @@
   // Wallet topup
   var topupBtn = $('[data-ua-wallet-topup]');
   var topupModal = $('#ua-topup-modal');
-  var modalCloseBtns = $$('[data-ua-modal-close]');
+
+  function openModal() { if (topupModal) { topupModal.hidden = false; topupModal.style.display = 'flex'; } }
+  function closeModal() { if (topupModal) { topupModal.hidden = true; topupModal.style.display = 'none'; } }
 
   if (topupBtn && topupModal) {
-    topupBtn.addEventListener('click', function() { topupModal.hidden = false; });
+    topupBtn.addEventListener('click', function() { openModal(); });
 
-    modalCloseBtns.forEach(function(btn) {
-      btn.addEventListener('click', function() { topupModal.hidden = true; });
-    });
-
-    topupModal.addEventListener('click', function(e) {
-      if (e.target === topupModal) topupModal.hidden = true;
+    // Close button clicks
+    document.addEventListener('click', function(e) {
+      var closeBtn = e.target.closest('[data-ua-modal-close]');
+      if (closeBtn) { closeModal(); return; }
+      // Backdrop click
+      if (e.target === topupModal) { closeModal(); return; }
     });
 
     // Preset buttons
@@ -560,7 +562,7 @@
           createdAt: new Date().toISOString()
         });
         saveWallet(wallet);
-        topupModal.hidden = true;
+        closeModal();
         if (input) input.value = '';
         $$('.ua-preset').forEach(function(b) { b.classList.remove('is-active'); });
         renderWallet();
