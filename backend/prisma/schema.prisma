@@ -20,6 +20,9 @@ model User {
   stories           Story[]
   storyListenEvents StoryListenEvent[]
   playlists         Playlist[]
+  wallet            Wallet?
+  notifications     Notification[]
+  unlockedChapters  UnlockedChapter[]
 
   @@map("users")
 }
@@ -48,6 +51,7 @@ model Story {
   deletedAt    DateTime?          @map("deleted_at")
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   listenEvents StoryListenEvent[]
+  unlockedChapters UnlockedChapter[]
 
   @@index([userId, updatedAt(sort: Desc)])
   @@map("stories")
@@ -119,6 +123,60 @@ model PlaylistItem {
 
   @@index([playlistId, chapterIndex])
   @@map("playlist_items")
+}
+
+model Wallet {
+  id        String              @id @default(cuid())
+  userId    String              @unique @map("user_id")
+  balance   Int                 @default(0)
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  walletId    String   @map("wallet_id")
+  type        String
+  amount      Int
+  description String
+  referenceId String?  @map("reference_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt(sort: Desc)])
+  @@map("wallet_transactions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  link      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model UnlockedChapter {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  storyId    String   @map("story_id")
+  chapterIdx Int      @map("chapter_idx")
+  unlockedAt DateTime @default(now()) @map("unlocked_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story      Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId, chapterIdx])
+  @@map("unlocked_chapters")
 }
 
 enum StoryVisibility {

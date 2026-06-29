@@ -10,6 +10,9 @@ import mediaRoutes, { coverPublicRouter } from './modules/media/media.routes.js'
 import trashRoutes from './modules/trash/trash.routes.js';
 import maintenanceRoutes from './modules/maintenance/maintenance.routes.js';
 import playlistsRoutes from './modules/playlists/playlists.routes.js';
+import walletRoutes from './modules/wallet/wallet.routes.js';
+import notificationsRoutes from './modules/notifications/notifications.routes.js';
+import chaptersRoutes from './modules/chapters/chapters.routes.js';
 
 export const app = express();
 
@@ -29,5 +32,8 @@ app.use('/api/v1', coverPublicRouter);
 app.use('/api/v1/audio-trash', trashRoutes);
 app.use('/api/v1/maintenance', maintenanceRoutes);
 app.use('/api/v1/playlists', playlistsRoutes);
+app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
+app.use('/api/v1/chapters', chaptersRoutes);
 
 app.use(errorHandler);
