@@ -476,4 +476,16 @@
   hydrateAuthFromToken();
   renderHeaderAuth();
   renderAccountProfile();
+
+  // Hide admin-only elements for non-admin users
+  (function hideAdminOnly() {
+    try {
+      var auth = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
+      if (!auth || !auth.isAdmin) {
+        document.querySelectorAll('[data-admin-only]').forEach(function(el) {
+          el.style.display = 'none';
+        });
+      }
+    } catch(e) {}
+  })();
 })();
