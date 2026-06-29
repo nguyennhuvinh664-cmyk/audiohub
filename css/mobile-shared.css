@@ -31,22 +31,17 @@ body { overflow-x: hidden; }
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255,255,255,.06);
-}
-
-.bnav__inner {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  max-width: 500px;
-  margin: 0 auto;
-  padding: 4px 0;
+  padding: 4px 0 max(6px, env(safe-area-inset-bottom));
 }
 
 .bnav__item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   padding: 8px 10px;
   color: #64748b;
   text-decoration: none;
@@ -54,7 +49,16 @@ body { overflow-x: hidden; }
   font-weight: 600;
   border-radius: 10px;
   transition: color .2s;
-  min-width: 56px;
+  flex: 1;
+  min-width: 0;
+  max-width: 80px;
+}
+
+.bnav__item span {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bnav__item i { font-size: 20px; transition: transform .2s; }
@@ -65,6 +69,17 @@ body { overflow-x: hidden; }
 }
 
 .bnav__item.active i { transform: scale(1.1); }
+
+/* FAB center button */
+.bnav__fab-wrap { position: relative; top: 0; }
+.bnav__fab-wrap .bnav__fab {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary, #f59e0b), #f97316);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #000;
+  box-shadow: 0 4px 16px rgba(245,158,11,.3);
+}
+.bnav__fab-wrap span { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
    HEADER
@@ -167,7 +182,7 @@ body { overflow-x: hidden; }
   .site-nav { display: none !important; }
   .hamburger { display: flex; }
   .header__actions .btn { display: none !important; }
-  .bnav { display: block; }
+  .bnav { display: flex; }
   body { padding-bottom: 68px; }
 
   /* Buttons — bigger touch targets */
