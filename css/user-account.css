@@ -608,7 +608,7 @@ body.user-account-page {
     border-top: none; padding-top: 0; margin-bottom: 16px;
   }
   .ua-nav-item { padding: 8px 14px; font-size: .82rem; }
-  .ua-stats-grid { grid-template-columns: repeat(4, 1fr); }
+  .ua-stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ── 820px (Tablet) ── */
