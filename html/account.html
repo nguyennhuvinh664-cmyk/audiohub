@@ -241,6 +241,19 @@
   </nav>
 
   <script src="../js/auth-state.js"></script>
+  <!-- Role guard: only Admin can access this page -->
+  <script>
+  (function() {
+    try {
+      var auth = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
+      // If no auth or not admin, redirect to user account
+      if (!auth || !auth.isAdmin) {
+        window.location.replace('user-account.html');
+        return;
+      }
+    } catch(e) {}
+  })();
+  </script>
   <script src="../js/stories-store.js"></script>
   <script src="../js/stories-cover-store.js"></script>
   <script src="../js/stories-audio-store.js"></script>
