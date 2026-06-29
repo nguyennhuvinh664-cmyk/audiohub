@@ -186,9 +186,10 @@ body.user-account-page {
   background: var(--ua-surface); border: 1px solid var(--ua-border);
   border-radius: var(--ua-radius-sm); padding: 18px 16px;
   display: flex; align-items: center; gap: 12px;
-  transition: border-color var(--ua-ease);
+  transition: border-color var(--ua-ease), transform var(--ua-ease);
+  cursor: pointer;
 }
-.ua-stat-card:hover { border-color: rgba(245,158,11,.15); }
+.ua-stat-card:hover { border-color: rgba(245,158,11,.15); transform: translateY(-2px); }
 .ua-stat-card i {
   width: 40px; height: 40px; border-radius: 10px;
   background: rgba(245,158,11,.1); color: var(--ua-primary);

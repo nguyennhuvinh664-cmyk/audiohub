@@ -500,6 +500,14 @@
     });
   });
 
+  // Stat cards click to navigate
+  $$('.ua-stat-card[data-ua-stat-link]').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var tab = card.getAttribute('data-ua-stat-link');
+      if (tab) switchTab(tab);
+    });
+  });
+
   // Mobile sidebar toggle
   var sidebarToggle = $('[data-ua-sidebar-toggle]');
   var sidebar = $('[data-ua-sidebar]');
