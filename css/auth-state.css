@@ -64,13 +64,15 @@
   border: 1px solid rgba(255,255,255,.1);
   background: rgba(9,9,15,.98);
   box-shadow: 0 20px 44px rgba(0,0,0,.35);
-  display: grid;
+  display: flex !important;
+  flex-direction: column;
   gap: 4px;
   opacity: 0;
   visibility: hidden;
   transform: translateY(8px);
   transition: opacity .2s ease, transform .2s ease, visibility .2s ease;
   z-index: 40;
+  box-sizing: border-box;
 }
 
 .auth-menu.is-open .auth-menu__dropdown {
@@ -99,10 +101,10 @@
 
 .auth-menu__link,
 .auth-menu__action {
-  width: 100%;
-  display: inline-flex;
+  display: flex !important;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 11px 12px;
   border: 0;
   border-radius: 12px;
@@ -112,6 +114,9 @@
   font-weight: 700;
   text-align: left;
   cursor: pointer;
+  box-sizing: border-box;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .auth-menu__link:hover,
