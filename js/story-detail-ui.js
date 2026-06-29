@@ -1054,13 +1054,14 @@
 
     var chapterCountNode = document.querySelector('.detail-sidebar .section-heading span');
     var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
+    var chapterSection = chapterList.closest('.detail-sidebar__section') || chapterList.parentElement;
 
     // ── Login status ──
     var loggedIn = !!(window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function' && window.AudioHubAccess.isMember()) || isLoggedIn();
 
     // ── Chapter data ──
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
-    var total = storyChapters.length || Math.max(1, Number(currentStory && currentStory.chapterCount) || 12);
+    var total = storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0;
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
     var chapterTitleFallback = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
 
@@ -1150,6 +1151,11 @@
     chapterList.innerHTML = chapterRows.join('');
     if (chapterHeading) chapterHeading.innerHTML = '<i class="fa-solid fa-music"></i> Danh sách chương';
     if (chapterCountNode) chapterCountNode.textContent = total + ' chương';
+
+    // Hide chapter section if no chapters
+    if (total === 0 && chapterSection) {
+      chapterSection.style.display = 'none';
+    }
 
     // Scroll to active item
     setTimeout(function () {
