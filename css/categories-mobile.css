@@ -1,0 +1,172 @@
+/* ══════════════════════════════════════════════════════════════
+   CATEGORIES PAGE — Mobile Refactor
+   Overrides Desktop classes at max-width: 768px
+   No HTML changes — CSS only
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+/* ─── HERO SECTION ─── */
+.hero-cover {
+  padding: 20px 0 24px;
+}
+.hero-cover__inner {
+  display: block;
+}
+.hero-cover__content {
+  text-align: left;
+}
+.hero-cover__content .eyebrow {
+  display: inline-flex;
+  font-size: 0.72rem;
+  padding: 5px 12px;
+  gap: 6px;
+  margin-bottom: 12px;
+  background: rgba(245,166,35,0.1);
+  border: 1px solid rgba(245,166,35,0.2);
+  color: var(--m-accent, #F5A623);
+}
+.hero-cover__content h1 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.hero-cover__text {
+  font-size: 0.85rem;
+  color: var(--m-text2, #94A3B8);
+  line-height: 1.5;
+}
+
+/* ─── CATEGORIES SECTION ─── */
+.categories-section {
+  padding: 0 0 24px;
+}
+
+/* ─── CATEGORIES GRID — 2 columns ─── */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 0 16px;
+}
+
+/* ─── CATEGORY CARD ─── */
+.cat-card {
+  background: var(--m-card, #121826);
+  border: 1px solid var(--m-border, rgba(255,255,255,0.06));
+  border-radius: 18px;
+  padding: 20px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 130px;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+.cat-card:active {
+  transform: scale(0.97);
+  background: var(--m-card-hover, #1A2236);
+}
+.cat-card:hover {
+  transform: none;
+  background: var(--m-card, #121826);
+  border-color: var(--m-border, rgba(255,255,255,0.06));
+}
+
+/* Icon */
+.cat-card__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  background: rgba(245,166,35,0.1);
+  color: var(--m-accent, #F5A623);
+}
+
+/* Title */
+.cat-card h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--m-text, #F1F5F9);
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+/* Count */
+.cat-card p {
+  font-size: 0.82rem;
+  color: var(--m-text3, #64748B);
+  font-weight: 600;
+}
+
+/* ─── FOOTER (hidden) ─── */
+.site-footer {
+  display: none !important;
+}
+
+/* ─── PAGE PADDING ─── */
+.m-page {
+  padding-top: var(--m-header-h, 60px);
+  padding-bottom: calc(var(--m-bottom-h, 64px) + var(--m-safe, 0px) + 8px);
+}
+
+/* ─── SMALL PHONES ─── */
+@media (max-width: 480px) {
+  .hero-cover {
+    padding: 16px 0 20px;
+  }
+  .hero-cover__content h1 {
+    font-size: 1.2rem;
+  }
+  .categories-grid {
+    gap: 10px;
+    padding: 0 14px;
+  }
+  .cat-card {
+    padding: 18px 14px;
+    min-height: 120px;
+    border-radius: 16px;
+  }
+  .cat-card__icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    border-radius: 14px;
+  }
+  .cat-card h3 {
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .categories-grid {
+    gap: 8px;
+    padding: 0 12px;
+  }
+  .cat-card {
+    padding: 16px 12px;
+    min-height: 110px;
+  }
+  .cat-card__icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .cat-card h3 {
+    font-size: 0.85rem;
+  }
+  .cat-card p {
+    font-size: 0.75rem;
+  }
+}
+
+} /* end @media (max-width: 768px) */

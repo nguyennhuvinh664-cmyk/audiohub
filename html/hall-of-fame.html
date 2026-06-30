@@ -18,8 +18,64 @@
   <link rel="stylesheet" href="../css/hall-of-fame.css" />
   <link rel="stylesheet" href="../css/auth-state.css" />
   <link rel="stylesheet" href="../css/dev-mode.css" />
+  <link rel="stylesheet" href="../css/mobile-app.css" />
 </head>
 <body class="listing-page hall-page">
+
+<!-- ═══ MOBILE HEADER ═══ -->
+<header class="m-header">
+  <div class="m-header__left">
+    <button class="m-header__hamburger" id="mHamburger" aria-label="Menu">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <a href="index.html" class="m-header__logo">
+      <i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span>
+    </a>
+  </div>
+  <div class="m-header__right">
+    <button class="m-header__notif" aria-label="Thông báo">
+      <i class="fa-solid fa-bell"></i>
+      <span class="m-badge"></span>
+    </button>
+  </div>
+</header>
+
+<!-- ═══ MOBILE DRAWER ═══ -->
+<div class="m-drawer-overlay" id="mDrawerOverlay"></div>
+<nav class="m-drawer" id="mDrawer">
+  <div class="m-drawer__header">
+    <div class="m-drawer__brand"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></div>
+    <div class="m-drawer__tagline">Nghe truyện hay mỗi ngày</div>
+  </div>
+  <div class="m-drawer__section">
+    <div class="m-drawer__label">Điều hướng</div>
+    <a href="index.html" class="m-drawer__link"><i class="fa-solid fa-house"></i> Trang chủ</a>
+    <a href="categories.html" class="m-drawer__link"><i class="fa-solid fa-layer-group"></i> Thể loại</a>
+    <a href="new-posts.html" class="m-drawer__link"><i class="fa-solid fa-clock-rotate-left"></i> Mới đăng</a>
+    <a href="hall-of-fame.html" class="m-drawer__link active"><i class="fa-solid fa-trophy"></i> Vinh danh</a>
+  </div>
+  <div class="m-drawer__divider"></div>
+  <div class="m-drawer__section">
+    <div class="m-drawer__label">Cá nhân</div>
+    <a href="account.html#history" class="m-drawer__link"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử nghe</a>
+    <a href="account.html#favorites" class="m-drawer__link"><i class="fa-solid fa-heart"></i> Yêu thích</a>
+    <a href="account.html#playlists" class="m-drawer__link"><i class="fa-solid fa-list"></i> Playlist</a>
+    <a href="account.html#unlocked" class="m-drawer__link"><i class="fa-solid fa-lock-open"></i> Chương đã mở khóa</a>
+  </div>
+  <div class="m-drawer__divider"></div>
+  <div class="m-drawer__logout">
+    <button class="m-drawer__logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+  </div>
+</nav>
+
+<!-- ═══ MOBILE BOTTOM NAV ═══ -->
+<nav class="m-bottomnav" aria-label="Điều hướng di động">
+  <a href="index.html" class="m-bottomnav__item"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>
+  <a href="categories.html" class="m-bottomnav__item"><i class="fa-solid fa-layer-group"></i><span>Thể loại</span></a>
+  <a href="new-posts.html" class="m-bottomnav__item"><i class="fa-solid fa-fire"></i><span>Mới</span></a>
+  <a href="hall-of-fame.html" class="m-bottomnav__item active"><i class="fa-solid fa-trophy"></i><span>Vinh danh</span></a>
+  <a href="account.html" class="m-bottomnav__item"><i class="fa-solid fa-user"></i><span>Tài khoản</span></a>
+</nav>
   <header class="site-header">
     <div class="container header__inner">
       <button class="hamburger" data-nav-toggle aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
@@ -37,6 +93,7 @@
     </div>
   </header>
 
+  <div class="m-page">
   <main>
     <section class="hall-hero">
       <div class="container hall-hero__inner">
@@ -125,6 +182,7 @@
       </div>
     </section>
   </main>
+  </div> <!-- /m-page -->
 
   <footer class="site-footer">
     <div class="container footer__inner">
@@ -337,11 +395,16 @@
   </div>
 </nav>
 <script>
+/* Mobile Drawer */
 (function(){
-  var t=document.querySelector('[data-nav-toggle]'),d=document.querySelector('[data-nav-drawer]'),o=document.querySelector('[data-nav-overlay]'),c=document.querySelector('[data-nav-close]');
-  function open(){if(d)d.classList.add('is-open');if(o)o.classList.add('is-open');document.body.style.overflow='hidden';}
-  function close(){if(d)d.classList.remove('is-open');if(o)o.classList.remove('is-open');document.body.style.overflow='';}
-  if(t)t.addEventListener('click',open);if(c)c.addEventListener('click',close);if(o)o.addEventListener('click',close);
+  var h=document.getElementById('mHamburger'),
+      d=document.getElementById('mDrawer'),
+      o=document.getElementById('mDrawerOverlay');
+  function open(){d.classList.add('is-open');o.classList.add('is-open');document.body.style.overflow='hidden';}
+  function close(){d.classList.remove('is-open');o.classList.remove('is-open');document.body.style.overflow='';}
+  if(h)h.addEventListener('click',open);
+  if(o)o.addEventListener('click',close);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
 })();
 </script>
   <script src="../js/dev-mode-config.js"></script>
