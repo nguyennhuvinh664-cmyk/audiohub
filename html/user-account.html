@@ -268,99 +268,97 @@
   <!-- ═══ MOBILE CONTENT (hidden on desktop) ═══ -->
   <main class="m-ua" id="mUa">
 
-    <!-- Profile Header -->
-    <section class="m-profile-header">
-      <div class="m-profile-avatar">
-        <div class="m-avatar" data-ua-avatar><span data-ua-initials>AH</span></div>
-        <button type="button" class="m-avatar-cam" data-ua-avatar-edit><i class="fa-solid fa-camera"></i></button>
-        <input type="file" accept="image/*" data-ua-avatar-input hidden />
-      </div>
-      <div class="m-profile-info">
-        <h1 class="m-profile-name" data-ua-name>Người dùng</h1>
-        <p class="m-profile-email" data-ua-email>user@audiohub.vn</p>
-        <span class="m-profile-badge"><i class="fa-solid fa-crown"></i> <span data-ua-tier>Hội viên</span></span>
-      </div>
-    </section>
+    <!-- Menu List (iOS Settings style) -->
+    <nav class="m-menu-list">
+      <button type="button" class="m-menu-item" data-m-tab="favorites">
+        <i class="fa-solid fa-heart" style="color:#EF4444"></i>
+        <span>Yêu thích</span>
+        <i class="fa-solid fa-chevron-right m-menu-arrow"></i>
+      </button>
+      <button type="button" class="m-menu-item is-active" data-m-tab="playlists">
+        <i class="fa-solid fa-list" style="color:var(--m-accent,#F5A623)"></i>
+        <span>Playlist</span>
+        <i class="fa-solid fa-chevron-right m-menu-arrow"></i>
+      </button>
+      <button type="button" class="m-menu-item" data-m-tab="chapters">
+        <i class="fa-solid fa-lock" style="color:var(--m-text3,#64748B)"></i>
+        <span>Chương đã mở khóa</span>
+        <i class="fa-solid fa-chevron-right m-menu-arrow"></i>
+      </button>
+      <button type="button" class="m-menu-item" data-m-tab="wallet">
+        <i class="fa-solid fa-wallet" style="color:var(--m-text3,#64748B)"></i>
+        <span>Ví AudioHub</span>
+        <span class="m-menu-badge" data-ua-wallet-badge style="display:none"></span>
+        <i class="fa-solid fa-chevron-right m-menu-arrow"></i>
+      </button>
+      <button type="button" class="m-menu-item" data-m-tab="notifications">
+        <i class="fa-solid fa-bell" style="color:var(--m-text3,#64748B)"></i>
+        <span>Thông báo</span>
+        <span class="m-menu-badge m-menu-badge--alert" data-ua-notif-badge style="display:none">0</span>
+        <i class="fa-solid fa-chevron-right m-menu-arrow"></i>
+      </button>
+    </nav>
 
-    <!-- Welcome Card -->
-    <section class="m-welcome-card">
-      <div class="m-welcome-left">
-        <span class="m-welcome-badge"><i class="fa-solid fa-user-circle"></i> Hồ sơ cá nhân</span>
-        <h2 class="m-welcome-title">Chào mừng trở lại!</h2>
-        <p class="m-welcome-desc">Quản lý thông tin tài khoản, theo dõi lịch sử nghe và trải nghiệm AudioHub.</p>
-      </div>
-      <div class="m-welcome-art">
-        <i class="fa-solid fa-headphones"></i>
-      </div>
-    </section>
+    <!-- Content area (shows below menu based on selected tab) -->
+    <div class="m-content-area" id="mContentArea">
 
-    <!-- Quick Actions -->
-    <section class="m-section-card">
-      <h3 class="m-section-title"><i class="fa-solid fa-bolt"></i> Thao tác nhanh</h3>
-      <div class="m-quick-actions">
-        <a href="account.html#history" class="m-action-card">
-          <div class="m-action-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
-          <span>Lịch sử nghe</span>
-        </a>
-        <a href="account.html#favorites" class="m-action-card">
-          <div class="m-action-icon"><i class="fa-solid fa-heart"></i></div>
-          <span>Yêu thích</span>
-        </a>
-        <a href="account.html#playlists" class="m-action-card">
-          <div class="m-action-icon"><i class="fa-solid fa-list"></i></div>
-          <span>Playlist</span>
-        </a>
-        <a href="account.html#chapters" class="m-action-card">
-          <div class="m-action-icon"><i class="fa-solid fa-lock-open"></i></div>
-          <span>Chương mở khóa</span>
-        </a>
-        <a href="account.html#wallet" class="m-action-card">
-          <div class="m-action-icon"><i class="fa-solid fa-wallet"></i></div>
-          <span>Ví AudioHub</span>
-        </a>
-        <a href="account.html#notifications" class="m-action-card">
-          <div class="m-action-icon"><i class="fa-solid fa-bell"></i></div>
-          <span>Thông báo</span>
-        </a>
-      </div>
-    </section>
-
-    <!-- Account Information -->
-    <section class="m-section-card">
-      <h3 class="m-section-title"><i class="fa-solid fa-circle-info"></i> Thông tin tài khoản</h3>
-      <div class="m-info-grid">
-        <div class="m-info-item">
-          <span>Họ tên</span>
-          <strong data-ua-info-name>--</strong>
-        </div>
-        <div class="m-info-item">
-          <span>Email</span>
-          <strong data-ua-info-email>--</strong>
-        </div>
-        <div class="m-info-item">
-          <span>Ngày tham gia</span>
-          <strong data-ua-info-joined>--</strong>
-        </div>
-        <div class="m-info-item">
-          <span>Gói thành viên</span>
-          <strong data-ua-info-tier>--</strong>
-        </div>
-        <div class="m-info-item">
-          <span>Thiết bị hiện tại</span>
-          <strong data-ua-info-device>--</strong>
-        </div>
-        <div class="m-info-item">
-          <span>Trạng thái</span>
-          <strong data-ua-info-status>--</strong>
+      <!-- Playlist view (default) -->
+      <div class="m-content-section is-active" data-m-panel="playlists">
+        <h2 class="m-content-title"><i class="fa-solid fa-list"></i> Playlist</h2>
+        <button type="button" class="m-create-btn" data-ua-playlist-create><i class="fa-solid fa-plus"></i> Tạo playlist mới</button>
+        <input type="text" class="m-create-input" placeholder="Tên playlist mới..." data-ua-playlist-name hidden />
+        <div class="m-playlist-list" data-ua-playlist-list>
+          <div class="m-empty"><i class="fa-solid fa-list"></i><p>Chưa có playlist nào</p></div>
         </div>
       </div>
-    </section>
 
-    <!-- Action Buttons -->
-    <section class="m-profile-buttons">
-      <a href="edit-profile.html" class="m-btn-primary"><i class="fa-solid fa-pen"></i> Chỉnh sửa hồ sơ</a>
-      <a href="change-password.html" class="m-btn-outline"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>
-    </section>
+      <!-- Favorites view -->
+      <div class="m-content-section" data-m-panel="favorites" hidden>
+        <h2 class="m-content-title"><i class="fa-solid fa-heart"></i> Yêu thích</h2>
+        <div class="m-list" data-ua-favorites-list>
+          <div class="m-empty"><i class="fa-solid fa-heart"></i><p>Chưa có truyện yêu thích</p></div>
+        </div>
+        <div class="m-pagination" data-ua-pagination="favorites"></div>
+      </div>
+
+      <!-- Chapters view -->
+      <div class="m-content-section" data-m-panel="chapters" hidden>
+        <h2 class="m-content-title"><i class="fa-solid fa-lock-open"></i> Chương đã mở khóa</h2>
+        <div class="m-list" data-ua-chapters-list>
+          <div class="m-empty"><i class="fa-solid fa-lock-open"></i><p>Chưa có chương nào được mở khóa</p></div>
+        </div>
+      </div>
+
+      <!-- Wallet view -->
+      <div class="m-content-section" data-m-panel="wallet" hidden>
+        <div class="m-wallet-hero">
+          <div class="m-wallet-icon"><i class="fa-solid fa-wallet"></i></div>
+          <div class="m-wallet-info">
+            <span>Số dư hiện tại</span>
+            <strong data-ua-wallet-balance>0₫</strong>
+          </div>
+          <button type="button" class="m-wallet-btn" data-ua-wallet-topup><i class="fa-solid fa-plus"></i> Nạp tiền</button>
+        </div>
+        <h2 class="m-content-title">Lịch sử giao dịch</h2>
+        <div class="m-list" data-ua-wallet-transactions>
+          <div class="m-empty"><i class="fa-solid fa-receipt"></i><p>Chưa có giao dịch nào</p></div>
+        </div>
+        <div class="m-pagination" data-ua-pagination="wallet"></div>
+      </div>
+
+      <!-- Notifications view -->
+      <div class="m-content-section" data-m-panel="notifications" hidden>
+        <div class="m-content-header">
+          <h2 class="m-content-title"><i class="fa-solid fa-bell"></i> Thông báo</h2>
+          <button type="button" class="m-mark-read" data-ua-notif-read-all><i class="fa-solid fa-check-double"></i> Đọc tất cả</button>
+        </div>
+        <div class="m-list" data-ua-notif-list>
+          <div class="m-empty"><i class="fa-solid fa-bell-slash"></i><p>Không có thông báo mới</p></div>
+        </div>
+        <div class="m-pagination" data-ua-pagination="notifications"></div>
+      </div>
+
+    </div>
 
   </main>
 
@@ -436,57 +434,28 @@
 })();
 </script>
 <script>
-/* Mobile Quick Actions → show desktop panels, hide mobile profile */
+/* Mobile Menu Tabs */
 (function(){
-  var tabMap = {
-    'history': 'history',
-    'favorites': 'favorites',
-    'playlists': 'playlists',
-    'chapters': 'chapters',
-    'wallet': 'wallet',
-    'notifications': 'notifications'
-  };
-  var uaMain = document.querySelector('.ua-main');
-  var mUa = document.querySelector('.m-ua');
+  var menuItems = document.querySelectorAll('.m-menu-item');
+  var panels = document.querySelectorAll('.m-content-section');
 
-  function showPanel(tab) {
-    if(!uaMain || !mUa) return;
-    var btn = document.querySelector('[data-ua-tab="'+tab+'"]');
-    if(btn) btn.click();
-    uaMain.classList.add('is-showing');
-    mUa.classList.add('is-hidden');
+  function switchTab(tab) {
+    menuItems.forEach(function(item){
+      item.classList.toggle('is-active', item.getAttribute('data-m-tab') === tab);
+    });
+    panels.forEach(function(panel){
+      var isActive = panel.getAttribute('data-m-panel') === tab;
+      panel.classList.toggle('is-active', isActive);
+      panel.hidden = !isActive;
+    });
     window.scrollTo({top: 0, behavior: 'smooth'});
   }
 
-  function showProfile() {
-    if(!uaMain || !mUa) return;
-    var btn = document.querySelector('[data-ua-tab="profile"]');
-    if(btn) btn.click();
-    uaMain.classList.remove('is-showing');
-    mUa.classList.remove('is-hidden');
-  }
-
-  document.querySelectorAll('.m-action-card').forEach(function(card){
-    card.addEventListener('click', function(e){
-      e.preventDefault();
-      var href = card.getAttribute('href') || '';
-      var hash = href.split('#')[1] || '';
-      var tab = tabMap[hash];
-      if(tab) showPanel(tab);
+  menuItems.forEach(function(item){
+    item.addEventListener('click', function(){
+      switchTab(item.getAttribute('data-m-tab'));
     });
   });
-
-  // Handle hash on page load
-  var hash = window.location.hash.replace('#','');
-  if(hash && tabMap[hash]) {
-    showPanel(hash);
-  }
-
-  // Watch for profile tab to return to mobile view
-  var profileBtn = document.querySelector('[data-ua-tab="profile"]');
-  if(profileBtn) {
-    profileBtn.addEventListener('click', showProfile);
-  }
 })();
 </script>
 </body>
