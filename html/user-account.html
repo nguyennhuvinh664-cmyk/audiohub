@@ -435,5 +435,30 @@
   document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
 })();
 </script>
+<script>
+/* Mobile Quick Actions → trigger desktop tab switching */
+(function(){
+  var tabMap = {
+    'history': 'history',
+    'favorites': 'favorites',
+    'playlists': 'playlists',
+    'chapters': 'chapters',
+    'wallet': 'wallet',
+    'notifications': 'notifications'
+  };
+  document.querySelectorAll('.m-action-card').forEach(function(card){
+    card.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = card.getAttribute('href') || '';
+      var hash = href.split('#')[1] || '';
+      var tab = tabMap[hash];
+      if(!tab) return;
+      var btn = document.querySelector('[data-ua-tab="'+tab+'"]');
+      if(btn) btn.click();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    });
+  });
+})();
+</script>
 </body>
 </html>
