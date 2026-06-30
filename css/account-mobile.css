@@ -1,0 +1,480 @@
+/* ══════════════════════════════════════════════════════════════
+   ACCOUNT PAGE — Mobile Refactor (CSS only, no HTML changes)
+   Desktop untouched. Bottom nav unchanged.
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+/* ─── HIDE DESKTOP ─── */
+.site-header,
+.site-footer {
+  display: none !important;
+}
+
+/* ─── PAGE WRAPPER ─── */
+.m-page {
+  padding-top: var(--m-header-h, 60px);
+  padding-bottom: calc(var(--m-bottom-h, 64px) + var(--m-safe, 0px) + 8px);
+  min-height: 100vh;
+}
+
+/* ─── ACCOUNT MAIN ─── */
+.account-main {
+  padding: 0 !important;
+}
+
+.account-main .container {
+  padding: 0;
+  max-width: none;
+}
+
+/* ─── ACCOUNT SHELL — Single column ─── */
+.account-shell {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+/* ─── ACCOUNT SIDEBAR → Profile Section ─── */
+.account-sidebar {
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+/* Profile — Horizontal layout */
+.account-profile {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 20px 16px !important;
+  background: none !important;
+}
+
+.account-avatar-wrap {
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+.account-avatar {
+  width: 90px !important;
+  height: 90px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, var(--m-accent, #F5A623), #F97316) !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  color: #000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 20px rgba(245,166,35,0.25) !important;
+  border: none !important;
+}
+
+.account-avatar-edit {
+  position: absolute !important;
+  bottom: 0 !important;
+  right: -4px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: var(--m-card, #121826) !important;
+  border: 2px solid var(--m-bg, #090B12) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 11px !important;
+  color: var(--m-accent, #F5A623) !important;
+  padding: 0 !important;
+}
+
+.account-avatar-input {
+  display: none !important;
+}
+
+.account-name {
+  font-family: 'Baloo 2', cursive !important;
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  color: var(--m-text, #F1F5F9) !important;
+  margin-bottom: 2px !important;
+}
+
+.account-email {
+  font-size: 0.82rem !important;
+  color: var(--m-text3, #64748B) !important;
+  margin-bottom: 8px !important;
+}
+
+.account-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 14px !important;
+  border-radius: 999px !important;
+  background: var(--m-accent-dim, rgba(245,166,35,0.12)) !important;
+  border: 1px solid rgba(245,166,35,0.2) !important;
+  color: var(--m-accent, #F5A623) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+}
+
+/* Meta — Hidden on mobile (moved to info card) */
+.account-meta {
+  display: none !important;
+}
+
+/* Actions — Hidden (moved to quick actions) */
+.account-actions {
+  display: none !important;
+}
+
+/* ─── ACCOUNT CONTENT ─── */
+.account-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+  padding: 0 16px 20px !important;
+}
+
+/* ─── HERO CARD ─── */
+.account-hero {
+  background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.08), rgba(245,166,35,0.05)) !important;
+  border: 1px solid rgba(139,92,246,0.2) !important;
+  border-radius: 20px !important;
+  padding: 24px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.account-hero::after {
+  content: '' !important;
+  position: absolute !important;
+  right: -20px !important;
+  top: -20px !important;
+  width: 120px !important;
+  height: 120px !important;
+  background: rgba(245,166,35,0.08) !important;
+  border-radius: 50% !important;
+  pointer-events: none !important;
+}
+
+.account-kicker {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  background: rgba(139,92,246,0.15) !important;
+  color: #A78BFA !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 10px !important;
+}
+
+.account-title {
+  font-family: 'Baloo 2', cursive !important;
+  font-size: 1.3rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  margin-bottom: 6px !important;
+}
+
+.account-subtitle {
+  font-size: 0.82rem !important;
+  color: var(--m-text2, #94A3B8) !important;
+  line-height: 1.5 !important;
+}
+
+/* ─── NAV CARDS (Tabs) — Hide on mobile ─── */
+.account-navcards {
+  display: none !important;
+}
+
+/* ─── MAIN PANELS — Show all panels stacked ─── */
+.account-mainpanels {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+.account-mainpanel {
+  display: block !important;
+}
+
+.account-mainpanel[hidden] {
+  display: block !important;
+}
+
+/* ─── ACCOUNT CARD (Panel) ─── */
+.account-card {
+  background: var(--m-card, #121826) !important;
+  border: 1px solid var(--m-border, rgba(255,255,255,0.06)) !important;
+  border-radius: 20px !important;
+  padding: 20px !important;
+}
+
+.account-card h2 {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  margin-bottom: 14px !important;
+}
+
+.account-card__header {
+  margin-bottom: 14px !important;
+}
+
+.account-card__header p {
+  font-size: 0.78rem !important;
+  color: var(--m-text3, #64748B) !important;
+  margin-top: 4px !important;
+}
+
+/* ─── STATISTICS GRID — 2x2 ─── */
+/* Stats are injected by JS into account-scroll-list */
+/* We create a visible stats section using existing elements */
+
+/* Use account-navcards area to show stats instead */
+.account-navcards {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+.account-navcard {
+  background: var(--m-card, #121826) !important;
+  border: 1px solid var(--m-border, rgba(255,255,255,0.06)) !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  text-align: left !important;
+  min-height: 90px !important;
+}
+
+.account-navcard i {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.1rem !important;
+  flex-shrink: 0 !important;
+  background: rgba(245,166,35,0.1) !important;
+  color: var(--m-accent, #F5A623) !important;
+}
+
+.account-navcard span {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: var(--m-text, #F1F5F9) !important;
+}
+
+/* ─── ACCOUNT LINKS (Quick Actions) — 2x2 grid ─── */
+.account-links {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+}
+
+.account-link {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 20px 12px !important;
+  background: rgba(255,255,255,0.02) !important;
+  border: 1px solid var(--m-border, rgba(255,255,255,0.06)) !important;
+  border-radius: 16px !important;
+  text-decoration: none !important;
+  color: var(--m-text, #F1F5F9) !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  transition: transform 0.15s !important;
+}
+
+.account-link:active {
+  transform: scale(0.97) !important;
+}
+
+.account-link i {
+  font-size: 1.3rem !important;
+  color: var(--m-accent, #F5A623) !important;
+}
+
+/* ─── ACCOUNT TABS ─── */
+.account-tabs--row {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 14px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+
+.account-tabs--row::-webkit-scrollbar { display: none; }
+
+.account-tab {
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid var(--m-border, rgba(255,255,255,0.06)) !important;
+  color: var(--m-text2, #94A3B8) !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.account-tab.is-active {
+  background: var(--m-accent-dim, rgba(245,166,35,0.12)) !important;
+  border-color: rgba(245,166,35,0.3) !important;
+  color: var(--m-accent, #F5A623) !important;
+}
+
+/* ─── CONTENT SEARCH ─── */
+.content-search-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid var(--m-border, rgba(255,255,255,0.06)) !important;
+  border-radius: 14px !important;
+  padding: 0 14px !important;
+  height: 44px !important;
+  margin-bottom: 14px !important;
+}
+
+.content-search-input {
+  flex: 1 !important;
+  background: none !important;
+  border: none !important;
+  outline: none !important;
+  color: var(--m-text, #F1F5F9) !important;
+  font-size: 0.88rem !important;
+}
+
+.content-search-input::placeholder {
+  color: var(--m-text3, #64748B) !important;
+}
+
+.content-search-icon {
+  color: var(--m-text3, #64748B) !important;
+  font-size: 14px !important;
+}
+
+.content-search-clear {
+  background: none !important;
+  border: none !important;
+  color: var(--m-text3, #64748B) !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  padding: 4px !important;
+}
+
+/* ─── PLAYLIST ─── */
+.playlist-create {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 14px !important;
+}
+
+.playlist-create input {
+  flex: 1 !important;
+  height: 42px !important;
+  padding: 0 14px !important;
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid var(--m-border, rgba(255,255,255,0.06)) !important;
+  border-radius: 12px !important;
+  color: var(--m-text, #F1F5F9) !important;
+  font-size: 0.85rem !important;
+}
+
+.playlist-create input::placeholder {
+  color: var(--m-text3, #64748B) !important;
+}
+
+.playlist-layout {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+/* ─── BUTTONS ─── */
+.btn--primary {
+  background: linear-gradient(135deg, var(--m-accent, #F5A623), #F97316) !important;
+  color: #000 !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 800 !important;
+}
+
+.btn--outline {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid var(--m-border2, rgba(255,255,255,0.10)) !important;
+  color: var(--m-text, #F1F5F9) !important;
+  border-radius: 12px !important;
+}
+
+/* ─── FOOTER (hidden) ─── */
+.site-footer {
+  display: none !important;
+}
+
+/* ─── SMALL PHONES ─── */
+@media (max-width: 480px) {
+  .account-profile {
+    padding: 16px 14px !important;
+  }
+  .account-avatar {
+    width: 80px !important;
+    height: 80px !important;
+    font-size: 1.8rem !important;
+  }
+  .account-content {
+    padding: 0 14px 16px !important;
+  }
+  .account-hero {
+    padding: 20px 16px !important;
+  }
+  .account-title {
+    font-size: 1.15rem !important;
+  }
+  .account-card {
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .account-profile {
+    gap: 12px !important;
+  }
+  .account-avatar {
+    width: 72px !important;
+    height: 72px !important;
+  }
+  .account-name {
+    font-size: 1.15rem !important;
+  }
+  .account-navcard {
+    padding: 14px !important;
+    min-height: 80px !important;
+  }
+  .account-link {
+    padding: 16px 10px !important;
+  }
+}
+
+} /* end @media (max-width: 768px) */
