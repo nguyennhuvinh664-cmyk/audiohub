@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="../css/user-account.css" />
   <link rel="stylesheet" href="../css/dev-mode.css" />
   <link rel="stylesheet" href="../css/mobile-app.css" />
-  <link rel="stylesheet" href="../css/user-account-mobile.css" />
+  <link rel="stylesheet" href="../css/mobile-account.css" />
 </head>
 <body class="user-account-page">
 
@@ -270,6 +270,129 @@
         </section>
       </div>
     </div>
+  </main>
+
+  <!-- ═══ MOBILE CONTENT (hidden on desktop) ═══ -->
+  <main class="m-ua" id="mUa">
+
+    <!-- Profile Header -->
+    <section class="m-profile-header">
+      <div class="m-profile-avatar">
+        <div class="m-avatar" data-ua-avatar><span data-ua-initials>AH</span></div>
+        <button type="button" class="m-avatar-cam" data-ua-avatar-edit><i class="fa-solid fa-camera"></i></button>
+        <input type="file" accept="image/*" data-ua-avatar-input hidden />
+      </div>
+      <div class="m-profile-info">
+        <h1 class="m-profile-name" data-ua-name>Người dùng</h1>
+        <p class="m-profile-email" data-ua-email>user@audiohub.vn</p>
+        <span class="m-profile-badge"><i class="fa-solid fa-crown"></i> <span data-ua-tier>Hội viên</span></span>
+      </div>
+    </section>
+
+    <!-- Welcome Card -->
+    <section class="m-welcome-card">
+      <div class="m-welcome-left">
+        <span class="m-welcome-badge"><i class="fa-solid fa-user-circle"></i> Hồ sơ cá nhân</span>
+        <h2 class="m-welcome-title">Chào mừng trở lại!</h2>
+        <p class="m-welcome-desc">Quản lý thông tin tài khoản, theo dõi lịch sử nghe và trải nghiệm AudioHub.</p>
+      </div>
+      <div class="m-welcome-art">
+        <i class="fa-solid fa-headphones"></i>
+      </div>
+    </section>
+
+    <!-- Statistics Grid -->
+    <section class="m-stat-grid">
+      <div class="m-stat-card" data-ua-stat-link="history" role="button" tabindex="0">
+        <div class="m-stat-icon"><i class="fa-solid fa-headphones"></i></div>
+        <strong data-ua-stat-listens>0</strong>
+        <span>Lượt nghe</span>
+      </div>
+      <div class="m-stat-card" data-ua-stat-link="favorites" role="button" tabindex="0">
+        <div class="m-stat-icon"><i class="fa-solid fa-heart"></i></div>
+        <strong data-ua-stat-favorites>0</strong>
+        <span>Yêu thích</span>
+      </div>
+      <div class="m-stat-card" data-ua-stat-link="playlists" role="button" tabindex="0">
+        <div class="m-stat-icon"><i class="fa-solid fa-list"></i></div>
+        <strong data-ua-stat-playlists>0</strong>
+        <span>Playlist</span>
+      </div>
+      <div class="m-stat-card" data-ua-stat-link="chapters" role="button" tabindex="0">
+        <div class="m-stat-icon"><i class="fa-solid fa-lock-open"></i></div>
+        <strong data-ua-stat-chapters>0</strong>
+        <span>Đã mở khóa</span>
+      </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="m-section-card">
+      <h3 class="m-section-title"><i class="fa-solid fa-bolt"></i> Thao tác nhanh</h3>
+      <div class="m-quick-actions">
+        <a href="account.html#history" class="m-action-card">
+          <div class="m-action-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <span>Lịch sử nghe</span>
+        </a>
+        <a href="account.html#favorites" class="m-action-card">
+          <div class="m-action-icon"><i class="fa-solid fa-heart"></i></div>
+          <span>Yêu thích</span>
+        </a>
+        <a href="account.html#playlists" class="m-action-card">
+          <div class="m-action-icon"><i class="fa-solid fa-list"></i></div>
+          <span>Playlist</span>
+        </a>
+        <a href="account.html#chapters" class="m-action-card">
+          <div class="m-action-icon"><i class="fa-solid fa-lock-open"></i></div>
+          <span>Chương mở khóa</span>
+        </a>
+        <a href="account.html#wallet" class="m-action-card">
+          <div class="m-action-icon"><i class="fa-solid fa-wallet"></i></div>
+          <span>Ví AudioHub</span>
+        </a>
+        <a href="account.html#notifications" class="m-action-card">
+          <div class="m-action-icon"><i class="fa-solid fa-bell"></i></div>
+          <span>Thông báo</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Account Information -->
+    <section class="m-section-card">
+      <h3 class="m-section-title"><i class="fa-solid fa-circle-info"></i> Thông tin tài khoản</h3>
+      <div class="m-info-grid">
+        <div class="m-info-item">
+          <span>Họ tên</span>
+          <strong data-ua-info-name>--</strong>
+        </div>
+        <div class="m-info-item">
+          <span>Email</span>
+          <strong data-ua-info-email>--</strong>
+        </div>
+        <div class="m-info-item">
+          <span>Ngày tham gia</span>
+          <strong data-ua-info-joined>--</strong>
+        </div>
+        <div class="m-info-item">
+          <span>Gói thành viên</span>
+          <strong data-ua-info-tier>--</strong>
+        </div>
+        <div class="m-info-item">
+          <span>Thiết bị hiện tại</span>
+          <strong data-ua-info-device>--</strong>
+        </div>
+        <div class="m-info-item">
+          <span>Trạng thái</span>
+          <strong data-ua-info-status>--</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Action Buttons -->
+    <section class="m-profile-buttons">
+      <a href="edit-profile.html" class="m-btn-primary"><i class="fa-solid fa-pen"></i> Chỉnh sửa hồ sơ</a>
+      <a href="change-password.html" class="m-btn-outline"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>
+    </section>
+
   </main>
 
   <!-- Footer -->
