@@ -410,6 +410,17 @@
   document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
 })();
 </script>
+<script>
+/* Description expand/collapse */
+(function(){
+  var dc = document.querySelector('.detail-copy');
+  if(!dc) return;
+  dc.addEventListener('click', function(e){
+    if(e.target.tagName === 'A') return;
+    dc.classList.toggle('is-expanded');
+  });
+})();
+</script>
   <script src="../js/dev-mode-config.js"></script>
   <script src="../js/dev-mode.js"></script>
 </body>
