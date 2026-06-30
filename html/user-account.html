@@ -436,7 +436,7 @@
 })();
 </script>
 <script>
-/* Mobile Quick Actions → trigger desktop tab switching */
+/* Mobile Quick Actions → show desktop panels, hide mobile profile */
 (function(){
   var tabMap = {
     'history': 'history',
@@ -446,18 +446,47 @@
     'wallet': 'wallet',
     'notifications': 'notifications'
   };
+  var uaMain = document.querySelector('.ua-main');
+  var mUa = document.querySelector('.m-ua');
+
+  function showPanel(tab) {
+    if(!uaMain || !mUa) return;
+    var btn = document.querySelector('[data-ua-tab="'+tab+'"]');
+    if(btn) btn.click();
+    uaMain.classList.add('is-showing');
+    mUa.classList.add('is-hidden');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  function showProfile() {
+    if(!uaMain || !mUa) return;
+    var btn = document.querySelector('[data-ua-tab="profile"]');
+    if(btn) btn.click();
+    uaMain.classList.remove('is-showing');
+    mUa.classList.remove('is-hidden');
+  }
+
   document.querySelectorAll('.m-action-card').forEach(function(card){
     card.addEventListener('click', function(e){
       e.preventDefault();
       var href = card.getAttribute('href') || '';
       var hash = href.split('#')[1] || '';
       var tab = tabMap[hash];
-      if(!tab) return;
-      var btn = document.querySelector('[data-ua-tab="'+tab+'"]');
-      if(btn) btn.click();
-      window.scrollTo({top: 0, behavior: 'smooth'});
+      if(tab) showPanel(tab);
     });
   });
+
+  // Handle hash on page load
+  var hash = window.location.hash.replace('#','');
+  if(hash && tabMap[hash]) {
+    showPanel(hash);
+  }
+
+  // Watch for profile tab to return to mobile view
+  var profileBtn = document.querySelector('[data-ua-tab="profile"]');
+  if(profileBtn) {
+    profileBtn.addEventListener('click', showProfile);
+  }
 })();
 </script>
 </body>
