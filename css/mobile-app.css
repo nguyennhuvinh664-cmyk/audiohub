@@ -28,6 +28,20 @@
   --m-safe: env(safe-area-inset-bottom, 0px);
 }
 
+/* ═══ HIDE MOBILE ELEMENTS ON DESKTOP (always) ═══ */
+/* These elements should NEVER render on desktop. */
+/* They are only shown inside @media (max-width: 768px). */
+.m-header,
+.m-bottomnav,
+.m-drawer {
+  display: none !important;
+}
+.m-drawer-overlay {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 @media (max-width: 768px) {
 
 /* ═══════════════════════════════════════════════════════════════
@@ -112,6 +126,7 @@ a {
    MOBILE HEADER — Sticky, blur, 60px
    ═══════════════════════════════════════════════════════════════ */
 .m-header {
+  display: flex !important;
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -350,6 +365,7 @@ a {
    BOTTOM NAVIGATION — 5 items, fixed, safe area
    ═══════════════════════════════════════════════════════════════ */
 .m-bottomnav {
+  display: flex !important;
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
