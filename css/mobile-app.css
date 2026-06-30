@@ -4,9 +4,7 @@
    Desktop is 100% untouched
    ══════════════════════════════════════════════════════════════ */
 
-@media (max-width: 768px) {
-
-/* ─── DESIGN TOKENS ─── */
+/* ─── DESIGN TOKENS (always available) ─── */
 :root {
   --m-bg: #090B12;
   --m-bg2: #0D1117;
@@ -29,6 +27,8 @@
   --m-bottom-h: 64px;
   --m-safe: env(safe-area-inset-bottom, 0px);
 }
+
+@media (max-width: 768px) {
 
 /* ─── BASE RESET (mobile only) ─── */
 body {
