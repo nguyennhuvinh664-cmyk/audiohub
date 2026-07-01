@@ -54,23 +54,7 @@
 
   // Stats in header
   var statsEl = document.querySelector('[data-channel-stats]');
-  if (statsEl) {
-    statsEl.innerHTML =
-      '<div class="ch-stat"><strong>' + fmt(totalViews) + '</strong><span>Lượt nghe</span></div>' +
-      '<div class="ch-stat"><strong>' + stories.length + '</strong><span>Audio</span></div>' +
-      '<div class="ch-stat"><strong>' + authorPlaylists.length + '</strong><span>Playlist</span></div>' +
-      '<div class="ch-stat"><strong>0</strong><span>Follower</span></div>';
-  }
-
-  // Stats cards (home tab)
-  var sl = document.querySelector('[data-stat-listens]');
-  var sa = document.querySelector('[data-stat-audios]');
-  var sp = document.querySelector('[data-stat-playlists]');
-  var sf = document.querySelector('[data-stat-followers]');
-  if (sl) sl.textContent = fmt(totalViews);
-  if (sa) sa.textContent = stories.length;
-  if (sp) sp.textContent = authorPlaylists.length;
-  if (sf) sf.textContent = '0';
+  if (statsEl) statsEl.innerHTML = '';
 
   // ── Banner cover ──
   var banner = document.querySelector('[data-channel-banner]');

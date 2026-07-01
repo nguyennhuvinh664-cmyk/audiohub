@@ -9,14 +9,44 @@
     overflow-x: hidden;
   }
 
+  .detail-layout,
+  .detail-layout > *,
+  .detail-content,
+  .detail-sidebar,
+  .story-overview,
+  .sd-player,
+  .detail-copy,
+  .sd-progress-wrap,
+  .sd-row--controls,
+  .sd-ubar,
+  .related-grid {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .detail-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    gap: 16px !important;
+  }
+
+  .detail-content,
+  .detail-sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
   .site-header,
   .site-footer,
   .breadcrumb,
   .chapter-reading,
   .audio-video-embed,
   .bnav,
-  .detail-sidebar,
-  .sd-nextup {
+  .detail-sidebar {
     display: none !important;
   }
 
@@ -47,6 +77,53 @@
     flex-direction: column;
     gap: 16px;
     padding: 0 14px;
+  }
+
+  .sd-nextup {
+    display: block !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sd-nextup__label {
+    color: #8ec5ff;
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+  }
+
+  .sd-nextup__card {
+    padding: 12px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: none;
+    gap: 12px;
+  }
+
+  .sd-nextup__thumb {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+  }
+
+  .sd-nextup__eyebrow {
+    color: #f59e0b;
+  }
+
+  .sd-nextup__title {
+    font-size: 0.95rem;
+  }
+
+  .sd-nextup__meta {
+    color: #94a3b8;
+    font-size: 0.76rem;
+  }
+
+  .sd-nextup__play {
+    width: 42px;
+    height: 42px;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
   }
 
   .story-overview,
@@ -173,6 +250,7 @@
     align-items: center;
     gap: 14px;
     text-align: center;
+    position: relative;
   }
 
   .sd-cover {
@@ -196,6 +274,19 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    padding-top: 6px;
+  }
+
+  .sd-ubar__gear {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+    z-index: 2;
   }
 
   .sd-info__chapter {
@@ -216,11 +307,13 @@
   .sd-progress-wrap {
     width: 100%;
     max-width: none;
+    margin-bottom: 10px;
+    height: auto;
   }
 
   .sd-progress {
     width: 100%;
-    height: 6px;
+    height: 5px;
     border-radius: 999px;
     overflow: hidden;
   }
@@ -229,7 +322,7 @@
     display: flex;
     justify-content: space-between;
     width: 100%;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: #94a3b8;
     margin-top: 6px;
   }
@@ -238,30 +331,30 @@
     display: flex;
     flex-direction: row;
     justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: nowrap;
+    gap: 8px;
     width: 100%;
     height: auto;
     margin: 0;
   }
 
   .sd-play {
-    width: 72px;
-    height: 72px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
     background: #f59e0b;
     color: #fff;
-    font-size: 26px;
-    box-shadow: 0 12px 28px rgba(245, 158, 11, 0.25);
+    font-size: 22px;
+    box-shadow: 0 10px 22px rgba(245, 158, 11, 0.22);
   }
 
   .sd-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: #2f3645;
     color: #f8fafc;
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .sd-ubar {
@@ -273,6 +366,49 @@
     max-width: none;
     height: auto;
     padding: 0;
+  }
+
+  .sd-settings {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    top: auto !important;
+    bottom: 84px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: min(70vh, 460px) !important;
+    overflow-y: auto !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+    transform: translateY(8px) !important;
+    box-sizing: border-box !important;
+  }
+
+  .sd-settings__section {
+    gap: 8px;
+  }
+
+  .sd-settings__pills {
+    gap: 8px;
+  }
+
+  .sd-settings__pill {
+    padding: 8px 12px;
+    font-size: 0.78rem;
+  }
+
+  .sd-settings__custom {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sd-settings__custom button {
+    width: 100%;
+    padding: 10px 12px;
+  }
+
+  .sd-settings__toggle {
+    padding: 10px 0;
   }
 
   .sd-badge,

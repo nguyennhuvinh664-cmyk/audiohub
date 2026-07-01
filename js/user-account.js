@@ -623,11 +623,29 @@
   }
 
   // Create playlist
-  var createPlBtn = $('[data-ua-playlist-create]');
-  var createPlInput = $('[data-ua-playlist-name]');
-  if (createPlBtn && createPlInput) {
-    createPlBtn.addEventListener('click', function() {
-      var name = createPlInput.value.trim();
+  var createPlToggles = document.querySelectorAll('[data-ua-playlist-toggle]');
+  var createPlForms = document.querySelectorAll('[data-ua-create-playlist]');
+  var createPlBtns = document.querySelectorAll('[data-ua-playlist-create]');
+  var createPlInputs = document.querySelectorAll('[data-ua-playlist-name]');
+
+  createPlToggles.forEach(function(toggle, idx) {
+    var form = createPlForms[idx];
+    var input = createPlInputs[idx];
+    if (!toggle || !form) return;
+    toggle.addEventListener('click', function() {
+      form.hidden = !form.hidden;
+      if (!form.hidden && input) {
+        setTimeout(function() { input.focus(); }, 50);
+      }
+    });
+  });
+
+  createPlBtns.forEach(function(btn, idx) {
+    var input = createPlInputs[idx];
+    var form = createPlForms[idx];
+    if (!btn || !input) return;
+    btn.addEventListener('click', function() {
+      var name = input.value.trim();
       if (!name) { showToast('Nhập tên playlist'); return; }
       var playlists = getPlaylists();
       playlists.push({
@@ -638,12 +656,13 @@
         createdAt: new Date().toISOString()
       });
       localStorage.setItem('audiohub-playlists-v1', JSON.stringify(playlists));
-      createPlInput.value = '';
+      input.value = '';
+      if (form) form.hidden = true;
       renderPlaylists();
       renderProfile();
       showToast('Đã tạo playlist "' + name + '"');
     });
-  }
+  });
 
   // Toast
   function showToast(msg) {

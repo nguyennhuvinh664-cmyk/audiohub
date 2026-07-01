@@ -6,6 +6,19 @@
 
 @media (max-width: 768px) {
 
+.m-header__right {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.m-header__notif {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
 /* ─── HERO SECTION ─── */
 .hero {
   padding: 20px 0 24px;

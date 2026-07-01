@@ -18,9 +18,16 @@
 
 body.channel-page { background: var(--ch-bg); color: var(--ch-text); }
 
+.channel-page .site-header {
+  position: relative;
+  z-index: 30;
+  margin-bottom: 0;
+}
+
 /* ═══ Banner ═══ */
 .ch-banner {
-  height: 280px;
+  height: 140px;
+  margin-top: -48px;
   background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #0f172a 100%);
   position: relative;
   overflow: hidden;
@@ -32,13 +39,13 @@ body.channel-page { background: var(--ch-bg); color: var(--ch-text); }
   pointer-events: none;
 }
 .ch-banner__fade {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 100px;
+  position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
   background: linear-gradient(transparent, var(--ch-bg));
   pointer-events: none;
 }
 
 /* ═══ Channel Info ═══ */
-.ch-info { position: relative; z-index: 2; margin-top: -70px; padding-bottom: 8px; }
+.ch-info { position: relative; z-index: 4; margin-top: -82px; padding-bottom: 0; }
 .ch-info__inner { display: flex; align-items: center; gap: 24px; }
 
 .ch-info__avatar {
@@ -361,7 +368,7 @@ body.channel-page { background: var(--ch-bg); color: var(--ch-text); }
 }
 
 @media (max-width: 600px) {
-  .ch-banner { height: 180px; }
+  .ch-banner { height: 140px; margin-top: -48px; }
   .ch-info__avatar { width: 80px; height: 80px; font-size: 30px; }
   .ch-info__name { font-size: 1.3rem; }
   .ch-info__stats { gap: 16px; }

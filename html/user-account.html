@@ -210,9 +210,12 @@
             <div class="ua-panel-header">
               <h2><i class="fa-solid fa-list"></i> Playlist</h2>
               <div class="ua-panel-actions">
-                <input type="text" class="ua-input" placeholder="Tên playlist mới..." data-ua-playlist-name />
-                <button type="button" class="btn btn--primary btn--sm" data-ua-playlist-create><i class="fa-solid fa-plus"></i> Tạo</button>
+                <button type="button" class="btn btn--primary btn--sm" data-ua-playlist-toggle><i class="fa-solid fa-plus"></i> Tạo mới</button>
               </div>
+            </div>
+            <div class="ua-create-playlist" data-ua-create-playlist hidden>
+              <input type="text" class="ua-input" placeholder="Tên playlist mới..." data-ua-playlist-name />
+              <button type="button" class="btn btn--primary btn--sm" data-ua-playlist-create><i class="fa-solid fa-plus"></i> Tạo</button>
             </div>
             <div class="ua-playlist-grid" data-ua-playlist-list>
               <div class="ua-empty"><i class="fa-solid fa-list"></i><p>Chưa có playlist nào</p></div>
@@ -352,8 +355,11 @@
       <!-- Playlist view (default) -->
       <div class="m-content-section is-active" data-m-panel="playlists">
         <h2 class="m-content-title"><i class="fa-solid fa-list"></i> Playlist</h2>
-        <button type="button" class="m-create-btn" data-ua-playlist-create><i class="fa-solid fa-plus"></i> Tạo playlist mới</button>
-        <input type="text" class="m-create-input" placeholder="Tên playlist mới..." data-ua-playlist-name hidden />
+        <button type="button" class="m-create-btn" data-ua-playlist-toggle><i class="fa-solid fa-plus"></i> Tạo playlist mới</button>
+        <div class="m-create-form" data-ua-create-playlist hidden>
+          <input type="text" class="m-create-input" placeholder="Tên playlist mới..." data-ua-playlist-name />
+          <button type="button" class="m-create-submit" data-ua-playlist-create><i class="fa-solid fa-plus"></i> Tạo</button>
+        </div>
         <div class="m-playlist-list" data-ua-playlist-list>
           <div class="m-empty"><i class="fa-solid fa-list"></i><p>Chưa có playlist nào</p></div>
         </div>

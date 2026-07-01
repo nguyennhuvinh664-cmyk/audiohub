@@ -116,12 +116,7 @@
             <span class="ch-badge ch-badge--role"><i class="fa-solid fa-headphones"></i> Tác giả Audio</span>
             <span class="ch-badge ch-badge--verified"><i class="fa-solid fa-circle-check"></i> Verified</span>
           </div>
-          <div class="ch-info__stats" data-channel-stats>
-            <div class="ch-stat"><strong>0</strong><span>Lượt nghe</span></div>
-            <div class="ch-stat"><strong>0</strong><span>Audio</span></div>
-            <div class="ch-stat"><strong>0</strong><span>Playlist</span></div>
-            <div class="ch-stat"><strong>0</strong><span>Follower</span></div>
-          </div>
+          <div class="ch-info__stats" data-channel-stats></div>
         </div>
         <div class="ch-info__actions">
           <button type="button" class="btn btn--primary ch-sub-btn" data-subscribe-btn><i class="fa-solid fa-bell"></i> Đăng ký</button>
@@ -131,102 +126,8 @@
     </div>
   </section>
 
-  <!-- Tabs -->
-  <nav class="ch-tabs" data-channel-tabs>
-    <div class="container">
-      <div class="ch-tabs__inner">
-        <button type="button" class="ch-tab is-active" data-tab="home"><i class="fa-solid fa-house"></i> Trang chủ</button>
-        <button type="button" class="ch-tab" data-tab="audio"><i class="fa-solid fa-headphones"></i> Audio</button>
-        <button type="button" class="ch-tab" data-tab="playlist"><i class="fa-solid fa-list"></i> Playlist</button>
-        <button type="button" class="ch-tab" data-tab="community"><i class="fa-solid fa-users"></i> Cộng đồng</button>
-        <button type="button" class="ch-tab" data-tab="about"><i class="fa-solid fa-circle-info"></i> Giới thiệu</button>
-      </div>
-    </div>
-  </nav>
-
   <!-- Main -->
-  <div class="m-page">
-  <main class="ch-main">
-    <div class="container">
-
-      <!-- Home -->
-      <div class="ch-tab-content is-active" data-tab-content="home">
-        <section class="ch-featured" data-featured>
-          <div class="ch-featured__cover">
-            <div class="ch-featured__thumb" data-cover><span data-featured-initials>AH</span></div>
-            <div class="ch-featured__play"><i class="fa-solid fa-play"></i></div>
-          </div>
-          <div class="ch-featured__info">
-            <span class="ch-eyebrow"><i class="fa-solid fa-star"></i> Nổi bật</span>
-            <h2 class="ch-featured__title" data-featured-title>Chưa có audio</h2>
-            <p class="ch-featured__meta" data-featured-meta></p>
-            <p class="ch-featured__desc" data-featured-desc></p>
-            <div class="ch-featured__actions">
-              <a href="#" class="btn btn--primary"><i class="fa-solid fa-play"></i> Nghe ngay</a>
-              <button type="button" class="btn btn--outline"><i class="fa-regular fa-heart"></i> Yêu thích</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="ch-stats-row">
-          <div class="ch-stat-card"><i class="fa-solid fa-headphones"></i><strong data-stat-listens>0</strong><span>Lượt nghe</span></div>
-          <div class="ch-stat-card"><i class="fa-solid fa-music"></i><strong data-stat-audios>0</strong><span>Audio</span></div>
-          <div class="ch-stat-card"><i class="fa-solid fa-list"></i><strong data-stat-playlists>0</strong><span>Playlist</span></div>
-          <div class="ch-stat-card"><i class="fa-solid fa-users"></i><strong data-stat-followers>0</strong><span>Follower</span></div>
-        </section>
-
-        <section class="ch-section">
-          <div class="ch-section__head">
-            <h2>Audio phổ biến</h2>
-            <a href="#" class="ch-more" data-tab-link="audio">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
-          </div>
-          <div class="stories-grid" data-audios-grid></div>
-        </section>
-      </div>
-
-      <!-- Audio -->
-      <div class="ch-tab-content" data-tab-content="audio" hidden>
-        <div class="ch-sort-bar">
-          <button type="button" class="ch-sort-btn is-active" data-sort="newest">Mới nhất</button>
-          <button type="button" class="ch-sort-btn" data-sort="popular">Phổ biến</button>
-          <button type="button" class="ch-sort-btn" data-sort="oldest">Cũ nhất</button>
-        </div>
-        <div class="stories-grid" data-audios-list></div>
-      </div>
-
-      <!-- Playlist -->
-      <div class="ch-tab-content" data-tab-content="playlist" hidden>
-        <div class="ch-empty"><i class="fa-solid fa-list"></i><p>Tác giả chưa tạo playlist nào</p></div>
-      </div>
-
-      <!-- Community -->
-      <div class="ch-tab-content" data-tab-content="community" hidden>
-        <div class="ch-empty"><i class="fa-solid fa-comments"></i><p>Chưa có bài viết cộng đồng</p></div>
-      </div>
-
-      <!-- About -->
-      <div class="ch-tab-content" data-tab-content="about" hidden>
-        <div class="ch-about">
-          <div class="ch-about__main">
-            <h3>Giới thiệu</h3>
-            <p data-about-desc>Chưa có mô tả.</p>
-          </div>
-          <div class="ch-about__side">
-            <div class="ch-about__stat"><i class="fa-solid fa-calendar"></i><div><strong>Tham gia</strong><span data-about-joined>--</span></div></div>
-            <div class="ch-about__stat"><i class="fa-solid fa-headphones"></i><div><strong>Tổng lượt nghe</strong><span data-about-views>0</span></div></div>
-            <div class="ch-about__stat"><i class="fa-solid fa-music"></i><div><strong>Audio</strong><span data-about-audios>0</span></div></div>
-            <div class="ch-about__stat"><i class="fa-solid fa-list"></i><div><strong>Playlist</strong><span data-about-playlists>0</span></div></div>
-            <div class="ch-about__socials">
-              <a href="#" class="ch-social-btn" data-social-facebook><i class="fa-brands fa-facebook-f"></i> Facebook</a>
-              <a href="#" class="ch-social-btn" data-social-youtube><i class="fa-brands fa-youtube"></i> YouTube</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </main>
-  </div> <!-- /m-page -->
+  <div class="m-page"></div>
 
   <footer class="site-footer">
     <div class="container footer__inner">

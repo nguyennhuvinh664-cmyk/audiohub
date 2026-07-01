@@ -470,19 +470,24 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px;
-  background: var(--sd-surface);
-  border: 1px solid var(--sd-border);
-  border-radius: var(--sd-r-sm);
-  transition: border-color .2s;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
 
-.sd-nextup__card:hover { border-color: rgba(255,255,255,.1); }
+.sd-nextup__card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245,158,11,0.28);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.24);
+}
 
 .sd-nextup__thumb {
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #1a1040, #2d1b69);
   display: flex;
   align-items: center;
@@ -491,11 +496,22 @@
   font-weight: 800;
   color: rgba(255,255,255,.35);
   flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
 }
 
 .sd-nextup__info { flex: 1; min-width: 0; }
-.sd-nextup__title { display: block; font-size: .88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sd-nextup__meta { display: block; font-size: .72rem; color: var(--sd-text-3); margin-top: 2px; }
+.sd-nextup__eyebrow {
+  display: block;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--sd-accent);
+  margin-bottom: 4px;
+}
+.sd-nextup__title { display: block; font-size: .9rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.sd-nextup__meta { display: block; font-size: .74rem; color: var(--sd-text-3); line-height: 1.4; }
 
 .sd-nextup__play {
   width: 40px;
@@ -651,6 +667,12 @@
 
 .sd-settings__toggle input:checked + .sd-settings__switch { background: var(--sd-primary); }
 .sd-settings__toggle input:checked + .sd-settings__switch::after { transform: translateX(18px); }
+
+@media (min-width: 769px) {
+  .mobile-story-info {
+    display: none !important;
+  }
+}
 
 /* ═══ READING TOOLBAR ═══ */
 .reading-toolbar { padding: 14px 16px; border-radius: var(--sd-r-sm); border: 1px solid var(--sd-border); background: var(--sd-surface); margin-bottom: 24px; }
