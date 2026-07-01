@@ -521,6 +521,24 @@
     copy.innerHTML = buildStoryDescriptionHtml(fallbackStory);
   }
 
+  function setupMobileDescriptionToggle(copy) {
+    if (!copy || copy.querySelector('.detail-copy__toggle')) return;
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'detail-copy__toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.textContent = 'Xem thêm';
+    toggle.addEventListener('click', function () {
+      var expanded = copy.classList.toggle('is-expanded');
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      toggle.textContent = expanded ? 'Thu gọn' : 'Xem thêm';
+    });
+
+    copy.appendChild(toggle);
+  }
+
   function initStoryDetailFromStore(storyId) {
     var storyNode = document.querySelector('[data-detail-story]');
     if (!storyNode) return null;
@@ -633,6 +651,7 @@
     var copy = storyNode.querySelector('.detail-copy');
     if (copy && story.description) {
       copy.innerHTML = buildStoryDescriptionHtml(story);
+      setupMobileDescriptionToggle(copy);
     }
 
     var chapterCopy = document.querySelector('.chapter-copy');
