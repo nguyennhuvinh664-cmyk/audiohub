@@ -1,6 +1,12 @@
 (function () {
   var STORAGE_KEY = 'audiohub-demo-auth';
   var AVATAR_STORAGE_KEY = 'audiohub-account-avatar-v1';
+
+  /** SPA-aware navigation helper */
+  function spaNavigate(path) {
+    if (window.AudioHubRouter) { window.AudioHubRouter.navigate(path); } else { window.location.href = path; }
+  }
+
   var defaultProfile = {
     isLoggedIn: true,
     name: 'Anh Ngọc',
@@ -129,7 +135,7 @@
             window.AudioHubApi.setToken(result.token);
           }
           setAuthProfileFromUser(result && result.user ? result.user : null);
-          window.location.href = 'account.html';
+          if (window.AudioHubRouter) { window.AudioHubRouter.navigate('/html/account.html'); } else { window.location.href = 'account.html'; }
         }).catch(function () {
           loginDemo({
             name: email.split('@')[0] || defaultProfile.name,
@@ -137,7 +143,7 @@
             initials: deriveInitials(email.split('@')[0] || defaultProfile.name),
             tier: defaultProfile.tier
           });
-          window.location.href = 'account.html';
+          spaNavigate('/html/account.html');
         }).then(function () {
           loginButton.textContent = prevText;
         });
@@ -179,7 +185,7 @@
             window.AudioHubApi.setToken(result.token);
           }
           setAuthProfileFromUser(result && result.user ? result.user : { displayName: displayName, email: email });
-          window.location.href = 'account.html';
+          spaNavigate('/html/account.html');
         }).catch(function () {
           loginDemo({
             name: displayName,
@@ -187,7 +193,7 @@
             initials: deriveInitials(displayName),
             tier: defaultProfile.tier
           });
-          window.location.href = 'account.html';
+          spaNavigate('/html/account.html');
         }).then(function () {
           registerButton.textContent = prevText;
         });
@@ -222,12 +228,12 @@
 
   function logoutAndRedirect() {
     clearAuth();
-    window.location.href = 'index.html';
+    spaNavigate('/index.html');
   }
 
   function switchAccountRedirect() {
     clearAuth();
-    window.location.href = 'login.html';
+    spaNavigate('/html/login.html');
   }
 
   function loginDemo(overrides) {

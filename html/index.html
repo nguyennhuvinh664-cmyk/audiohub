@@ -89,6 +89,8 @@
   <a href="hall-of-fame.html" class="m-bottomnav__item"><i class="fa-solid fa-trophy"></i><span>Vinh danh</span></a>
   <a href="account.html" class="m-bottomnav__item"><i class="fa-solid fa-user"></i><span>Tài khoản</span></a>
 </nav>
+<div id="page-content">
+
 
 <header class="header">
   <div class="container header__in">
@@ -368,6 +370,8 @@
 </footer>
 </div> <!-- /m-page -->
 
+
+</div>
 <nav class="bnav" aria-label="Điều hướng di động">
   <a href="index.html" class="bnav__item active"><i class="fa-solid fa-house"></i><span>Trang Chủ</span></a>
   <a href="categories.html" class="bnav__item"><i class="fa-solid fa-layer-group"></i><span>Thể Loại</span></a>
@@ -406,13 +410,14 @@
   document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
 })();
 </script>
-<script src="../js/story-filters.js"></script>
+<script src="../js/story-filters.js" data-page-script></script>
 <script src="../js/api-client.js"></script>
 <script src="../js/auth-state.js"></script>
 <script src="../js/stories-store.js"></script>
 <script src="../js/stories-cover-store.js"></script>
-<script src="../js/stories-home.js?v=20260531-1"></script>
+<script src="../js/stories-home.js?v=20260531-1" data-page-script></script>
   <script src="../js/dev-mode-config.js"></script>
   <script src="../js/dev-mode.js"></script>
+  <script src="../js/spa-router.js"></script>
 </body>
 </html>

@@ -78,6 +78,8 @@
   <a href="hall-of-fame.html" class="m-bottomnav__item"><i class="fa-solid fa-trophy"></i><span>Vinh danh</span></a>
   <a href="account.html" class="m-bottomnav__item"><i class="fa-solid fa-user"></i><span>Tài khoản</span></a>
 </nav>
+<div id="page-content">
+
   <header class="site-header">
     <div class="container header__inner">
       <button class="hamburger" data-nav-toggle aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
@@ -395,13 +397,15 @@
     </div>
   </div>
 
+
+</div>
   <script src="../js/auth-state.js"></script>
-  <script src="../js/library-state.js"></script>
+  <script src="../js/library-state.js" data-page-script></script>
   <script src="../js/api-client.js"></script>
   <script src="../js/stories-store.js"></script>
-  <script src="../js/stories-cover-store.js"></script>
-  <script src="../js/stories-audio-store.js"></script>
-  <script src="../js/story-detail-ui.js"></script>
+  <script src="../js/stories-cover-store.js" data-page-script></script>
+  <script src="../js/stories-audio-store.js" data-page-script></script>
+  <script src="../js/story-detail-ui.js" data-page-script></script>
 <!-- Mobile nav -->
 <div class="nav-overlay" data-nav-overlay></div>
 <nav class="nav-drawer" data-nav-drawer>
@@ -447,5 +451,6 @@
 </script>
   <script src="../js/dev-mode-config.js"></script>
   <script src="../js/dev-mode.js"></script>
+  <script src="../js/spa-router.js"></script>
 </body>
 </html>

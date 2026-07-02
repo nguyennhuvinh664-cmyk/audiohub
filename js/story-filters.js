@@ -476,7 +476,7 @@
       if (statusValue) params.set('status', statusValue);
 
       const url = 'new-posts.html' + (params.toString() ? '?' + params.toString() : '');
-      window.location.href = url;
+      if (window.AudioHubRouter) { window.AudioHubRouter.navigate('/html/' + url); } else { window.location.href = url; }
     });
   }
 

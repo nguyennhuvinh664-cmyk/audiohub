@@ -22,3 +22,5 @@ backend/tmp-check.sql
 # logs
 *.log
 npm-debug.log*
+build-spa.js
+fix-spa-*.js

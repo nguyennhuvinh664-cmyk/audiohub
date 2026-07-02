@@ -2,6 +2,11 @@
   var root = document.querySelector('.edit-profile-page');
   if (!root) return;
 
+  /** SPA-aware navigation helper */
+  function spaNavigate(path) {
+    if (window.AudioHubRouter) { window.AudioHubRouter.navigate(path); } else { window.location.href = path; }
+  }
+
   var STORAGE_KEY = 'audiohub-demo-auth';
   var form = document.querySelector('[data-edit-profile-form]');
   var nameInput = document.querySelector('[data-edit-name]');
@@ -274,7 +279,7 @@
         }
         showStatus('Đã lưu thay đổi hồ sơ.', 'success');
         window.setTimeout(function () {
-          window.location.href = 'account.html';
+          spaNavigate('/html/account.html');
         }, 600);
       })
       .catch(function (error) {
@@ -282,7 +287,7 @@
           clearAuthToken();
           showStatus('Đã lưu thay đổi hồ sơ.', 'success');
           window.setTimeout(function () {
-            window.location.href = 'account.html';
+            spaNavigate('/html/account.html');
           }, 600);
           return;
         }

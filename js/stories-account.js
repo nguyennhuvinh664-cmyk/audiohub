@@ -1405,7 +1405,7 @@
           playlists.forEach(function (p) { if (p.id === plId) target = p; });
           if (target && (target.entries || []).length) {
             var first = target.entries[0];
-            if (first && first.href) window.location.href = first.href;
+            if (first && first.href) { if (window.AudioHubRouter) { window.AudioHubRouter.navigate(first.href); } else { window.location.href = first.href; } }
           }
         }
         return;
