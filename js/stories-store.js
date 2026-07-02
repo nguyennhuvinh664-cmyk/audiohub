@@ -336,6 +336,8 @@
       chapterCount: chapters.length || Number(story && story.chapterCount) || 0,
       visibility: normalize(story && story.visibility, 'Riêng tư'),
       audioStatus: normalize(story && story.audioStatus, story && story.audioKey ? 'Sẵn sàng' : 'Chưa có'),
+      status: normalize(story && story.status, ''),
+      isCompleted: normalizeCompleted(story),
       coverKey: story && story.coverKey ? String(story.coverKey) : null,
       audioKey: story && story.audioKey ? String(story.audioKey) : null,
       youtubeUrl: story && story.youtubeUrl ? normalizeYoutubeUrl(story.youtubeUrl) : null,

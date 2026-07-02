@@ -300,6 +300,81 @@ router.get('/:id', async (req: AuthRequest, res) => {
   return ok(res, await toStoryResponse(story));
 });
 
+router.put('/:id', async (req: AuthRequest, res) => {
+  const parsed = patchSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return fail(res, 'Invalid payload', 400);
+  }
+
+  const existing = await prisma.story.findFirst({
+    where: { id: req.params.id, userId: req.auth!.userId, deletedAt: null }
+  });
+  if (!existing) {
+    return fail(res, 'Story not found', 404);
+  }
+
+  const body = parsed.data;
+
+  const nextYoutubeUrl = body.youtubeUrl === undefined
+    ? existing.youtubeUrl
+    : (body.youtubeUrl === null ? null : String(body.youtubeUrl).trim());
+  const nextYoutubeId = body.youtubeId === undefined
+    ? (extractYoutubeId(nextYoutubeUrl || '') || existing.youtubeId)
+    : (body.youtubeId === null ? null : (extractYoutubeId(body.youtubeId) || extractYoutubeId(nextYoutubeUrl || '') || null));
+
+  const updated = await prisma.story.update({
+    where: { id: existing.id },
+    data: {
+      title: body.title ?? existing.title,
+      author: body.author ?? existing.author,
+      genre: body.genre ?? existing.genre,
+      description: body.description ?? existing.description,
+      readingText: body.readingText ?? existing.readingText,
+      chapterTitle: body.chapterTitle ?? existing.chapterTitle,
+      chapters: body.chapters ?? (existing as any).chapters ?? '[]',
+      chapterCount: body.chapterCount ?? (existing as any).chapterCount ?? 0,
+      visibility: body.visibility === undefined ? existing.visibility : parseVisibility(body.visibility, existing.visibility),
+      audioStatus: body.audioStatus === undefined ? existing.audioStatus : parseAudioStatus(body.audioStatus, existing.audioStatus),
+      status: body.status === undefined ? existing.status : parseCompletedStatus(body.status, existing.status || ''),
+      isCompleted: body.isCompleted === undefined
+        ? parseIsCompleted(undefined, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted)
+        : parseIsCompleted(body.isCompleted, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted),
+      coverKey: body.coverKey === undefined ? existing.coverKey : body.coverKey,
+      audioKey: body.audioKey === undefined ? existing.audioKey : body.audioKey,
+      youtubeUrl: nextYoutubeUrl,
+      youtubeId: nextYoutubeId
+    }
+  }).catch(async (err: any) => {
+    if (String(err?.message || '').includes('chapters') || String(err?.message || '').includes('chapter_count')) {
+      console.warn('[StoryUpdate] chapters column missing, retrying without it');
+      return prisma.story.update({
+        where: { id: existing.id },
+        data: {
+          title: body.title ?? existing.title,
+          author: body.author ?? existing.author,
+          genre: body.genre ?? existing.genre,
+          description: body.description ?? existing.description,
+          readingText: body.readingText ?? existing.readingText,
+          chapterTitle: body.chapterTitle ?? existing.chapterTitle,
+          visibility: body.visibility === undefined ? existing.visibility : parseVisibility(body.visibility, existing.visibility),
+          audioStatus: body.audioStatus === undefined ? existing.audioStatus : parseAudioStatus(body.audioStatus, existing.audioStatus),
+          status: body.status === undefined ? existing.status : parseCompletedStatus(body.status, existing.status || ''),
+          isCompleted: body.isCompleted === undefined
+            ? parseIsCompleted(undefined, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted)
+            : parseIsCompleted(body.isCompleted, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted),
+          coverKey: body.coverKey === undefined ? existing.coverKey : body.coverKey,
+          audioKey: body.audioKey === undefined ? existing.audioKey : body.audioKey,
+          youtubeUrl: nextYoutubeUrl,
+          youtubeId: nextYoutubeId
+        }
+      });
+    }
+    throw err;
+  });
+
+  return ok(res, await toStoryResponse(updated));
+});
+
 router.patch('/:id', async (req: AuthRequest, res) => {
   const parsed = patchSchema.safeParse(req.body);
   if (!parsed.success) {

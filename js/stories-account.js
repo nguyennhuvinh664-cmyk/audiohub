@@ -283,7 +283,7 @@
 
   function renderStoriesSection() {
     if (isRealLogin()) {
-      // Đăng nhập thật: gọi thẳng API, không dùng localStorage
+      // Đăng nhập thật: gọi API, fallback về AudioHubStories (localStorage) nếu API lỗi
       if (storiesPublished) storiesPublished.innerHTML = '<p class="library-empty">Đang tải...</p>';
       if (storiesDrafts) storiesDrafts.innerHTML = '<p class="library-empty">Đang tải...</p>';
 
@@ -293,9 +293,14 @@
           renderStoriesFromList(stories);
         })
         .catch(function () {
-          // Nếu API lỗi, hiện thông báo thay vì đọc localStorage (tránh hiện demo data)
-          if (storiesPublished) storiesPublished.innerHTML = '<p class="library-empty">Không thể tải truyện. Vui lòng thử lại.</p>';
-          if (storiesDrafts) storiesDrafts.innerHTML = '<p class="library-empty">Không thể tải bản nháp. Vui lòng thử lại.</p>';
+          // Fallback: đọc từ AudioHubStories (localStorage) khi API không khả dụng
+          var fallbackStories = getStories();
+          if (fallbackStories.length) {
+            renderStoriesFromList(fallbackStories);
+          } else {
+            if (storiesPublished) storiesPublished.innerHTML = '<p class="library-empty">Không thể tải truyện. Vui lòng thử lại.</p>';
+            if (storiesDrafts) storiesDrafts.innerHTML = '<p class="library-empty">Không thể tải bản nháp. Vui lòng thử lại.</p>';
+          }
         });
     } else {
       // Demo mode: đọc từ localStorage, bỏ s_ stories khỏi published
