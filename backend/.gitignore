@@ -3,4 +3,3 @@ dist
 .env
 storage/*
 !storage/.gitkeep
-prisma/migrations
