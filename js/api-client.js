@@ -7,7 +7,7 @@
     if (configured) {
       return configured;
     }
-    return 'https://audiohub-276v.onrender.com/api/v1';
+    return 'https://create-new-project-production-9452.up.railway.app/api/v1';
   }
 
   function setBaseUrl(baseUrl) {
