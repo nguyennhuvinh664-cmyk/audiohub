@@ -34,11 +34,11 @@
    * Shared CSS is loaded once and never removed.
    */
   var SHARED_CSS = [
-    'mobile-shared', 'auth-state', 'mobile-app', 'dev-mode'
+    'style-index', 'mobile-shared', 'header-enhancements', 'auth-state', 'mobile-app', 'dev-mode'
   ];
 
   var PAGE_CSS = {
-    'index.html':           ['style-index', 'home-mobile'],
+    'index.html':           ['home-mobile'],
     'account.html':         ['account', 'account-mobile', 'playlist-clean', 'content-search', 'library-state'],
     'story-detail.html':    ['story-detail-ui', 'story-detail-mobile'],
     'categories.html':      ['style-categories', 'categories-mobile'],
