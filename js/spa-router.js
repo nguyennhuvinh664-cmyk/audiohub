@@ -313,7 +313,7 @@
           // All CSS files are at root /css/ regardless of page location
           var pageCSS = PAGE_CSS[pageName] || [];
           var cssPromises = pageCSS.map(function (name) {
-            return loadCSS('css/' + name + '.css');
+            return loadCSS('/css/' + name + '.css');
           });
 
           // 7. Load new page JS after CSS
@@ -321,7 +321,7 @@
             var pageJS = PAGE_JS[pageName] || [];
             var jsPromises = pageJS.map(function (name) {
               // All JS files are at root /js/ regardless of page location
-              return loadScript('js/' + name + '.js');
+              return loadScript('/js/' + name + '.js');
             });
             return Promise.all(jsPromises);
           }).then(function () {
