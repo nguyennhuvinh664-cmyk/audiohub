@@ -37,23 +37,17 @@ router.post('/stories/:id/cover', upload.single('cover'), async (req: AuthReques
     return fail(res, 'Story not found', 404);
   }
 
-  const key = makeKey('c');
-  const storagePath = await saveFile('covers', key, req.file);
+  // Store cover as base64 data URL in the database
+  const mimeType = req.file.mimetype || 'image/jpeg';
+  const base64 = req.file.buffer.toString('base64');
+  const coverData = `data:${mimeType};base64,${base64}`;
 
-  await prisma.mediaAsset.create({
-    data: {
-      key,
-      ownerUserId: req.auth!.userId,
-      kind: MediaKind.COVER,
-      mimeType: req.file.mimetype || 'application/octet-stream',
-      sizeBytes: req.file.size,
-      storagePath
-    }
+  await prisma.story.update({
+    where: { id: story.id },
+    data: { coverData }
   });
 
-  await prisma.story.update({ where: { id: story.id }, data: { coverKey: key } });
-
-  return ok(res, { coverKey: key }, 201);
+  return ok(res, { coverData }, 201);
 });
 
 router.post('/stories/:id/audio', upload.single('audio'), async (req: AuthRequest, res) => {
@@ -114,9 +108,9 @@ router.get('/media/audio/:key', async (req: AuthRequest, res) => {
 });
 
 // Public cover serving — no auth required
-const publicRouter = Router();
+const coverPublicRouter = Router();
 
-publicRouter.get('/media/covers/:key', async (req, res) => {
+coverPublicRouter.get('/media/covers/:key', async (req, res) => {
   const key = String(req.params.key || '');
   if (!key) {
     return fail(res, 'Missing cover key', 400);
@@ -140,5 +134,32 @@ publicRouter.get('/media/covers/:key', async (req, res) => {
   }
 });
 
-export { publicRouter as coverPublicRouter };
+// Public audio serving — no auth required
+const audioPublicRouter = Router();
+
+audioPublicRouter.get('/media/audio/:key', async (req, res) => {
+  const key = String(req.params.key || '');
+  if (!key) {
+    return fail(res, 'Missing audio key', 400);
+  }
+
+  const asset = await prisma.mediaAsset.findFirst({
+    where: { key, kind: MediaKind.AUDIO }
+  });
+
+  if (!asset) {
+    return fail(res, 'Audio not found', 404);
+  }
+
+  try {
+    const buffer = await fs.readFile(asset.storagePath);
+    res.setHeader('Content-Type', asset.mimeType || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.status(200).send(buffer);
+  } catch {
+    return fail(res, 'Audio file is missing on storage', 404);
+  }
+});
+
+export { coverPublicRouter, audioPublicRouter };
 export default router;

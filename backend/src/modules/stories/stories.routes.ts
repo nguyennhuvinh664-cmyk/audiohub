@@ -103,11 +103,12 @@ const createSchema = z.object({
   chapterTitle: z.string().optional().default('Chương 1'),
   chapters: z.string().optional().default('[]'),
   chapterCount: z.number().int().optional().default(0),
-  visibility: z.string().optional().default('Riêng tư'),
+  visibility: z.string().optional().default('Công khai'),
   audioStatus: z.string().optional().default('Sẵn sàng'),
   status: z.string().optional().default(''),
   isCompleted: z.boolean().optional().default(false),
   coverKey: z.string().nullable().optional(),
+  coverData: z.string().nullable().optional(),
   audioKey: z.string().nullable().optional(),
   youtubeUrl: z.string().nullable().optional(),
   youtubeId: z.string().nullable().optional()
@@ -145,6 +146,7 @@ async function toStoryResponse(story: any) {
     status: story.status || '',
     isCompleted: !!story.isCompleted,
     coverKey: story.coverKey,
+    coverData: (story as any).coverData || null,
     audioKey: story.audioKey,
     youtubeUrl: story.youtubeUrl || '',
     youtubeId: story.youtubeId || '',
@@ -177,6 +179,7 @@ const patchSchema = z.object({
   status: z.string().optional(),
   isCompleted: z.boolean().optional(),
   coverKey: z.string().nullable().optional(),
+  coverData: z.string().nullable().optional(),
   audioKey: z.string().nullable().optional(),
   youtubeUrl: z.string().nullable().optional(),
   youtubeId: z.string().nullable().optional()
@@ -243,6 +246,7 @@ router.post('/', async (req: AuthRequest, res) => {
       status: parseCompletedStatus(body.status, ''),
       isCompleted: parseIsCompleted(body.isCompleted, String(body.status || ''), false),
       coverKey: body.coverKey === undefined ? null : body.coverKey,
+      coverData: body.coverData === undefined ? null : body.coverData,
       audioKey: body.audioKey === undefined ? null : body.audioKey,
       youtubeUrl,
       youtubeId
@@ -340,6 +344,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
         ? parseIsCompleted(undefined, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted)
         : parseIsCompleted(body.isCompleted, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted),
       coverKey: body.coverKey === undefined ? existing.coverKey : body.coverKey,
+      coverData: body.coverData === undefined ? (existing as any).coverData : body.coverData,
       audioKey: body.audioKey === undefined ? existing.audioKey : body.audioKey,
       youtubeUrl: nextYoutubeUrl,
       youtubeId: nextYoutubeId
@@ -415,6 +420,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
         ? parseIsCompleted(undefined, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted)
         : parseIsCompleted(body.isCompleted, body.status === undefined ? String(existing.status || '') : String(body.status || ''), !!existing.isCompleted),
       coverKey: body.coverKey === undefined ? existing.coverKey : body.coverKey,
+      coverData: body.coverData === undefined ? (existing as any).coverData : body.coverData,
       audioKey: body.audioKey === undefined ? existing.audioKey : body.audioKey,
       youtubeUrl: nextYoutubeUrl,
       youtubeId: nextYoutubeId

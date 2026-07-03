@@ -48,7 +48,31 @@
     var color = genreColor(story.genre);
     thumb.style.background = 'linear-gradient(135deg, ' + color + ' 0%, ' + color + 'cc 100%)';
 
-    // 2) Try coverKey → IndexedDB → API fallback
+    // 2) Try coverData (base64) — new method
+    if (story.coverData) {
+      var imgUrl = String(story.coverData);
+      if (imgUrl.indexOf('data:image') === 0 || imgUrl.indexOf('http') === 0) {
+        thumb.style.background = '';
+        thumb.style.backgroundImage = 'url("' + imgUrl + '")';
+        thumb.style.backgroundSize = 'cover';
+        thumb.style.backgroundPosition = 'center';
+      }
+      return;
+    }
+
+    // 3) Fallback: coverDataUrl (base64 or http URL)
+    if (story.coverDataUrl) {
+      var imgUrl = String(story.coverDataUrl);
+      if (imgUrl.indexOf('data:image') === 0 || imgUrl.indexOf('http') === 0) {
+        thumb.style.background = '';
+        thumb.style.backgroundImage = 'url("' + imgUrl + '")';
+        thumb.style.backgroundSize = 'cover';
+        thumb.style.backgroundPosition = 'center';
+      }
+      return;
+    }
+
+    // 4) Legacy: coverKey → IndexedDB → API
     if (story.coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
       window.AudioHubStoryCover.get(story.coverKey)
         .then(function (blob) {
@@ -62,18 +86,6 @@
           } catch (e) {}
         })
         .catch(function () {});
-      return;
-    }
-
-    // 3) Fallback: coverDataUrl (base64 or http URL)
-    if (story.coverDataUrl) {
-      var imgUrl = String(story.coverDataUrl);
-      if (imgUrl.indexOf('data:image') === 0 || imgUrl.indexOf('http') === 0) {
-        thumb.style.background = '';
-        thumb.style.backgroundImage = 'url("' + imgUrl + '")';
-        thumb.style.backgroundSize = 'cover';
-        thumb.style.backgroundPosition = 'center';
-      }
     }
   }
 

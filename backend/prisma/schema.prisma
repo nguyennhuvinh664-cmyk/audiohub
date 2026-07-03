@@ -43,6 +43,7 @@ model Story {
   status       String             @default("")
   isCompleted  Boolean            @default(false) @map("is_completed")
   coverKey     String?            @map("cover_key")
+  coverData    String?            @map("cover_data")
   audioKey     String?            @map("audio_key")
   youtubeUrl   String?            @map("youtube_url")
   youtubeId    String?            @map("youtube_id")

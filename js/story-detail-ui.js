@@ -683,15 +683,21 @@
   var coverUrlByNode = new WeakMap();
 
   function bindStoryCover(story) {
+    // Try coverData (base64) first — new method
+    var coverData = story && story.coverData ? String(story.coverData) : '';
+    if (coverData) {
+      applyCoverUrl(coverData);
+      return;
+    }
+
+    // Fallback to coverKey (IndexedDB/API) — legacy method
     var coverKey = story && story.coverKey ? String(story.coverKey) : '';
     if (!coverKey) return;
 
-    function applyCoverUrl(blob) {
-      if (!blob) return;
+    function applyCoverUrl(url) {
+      if (!url) return;
       try {
-        var url = URL.createObjectURL(blob);
-
-        // Hero cover (old format)
+        // Hero cover
         var heroCover = document.querySelector('[data-detail-cover]');
         if (heroCover) {
           var placeholder = heroCover.querySelector('.detail-hero__placeholder');
@@ -701,7 +707,7 @@
           heroCover.style.backgroundPosition = 'center';
         }
 
-        // Player cover (new format)
+        // Player cover
         var playerCover = document.querySelector('[data-cover]');
         if (playerCover) {
           playerCover.style.backgroundImage = 'url("' + url + '")';
@@ -709,7 +715,7 @@
           playerCover.style.backgroundPosition = 'center';
         }
 
-        // Audio panel cover (old format)
+        // Audio panel cover
         var audioCover = document.querySelector('.audio-cover');
         if (audioCover) {
           audioCover.style.backgroundImage = 'url("' + url + '")';
@@ -719,7 +725,7 @@
       } catch (error) {}
     }
 
-    // Try IndexedDB first, then API
+    // Legacy: try IndexedDB then API
     if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
       window.AudioHubStoryCover.get(coverKey)
         .then(function (blob) {

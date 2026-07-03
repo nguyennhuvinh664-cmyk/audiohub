@@ -617,6 +617,22 @@
     clearObjectUrl(coverObjectUrl);
     coverObjectUrl = URL.createObjectURL(file);
 
+    // Convert to base64 for database storage
+    var reader = new FileReader();
+    reader.onload = function () {
+      state.coverData = reader.result; // data:image/...;base64,...
+      state.coverReady = true;
+      setCoverProcessing(false);
+      previewCover.style.backgroundImage = 'url("' + coverObjectUrl + '")';
+      previewCover.classList.add('has-uploaded-image');
+      if (coverLabel) {
+        coverLabel.textContent = 'Ảnh bìa đã chọn';
+      }
+      render();
+    };
+    reader.readAsDataURL(file);
+
+    // Also try to store via API (for backward compatibility)
     var storePromise = window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function'
       ? window.AudioHubStoryCover.put(file)
       : Promise.reject(new Error('missing cover store'));
@@ -624,29 +640,8 @@
     storePromise
       .then(function (coverKey) {
         state.coverKey = coverKey;
-        if (coverLabel) {
-          coverLabel.textContent = 'Ảnh bìa đã chọn';
-        }
-        render();
       })
-      .catch(function () {
-        state.coverKey = '';
-        if (coverLabel) {
-          coverLabel.textContent = 'Ảnh bìa đã chọn (chưa lưu)';
-        }
-        render();
-      });
-
-    window.setTimeout(function () {
-      state.coverReady = true;
-      setCoverProcessing(false);
-      previewCover.style.backgroundImage = 'url("' + coverObjectUrl + '")';
-      previewCover.classList.add('has-uploaded-image');
-      if (coverLabel) {
-        coverLabel.textContent = state.coverKey ? 'Ảnh bìa đã chọn' : 'Ảnh bìa đã chọn (chưa lưu)';
-      }
-      render();
-    }, 900);
+      .catch(function () {});
   }
 
   function setAudioPreview(file) {
@@ -897,6 +892,7 @@
         youtubeId: youtubePayload.id,
         visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Riêng tư')),
         coverKey: state.coverKey || '',
+        coverData: state.coverData || '',
         audioKey: state.audioKey || '',
         readingText: state.readingText || '',
         hashtags: getCombinedHashtags()
@@ -984,8 +980,8 @@
       return;
     }
 
-    if (published && !state.coverKey) {
-      showBanner('Ảnh bìa chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
+    if (published && !state.coverData && !state.coverKey) {
+      showBanner('Ảnh bìa chưa lưu xong. Đợi vài giây rồi bấm lại.', false);
       return;
     }
 

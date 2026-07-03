@@ -79,6 +79,7 @@
         method: 'POST',
         body: form
       }).then(function (result) {
+        // Server now returns { coverData } (base64) instead of { coverKey }
         var serverKey = result && result.coverKey ? String(result.coverKey) : '';
         // Also store blob locally so getCover() can find it
         var localKey = serverKey || makeKey();

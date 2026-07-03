@@ -179,6 +179,7 @@
       visibility: normalize(story && story.visibility, 'Riêng tư'),
       audioStatus: normalize(story && story.audioStatus, story && story.audioKey ? 'Sẵn sàng' : 'Chưa có'),
       coverDataUrl: story && story.coverDataUrl ? String(story.coverDataUrl) : '',
+      coverData: story && story.coverData ? String(story.coverData) : '',
       coverKey: story && story.coverKey ? String(story.coverKey) : '',
       audioKey: story && story.audioKey ? String(story.audioKey) : '',
       youtubeUrl: youtubeUrl,
@@ -339,6 +340,7 @@
       status: normalize(story && story.status, ''),
       isCompleted: normalizeCompleted(story),
       coverKey: story && story.coverKey ? String(story.coverKey) : null,
+      coverData: story && story.coverData ? String(story.coverData) : null,
       audioKey: story && story.audioKey ? String(story.audioKey) : null,
       youtubeUrl: story && story.youtubeUrl ? normalizeYoutubeUrl(story.youtubeUrl) : null,
       youtubeId: story && story.youtubeId ? normalizeYoutubeId(story.youtubeId, story && story.youtubeUrl) : normalizeYoutubeId('', story && story.youtubeUrl)
