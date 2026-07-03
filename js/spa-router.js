@@ -40,7 +40,7 @@
   var PAGE_CSS = {
     'index.html':           ['home-mobile'],
     'account.html':         ['account', 'account-mobile', 'playlist-clean', 'content-search', 'library-state'],
-    'story-detail.html':    ['story-detail-ui', 'story-detail-mobile'],
+    'story-detail.html':    ['style-categories', 'story-detail-ui', 'story-detail-mobile'],
     'categories.html':      ['style-categories', 'categories-mobile'],
     'new-posts.html':       ['story-filters', 'content-search'],
     'popular.html':         ['story-filters'],
