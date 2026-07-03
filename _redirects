@@ -1,5 +1,3 @@
-/              /html/index.html  301
-/index.html    /html/index.html  301
 /about.html    /html/about.html  200
 /account.html  /html/account.html  200
 /affiliate.html  /html/affiliate.html  200
@@ -18,10 +16,11 @@
 /new-posts.html  /html/new-posts.html  200
 /popular.html  /html/popular.html  200
 /privacy.html  /html/privacy.html  200
-/register.html  /html/register.html  200
+/register.html /html/register.html  200
 /story-detail.html  /html/story-detail.html  200
 /terms.html    /html/terms.html  200
 /trending.html  /html/trending.html  200
 /upload-story  /html/upload-story.html  200
 /upload-story.html  /html/upload-story.html  200
 /user-account.html  /html/user-account.html  200
+/channel.html  /html/channel.html  200
