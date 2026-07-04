@@ -25,9 +25,7 @@ async function saveFile(kind: 'covers' | 'audio', key: string, file: Express.Mul
   return abs;
 }
 
-router.use(requireAuth);
-
-router.post('/stories/:id/cover', upload.single('cover'), async (req: AuthRequest, res) => {
+router.post('/stories/:id/cover', requireAuth, upload.single('cover'), async (req: AuthRequest, res) => {
   if (!req.file) {
     return fail(res, 'Missing cover file', 400);
   }
@@ -50,7 +48,7 @@ router.post('/stories/:id/cover', upload.single('cover'), async (req: AuthReques
   return ok(res, { coverData }, 201);
 });
 
-router.post('/stories/:id/audio', upload.single('audio'), async (req: AuthRequest, res) => {
+router.post('/stories/:id/audio', requireAuth, upload.single('audio'), async (req: AuthRequest, res) => {
   if (!req.file) {
     return fail(res, 'Missing audio file', 400);
   }
@@ -79,7 +77,7 @@ router.post('/stories/:id/audio', upload.single('audio'), async (req: AuthReques
   return ok(res, { audioKey: key }, 201);
 });
 
-router.get('/media/audio/:key', async (req: AuthRequest, res) => {
+router.get('/media/audio/:key', requireAuth, async (req: AuthRequest, res) => {
   const key = String(req.params.key || '');
   if (!key) {
     return fail(res, 'Missing audio key', 400);
