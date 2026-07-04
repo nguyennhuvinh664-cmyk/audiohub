@@ -730,11 +730,11 @@
       window.AudioHubStoryCover.get(coverKey)
         .then(function (blob) {
           if (blob) {
-            applyCoverUrl(blob);
+            applyCoverUrl(URL.createObjectURL(blob));
           } else if (window.AudioHubApi && typeof window.AudioHubApi.requestBlob === 'function') {
             // Fallback: fetch from API
             window.AudioHubApi.requestBlob('/media/covers/' + encodeURIComponent(coverKey))
-              .then(function (blob) { applyCoverUrl(blob); })
+              .then(function (blob) { if (blob) applyCoverUrl(URL.createObjectURL(blob)); })
               .catch(function () {});
           }
         })
