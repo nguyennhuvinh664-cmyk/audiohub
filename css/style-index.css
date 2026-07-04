@@ -669,9 +669,11 @@ body.no-scroll { overflow:hidden; }
   .pov       { display:none; }
 }
 
-/* ── Safe-area (notch / Dynamic Island) ── */
-@supports (padding:max(0px)) {
-  .header .container { padding-left:max(16px,env(safe-area-inset-left)); padding-right:max(16px,env(safe-area-inset-right)); }
+/* ── Safe-area (notch / Dynamic Island) — mobile only ── */
+@media (max-width: 768px) {
+  @supports (padding:max(0px)) {
+    .header .container { padding-left:max(16px,env(safe-area-inset-left)); padding-right:max(16px,env(safe-area-inset-right)); }
+  }
 }
 
 /* ── Reduced motion ── */
