@@ -89,9 +89,8 @@
   <a href="hall-of-fame.html" class="m-bottomnav__item"><i class="fa-solid fa-trophy"></i><span>Vinh danh</span></a>
   <a href="account.html" class="m-bottomnav__item"><i class="fa-solid fa-user"></i><span>Tài khoản</span></a>
 </nav>
-<div id="page-content">
 
-
+<!-- ═══ DESKTOP HEADER (persistent — outside page-content) ═══ -->
 <header class="header">
   <div class="container header__in">
     <a href="index.html" class="logo"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></a>
@@ -145,6 +144,7 @@
 </header>
 <div class="nav-ov" id="navOv"></div>
 
+<div id="page-content">
 <div class="m-page">
 <section class="hero">
   <div class="hero__glow" aria-hidden="true"></div>
@@ -327,6 +327,10 @@
   </div>
 </section>
 
+</div> <!-- /m-page -->
+</div> <!-- /page-content -->
+
+<!-- ═══ FOOTER (persistent — outside page-content) ═══ -->
 <footer class="footer">
   <div class="container">
     <div class="ft-grid">
@@ -368,10 +372,6 @@
     </div>
   </div>
 </footer>
-</div> <!-- /m-page -->
-
-
-</div>
 
 <script>
   const ham = document.getElementById('hamburger');
