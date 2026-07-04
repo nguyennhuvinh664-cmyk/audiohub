@@ -42,10 +42,10 @@
     'account.html':         ['account', 'account-mobile', 'playlist-clean', 'content-search', 'library-state'],
     'story-detail.html':    ['style-categories', 'library-state', 'story-detail-ui', 'story-detail-mobile'],
     'categories.html':      ['style-categories', 'categories-mobile'],
-    'new-posts.html':       ['story-filters', 'content-search'],
-    'popular.html':         ['story-filters'],
-    'trending.html':        ['story-filters'],
-    'completed.html':       ['story-filters'],
+    'new-posts.html':       ['style-categories', 'story-filters', 'content-search', 'library-state'],
+    'popular.html':         ['style-categories', 'story-filters', 'library-state'],
+    'trending.html':        ['style-categories', 'story-filters', 'library-state'],
+    'completed.html':       ['style-categories', 'story-filters', 'library-state'],
     'upload-story.html':    ['upload-story'],
     'edit-profile.html':    ['edit-profile'],
     'hall-of-fame.html':    ['hall-of-fame'],
@@ -61,7 +61,7 @@
     'login.html':           [],
     'register.html':        [],
     'change-password.html': ['account'],
-    'user-account.html':    ['user-account', 'user-account-mobile'],
+    'user-account.html':    ['user-account', 'mobile-account'],
     'drafts.html':          ['drafts']
   };
 
@@ -414,29 +414,83 @@
     var pageName = extractPageName(window.location.pathname);
     history.replaceState({ route: route, page: pageName }, '', window.location.href);
 
-    // Mark existing page-specific scripts so they get cleaned up on navigation
-    var initialJS = PAGE_JS[pageName] || [];
-    document.querySelectorAll('script[src]').forEach(function (s) {
-      var src = s.getAttribute('src') || '';
-      initialJS.forEach(function (name) {
-        if (src.indexOf(name) !== -1) {
-          s.setAttribute('data-page-script', '');
-        }
-      });
-    });
+    // If this is a subpage (not root index.html), load its content into the shell
+    if (isKnownRoute(route) && pageName !== 'index.html') {
+      var fetchUrl = getRouteUrl(route);
+      fetch(fetchUrl)
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to load page');
+          return res.text();
+        })
+        .then(function (html) {
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(html, 'text/html');
+          var newContent = doc.getElementById(SHELL_ID);
+          if (!newContent) return;
 
-    // Mark existing page-specific CSS so they get cleaned up on navigation
-    var initialCSS = PAGE_CSS[pageName] || [];
-    document.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
-      var href = link.getAttribute('href') || '';
-      initialCSS.forEach(function (name) {
-        if (href.indexOf(name + '.css') !== -1) {
-          link.setAttribute('data-page-css', '');
-        }
-      });
-    });
+          var container = document.getElementById(SHELL_ID);
+          if (container) {
+            container.innerHTML = newContent.innerHTML;
+          }
 
-    isInitialLoad = false;
+          // Update title
+          if (doc.title) document.title = doc.title;
+
+          // Update body class
+          if (doc.body) document.body.className = doc.body.className;
+
+          // Load page-specific CSS
+          var pageCSS = PAGE_CSS[pageName] || [];
+          var cssPromises = pageCSS.map(function (name) {
+            return loadCSS('/css/' + name + '.css');
+          });
+
+          // Load page-specific JS after CSS
+          return Promise.all(cssPromises).then(function () {
+            var pageJS = PAGE_JS[pageName] || [];
+            var jsPromises = pageJS.map(function (name) {
+              return loadScript('/js/' + name + '.js');
+            });
+            return Promise.all(jsPromises);
+          }).then(function () {
+            updateActiveLinks(route);
+            reinitSharedModules();
+            document.dispatchEvent(new CustomEvent('spa:navigated', {
+              detail: { route: route, page: pageName, path: window.location.href }
+            }));
+          });
+        })
+        .catch(function () {
+          // If fetch fails, the shell is already loaded (root content)
+        })
+        .then(function () {
+          isInitialLoad = false;
+          transitioning = false;
+        });
+    } else {
+      // Root page — just mark existing CSS/JS for cleanup on navigation
+      var initialJS = PAGE_JS[pageName] || [];
+      document.querySelectorAll('script[src]').forEach(function (s) {
+        var src = s.getAttribute('src') || '';
+        initialJS.forEach(function (name) {
+          if (src.indexOf(name) !== -1) {
+            s.setAttribute('data-page-script', '');
+          }
+        });
+      });
+
+      var initialCSS = PAGE_CSS[pageName] || [];
+      document.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
+        var href = link.getAttribute('href') || '';
+        initialCSS.forEach(function (name) {
+          if (href.indexOf(name + '.css') !== -1) {
+            link.setAttribute('data-page-css', '');
+          }
+        });
+      });
+
+      isInitialLoad = false;
+    }
   });
 
   /** Prevent duplicate navigation on same URL */
