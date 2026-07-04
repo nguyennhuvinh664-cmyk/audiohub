@@ -311,24 +311,22 @@
   </div>
 
 
+  <script>
+  /* Description expand/collapse */
+  (function(){
+    var dc = document.querySelector('.detail-copy');
+    if(!dc) return;
+    dc.addEventListener('click', function(e){
+      if(e.target.tagName === 'A') return;
+      dc.classList.toggle('is-expanded');
+    });
+  })();
+  </script>
+
 </div>
   <script src="../js/library-state.js" data-page-script></script>
   <script src="../js/stories-cover-store.js" data-page-script></script>
   <script src="../js/stories-audio-store.js" data-page-script></script>
   <script src="../js/story-detail-ui.js" data-page-script></script>
-
-
-
-<script>
-/* Description expand/collapse */
-(function(){
-  var dc = document.querySelector('.detail-copy');
-  if(!dc) return;
-  dc.addEventListener('click', function(e){
-    if(e.target.tagName === 'A') return;
-    dc.classList.toggle('is-expanded');
-  });
-})();
-</script>
 </body>
 </html>

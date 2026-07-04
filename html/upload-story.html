@@ -139,22 +139,24 @@
   </div> <!-- /m-page -->
 
 
-</div>
   <!-- Role guard: only Admin can upload stories -->
   <script>
   (function() {
     try {
       var auth = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
       if (!auth || !auth.isAdmin) {
-        window.location.replace('index.html');
+        var target = 'index.html';
+        if (window.AudioHubRouter) { window.AudioHubRouter.navigate(target); } else { window.location.replace(target); }
         return;
       }
     } catch(e) {}
   })();
   </script>
+
+</div>
   <script src="../js/stories-cover-store.js" data-page-script></script>
   <script src="../js/stories-audio-store.js" data-page-script></script>
   <script src="../js/upload-story-ui.js" data-page-script></script>
-  <script src="../js/drafts-ui.js"></script>
+  <script src="../js/drafts-ui.js" data-page-script></script>
 </body>
 </html>

@@ -192,22 +192,23 @@
   </main>
   </div> <!-- /m-page -->
 
-</div>
   <!-- Role guard: only Admin can access this page -->
   <script>
   (function() {
     try {
       var auth = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
-      // If no auth or not admin, redirect to user account
       if (!auth || !auth.isAdmin) {
-        window.location.replace('user-account.html');
+        var target = 'user-account.html';
+        if (window.AudioHubRouter) { window.AudioHubRouter.navigate(target); } else { window.location.replace(target); }
         return;
       }
     } catch(e) {}
   })();
   </script>
-  <script src="../js/stories-cover-store.js"></script>
-  <script src="../js/stories-audio-store.js"></script>
+
+</div>
+  <script src="../js/stories-cover-store.js" data-page-script></script>
+  <script src="../js/stories-audio-store.js" data-page-script></script>
   <script src="../js/library-state.js" data-page-script></script>
   <script src="../js/stories-account.js" data-page-script></script>
   <script src="../js/content-search.js" data-page-script></script>

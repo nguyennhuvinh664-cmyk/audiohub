@@ -34,22 +34,22 @@
    * Shared CSS is loaded once and never removed.
    */
   var SHARED_CSS = [
-    'style-index', 'mobile-shared', 'header-enhancements', 'auth-state', 'mobile-app', 'dev-mode'
+    'style-index', 'style-categories', 'mobile-shared', 'header-enhancements', 'auth-state', 'mobile-app', 'dev-mode'
   ];
 
   var PAGE_CSS = {
     'index.html':           ['home-mobile'],
     'account.html':         ['account', 'account-mobile', 'playlist-clean', 'content-search', 'library-state'],
-    'story-detail.html':    ['style-categories', 'library-state', 'story-detail-ui', 'story-detail-mobile'],
-    'categories.html':      ['style-categories', 'categories-mobile'],
-    'new-posts.html':       ['style-categories', 'story-filters', 'content-search', 'library-state'],
-    'popular.html':         ['style-categories', 'story-filters', 'library-state'],
-    'trending.html':        ['style-categories', 'story-filters', 'library-state'],
-    'completed.html':       ['style-categories', 'story-filters', 'library-state'],
+    'story-detail.html':    ['library-state', 'story-detail-ui', 'story-detail-mobile'],
+    'categories.html':      ['categories-mobile'],
+    'new-posts.html':       ['story-filters', 'content-search', 'library-state'],
+    'popular.html':         ['story-filters', 'library-state'],
+    'trending.html':        ['story-filters', 'library-state'],
+    'completed.html':       ['story-filters', 'library-state'],
     'upload-story.html':    ['upload-story'],
     'edit-profile.html':    ['edit-profile'],
     'hall-of-fame.html':    ['hall-of-fame'],
-    'hall-of-hearts.html':  ['hall-of-fame'],
+    'hall-of-hearts.html':  ['hall-of-fame', 'info-pages'],
     'channel.html':         ['channel'],
     'about.html':           ['info-pages'],
     'blog.html':            ['info-pages'],
@@ -75,18 +75,18 @@
 
   var PAGE_JS = {
     'index.html':           ['story-filters', 'stories-home'],
-    'account.html':         ['library-state', 'stories-account', 'content-search'],
+    'account.html':         ['stories-cover-store', 'stories-audio-store', 'library-state', 'stories-account', 'content-search'],
     'story-detail.html':    ['library-state', 'stories-cover-store', 'stories-audio-store', 'story-detail-ui'],
     'categories.html':      ['stories-listing'],
-    'new-posts.html':       ['story-filters', 'stories-listing', 'content-search'],
-    'popular.html':         ['story-filters', 'stories-listing'],
-    'trending.html':        ['story-filters', 'stories-listing'],
-    'completed.html':       ['story-filters', 'stories-listing'],
-    'upload-story.html':    ['stories-cover-store', 'stories-audio-store', 'upload-story-ui'],
+    'new-posts.html':       ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing', 'content-search'],
+    'popular.html':         ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],
+    'trending.html':        ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],
+    'completed.html':       ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],
+    'upload-story.html':    ['stories-cover-store', 'stories-audio-store', 'upload-story-ui', 'drafts-ui'],
     'edit-profile.html':    ['edit-profile-ui'],
-    'channel.html':         ['channel-ui'],
-    'user-account.html':    ['stories-account', 'content-search'],
-    'drafts.html':          ['drafts-ui']
+    'channel.html':         ['stories-cover-store', 'channel-ui'],
+    'user-account.html':    ['stories-cover-store', 'user-account'],
+    'drafts.html':          ['stories-cover-store', 'stories-audio-store', 'drafts-ui']
   };
 
   /* ── State ──────────────────────────────────────────────────────────── */

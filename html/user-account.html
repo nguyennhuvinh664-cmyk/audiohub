@@ -365,47 +365,48 @@
   <!-- Toast -->
   <div class="ua-toast" id="ua-toast" hidden></div>
 
-
-</div>
   <!-- Role guard: Admin goes to admin account page -->
   <script>
   (function() {
     try {
       var auth = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
       if (auth && auth.isAdmin) {
-        window.location.replace('account.html');
+        var target = 'account.html';
+        if (window.AudioHubRouter) { window.AudioHubRouter.navigate(target); } else { window.location.replace(target); }
         return;
       }
     } catch(e) {}
   })();
   </script>
-  <script src="../js/stories-cover-store.js"></script>
-  <script src="../js/user-account.js"></script>
 
-<script>
-/* Mobile Menu Tabs */
-(function(){
-  var menuItems = document.querySelectorAll('.m-menu-item');
-  var panels = document.querySelectorAll('.m-content-section');
+  <script>
+  /* Mobile Menu Tabs */
+  (function(){
+    var menuItems = document.querySelectorAll('.m-menu-item');
+    var panels = document.querySelectorAll('.m-content-section');
 
-  function switchTab(tab) {
+    function switchTab(tab) {
+      menuItems.forEach(function(item){
+        item.classList.toggle('is-active', item.getAttribute('data-m-tab') === tab);
+      });
+      panels.forEach(function(panel){
+        var isActive = panel.getAttribute('data-m-panel') === tab;
+        panel.classList.toggle('is-active', isActive);
+        panel.hidden = !isActive;
+      });
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
     menuItems.forEach(function(item){
-      item.classList.toggle('is-active', item.getAttribute('data-m-tab') === tab);
+      item.addEventListener('click', function(){
+        switchTab(item.getAttribute('data-m-tab'));
+      });
     });
-    panels.forEach(function(panel){
-      var isActive = panel.getAttribute('data-m-panel') === tab;
-      panel.classList.toggle('is-active', isActive);
-      panel.hidden = !isActive;
-    });
-    window.scrollTo({top: 0, behavior: 'smooth'});
-  }
+  })();
+  </script>
 
-  menuItems.forEach(function(item){
-    item.addEventListener('click', function(){
-      switchTab(item.getAttribute('data-m-tab'));
-    });
-  });
-})();
-</script>
+</div>
+  <script src="../js/stories-cover-store.js" data-page-script></script>
+  <script src="../js/user-account.js" data-page-script></script>
 </body>
 </html>
