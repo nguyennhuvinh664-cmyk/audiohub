@@ -29,7 +29,7 @@
   }
 
   /* ═══ AUTH HELPERS ═══ */
-  var AUTH_KEY = 'audiohub-demo-auth';
+  var AUTH_KEY = 'audiohub-auth-profile';
   var LIB_KEY = 'audiohub-library';
   var WALLET_KEY = 'audiohub-wallet-v1';
   var PL_KEY = 'audiohub-playlists-v1';

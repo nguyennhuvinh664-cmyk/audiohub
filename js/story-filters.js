@@ -171,7 +171,7 @@
 
   function isMember() {
     try {
-      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
       var parsed = raw ? JSON.parse(raw) : null;
       var hasProfile = !!(parsed && parsed.isLoggedIn);
       var hasToken = !!(window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function' && window.AudioHubApi.getToken());

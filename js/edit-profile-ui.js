@@ -7,7 +7,7 @@
     if (window.AudioHubRouter) { window.AudioHubRouter.navigate(path); } else { window.location.href = path; }
   }
 
-  var STORAGE_KEY = 'audiohub-demo-auth';
+  var STORAGE_KEY = 'audiohub-auth-profile';
   var form = document.querySelector('[data-edit-profile-form]');
   var nameInput = document.querySelector('[data-edit-name]');
   var statusNode = document.querySelector('[data-edit-status]');

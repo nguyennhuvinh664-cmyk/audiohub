@@ -426,7 +426,7 @@
 
   function readAuthProfile() {
     try {
-      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
       var parsed = raw ? JSON.parse(raw) : null;
       return parsed && parsed.isLoggedIn ? parsed : null;
     } catch (error) {
@@ -439,7 +439,7 @@
       return !!window.AudioHubAccess.isMember();
     }
     try {
-      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
       var parsed = raw ? JSON.parse(raw) : null;
       return !!(parsed && parsed.isLoggedIn);
     } catch (error) {
@@ -1209,7 +1209,7 @@
 
   function isLoggedIn() {
     try {
-      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
       if (!raw) return false;
       var profile = JSON.parse(raw);
       return !!(profile && profile.isLoggedIn);
@@ -1244,7 +1244,7 @@
     function getCurrentUserName() {
       var name = 'Bạn';
       try {
-        var raw = window.localStorage.getItem('audiohub-demo-auth');
+        var raw = window.localStorage.getItem('audiohub-auth-profile');
         var profile = raw ? JSON.parse(raw) : null;
         if (profile && profile.name) name = String(profile.name);
       } catch (error) {}

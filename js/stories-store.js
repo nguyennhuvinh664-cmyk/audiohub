@@ -144,7 +144,7 @@
 
   function resolveAuthorFallback() {
     try {
-      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
       var parsed = raw ? JSON.parse(raw) : null;
       var name = parsed && parsed.isLoggedIn ? String(parsed.name || '').trim() : '';
       if (name) return name;

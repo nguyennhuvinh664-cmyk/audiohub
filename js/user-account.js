@@ -32,7 +32,7 @@
   /* ═══ AUTH DATA ═══ */
   function getAuth() {
     try {
-      var raw = localStorage.getItem('audiohub-demo-auth');
+      var raw = localStorage.getItem('audiohub-auth-profile');
       return raw ? JSON.parse(raw) : null;
     } catch(e) { return null; }
   }

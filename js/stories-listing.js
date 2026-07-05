@@ -117,7 +117,7 @@
       return !!window.AudioHubAccess.isMember();
     }
     try {
-      var raw = window.localStorage.getItem('audiohub-demo-auth');
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
       var parsed = raw ? JSON.parse(raw) : null;
       return !!(parsed && parsed.isLoggedIn);
     } catch (error) {

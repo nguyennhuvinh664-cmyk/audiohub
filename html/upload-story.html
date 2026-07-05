@@ -146,7 +146,7 @@
   <script>
   (function() {
     try {
-      var auth = JSON.parse(localStorage.getItem('audiohub-demo-auth'));
+      var auth = JSON.parse(localStorage.getItem('audiohub-auth-profile'));
       if (!auth || !auth.isAdmin) {
         var target = 'index.html';
         if (window.AudioHubRouter) { window.AudioHubRouter.navigate(target); } else { window.location.replace(target); }

@@ -65,7 +65,7 @@
   var audioZone = document.querySelector('[data-upload-audio]');
   var readingZone = document.querySelector('[data-upload-reading]');
   var hashtagsInput = null;
-  var AUTH_STORAGE_KEY = 'audiohub-demo-auth';
+  var AUTH_STORAGE_KEY = 'audiohub-auth-profile';
 
   function readAuthProfile() {
     try {
