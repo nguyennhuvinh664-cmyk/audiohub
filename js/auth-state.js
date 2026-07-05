@@ -2,6 +2,15 @@
   var STORAGE_KEY = 'audiohub-demo-auth';
   var AVATAR_STORAGE_KEY = 'audiohub-account-avatar-v1';
 
+  /** Return account URL based on user role */
+  function getAccountUrl() {
+    try {
+      var auth = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (auth && auth.isAdmin) return '/html/account.html';
+    } catch (e) {}
+    return '/html/user-account.html';
+  }
+
   /** SPA-aware navigation helper */
   function spaNavigate(path) {
     if (window.AudioHubRouter) { window.AudioHubRouter.navigate(path); } else { window.location.href = path; }
@@ -135,7 +144,8 @@
             window.AudioHubApi.setToken(result.token);
           }
           setAuthProfileFromUser(result && result.user ? result.user : null);
-          if (window.AudioHubRouter) { window.AudioHubRouter.navigate('/html/account.html'); } else { window.location.href = 'account.html'; }
+          var acctUrl = getAccountUrl();
+          if (window.AudioHubRouter) { window.AudioHubRouter.navigate(acctUrl); } else { window.location.href = acctUrl.replace('/html/', ''); }
         }).catch(function () {
           loginDemo({
             name: email.split('@')[0] || defaultProfile.name,
@@ -143,7 +153,7 @@
             initials: deriveInitials(email.split('@')[0] || defaultProfile.name),
             tier: defaultProfile.tier
           });
-          spaNavigate('/html/account.html');
+          spaNavigate(getAccountUrl());
         }).then(function () {
           loginButton.textContent = prevText;
         });
@@ -185,7 +195,7 @@
             window.AudioHubApi.setToken(result.token);
           }
           setAuthProfileFromUser(result && result.user ? result.user : { displayName: displayName, email: email });
-          spaNavigate('/html/account.html');
+          spaNavigate(getAccountUrl());
         }).catch(function () {
           loginDemo({
             name: displayName,
@@ -193,7 +203,7 @@
             initials: deriveInitials(displayName),
             tier: defaultProfile.tier
           });
-          spaNavigate('/html/account.html');
+          spaNavigate(getAccountUrl());
         }).then(function () {
           registerButton.textContent = prevText;
         });
@@ -313,7 +323,7 @@
       + '</button>'
       + '<div class="auth-menu__dropdown" hidden>'
       + summary
-      + '<a href="account.html" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
+      + '<a href="' + getAccountUrl().replace('/html/', '') + '" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
       + uploadLink
       + '<a href="change-password.html" class="auth-menu__link"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>'
       + '<button type="button" class="auth-menu__action" data-auth-switch><i class="fa-solid fa-repeat"></i> Chuyển đổi tài khoản</button>'
