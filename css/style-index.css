@@ -72,6 +72,12 @@ body.no-scroll { overflow:hidden; }
   background:rgba(9,9,15,.93);
   backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
   border-bottom:1px solid var(--border);
+  display:block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  height:auto !important;
+  min-height:0 !important;
+  overflow:visible !important;
 }
 .header__in {
   display:flex; align-items:center; gap:20px;
