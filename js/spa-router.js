@@ -380,6 +380,10 @@
     if (typeof renderAccountProfile === 'function') {
       renderAccountProfile();
     }
+    // Re-bind auth forms (login/register) after page swap
+    if (typeof window.AudioHubAuthRebind === 'function') {
+      window.AudioHubAuthRebind();
+    }
     // Re-sync stories
     if (window.AudioHubStories && typeof window.AudioHubStories.sync === 'function') {
       window.AudioHubStories.sync();

@@ -2,6 +2,11 @@
   var STORAGE_KEY = 'audiohub-demo-auth';
   var AVATAR_STORAGE_KEY = 'audiohub-account-avatar-v1';
 
+  /** Bind auth forms (login/register) — safe to call multiple times */
+  function rebindAuthForms() {
+    bindAuthForms();
+  }
+
   /** Return account URL based on user role */
   function getAccountUrl() {
     try {
@@ -506,6 +511,9 @@
   hydrateAuthFromToken();
   renderHeaderAuth();
   renderAccountProfile();
+
+  // Expose rebind for SPA router to call after navigation
+  window.AudioHubAuthRebind = rebindAuthForms;
 
   // Hide admin-only elements for non-admin users
   (function hideAdminOnly() {
