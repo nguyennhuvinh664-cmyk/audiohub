@@ -112,6 +112,7 @@
       }
     }
     renderAccountProfile();
+    renderHeaderAuth();
   }
 
   function bindAuthForms() {
