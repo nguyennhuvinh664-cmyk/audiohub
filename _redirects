@@ -24,3 +24,6 @@
 /upload-story.html  /index.html  200
 /user-account.html  /index.html  200
 /channel.html  /index.html  200
+
+# Catch-all for /html/* paths (SPA shell required)
+/html/*  /index.html  200
