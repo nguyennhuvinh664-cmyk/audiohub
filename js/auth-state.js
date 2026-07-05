@@ -244,11 +244,13 @@
 
   function logoutAndRedirect() {
     clearAuth();
+    renderHeaderAuth();
     spaNavigate('/index.html');
   }
 
   function switchAccountRedirect() {
     clearAuth();
+    renderHeaderAuth();
     spaNavigate('/html/login.html');
   }
 
