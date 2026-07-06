@@ -208,6 +208,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
   const userId = req.auth!.userId;
   const body = parsed.data;
+  console.log('DEBUG visibility:', JSON.stringify(body.visibility), 'raw:', body.visibility, 'parsed:', parseVisibility(body.visibility));
 
   const recentBoundary = new Date(Date.now() - 15000);
   const duplicatedRecent = await prisma.story.findFirst({
