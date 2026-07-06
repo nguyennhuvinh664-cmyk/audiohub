@@ -519,9 +519,27 @@
 
   function syncFromApi() {
     if (!canUseApi()) {
-      var localStories = readLocalStories();
-      notifyStoriesSynced();
-      return Promise.resolve(localStories);
+      // Not logged in → fetch public stories from API
+      return window.AudioHubApi.request('/stories/public', { method: 'GET' })
+        .then(function (publicStories) {
+          if (!Array.isArray(publicStories) || !publicStories.length) {
+            var localStories = readLocalStories();
+            notifyStoriesSynced();
+            return localStories;
+          }
+          var normalized = publicStories.map(function (story) {
+            return normalizeStory(story);
+          }).filter(Boolean);
+          writeLocalStories(normalized);
+          notifyStoriesUpdated();
+          notifyStoriesSynced();
+          return normalized;
+        })
+        .catch(function () {
+          var localStories = readLocalStories();
+          notifyStoriesSynced();
+          return localStories;
+        });
     }
 
     return window.AudioHubApi.request('/stories', { method: 'GET' })
