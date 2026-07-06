@@ -17,15 +17,11 @@ function normalizeText(value: unknown) {
 
 function parseVisibility(value: unknown, fallback: StoryVisibility = StoryVisibility.PRIVATE) {
   const raw = String(value || '').trim();
-  const normalized = normalizeText(value);
-  // Vietnamese labels (exact match)
-  if (raw === 'Công khai' || raw === 'Cong khai') return StoryVisibility.PUBLIC;
-  if (raw === 'Không công khai' || raw === 'Khong cong khai') return StoryVisibility.UNLISTED;
-  if (raw === 'Riêng tư' || raw === 'Rieng tu') return StoryVisibility.PRIVATE;
-  // English labels
-  if (raw === 'PUBLIC' || normalized === 'cong khai' || normalized === 'public') return StoryVisibility.PUBLIC;
-  if (raw === 'UNLISTED' || normalized === 'khong cong khai' || normalized === 'unlisted') return StoryVisibility.UNLISTED;
-  if (raw === 'PRIVATE' || normalized === 'rieng tu' || normalized === 'private') return StoryVisibility.PRIVATE;
+  const lower = raw.toLowerCase();
+  // Check contains-based matching (handles encoding variations)
+  if (lower.includes('public') || lower.includes('cong khai') || lower.includes('congkhai')) return StoryVisibility.PUBLIC;
+  if (lower.includes('unlisted') || lower.includes('khong cong khai') || lower.includes('khongcongkhai')) return StoryVisibility.UNLISTED;
+  if (lower.includes('private') || lower.includes('rieng tu') || lower.includes('riengtu')) return StoryVisibility.PRIVATE;
   return fallback;
 }
 
