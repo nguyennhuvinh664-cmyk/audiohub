@@ -18,6 +18,11 @@ function normalizeText(value: unknown) {
 function parseVisibility(value: unknown, fallback: StoryVisibility = StoryVisibility.PRIVATE) {
   const raw = String(value || '').trim();
   const normalized = normalizeText(value);
+  // Vietnamese labels (exact match)
+  if (raw === 'Công khai' || raw === 'Cong khai') return StoryVisibility.PUBLIC;
+  if (raw === 'Không công khai' || raw === 'Khong cong khai') return StoryVisibility.UNLISTED;
+  if (raw === 'Riêng tư' || raw === 'Rieng tu') return StoryVisibility.PRIVATE;
+  // English labels
   if (raw === 'PUBLIC' || normalized === 'cong khai' || normalized === 'public') return StoryVisibility.PUBLIC;
   if (raw === 'UNLISTED' || normalized === 'khong cong khai' || normalized === 'unlisted') return StoryVisibility.UNLISTED;
   if (raw === 'PRIVATE' || normalized === 'rieng tu' || normalized === 'private') return StoryVisibility.PRIVATE;
