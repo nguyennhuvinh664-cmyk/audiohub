@@ -260,9 +260,9 @@ a {
   transition: opacity 0.3s, visibility 0.3s;
 }
 .m-drawer-overlay.is-open {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 .m-drawer {
