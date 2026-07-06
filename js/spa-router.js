@@ -85,7 +85,7 @@
     'upload-story.html':    ['stories-cover-store', 'stories-audio-store', 'upload-story-ui', 'drafts-ui'],
     'edit-profile.html':    ['edit-profile-ui'],
     'channel.html':         ['stories-cover-store', 'channel-ui'],
-    'user-account.html':    ['stories-cover-store', 'user-account'],
+    'user-account.html':    ['stories-cover-store', 'user-account', 'user-account-mobile'],
     'drafts.html':          ['stories-cover-store', 'stories-audio-store', 'drafts-ui']
   };
 
