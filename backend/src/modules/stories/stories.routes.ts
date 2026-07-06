@@ -18,10 +18,11 @@ function normalizeText(value: unknown) {
 function parseVisibility(value: unknown, fallback: StoryVisibility = StoryVisibility.PRIVATE) {
   const raw = String(value || '').trim();
   const lower = raw.toLowerCase();
-  // Check contains-based matching (handles encoding variations)
-  if (lower.includes('public') || lower.includes('cong khai') || lower.includes('congkhai')) return StoryVisibility.PUBLIC;
-  if (lower.includes('unlisted') || lower.includes('khong cong khai') || lower.includes('khongcongkhai')) return StoryVisibility.UNLISTED;
-  if (lower.includes('private') || lower.includes('rieng tu') || lower.includes('riengtu')) return StoryVisibility.PRIVATE;
+  // Remove diacritics for comparison
+  const ascii = lower.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (lower.includes('public') || ascii.includes('cong khai') || ascii.includes('congkhai')) return StoryVisibility.PUBLIC;
+  if (lower.includes('unlisted') || ascii.includes('khong cong khai') || ascii.includes('khongcongkhai')) return StoryVisibility.UNLISTED;
+  if (lower.includes('private') || ascii.includes('rieng tu') || ascii.includes('riengtu')) return StoryVisibility.PRIVATE;
   return fallback;
 }
 
@@ -208,7 +209,6 @@ router.post('/', async (req: AuthRequest, res) => {
 
   const userId = req.auth!.userId;
   const body = parsed.data;
-  console.log('DEBUG visibility:', JSON.stringify(body.visibility), 'raw:', body.visibility, 'parsed:', parseVisibility(body.visibility));
 
   const recentBoundary = new Date(Date.now() - 15000);
   const duplicatedRecent = await prisma.story.findFirst({
