@@ -133,6 +133,25 @@
     canAccessStory: canAccessStory
   };
 
+  /* ═══ UPDATE MOBILE/DRAWER LINKS ══════════════════════════════════════ */
+
+  function updateAccountLinks() {
+    var acctUrl = getAccountUrl().replace('/html/', '');
+    // Bottom nav
+    document.querySelectorAll('.m-bottomnav__item').forEach(function (link) {
+      if (link.textContent.trim() === 'Tài khoản' || link.querySelector('.fa-user')) {
+        link.href = acctUrl;
+      }
+    });
+    // Mobile drawer
+    document.querySelectorAll('.m-drawer__link').forEach(function (link) {
+      var text = link.textContent.trim();
+      if (text === 'Lịch sử nghe' || text === 'Yêu thích' || text === 'Playlist' || text === 'Chương đã mở khóa') {
+        link.href = acctUrl + link.getAttribute('href').replace(/^account\.html/, '');
+      }
+    });
+  }
+
   /* ═══ HEADER RENDERING ════════════════════════════════════════════════ */
 
   function renderHeaderAuth() {
@@ -152,6 +171,7 @@
     });
 
     applyHeaderAvatars();
+    updateAccountLinks();
   }
 
   function buildGuestActions(container) {
