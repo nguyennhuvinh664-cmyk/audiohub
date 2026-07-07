@@ -15,14 +15,35 @@ function normalizeText(value: unknown) {
     .replace(/[̀-ͯ]/g, '');
 }
 
+function removeVietnameseAccents(str: string): string {
+  const map: Record<string, string> = {
+    'à':'a','á':'a','ả':'a','ã':'a','ạ':'a',
+    'ă':'a','ằ':'a','ắ':'a','ẳ':'a','ẵ':'a','ặ':'a',
+    'â':'a','ầ':'a','ấ':'a','ẩ':'a','ẫ':'a','ậ':'a',
+    'đ':'d',
+    'è':'e','é':'e','ẻ':'e','ẽ':'e','ẹ':'e',
+    'ê':'e','ề':'e','ế':'e','ể':'e','ễ':'e','ệ':'e',
+    'ì':'i','í':'i','ỉ':'i','ĩ':'i','ị':'i',
+    'ò':'o','ó':'o','ỏ':'o','õ':'o','ọ':'o',
+    'ô':'o','ồ':'o','ố':'o','ổ':'o','ỗ':'o','ộ':'o',
+    'ơ':'o','ờ':'o','ớ':'o','ở':'o','ỡ':'o','ợ':'o',
+    'ù':'u','ú':'u','ủ':'u','ũ':'u','ụ':'u',
+    'ư':'u','ừ':'u','ứ':'u','ử':'u','ữ':'u','ự':'u',
+    'ỳ':'y','ý':'y','ỷ':'y','ỹ':'y','ỵ':'y'
+  };
+  let result = str.toLowerCase();
+  for (const [key, val] of Object.entries(map)) {
+    result = result.split(key).join(val);
+  }
+  return result;
+}
+
 function parseVisibility(value: unknown, fallback: StoryVisibility = StoryVisibility.PRIVATE) {
   const raw = String(value || '').trim();
-  const lower = raw.toLowerCase();
-  // Remove diacritics for comparison
-  const ascii = lower.normalize('NFD').replace(/[̀-ͯ]/g, '');
-  if (lower.includes('public') || ascii.includes('cong khai') || ascii.includes('congkhai')) return StoryVisibility.PUBLIC;
-  if (lower.includes('unlisted') || ascii.includes('khong cong khai') || ascii.includes('khongcongkhai')) return StoryVisibility.UNLISTED;
-  if (lower.includes('private') || ascii.includes('rieng tu') || ascii.includes('riengtu')) return StoryVisibility.PRIVATE;
+  const ascii = removeVietnameseAccents(raw);
+  if (ascii.includes('cong khai') || ascii.includes('congkhai') || raw === 'PUBLIC' || raw === 'public') return StoryVisibility.PUBLIC;
+  if (ascii.includes('khong cong khai') || ascii.includes('khongcongkhai') || raw === 'UNLISTED' || raw === 'unlisted') return StoryVisibility.UNLISTED;
+  if (ascii.includes('rieng tu') || ascii.includes('riengtu') || raw === 'PRIVATE' || raw === 'private') return StoryVisibility.PRIVATE;
   return fallback;
 }
 
