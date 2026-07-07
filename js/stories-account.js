@@ -202,8 +202,8 @@
       window.AudioHubApi.isEnabled());
   }
 
-  // Tự động xóa toàn bộ dữ liệu local khỏi localStorage khi đăng nhập thật
-  // (kể cả demo data không có s_ prefix) — API sẽ sync lại dữ liệu thật
+  // Tự động xóa dữ liệu demo (s_ prefix) khỏi localStorage khi đăng nhập thật
+  // Giữ lại tất cả stories thật (có ID từ backend) và listening history
   function clearLocalDemoStories() {
     if (!isRealLogin()) return;
     try {
@@ -211,7 +211,12 @@
       if (!raw) return;
       var stories = JSON.parse(raw);
       if (!Array.isArray(stories) || !stories.length) return;
-      window.localStorage.setItem('audiohub-stories', JSON.stringify([]));
+      var cleaned = stories.filter(function (s) {
+        return s && s.id && !String(s.id).startsWith('s_');
+      });
+      if (cleaned.length !== stories.length) {
+        window.localStorage.setItem('audiohub-stories', JSON.stringify(cleaned));
+      }
     } catch (e) {}
   }
 
