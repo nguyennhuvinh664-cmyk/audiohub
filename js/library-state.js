@@ -186,12 +186,6 @@
     return true;
   }
 
-  function addHistory(story, extras) {
-    var library = readLibrary();
-    library.history = upsertItem(library.history, story, extras).slice(0, 36);
-    writeLibrary(library);
-  }
-
   function removeFromCollection(type, key) {
     var library = readLibrary();
     library[type] = removeItem(library[type], key);
@@ -390,7 +384,7 @@
       history: filterExistingItems(library.history, existingIds)
     };
     var recentHistory = deriveHistoryEventsFromStories();
-    var totalHistoryCount = deriveHistoryEventsFromStories().length;
+    var totalHistoryCount = recentHistory.length;
     var totalStoryCount = (window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? (window.AudioHubStories.read() || []).length : 0);
 
     var changed = filtered.favorites.length !== library.favorites.length
@@ -408,6 +402,47 @@
     renderCollection('[data-library-favorites]', filtered.favorites, 'favorites', 'Chưa có truyện yêu thích nào được lưu.');
 
     hydrateAccountThumbs();
+
+    // Fetch API history for logged-in users and merge with local
+    if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function'
+        && window.AudioHubApi.isEnabled && window.AudioHubApi.isEnabled()) {
+      window.AudioHubApi.request('/stories/listen-history', { method: 'GET' })
+        .then(function (apiHistory) {
+          if (!Array.isArray(apiHistory) || !apiHistory.length) return;
+          // Convert API history to the same format as derived local history
+          var apiItems = apiHistory.map(function (item) {
+            return {
+              key: 'api::' + item.storyId + '::' + new Date(item.listenedAt).getTime(),
+              title: String(item.title || 'AudioHub Story'),
+              author: String(item.author || 'AudioHub'),
+              genre: String(item.genre || 'Truyện audio'),
+              progress: 'Đã nghe',
+              note: 'Từ lịch sử nghe',
+              href: '/story-detail.html?id=' + encodeURIComponent(item.storyId),
+              coverKey: String(item.coverKey || ''),
+              coverData: item.coverData || '',
+              savedAt: new Date(item.listenedAt).toISOString()
+            };
+          });
+          // Merge: deduplicate by storyId, prefer API items (newer)
+          var seenIds = {};
+          var merged = [];
+          apiItems.concat(recentHistory).forEach(function (item) {
+            var sid = (item.href || '').match(/id=([^&]*)/);
+            sid = sid ? sid[1] : item.key;
+            if (seenIds[sid]) return;
+            seenIds[sid] = true;
+            merged.push(item);
+          });
+          merged.sort(function (a, b) {
+            return Date.parse(b.savedAt || '') - Date.parse(a.savedAt || '');
+          });
+          renderCollection('[data-library-history]', merged.slice(0, 36), 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
+          renderStat('history', merged.length);
+          hydrateAccountThumbs();
+        })
+        .catch(function () {});
+    }
   }
 
   function removeDuplicateLegacyHelpers() {}

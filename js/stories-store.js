@@ -424,7 +424,15 @@
   function trackListen(id) {
     if (!id) return null;
     var story = getLocalStoryById(id);
-    if (!story) return null;
+
+    // If story not in localStorage, still call API to record listen
+    if (!story) {
+      if (canUseApi() && !String(id).startsWith('s_')) {
+        window.AudioHubApi.request('/stories/' + encodeURIComponent(id) + '/listen', { method: 'POST' })
+          .catch(function () {});
+      }
+      return null;
+    }
 
     var history = pruneListenHistory(story.listenHistory);
     history.push(Date.now());

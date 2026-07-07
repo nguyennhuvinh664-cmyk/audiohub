@@ -258,11 +258,15 @@
   function loadStoriesForHome() {
     var localStories = window.AudioHubStories.read() || [];
     var localPublic = localStories.filter(function (story) { return isPublicVisibility(story); });
-    if (localPublic.length) {
-      return Promise.resolve(localPublic);
-    }
-    return fetchPublicStories().then(function (publicStories) {
-      return publicStories.length ? publicStories : localStories;
+
+    // Always fetch fresh from API, merge with local
+    return fetchPublicStories().then(function (apiStories) {
+      var apiIds = {};
+      (apiStories || []).forEach(function (s) { apiIds[s.id] = true; });
+      var localOnly = localPublic.filter(function (s) { return !apiIds[s.id]; });
+      return (apiStories || []).concat(localOnly);
+    }).catch(function () {
+      return localPublic.length ? localPublic : localStories;
     });
   }
 

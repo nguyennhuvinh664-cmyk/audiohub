@@ -1631,6 +1631,27 @@
   function scheduleStoryDetailRetry(storyId, attempt) {
     var safeAttempt = Number(attempt) || 0;
     if (!storyId || safeAttempt > 3) return;
+
+    // On first retry, try fetching from API if story not in localStorage
+    if (safeAttempt === 0 && !String(storyId).startsWith('s_')) {
+      if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+        window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
+          .then(function (story) {
+            if (story && story.id && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+              window.AudioHubStories.upsert(story);
+            }
+            var resolved = initStoryDetailFromStore(storyId);
+            if (!resolved) {
+              scheduleStoryDetailRetry(storyId, safeAttempt + 1);
+            }
+          })
+          .catch(function () {
+            scheduleStoryDetailRetry(storyId, safeAttempt + 1);
+          });
+        return;
+      }
+    }
+
     window.setTimeout(function () {
       var resolved = initStoryDetailFromStore(storyId);
       if (!resolved && safeAttempt < 3) {

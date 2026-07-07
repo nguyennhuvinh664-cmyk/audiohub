@@ -220,6 +220,14 @@ router.get('/public', async (_req, res) => {
   return ok(res, mapped);
 });
 
+router.get('/public/:id', async (req, res) => {
+  const story = await prisma.story.findFirst({
+    where: { id: req.params.id, visibility: StoryVisibility.PUBLIC, deletedAt: null }
+  });
+  if (!story) return fail(res, 'Story not found', 404);
+  return ok(res, await toStoryResponse(story));
+});
+
 router.use(requireAuth);
 
 router.post('/', async (req: AuthRequest, res) => {
@@ -313,6 +321,38 @@ router.get('/', async (req: AuthRequest, res) => {
   const mapped = await Promise.all(stories.map(toStoryResponse));
   mapped.sort(sortByRecent);
   return ok(res, mapped);
+});
+
+router.get('/listen-history', async (req: AuthRequest, res) => {
+  const events = await prisma.storyListenEvent.findMany({
+    where: { userId: req.auth!.userId },
+    orderBy: { createdAt: 'desc' },
+    take: 50
+  });
+
+  const storyIds = events.map(e => e.storyId);
+  const stories = await prisma.story.findMany({
+    where: { id: { in: storyIds }, deletedAt: null }
+  });
+  const storyMap = new Map(stories.map(s => [s.id, s]));
+
+  const history = events
+    .map(e => {
+      const story = storyMap.get(e.storyId);
+      if (!story) return null;
+      return {
+        storyId: story.id,
+        title: story.title,
+        author: story.author,
+        genre: story.genre,
+        coverKey: story.coverKey,
+        coverData: (story as any).coverData || null,
+        listenedAt: e.createdAt
+      };
+    })
+    .filter(Boolean);
+
+  return ok(res, history);
 });
 
 router.get('/:id', async (req: AuthRequest, res) => {
@@ -481,7 +521,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
 router.post('/:id/listen', async (req: AuthRequest, res) => {
   const story = await prisma.story.findFirst({
-    where: { id: req.params.id, userId: req.auth!.userId, deletedAt: null }
+    where: { id: req.params.id, deletedAt: null }
   });
 
   if (!story) {
