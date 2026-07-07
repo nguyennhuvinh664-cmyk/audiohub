@@ -292,9 +292,10 @@
 
   ensureStoryContext();
 
-  if (window.AudioHubStories && typeof window.AudioHubStories.sync === 'function') {
-    window.AudioHubStories.sync();
-  }
+  // NOTE: syncFromApi() is intentionally NOT called here.
+  // It overwrites localStorage with only the current user's stories,
+  // destroying stories fetched from the public API.
+  // Story detail fetches directly from GET /stories/public/:id instead.
 
   ensureStoryContext();
 
@@ -1628,43 +1629,16 @@
     });
   }
 
-  function scheduleStoryDetailRetry(storyId, attempt) {
-    var safeAttempt = Number(attempt) || 0;
-    if (!storyId || safeAttempt > 3) return;
+  /* ═══ SINGLE INITIALIZATION PATH ═══════════════════════════════════════
+     1. Resolve storyId from URL
+     2. Try localStorage (instant cache)
+     3. If miss → fetch GET /stories/public/:id
+     4. Render story data + bind player — exactly once
+     ═══════════════════════════════════════════════════════════════════════ */
 
-    // On first retry, try fetching from API if story not in localStorage
-    if (safeAttempt === 0 && !String(storyId).startsWith('s_')) {
-      if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
-        window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
-          .then(function (story) {
-            if (story && story.id && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-              window.AudioHubStories.upsert(story);
-            }
-            var resolved = initStoryDetailFromStore(storyId);
-            if (!resolved) {
-              scheduleStoryDetailRetry(storyId, safeAttempt + 1);
-            }
-          })
-          .catch(function () {
-            scheduleStoryDetailRetry(storyId, safeAttempt + 1);
-          });
-        return;
-      }
-    }
-
-    window.setTimeout(function () {
-      var resolved = initStoryDetailFromStore(storyId);
-      if (!resolved && safeAttempt < 3) {
-        scheduleStoryDetailRetry(storyId, safeAttempt + 1);
-      }
-    }, safeAttempt === 0 ? 120 : 450);
-  }
-
-  function initPlayer() {
+  function resolveStoryId() {
     var storyId = getQueryParam('id');
-    if (storyId) {
-      storyId = String(storyId).trim();
-    }
+    if (storyId) storyId = String(storyId).trim();
     ensureStoryContext();
     storyId = String(getQueryParam('id') || storyId || '').trim();
     if (!storyId) {
@@ -1690,24 +1664,64 @@
         }
       }
     }
-    var story = initStoryDetailFromStore(storyId);
-    if (!story && storyId && !isSyntheticStoryId(storyId)) {
-      markPendingStorySync(storyId);
-      scheduleStoryDetailRetry(storyId, 0);
-    }
-    if (story && story.id) {
-      trackStoryListen(story.id);
-      story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
-        ? window.AudioHubStories.getById(String(story.id))
-        : story;
-      var detailStoryNode = document.querySelector('[data-detail-story]');
-      renderStoryMeta(detailStoryNode, story);
-    }
+    return storyId || '';
+  }
+
+  function bindStoryData(story) {
+    if (!story || !story.id) return;
+    trackStoryListen(story.id);
+    var detailStoryNode = document.querySelector('[data-detail-story]');
+    renderStoryMeta(detailStoryNode, story);
     bindStoryCover(story);
     bindStoryAudio(story);
     updateAudioHeadingStoryTitle(story);
     renderRelatedStories(story);
     renderSidebarTrending(story);
+  }
+
+  function fetchStoryFromApi(storyId) {
+    if (!window.AudioHubApi || typeof window.AudioHubApi.request !== 'function') {
+      return Promise.resolve(null);
+    }
+    if (String(storyId).startsWith('s_')) {
+      return Promise.resolve(null);
+    }
+    return window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
+      .then(function (apiStory) {
+        if (!apiStory || !apiStory.id) return null;
+        // Cache in localStorage (additive — never overwrites)
+        if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+          window.AudioHubStories.upsert(apiStory);
+        }
+        return apiStory;
+      })
+      .catch(function () { return null; });
+  }
+
+  function initPlayer() {
+    var storyId = resolveStoryId();
+
+    // STEP 1: Try localStorage (instant)
+    var story = initStoryDetailFromStore(storyId);
+
+    if (story && story.id) {
+      // Cache hit — render immediately
+      bindStoryData(story);
+    } else if (storyId && !isSyntheticStoryId(storyId)) {
+      // Cache miss — fetch from API, render when ready
+      fetchStoryFromApi(storyId).then(function (apiStory) {
+        if (apiStory && apiStory.id) {
+          // Re-init from localStorage (now populated by fetchStoryFromApi)
+          var resolved = initStoryDetailFromStore(storyId);
+          if (resolved) {
+            bindStoryData(resolved);
+          } else {
+            // Fallback: use API story directly
+            bindStoryData(apiStory);
+          }
+        }
+      });
+    }
 
     var playButton = document.querySelector('[data-player-toggle]');
     var playIcon = playButton ? playButton.querySelector('i') : null;

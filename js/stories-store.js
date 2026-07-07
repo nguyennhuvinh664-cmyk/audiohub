@@ -564,11 +564,19 @@
           }
         });
 
+        // Merge remote stories with local — remote wins for conflicts
+        var remoteIds = {};
         var normalized = remoteStories.map(function (story) {
           var entry = normalizeStory(story);
+          remoteIds[String(entry.id)] = true;
           var local = localById[String(entry.id)] || null;
           return mergeStoryWithLocal(entry, local);
         }).filter(Boolean);
+
+        // PRESERVE local stories not in remote response (e.g. public stories from other users)
+        var localOnly = localStories.filter(function (item) {
+          return item && item.id && !remoteIds[String(item.id)];
+        });
 
         // Khi real login (canUseApi), bỏ local s_ drafts vì đó là demo data chưa upload thật
         var drafts = canUseApi() ? [] : localStories.filter(function (story) {
@@ -577,7 +585,7 @@
           return normalizeStory(story);
         });
 
-        var mergedStories = drafts.concat(normalized).slice(0, 50);
+        var mergedStories = drafts.concat(normalized).concat(localOnly).slice(0, 50);
         writeLocalStories(mergedStories);
         notifyStoriesUpdated();
         notifyStoriesSynced();
