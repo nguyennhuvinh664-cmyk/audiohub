@@ -330,9 +330,12 @@
     return latest;
   }
 
+  // Cache for API listen history — prevents 5s interval from wiping rendered data
+  var cachedApiHistory = null;
+
   function deriveHistoryEventsFromStories(limit) {
     if (!window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') {
-      return [];
+      return cachedApiHistory || [];
     }
 
     var stories = window.AudioHubStories.read() || [];
@@ -360,6 +363,22 @@
         });
       });
     });
+
+    // Merge with cached API history (deduplicate by storyId)
+    if (cachedApiHistory && cachedApiHistory.length) {
+      var localIds = {};
+      items.forEach(function (item) {
+        var m = (item.href || '').match(/id=([^&]*)/);
+        if (m) localIds[m[1]] = true;
+      });
+      cachedApiHistory.forEach(function (item) {
+        var m = (item.href || '').match(/id=([^&]*)/);
+        var sid = m ? m[1] : '';
+        if (sid && !localIds[sid]) {
+          items.push(item);
+        }
+      });
+    }
 
     items.sort(function (a, b) {
       return Number(b.listenAt || 0) - Number(a.listenAt || 0);
@@ -437,7 +456,8 @@
           merged.sort(function (a, b) {
             return Date.parse(b.savedAt || '') - Date.parse(a.savedAt || '');
           });
-          renderCollection('[data-library-history]', merged.slice(0, 36), 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
+          cachedApiHistory = merged.slice(0, 36);
+          renderCollection('[data-library-history]', cachedApiHistory, 'history', 'Bạn chưa có lịch sử nghe nào. Hãy mở một truyện và lưu tiến độ để bắt đầu.');
           renderStat('history', merged.length);
           hydrateAccountThumbs();
         })
