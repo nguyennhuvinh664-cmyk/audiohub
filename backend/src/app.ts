@@ -21,6 +21,15 @@ app.use(cors({ origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN }));
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'AudioHub API',
+    version: '1.0.0',
+    status: 'running',
+    docs: '/health',
+  });
+});
+
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
