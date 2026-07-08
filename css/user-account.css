@@ -719,3 +719,29 @@ body.user-account-page {
   .ua-subtitle { font-size: .78rem; }
   .ua-quick-link { padding: 10px 12px; font-size: .8rem; }
 }
+
+/* ── Search ── */
+.ua-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ua-search {
+  background: var(--ua-surface-2, #1e293b);
+  border: 1px solid var(--ua-border, #334155);
+  border-radius: 8px;
+  color: var(--ua-text, #e5e7eb);
+  padding: 8px 12px;
+  font-size: .85rem;
+  width: 220px;
+  outline: none;
+  transition: border-color .2s;
+}
+.ua-search:focus {
+  border-color: var(--ua-accent, #f59e0b);
+}
+.ua-search::placeholder {
+  color: var(--ua-text3, #64748b);
+}

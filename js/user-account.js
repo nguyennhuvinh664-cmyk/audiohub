@@ -719,6 +719,52 @@
   if (navClose) navClose.addEventListener('click', closeNav);
   if (navOverlay) navOverlay.addEventListener('click', closeNav);
 
+  /* ═══ SEARCH ═══ */
+  var searchState = { history: '', favorites: '', chapters: '' };
+
+  function filterAndRender(section) {
+    var query = (searchState[section] || '').toLowerCase().trim();
+    if (section === 'history') {
+      renderHistory();
+      if (!query) return;
+      var container = $('[data-ua-history-list]');
+      if (!container) return;
+      var items = container.querySelectorAll('.ua-list-item');
+      items.forEach(function(item) {
+        var text = item.textContent.toLowerCase();
+        item.style.display = text.indexOf(query) === -1 ? 'none' : '';
+      });
+    } else if (section === 'favorites') {
+      renderFavorites();
+      if (!query) return;
+      var container = $('[data-ua-favorites-list]');
+      if (!container) return;
+      var items = container.querySelectorAll('.ua-list-item');
+      items.forEach(function(item) {
+        var text = item.textContent.toLowerCase();
+        item.style.display = text.indexOf(query) === -1 ? 'none' : '';
+      });
+    } else if (section === 'chapters') {
+      renderChapters();
+      if (!query) return;
+      var container = $('[data-ua-chapters-list]');
+      if (!container) return;
+      var items = container.querySelectorAll('.ua-chapter-item');
+      items.forEach(function(item) {
+        var text = item.textContent.toLowerCase();
+        item.style.display = text.indexOf(query) === -1 ? 'none' : '';
+      });
+    }
+  }
+
+  $$('[data-ua-search]').forEach(function(input) {
+    var section = input.getAttribute('data-ua-search');
+    input.addEventListener('input', function() {
+      searchState[section] = input.value;
+      filterAndRender(section);
+    });
+  });
+
   /* ═══ INIT ═══ */
   seedNotifications();
   renderProfile();
