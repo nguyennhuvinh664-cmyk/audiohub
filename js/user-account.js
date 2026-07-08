@@ -262,8 +262,16 @@
     }
 
     var html = '';
-    favs.forEach(function(favId) {
+    favs.forEach(function(fav) {
+      // Support both object format (from library-state.js) and string ID format
+      var favId = typeof fav === 'string' ? fav : (fav.storyId || fav.id || '');
+      var favTitle = typeof fav === 'object' ? (fav.title || '') : '';
+      var favAuthor = typeof fav === 'object' ? (fav.author || '') : '';
+      var favGenre = typeof fav === 'object' ? (fav.genre || '') : '';
+      var favHref = typeof fav === 'object' ? (fav.href || '') : '';
+
       var story = stories.find(function(s) { return String(s.id) === String(favId); });
+      if (!story && favId) story = { id: favId, title: favTitle || 'Truyện mới', author: favAuthor || 'Ẩn danh', genre: favGenre || 'Khác' };
       if (!story) return;
       var title = story.title || 'Truyện mới';
       var genre = story.genre || 'Khác';
