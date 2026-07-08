@@ -62,9 +62,14 @@
       story.listenCount7d = metrics.listenCount7d;
       return story;
     });
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.slice(0, 50)));
-    } catch (error) {
+    // Only write back if dedup or cap changed the data
+    var deduped = dedupeStories(Array.isArray(parsed) ? parsed : []);
+    var needsWrite = deduped.length !== (Array.isArray(parsed) ? parsed : []).length
+      || next.length !== deduped.length;
+    if (needsWrite) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.slice(0, 50)));
+      } catch (error) {}
     }
     return next;
   }

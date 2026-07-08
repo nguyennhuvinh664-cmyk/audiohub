@@ -654,7 +654,7 @@
     if (document.body.classList.contains('account-page')) {
       renderAccountLibrary();
     }
-  }, 5000);
+  }, 30000);
   bindFavoriteButtons();
   bindDetailActions();
 })();
