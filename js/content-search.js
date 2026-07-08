@@ -3,6 +3,8 @@
  * Handles search functionality for Published, Draft, and Playlist tabs
  * Searches across ALL data, not just current page
  */
+(function () {
+if (typeof ContentSearch !== 'undefined') return;
 
 class ContentSearch {
   constructor() {
@@ -452,3 +454,4 @@ if (document.readyState === 'loading') {
 } else {
   new ContentSearch();
 }
+})();

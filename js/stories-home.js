@@ -100,9 +100,10 @@
     var visibility = String(story.visibility || 'Công khai');
     var color = genreColor(genre);
 
+    var badgeText = story.isCompleted ? 'Full' : (story.listenCount2d > 5 ? 'Hot' : 'Mới');
     return '<a href="' + href + '" class="sc" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + visibility + '">'
       + '<div class="sc__th" style="--c:' + color + '">'
-      + '<span class="bx bn">Demo</span>'
+      + '<span class="bx bn">' + badgeText + '</span>'
       + '<span class="si">' + initials + '</span>'
       + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
       + '</div>'
@@ -141,12 +142,13 @@
       if (si) si.textContent = makeInitials(story.title);
 
       var badge = thumb.querySelector('.bx');
+      var badgeText = story.isCompleted ? 'Full' : (story.listenCount2d > 5 ? 'Hot' : 'Mới');
       if (badge) {
-        badge.textContent = 'Demo';
+        badge.textContent = badgeText;
       } else {
         var span = document.createElement('span');
         span.className = 'bx bn';
-        span.textContent = 'Demo';
+        span.textContent = badgeText;
         thumb.insertBefore(span, thumb.firstChild);
       }
     }
