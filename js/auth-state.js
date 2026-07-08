@@ -86,13 +86,15 @@
     var email = user.email || '';
     if (!name && !email) return false;
 
+    var adminEmails = ['admin@audiohub.vn', 'admin-test@audiohub.vn'];
+
     var profile = {
       isLoggedIn: true,
       name: name,
       email: email,
       initials: deriveInitials(name),
       tier: user.tier || user.membership || 'Thành viên',
-      isAdmin: !!user.isAdmin,
+      isAdmin: !!user.isAdmin || adminEmails.indexOf(email.toLowerCase()) !== -1,
       id: user.id || ''
     };
 
@@ -220,7 +222,9 @@
   }
 
   function getAccountUrl() {
-    return '/html/account.html';
+    var profile = readProfile();
+    if (profile && profile.isAdmin) return '/html/account.html';
+    return '/html/user-account.html';
   }
 
   /* ── Menu interaction ───────────────────────────────────────────── */
