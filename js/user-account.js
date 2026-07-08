@@ -270,6 +270,12 @@
       var favGenre = typeof fav === 'object' ? (fav.genre || '') : '';
       var favHref = typeof fav === 'object' ? (fav.href || '') : '';
 
+      // Extract storyId from key format "story::cmrXXX..." if no favId
+      if (!favId && fav && fav.key) {
+        var keyParts = String(fav.key).split('::');
+        if (keyParts.length >= 2) favId = keyParts[1];
+      }
+
       var story = stories.find(function(s) { return String(s.id) === String(favId); });
       if (!story && favId) story = { id: favId, title: favTitle || 'Truyện mới', author: favAuthor || 'Ẩn danh', genre: favGenre || 'Khác' };
       if (!story) return;
