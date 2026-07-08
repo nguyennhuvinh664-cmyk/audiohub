@@ -220,9 +220,7 @@
   }
 
   function getAccountUrl() {
-    var profile = readProfile();
-    if (profile && profile.isAdmin) return '/html/account.html';
-    return '/html/user-account.html';
+    return '/html/account.html';
   }
 
   /* ── Menu interaction ───────────────────────────────────────────── */

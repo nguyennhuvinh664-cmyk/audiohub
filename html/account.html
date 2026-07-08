@@ -195,13 +195,13 @@
   </main>
   </div> <!-- /m-page -->
 
-  <!-- Role guard: only Admin can access this page -->
+  <!-- Auth guard: redirect to login if not logged in -->
   <script>
   (function() {
     try {
       var auth = JSON.parse(localStorage.getItem('audiohub-auth-profile'));
-      if (!auth || !auth.isAdmin) {
-        var target = 'user-account.html';
+      if (!auth || !auth.isLoggedIn) {
+        var target = 'login.html';
         if (window.AudioHubRouter) { window.AudioHubRouter.navigate(target); } else { window.location.replace(target); }
         return;
       }
