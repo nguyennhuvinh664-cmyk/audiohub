@@ -301,7 +301,9 @@
     var container = $('[data-ua-playlist-list]');
     if (!container) return;
 
-    var playlists = getPlaylists();
+    var playlists = getPlaylists().filter(function (p) {
+      return String(p.createdBy || 'user') === 'user';
+    });
     if (!playlists.length) {
       container.innerHTML = '<div class="ua-empty"><i class="fa-solid fa-list"></i><p>Chưa có playlist nào</p></div>';
       return;
@@ -687,6 +689,7 @@
         name: name,
         entries: [],
         state: 'ongoing',
+        createdBy: 'user',
         createdAt: new Date().toISOString()
       });
       localStorage.setItem('audiohub-playlists-v1', JSON.stringify(playlists));

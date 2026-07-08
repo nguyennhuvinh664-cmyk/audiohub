@@ -1025,7 +1025,7 @@
 
   function createPlaylist(name) {
     var list = readPlaylists();
-    var playlist = { id: generateId(), name: String(name || '').trim(), entries: [], createdAt: new Date().toISOString() };
+    var playlist = { id: generateId(), name: String(name || '').trim(), entries: [], createdBy: 'admin', createdAt: new Date().toISOString() };
     list.push(playlist);
     writePlaylists(list);
     return playlist;
@@ -1117,7 +1117,9 @@
     var playlistListMount = document.querySelector('[data-playlist-list]');
     var playlistDetailMount = document.querySelector('[data-playlist-detail]');
     if (!playlistListMount) return;
-    var list = readPlaylists();
+    var list = readPlaylists().filter(function (p) {
+      return String(p.createdBy || 'admin') === 'admin';
+    });
 
     if (playlistNote) playlistNote.classList.toggle('is-hidden', true);
 

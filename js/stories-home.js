@@ -302,7 +302,7 @@
     }
 
     var completed = playlists.filter(function (p) {
-      return String(p.state || '').trim() === 'done';
+      return String(p.state || '').trim() === 'done' && String(p.createdBy || 'admin') === 'admin';
     });
 
     if (!completed.length) {
