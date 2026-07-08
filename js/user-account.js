@@ -189,7 +189,27 @@
 
     var lib = getLibrary();
     var stories = getStories();
-    var history = lib.history || [];
+
+    // Derive history from audiohub-stories.listenHistory (primary source)
+    var history = [];
+    stories.forEach(function (story) {
+      var lh = Array.isArray(story && story.listenHistory) ? story.listenHistory : [];
+      var sid = String(story && story.id || '').trim();
+      if (!sid || !lh.length) return;
+      lh.forEach(function (ts) {
+        var time = Number(ts);
+        if (isNaN(time) || time <= 0) return;
+        history.push({ storyId: sid, timestamp: time, title: story.title, author: story.author, genre: story.genre });
+      });
+    });
+
+    // Merge with audiohub-library.history (secondary source)
+    (lib.history || []).forEach(function (h) {
+      var sid = h.storyId || h.id;
+      if (sid && !history.some(function (x) { return x.storyId === sid && Math.abs((x.timestamp || 0) - (h.timestamp || 0)) < 60000; })) {
+        history.push(h);
+      }
+    });
 
     if (!history.length) {
       container.innerHTML = '<div class="ua-empty"><i class="fa-solid fa-headphones"></i><p>Chưa có lịch sử nghe</p></div>';

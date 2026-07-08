@@ -64,9 +64,15 @@
     var title = normalizeText(source.dataset.title, 'AudioHub Story');
     var coverKey = String(source.dataset.coverKey || '').trim();
 
-    if (!coverKey && storyId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+    // If data attributes are empty, try reading from AudioHubStories store
+    if (storyId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
       var story = window.AudioHubStories.getById(storyId);
-      coverKey = story && story.coverKey ? String(story.coverKey) : '';
+      if (story) {
+        if (!title || title === 'AudioHub Story') title = story.title || title;
+        if (!coverKey) coverKey = story.coverKey ? String(story.coverKey) : '';
+        if (!source.dataset.author && story.author) source.dataset.author = story.author;
+        if (!source.dataset.genre && story.genre) source.dataset.genre = story.genre;
+      }
     }
 
     return {
