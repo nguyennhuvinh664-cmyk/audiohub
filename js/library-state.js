@@ -62,24 +62,33 @@
 
     var storyId = String(source.dataset.storyId || '').trim();
     var title = normalizeText(source.dataset.title, 'AudioHub Story');
+    var author = normalizeText(source.dataset.author, 'AudioHub');
+    var genre = normalizeText(source.dataset.genre, 'Truyện audio');
     var coverKey = String(source.dataset.coverKey || '').trim();
 
-    // If data attributes are empty, try reading from AudioHubStories store
+    // Always try AudioHubStories store first (authoritative source)
     if (storyId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
       var story = window.AudioHubStories.getById(storyId);
       if (story) {
-        if (!title || title === 'AudioHub Story') title = story.title || title;
-        if (!coverKey) coverKey = story.coverKey ? String(story.coverKey) : '';
-        if (!source.dataset.author && story.author) source.dataset.author = story.author;
-        if (!source.dataset.genre && story.genre) source.dataset.genre = story.genre;
+        title = story.title || title;
+        author = story.author || author;
+        genre = story.genre || genre;
+        coverKey = story.coverKey ? String(story.coverKey) : coverKey;
       }
+    }
+
+    // Fallback: resolve storyId from URL if not in dataset
+    if (!storyId && window.location && window.location.search) {
+      try {
+        storyId = new URLSearchParams(window.location.search).get('id') || '';
+      } catch (e) {}
     }
 
     return {
       key: source.dataset.storyKey || (storyId ? ('story::' + storyId) : (href + '::' + title)),
       title: title,
-      author: normalizeText(source.dataset.author, 'AudioHub'),
-      genre: normalizeText(source.dataset.genre, 'Truyện audio'),
+      author: author,
+      genre: genre,
       progress: normalizeText(source.dataset.progress, 'Đang cập nhật'),
       note: normalizeText(source.dataset.note, 'Đồng bộ trong thư viện cá nhân.'),
       href: href,
