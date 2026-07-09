@@ -496,9 +496,9 @@
     padding: 0 12px;
   }
 
-  /* ── Top 3 — Mobile: Vertical stack ── */
+  /* ── Top 3 — Mobile: Horizontal row ── */
   .hall-podium-section {
-    padding: 6px 16px 24px;
+    padding: 6px 12px 20px;
   }
 
   .hall-crown {
@@ -507,64 +507,80 @@
   }
 
   .hall-podium {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
     max-width: none;
   }
 
   .member-podium {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-    padding: 14px 16px;
-    border-radius: 18px;
-    gap: 14px;
-    height: auto;
+    text-align: center;
+    padding: 16px 8px 14px;
+    border-radius: 16px;
   }
 
   .member-podium--first {
     grid-column: auto;
     grid-row: auto;
-    align-self: auto;
+    border-color: rgba(245,158,11,.4);
+    box-shadow: 0 0 20px rgba(245,158,11,.1);
   }
 
-  .member-podium--second,
+  .member-podium--second {
+    grid-column: auto;
+    grid-row: auto;
+    border-color: rgba(99,102,241,.3);
+    box-shadow: 0 0 18px rgba(99,102,241,.08);
+  }
+
   .member-podium--third {
     grid-column: auto;
     grid-row: auto;
+    border-color: rgba(239,68,68,.25);
+    box-shadow: 0 0 18px rgba(239,68,68,.08);
   }
 
   .member-rank {
-    position: static;
-    width: 30px;
-    height: 30px;
-    font-size: .78rem;
-    flex-shrink: 0;
-    order: -1;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    font-size: .68rem;
   }
 
   .member-avatar {
-    width: 50px;
-    height: 50px;
-    font-size: 1rem;
-    margin: 0;
-    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    font-size: 1.05rem;
+    margin: 0 auto 8px;
   }
 
-  .member-podium > h2 {
-    font-size: .92rem;
-    margin-bottom: 2px;
+  .member-podium--first .member-avatar {
+    width: 62px;
+    height: 62px;
+    font-size: 1.2rem;
+  }
+
+  .member-podium h2 {
+    font-size: .78rem;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .member-podium--first h2 {
+    font-size: .82rem;
   }
 
   .member-title {
-    font-size: .72rem;
-    margin-bottom: 3px;
+    font-size: .68rem;
+    margin-bottom: 4px;
   }
 
   .member-score {
-    font-size: .76rem;
+    font-size: .7rem;
   }
 
   /* ── Ranking — Mobile: List style ── */
