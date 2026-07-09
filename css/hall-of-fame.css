@@ -289,7 +289,7 @@
   }
 
   .hall-title {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
   .hall-tabs {
@@ -301,23 +301,41 @@
   .hall-tab {
     flex: 1 1 0;
     text-align: center;
+    padding: 10px 10px;
+    font-size: .82rem;
   }
 
   .hall-podium {
-    grid-template-columns: 1fr;
-    max-width: 320px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
   }
 
-  .member-podium--second {
-    order: 2;
+  .member-podium {
+    padding: 14px 8px 12px;
   }
 
-  .member-podium--first {
-    order: 1;
+  .member-avatar {
+    width: 52px;
+    height: 52px;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
   }
 
-  .member-podium--third {
-    order: 3;
+  .member-podium h2 {
+    font-size: .82rem;
+  }
+
+  .member-score {
+    padding: 4px 8px;
+    font-size: .72rem;
+  }
+
+  .member-rank {
+    width: 22px;
+    height: 22px;
+    font-size: .68rem;
+    top: 8px;
+    right: 8px;
   }
 
   .hall-table th,
