@@ -408,11 +408,19 @@
   }
 
   function renderHomeStories() {
+    // Render local stories first (instant)
+    var localStories = window.AudioHubStories.read() || [];
+    var localPublic = localStories.filter(function (story) { return isPublicVisibility(story); });
+    if (localPublic.length) {
+      renderHomeStoriesFrom(localPublic);
+      bindHomeGenreDropdown();
+    }
+
+    // Then fetch from API in background
     loadStoriesForHome().then(function (stories) {
       renderHomeStoriesFrom(stories);
       bindHomeGenreDropdown();
 
-      // Bind form submit for "Lọc Ngay"
       var form = document.querySelector('[data-home-search-form]');
       if (form && !form._bound) {
         form._bound = true;
