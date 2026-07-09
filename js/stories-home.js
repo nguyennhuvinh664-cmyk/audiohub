@@ -264,8 +264,17 @@
     // Always fetch fresh from API, merge with local
     return fetchPublicStories().then(function (apiStories) {
       var apiIds = {};
-      (apiStories || []).forEach(function (s) { apiIds[s.id] = true; });
-      var localOnly = localPublic.filter(function (s) { return !apiIds[s.id]; });
+      var apiTitles = {};
+      (apiStories || []).forEach(function (s) {
+        apiIds[s.id] = true;
+        if (s.title) apiTitles[s.title.trim().toLowerCase()] = true;
+      });
+      // Filter local stories: skip if same ID or same title as API story
+      var localOnly = localPublic.filter(function (s) {
+        if (apiIds[s.id]) return false;
+        if (s.title && apiTitles[s.title.trim().toLowerCase()]) return false;
+        return true;
+      });
       return (apiStories || []).concat(localOnly);
     }).catch(function () {
       return localPublic.length ? localPublic : localStories;
