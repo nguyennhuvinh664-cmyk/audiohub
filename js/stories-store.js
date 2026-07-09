@@ -580,7 +580,11 @@
 
         // PRESERVE local stories not in remote response (e.g. public stories from other users)
         var localOnly = localStories.filter(function (item) {
-          return item && item.id && !remoteIds[String(item.id)];
+          if (!item || !item.id) return false;
+          if (remoteIds[String(item.id)]) return false;
+          // Remove stale s_ drafts when backend is available
+          if (canUseApi() && String(item.id).startsWith('s_')) return false;
+          return true;
         });
 
         // Khi real login (canUseApi), bỏ local s_ drafts vì đó là demo data chưa upload thật

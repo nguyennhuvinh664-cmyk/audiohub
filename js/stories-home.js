@@ -416,4 +416,8 @@
   }
 
   renderHomeStories();
+
+  // Re-render when stories are synced/updated
+  window.addEventListener('audiohub:stories-synced', renderHomeStories);
+  window.addEventListener('audiohub:stories-updated', renderHomeStories);
 })();
