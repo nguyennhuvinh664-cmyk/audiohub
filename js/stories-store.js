@@ -647,8 +647,52 @@
     clearListenHistory: clearListenHistory
   };
 
+  // Auto-sync local s_ stories to backend (one-time per story)
+  function syncLocalStoriesToApi() {
+    if (!canUseApi()) return;
+    var localStories = readLocalStories();
+    var localDrafts = localStories.filter(function (s) {
+      return s && s.id && String(s.id).startsWith('s_');
+    });
+    if (!localDrafts.length) return;
+
+    localDrafts.forEach(function (story) {
+      var payload = mapStoryPayload(story);
+      window.AudioHubApi.request('/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (created) {
+        if (!created || !created.id) return;
+        var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
+        removeLocalStory(story.id);
+        upsertLocalStory({
+          id: created.id,
+          title: story.title,
+          author: story.author,
+          genre: story.genre,
+          description: story.description,
+          readingText: story.readingText,
+          hashtags: story.hashtags,
+          chapterTitle: story.chapterTitle,
+          chapters: savedChapters,
+          chapterCount: savedChapters.length || story.chapterCount || 0,
+          visibility: story.visibility,
+          audioStatus: story.audioStatus,
+          coverKey: story.coverKey,
+          audioKey: story.audioKey,
+          youtubeUrl: story.youtubeUrl,
+          youtubeId: story.youtubeId,
+          createdAt: created.createdAt || story.createdAt,
+          updatedAt: created.updatedAt || new Date().toISOString()
+        });
+      }).catch(function () {});
+    });
+  }
+
   migrateAnonymousAuthors();
   syncFromApi().then(function () {
     migrateAnonymousAuthors();
+    syncLocalStoriesToApi();
   });
 })();
