@@ -442,14 +442,40 @@
      Always fetches /auth/me if token exists, to ensure profile is fresh.
      ══════════════════════════════════════════════════════════════════ */
 
+  function ensureGuestToken() {
+    var token = getToken();
+    // Already have a real token (not demo)
+    if (token && token !== 'demo-local-token') {
+      return Promise.resolve(token);
+    }
+    // No token or demo token — register as guest
+    var guestId = window.AudioHubApi && window.AudioHubApi.getGuestId ? window.AudioHubApi.getGuestId() : ('g_' + Date.now().toString(36));
+    return window.AudioHubApi.request('/auth/guest', {
+      method: 'POST',
+      body: JSON.stringify({ guestId: guestId })
+    }).then(function (result) {
+      if (result && result.token) {
+        setToken(result.token);
+        if (window.AudioHubApi && typeof window.AudioHubApi.setToken === 'function') {
+          window.AudioHubApi.setToken(result.token);
+        }
+        return result.token;
+      }
+      return null;
+    }).catch(function () {
+      return null;
+    });
+  }
+
   function hydrateAuth() {
     var token = getToken();
 
-    // No token → definitely guest
-    if (!token) {
-      clearProfile();
-      renderHeaderAuth();
-      renderAccountProfile();
+    // No token → try guest registration first
+    if (!token || token === 'demo-local-token') {
+      ensureGuestToken().then(function () {
+        renderHeaderAuth();
+        renderAccountProfile();
+      });
       return;
     }
 
@@ -458,11 +484,9 @@
       if (user && (user.displayName || user.email)) {
         saveProfileFromUser(user);
       }
-      // else: keep existing profile in localStorage (if any)
       renderHeaderAuth();
       renderAccountProfile();
     }).catch(function () {
-      // Backend unreachable → keep whatever is in localStorage
       renderHeaderAuth();
       renderAccountProfile();
     });
@@ -498,7 +522,8 @@
     readProfile: readProfile,
     getToken: getToken,
     logout: logoutAndRedirect,
-    renderHeader: renderHeaderAuth
+    renderHeader: renderHeaderAuth,
+    ensureGuestToken: ensureGuestToken
   };
 
   // Expose for SPA router

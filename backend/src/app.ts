@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { env } from './config/env.js';
 import { errorHandler } from './shared/middleware/error-handler.js';
 import authRoutes from './modules/auth/auth.routes.js';
+import guestRoutes from './modules/auth/guest.routes.js';
 import storiesRoutes from './modules/stories/stories.routes.js';
 import mediaRoutes, { coverPublicRouter, audioPublicRouter } from './modules/media/media.routes.js';
 import trashRoutes from './modules/trash/trash.routes.js';
@@ -35,6 +36,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', guestRoutes);
 app.use('/api/v1/stories', storiesRoutes);
 app.use('/api/v1', mediaRoutes);
 app.use('/api/v1', coverPublicRouter);

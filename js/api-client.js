@@ -108,6 +108,16 @@
     return request(path, opts);
   }
 
+  var GUEST_ID_KEY = 'audiohub-guest-id';
+
+  function getGuestId() {
+    var id = window.localStorage.getItem(GUEST_ID_KEY);
+    if (id) return id;
+    id = 'g_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+    window.localStorage.setItem(GUEST_ID_KEY, id);
+    return id;
+  }
+
   window.AudioHubApi = {
     getBaseUrl: getBaseUrl,
     setBaseUrl: setBaseUrl,
@@ -115,6 +125,7 @@
     setToken: setToken,
     isEnabled: isEnabled,
     request: request,
-    requestBlob: requestBlob
+    requestBlob: requestBlob,
+    getGuestId: getGuestId
   };
 })();
