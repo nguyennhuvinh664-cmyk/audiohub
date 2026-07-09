@@ -993,7 +993,9 @@
 
     // After story is synced to backend with real CUID, re-upload audio if needed
     if (published && story && story.id && state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
-      window.AudioHubStoryAudio.put(state.audioFile, story.id).then(function (newAudioKey) {
+      var fileToUpload = state.audioFile;
+      state.audioFile = null; // Clear File object before upsert (can't serialize to JSON)
+      window.AudioHubStoryAudio.put(fileToUpload, story.id).then(function (newAudioKey) {
         if (newAudioKey && newAudioKey !== state.audioKey) {
           state.audioKey = newAudioKey;
           // Update story with new audioKey from backend
