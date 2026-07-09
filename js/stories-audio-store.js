@@ -51,18 +51,24 @@
   }
 
   function putAudio(blob, storyId) {
-    if (canUseApi() && storyId && !String(storyId).startsWith('s_') && blob) {
-      var form = new FormData();
-      form.append('audio', blob, blob.name || 'audio.mp3');
-      return window.AudioHubApi.request('/stories/' + encodeURIComponent(storyId) + '/audio', {
-        method: 'POST',
-        body: form
-      }).then(function (result) {
-        return result && result.audioKey ? String(result.audioKey) : '';
-      });
-    }
+    // Wait for guest token to be ready before uploading
+    var ensurePromise = (window.AudioHubAuth && window.AudioHubAuth.ensureGuestToken)
+      ? window.AudioHubAuth.ensureGuestToken()
+      : Promise.resolve();
 
-    return openDb().then(function (db) {
+    return ensurePromise.then(function () {
+      if (canUseApi() && storyId && !String(storyId).startsWith('s_') && blob) {
+        var form = new FormData();
+        form.append('audio', blob, blob.name || 'audio.mp3');
+        return window.AudioHubApi.request('/stories/' + encodeURIComponent(storyId) + '/audio', {
+          method: 'POST',
+          body: form
+        }).then(function (result) {
+          return result && result.audioKey ? String(result.audioKey) : '';
+        });
+      }
+
+      return openDb().then(function (db) {
       return new Promise(function (resolve, reject) {
         var key = makeKey();
         var tx = db.transaction(STORE_NAME, 'readwrite');
@@ -91,6 +97,7 @@
           reject(tx.error || new Error('Failed to store audio'));
         };
       });
+    });
     });
   }
 
