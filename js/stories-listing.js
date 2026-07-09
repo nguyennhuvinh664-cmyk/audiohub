@@ -382,6 +382,21 @@
     if (favBtn) {
       event.preventDefault();
       event.stopPropagation();
+      var card = favBtn.closest('.story-card');
+      if (card && window.AudioHubLibrary && typeof window.AudioHubLibrary.toggleFavorite === 'function') {
+        var sid = card.getAttribute('data-story-id') || '';
+        var storyData = {
+          key: 'story::' + sid,
+          title: card.querySelector('.story-title') ? card.querySelector('.story-title').textContent : '',
+          author: card.querySelector('.story-footer span') ? card.querySelector('.story-footer span').textContent.trim() : '',
+          genre: card.querySelector('.story-meta span') ? card.querySelector('.story-meta span').textContent : '',
+          href: '/story-detail.html?id=' + encodeURIComponent(sid),
+          coverKey: card.querySelector('[data-cover-key]') ? card.querySelector('[data-cover-key]').getAttribute('data-cover-key') : ''
+        };
+        var isFav = window.AudioHubLibrary.toggleFavorite(storyData);
+        favBtn.classList.toggle('is-active', isFav);
+        favBtn.querySelector('i').className = isFav ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+      }
       return;
     }
 

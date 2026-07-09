@@ -661,6 +661,18 @@
   window.hydrateLibraryThumbs = hydrateLibraryThumbs;
   window.renderAccountLibrary = renderAccountLibrary;
 
+  window.AudioHubLibrary = {
+    toggleFavorite: function (story) {
+      if (!story) return;
+      return toggleCollection('favorites', story);
+    },
+    isFavorited: function (story) {
+      var library = readLibrary();
+      var key = story.key || storyKey(story);
+      return hasItem(library.favorites, key);
+    }
+  };
+
   window.addEventListener('audiohub:stories-updated', function () {
     renderAccountLibrary();
   });
