@@ -1,4 +1,4 @@
-/* ═══ Vinh Danh Hội Viên — simplified, dark theme ═══ */
+/* ═══ Vinh Danh Hội Viên ═══ */
 
 .hall-page {
   background: #0d1117;
@@ -6,102 +6,111 @@
 
 /* ── Hero ── */
 .hall-hero {
-  padding: 52px 0 22px;
+  padding: 48px 16px 20px;
   text-align: center;
 }
 
 .hall-hero__inner {
-  max-width: 720px;
+  max-width: 640px;
   margin: 0 auto;
-  padding: 0 16px;
 }
 
 .hall-title {
   font-family: var(--font-d);
-  font-size: clamp(2.2rem, 5vw, 3rem);
-  line-height: 1.1;
-  color: #ffffff;
-  margin-bottom: 8px;
-  font-weight: 800;
+  font-size: 1.75rem;
+  color: #fff;
+  margin-bottom: 6px;
 }
 
 .hall-subtitle {
   color: #9ca3af;
-  font-size: 1rem;
-  margin-bottom: 18px;
+  font-size: .9rem;
+  margin-bottom: 16px;
 }
 
 /* ── Tabs ── */
 .hall-tabs {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px;
+  gap: 4px;
+  padding: 4px;
   border-radius: 999px;
-  background: rgba(24, 29, 43, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #181d2b;
+  border: 1px solid rgba(255, 255, 255, .06);
 }
 
 .hall-tab {
+  height: 44px;
+  padding: 0 20px;
   border: none;
+  border-radius: 999px;
   background: transparent;
   color: #9ca3af;
   font-weight: 700;
-  font-size: .9rem;
-  padding: 10px 18px;
-  border-radius: 999px;
+  font-size: .88rem;
   cursor: pointer;
-  transition: background .2s, color .2s;
+  transition: background .15s, color .15s;
 }
 
 .hall-tab.is-active {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, .15);
   color: #f59e0b;
 }
 
-.hall-tab:hover:not(.is-active) {
-  color: #ffffff;
-}
-
-/* ── Podium ── */
+/* ── Podium (Top 3) ── */
 .hall-podium-section {
-  padding: 10px 0 28px;
+  padding: 4px 16px 20px;
 }
 
 .hall-podium {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  align-items: end;
-  max-width: 760px;
+  gap: 12px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 0 16px;
 }
 
 .member-podium {
   position: relative;
   text-align: center;
-  padding: 22px 14px 18px;
+  padding: 20px 12px 16px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, .06);
   background: #181d2b;
 }
 
-.member-podium--second { order: 1; }
-.member-podium--first  { order: 2; border-color: #f59e0b; }
-.member-podium--third  { order: 3; }
+.member-podium--first {
+  border-color: rgba(245, 158, 11, .5);
+}
+
+.member-rank {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.member-rank--first {
+  background: #f59e0b;
+  color: #000;
+}
 
 .member-avatar {
   width: 72px;
   height: 72px;
-  margin: 0 auto 12px;
+  margin: 0 auto 10px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, .12);
 }
 
 .member-avatar--image {
@@ -116,29 +125,10 @@
   background: #d97706;
 }
 
-.member-rank {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: .78rem;
-  font-weight: 800;
-}
-
-.member-rank--first {
-  background: #f59e0b;
-  color: #000000;
-}
-
 .member-podium h2 {
-  font-size: 1.05rem;
-  line-height: 1.2;
-  margin-bottom: 8px;
-  color: #ffffff;
+  font-size: .95rem;
+  color: #fff;
+  margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -147,45 +137,43 @@
 .member-score {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(13, 17, 23, 0.6);
+  gap: 5px;
+  font-size: .78rem;
   color: #9ca3af;
-  font-size: .82rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .member-score i {
   color: #f59e0b;
+  font-size: .7rem;
 }
 
 .member-score span {
-  color: #ffffff;
+  color: #fff;
+  font-weight: 700;
 }
 
-/* ── Board ── */
+/* ── Ranking (Board) ── */
 .hall-board-section {
-  padding: 0 0 84px;
+  padding: 0 16px 84px;
 }
 
 .hall-board {
+  max-width: 720px;
+  margin: 0 auto;
   background: #181d2b;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, .06);
   border-radius: 18px;
   overflow: hidden;
-  margin: 0 16px;
 }
 
 .hall-board__header {
-  padding: 16px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 14px 18px;
 }
 
 .hall-board__header span {
   color: #6b7280;
-  font-size: .82rem;
+  font-size: .78rem;
 }
 
 .hall-table-wrap {
@@ -199,8 +187,8 @@
 
 .hall-table th,
 .hall-table td {
-  padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, .04);
 }
 
 .hall-table th {
@@ -209,28 +197,17 @@
   font-size: .72rem;
   text-transform: uppercase;
   letter-spacing: .04em;
-  background: rgba(13, 17, 23, 0.4);
 }
 
+/* Ẩn cột "Thành tựu" do JS tạo ra */
 .hall-table th:nth-child(3),
 .hall-table td:nth-child(3) {
   display: none;
-  width: 0;
-  padding: 0;
-  border: none;
-  overflow: hidden;
 }
 
-.hall-table th:last-child {
-  text-align: right;
-}
-
+.hall-table th:last-child,
 .hall-table td:last-child {
   text-align: right;
-}
-
-.hall-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
 }
 
 .hall-table tbody tr:last-child td {
@@ -240,12 +217,12 @@
 .hall-user {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hall-user strong {
-  font-size: .95rem;
-  color: #ffffff;
+  font-size: .9rem;
+  color: #fff;
 }
 
 .hall-user__avatar {
@@ -254,16 +231,17 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: .82rem;
+  font-size: .78rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #fff;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, .08);
 }
 
 .hall-points {
   color: #f59e0b;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: .88rem;
   white-space: nowrap;
 }
 
@@ -271,10 +249,10 @@
   display: none;
 }
 
-/* ── Footer ── */
+/* ── Footer button ── */
 .hall-board__footer {
-  padding: 16px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, .04);
 }
 
 .hall-view-all {
@@ -282,64 +260,60 @@
   justify-content: center;
 }
 
-/* ── Responsive ── */
-@media (max-width: 768px) {
+/* ═══ Mobile (≤ 640px) ═══ */
+@media (max-width: 640px) {
   .hall-hero {
-    padding-top: 42px;
+    padding-top: 40px;
   }
 
   .hall-title {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
   }
 
   .hall-tabs {
     width: 100%;
-    justify-content: center;
-    border-radius: 999px;
   }
 
   .hall-tab {
     flex: 1 1 0;
-    text-align: center;
-    padding: 10px 10px;
     font-size: .82rem;
+    padding: 0 12px;
   }
 
   .hall-podium {
-    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
 
   .member-podium {
-    padding: 14px 8px 12px;
+    padding: 16px 8px 14px;
   }
 
   .member-avatar {
-    width: 52px;
-    height: 52px;
+    width: 56px;
+    height: 56px;
     font-size: 1.2rem;
-    margin-bottom: 8px;
   }
 
   .member-podium h2 {
-    font-size: .82rem;
+    font-size: .8rem;
   }
 
   .member-score {
-    padding: 4px 8px;
-    font-size: .72rem;
+    font-size: .7rem;
   }
 
   .member-rank {
     width: 22px;
     height: 22px;
-    font-size: .68rem;
-    top: 8px;
-    right: 8px;
+    font-size: .65rem;
   }
 
   .hall-table th,
   .hall-table td {
-    padding: 12px 14px;
+    padding: 12px 12px;
+  }
+
+  .hall-user strong {
+    font-size: .82rem;
   }
 }
