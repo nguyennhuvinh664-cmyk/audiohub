@@ -11,7 +11,7 @@
 </head>
 <body class="listing-page hall-page">
 <script>
-/* Seed fake hall data for testing */
+/* Seed fake hall data for testing — write directly to localStorage */
 (function(){
   var key = 'audiohub-hall-contributions-v1';
   try {
@@ -133,6 +133,7 @@
   </div> <!-- /m-page -->
 
   <script>
+    document.addEventListener('DOMContentLoaded', function () {
     (function () {
       var tabs = Array.prototype.slice.call(document.querySelectorAll('.hall-tab'));
       var updatedNode = document.querySelector('[data-hall-updated]');
@@ -141,6 +142,7 @@
       var podiumThird = document.querySelector('.member-podium--third');
       var tableBody = document.querySelector('.hall-table tbody');
       if (!tabs.length || !updatedNode || !podiumFirst || !podiumSecond || !podiumThird || !tableBody) return;
+      if (!window.AudioHubHall || typeof window.AudioHubHall.read !== 'function') return;
 
       var rankPalette = ['blue', 'cyan', 'green', 'emerald', 'indigo', 'slate', 'dark'];
       var rankPool = ['Thiên Khôi Tinh', 'Thiên Cương Tinh', 'Thiên Cơ Tinh', 'Thiên Nhàn Tinh', 'Thiên Dũng Tinh', 'Thiên Hùng Tinh', 'Thiên Mãnh Tinh', 'Thiên Uy Tinh', 'Thiên Anh Tinh', 'Thiên Quý Tinh'];
@@ -312,6 +314,7 @@
       seedDefaultContributors();
       applyDataset('week');
     })();
+    });
   </script>
 
 </div>
