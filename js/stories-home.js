@@ -374,10 +374,15 @@
       return parseTime(b.createdAt) - parseTime(a.createdAt);
     });
 
+    function normalizeGenre(v) {
+      return String(v || '').trim().toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/đ/g, 'd');
+    }
+    var selNorm = normalizeGenre(selectedGenre);
     var newStories = selectedGenre
       ? newStoriesBase.filter(function (story) {
-          var storyGenre = String(story && story.genre || '').trim().toLowerCase();
-          return storyGenre === selectedGenre.toLowerCase();
+          return normalizeGenre(story.genre) === selNorm;
         })
       : newStoriesBase;
 
@@ -397,6 +402,16 @@
     loadStoriesForHome().then(function (stories) {
       renderHomeStoriesFrom(stories);
       bindHomeGenreDropdown();
+
+      // Bind form submit for "Lọc Ngay"
+      var form = document.querySelector('[data-home-search-form]');
+      if (form && !form._bound) {
+        form._bound = true;
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          renderHomeStoriesFrom(stories);
+        });
+      }
     });
   }
 
