@@ -3,10 +3,11 @@
  * Handles search functionality for Published, Draft, and Playlist tabs
  * Searches across ALL data, not just current page
  */
-if (typeof window !== 'undefined' && window.__contentSearchLoaded) { /* skip */ } else {
-if (typeof window !== 'undefined') window.__contentSearchLoaded = true;
+(function () {
+if (window.__contentSearchLoaded) return;
+window.__contentSearchLoaded = true;
 
-class ContentSearch {
+var ContentSearch = class ContentSearch {
   constructor() {
     this.searchInputs = {};
     this.clearButtons = {};
@@ -448,10 +449,10 @@ class ContentSearch {
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', function() {
     new ContentSearch();
   });
 } else {
   new ContentSearch();
 }
-}
+})();
