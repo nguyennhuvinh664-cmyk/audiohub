@@ -651,6 +651,7 @@
 
     state.audioReady = false;
     state.audioName = file.name;
+    state.audioFile = file;
     state.audioKey = '';
     if (audioZone) {
       audioZone.classList.remove('is-ready');
@@ -988,6 +989,18 @@
     if (published && !state.audioKey) {
       showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
       return;
+    }
+
+    // After story is synced to backend with real CUID, re-upload audio if needed
+    if (published && story && story.id && state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
+      window.AudioHubStoryAudio.put(state.audioFile, story.id).then(function (newAudioKey) {
+        if (newAudioKey && newAudioKey !== state.audioKey) {
+          state.audioKey = newAudioKey;
+          // Update story with new audioKey from backend
+          story.audioKey = newAudioKey;
+          window.AudioHubStories.upsert(story);
+        }
+      }).catch(function () {});
     }
 
     showBanner(statusLabel + ' Đã lưu vào danh sách demo.', published);
