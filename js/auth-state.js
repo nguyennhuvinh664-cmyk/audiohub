@@ -492,6 +492,9 @@
     });
   }
 
+  // Auto-register guest token on page load (before other scripts run)
+  ensureGuestToken();
+
   /* ═══ INIT ═══════════════════════════════════════════════════════════ */
 
   // Global listeners
