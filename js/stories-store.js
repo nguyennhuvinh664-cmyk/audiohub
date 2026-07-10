@@ -666,12 +666,6 @@
 
       audioPromise.then(function (audioInfo) {
         var payload = mapStoryPayload(story);
-        // Upload audio blob to backend if we have one
-        if (audioInfo.audioBlob && audioInfo.audioKey) {
-          var form = new FormData();
-          form.append('audio', audioInfo.audioBlob, 'audio.mp3');
-          // We need to create story first, then upload audio
-        }
 
         window.AudioHubApi.request('/stories', {
           method: 'POST',
@@ -691,7 +685,7 @@
           }
 
           var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
-          removeLocalStory(story.id);
+          removeLocalStory(story.id); // Remove old s_ entry
           upsertLocalStory({
             id: created.id,
             title: story.title,
@@ -718,8 +712,11 @@
   }
 
   migrateAnonymousAuthors();
-  syncFromApi().then(function () {
-    migrateAnonymousAuthors();
-    syncLocalStoriesToApi();
-  });
+  // Sync local s_ stories to backend FIRST, then fetch from API
+  syncLocalStoriesToApi();
+  setTimeout(function () {
+    syncFromApi().then(function () {
+      migrateAnonymousAuthors();
+    });
+  }, 2000);
 })();
