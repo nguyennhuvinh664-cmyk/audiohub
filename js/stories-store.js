@@ -364,11 +364,17 @@
           body: JSON.stringify(payload)
         }).catch(function () {});
       } else {
+        // Skip if syncLocalStoriesToApi() is already handling this story
+        if (_syncingStories[localEntry.id]) {
+          return localEntry;
+        }
+        _syncingStories[localEntry.id] = true;
         window.AudioHubApi.request('/stories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         }).then(function (created) {
+          delete _syncingStories[localEntry.id];
           if (!created || !created.id) {
             return;
           }
@@ -395,7 +401,9 @@
             createdAt: created.createdAt || localEntry.createdAt,
             updatedAt: created.updatedAt || new Date().toISOString()
           });
-        }).catch(function () {});
+        }).catch(function () {
+          delete _syncingStories[localEntry.id];
+        });
       }
     }
 
@@ -535,18 +543,31 @@
       // Not logged in → fetch public stories from API
       return window.AudioHubApi.request('/stories/public', { method: 'GET' })
         .then(function (publicStories) {
+          var localStories = readLocalStories();
           if (!Array.isArray(publicStories) || !publicStories.length) {
-            var localStories = readLocalStories();
             notifyStoriesSynced();
             return localStories;
           }
           var normalized = publicStories.map(function (story) {
             return normalizeStory(story);
           }).filter(Boolean);
-          writeLocalStories(normalized);
+
+          // Build index of API stories by ID
+          var apiIds = {};
+          normalized.forEach(function (s) { apiIds[String(s.id)] = true; });
+
+          // Keep local stories that are NOT in the API (e.g. s_ drafts not yet synced)
+          var localOnly = localStories.filter(function (item) {
+            if (!item || !item.id) return false;
+            if (apiIds[String(item.id)]) return false;
+            return true;
+          });
+
+          var merged = normalized.concat(localOnly).slice(0, 50);
+          writeLocalStories(merged);
           notifyStoriesUpdated();
           notifyStoriesSynced();
-          return normalized;
+          return merged;
         })
         .catch(function () {
           var localStories = readLocalStories();
@@ -648,15 +669,23 @@
   };
 
   // Auto-sync local s_ stories to backend (one-time per story)
+  // Track stories currently being synced to prevent duplicate POSTs
+  var _syncingStories = {};
   function syncLocalStoriesToApi() {
     if (!canUseApi()) return;
     var localStories = readLocalStories();
     var localDrafts = localStories.filter(function (s) {
-      return s && s.id && String(s.id).startsWith('s_');
+      if (!s || !s.id || !String(s.id).startsWith('s_')) return false;
+      // Skip stories already being synced by upsertStory()
+      if (_syncingStories[s.id]) return false;
+      return true;
     });
     if (!localDrafts.length) return;
 
     localDrafts.forEach(function (story) {
+      // Mark as syncing to prevent upsertStory() from also POSTing
+      _syncingStories[story.id] = true;
+
       // Try to upload audio from IndexedDB first
       var audioPromise = (story.audioKey && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function')
         ? window.AudioHubStoryAudio.get(story.audioKey).then(function (blob) {
@@ -672,6 +701,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         }).then(function (created) {
+          delete _syncingStories[story.id];
           if (!created || !created.id) return;
 
           // Upload audio blob to new story if we have one
@@ -706,7 +736,9 @@
             createdAt: created.createdAt || story.createdAt,
             updatedAt: created.updatedAt || new Date().toISOString()
           });
-        }).catch(function () {});
+        }).catch(function () {
+          delete _syncingStories[story.id];
+        });
       });
     });
   }

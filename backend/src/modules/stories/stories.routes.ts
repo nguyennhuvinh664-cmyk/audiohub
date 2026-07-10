@@ -239,21 +239,47 @@ router.post('/', async (req: AuthRequest, res) => {
   const userId = req.auth!.userId;
   const body = parsed.data;
 
-  const recentBoundary = new Date(Date.now() - 15000);
-  const duplicatedRecent = await prisma.story.findFirst({
+  // Dedup: check if story with same title+author already exists (not just recent)
+  const duplicatedStory = await prisma.story.findFirst({
     where: {
       userId,
       deletedAt: null,
       title: body.title,
       author: body.author,
-      chapterTitle: body.chapterTitle,
-      createdAt: { gte: recentBoundary }
     },
     orderBy: { createdAt: 'desc' }
   });
 
-  if (duplicatedRecent) {
-    return ok(res, await toStoryResponse(duplicatedRecent), 200);
+  if (duplicatedStory) {
+    // Update existing story instead of just returning it —
+    // this ensures visibility, cover, audio etc. are synced when re-publishing
+    const nextYoutubeUrl = body.youtubeUrl === undefined || body.youtubeUrl === null
+      ? duplicatedStory.youtubeUrl
+      : (String(body.youtubeUrl).trim() || null);
+    const nextYoutubeId = body.youtubeId === undefined || body.youtubeId === null
+      ? (extractYoutubeId(nextYoutubeUrl || '') || duplicatedStory.youtubeId)
+      : (extractYoutubeId(body.youtubeId) || extractYoutubeId(nextYoutubeUrl || '') || null);
+
+    const updated = await prisma.story.update({
+      where: { id: duplicatedStory.id },
+      data: {
+        visibility: parseVisibility(body.visibility, duplicatedStory.visibility),
+        audioStatus: parseAudioStatus(body.audioStatus, duplicatedStory.audioStatus),
+        description: body.description || duplicatedStory.description,
+        readingText: body.readingText || duplicatedStory.readingText,
+        chapterTitle: body.chapterTitle || duplicatedStory.chapterTitle,
+        chapters: body.chapters || (duplicatedStory as any).chapters || '[]',
+        chapterCount: body.chapterCount || (duplicatedStory as any).chapterCount || 0,
+        status: parseCompletedStatus(body.status, duplicatedStory.status || ''),
+        isCompleted: parseIsCompleted(body.isCompleted, String(body.status || duplicatedStory.status || ''), !!duplicatedStory.isCompleted),
+        coverKey: body.coverKey === undefined ? duplicatedStory.coverKey : body.coverKey,
+        coverData: body.coverData === undefined ? (duplicatedStory as any).coverData : body.coverData,
+        audioKey: body.audioKey === undefined ? duplicatedStory.audioKey : body.audioKey,
+        youtubeUrl: nextYoutubeUrl,
+        youtubeId: nextYoutubeId
+      }
+    });
+    return ok(res, await toStoryResponse(updated), 200);
   }
 
   const youtubeUrl = body.youtubeUrl === undefined || body.youtubeUrl === null ? null : String(body.youtubeUrl).trim();
