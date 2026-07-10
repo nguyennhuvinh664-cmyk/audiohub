@@ -381,6 +381,16 @@ router.get('/listen-history', async (req: AuthRequest, res) => {
   return ok(res, history);
 });
 
+// Bulk fix: update all PRIVATE stories to PUBLIC for the current user
+router.post('/fix-visibility', async (req: AuthRequest, res) => {
+  const userId = req.auth!.userId;
+  const result = await prisma.story.updateMany({
+    where: { userId, deletedAt: null, visibility: StoryVisibility.PRIVATE },
+    data: { visibility: StoryVisibility.PUBLIC }
+  });
+  return ok(res, { updated: result.count });
+});
+
 router.get('/:id', async (req: AuthRequest, res) => {
   const story = await prisma.story.findFirst({
     where: { id: req.params.id, userId: req.auth!.userId, deletedAt: null }
