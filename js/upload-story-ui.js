@@ -900,7 +900,7 @@
         youtubeId: youtubePayload.id,
         visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Riêng tư')),
         coverKey: state.coverKey || '',
-        coverData: '',
+        coverData: state.coverData || '',
         audioKey: state.audioKey || '',
         readingText: state.readingText || '',
         hashtags: getCombinedHashtags()
