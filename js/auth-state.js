@@ -307,6 +307,10 @@
     else { window.location.href = path; }
   }
 
+  function notifyAuthUpdated() {
+    try { window.dispatchEvent(new CustomEvent('audiohub:auth-updated')); } catch (e) {}
+  }
+
   /* ═══ LOGIN / REGISTER / LOGOUT ══════════════════════════════════════ */
 
   function handleLoginSuccess(token, user) {
@@ -318,6 +322,7 @@
       saveProfileFromUser(user);
       renderHeaderAuth();
       renderAccountProfile();
+      notifyAuthUpdated();
       return;
     }
 
@@ -338,6 +343,7 @@
       }
       renderHeaderAuth();
       renderAccountProfile();
+      notifyAuthUpdated();
     });
   }
 
@@ -355,17 +361,20 @@
     setToken('demo-local-token');
     renderHeaderAuth();
     renderAccountProfile();
+    notifyAuthUpdated();
   }
 
   function logoutAndRedirect() {
     clearAuth();
     renderHeaderAuth();
+    notifyAuthUpdated();
     spaNavigate('/index.html');
   }
 
   function switchAccountRedirect() {
     clearAuth();
     renderHeaderAuth();
+    notifyAuthUpdated();
     spaNavigate('/html/login.html');
   }
 
@@ -508,6 +517,12 @@
   // Bind forms + hydrate auth state
   bindAuthForms();
   hydrateAuth();
+
+  // Re-render header on pageshow (handles back/forward navigation, bfcache)
+  window.addEventListener('pageshow', function () {
+    renderHeaderAuth();
+    renderAccountProfile();
+  });
 
   // Hide admin-only elements for non-admin users
   (function hideAdminOnly() {
