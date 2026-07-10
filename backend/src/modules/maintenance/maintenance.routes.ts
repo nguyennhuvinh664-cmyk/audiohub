@@ -81,4 +81,23 @@ router.post('/cleanup-retention', async (_req: AuthRequest, res) => {
   }
 });
 
+// Fix all PRIVATE stories to PUBLIC for the current user
+router.post('/fix-visibility', async (req: AuthRequest, res) => {
+  const userId = req.auth!.userId;
+  const { StoryVisibility } = await import('@prisma/client');
+
+  const result = await prisma.story.updateMany({
+    where: {
+      userId,
+      deletedAt: null,
+      visibility: StoryVisibility.PRIVATE
+    },
+    data: {
+      visibility: StoryVisibility.PUBLIC
+    }
+  });
+
+  return ok(res, { updated: result.count });
+});
+
 export default router;
