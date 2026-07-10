@@ -432,9 +432,17 @@
     });
   }
 
+  var _homeRenderLock = false;
+  function renderHomeStoriesSafe() {
+    if (_homeRenderLock) return;
+    _homeRenderLock = true;
+    renderHomeStories();
+    setTimeout(function () { _homeRenderLock = false; }, 500);
+  }
+
   renderHomeStories();
 
-  // Re-render when stories are synced/updated
-  window.addEventListener('audiohub:stories-synced', renderHomeStories);
-  window.addEventListener('audiohub:stories-updated', renderHomeStories);
+  // Re-render when stories are synced/updated (with debounce to prevent infinite loop)
+  window.addEventListener('audiohub:stories-synced', renderHomeStoriesSafe);
+  window.addEventListener('audiohub:stories-updated', renderHomeStoriesSafe);
 })();
