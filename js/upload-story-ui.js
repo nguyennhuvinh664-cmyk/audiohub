@@ -282,7 +282,7 @@
     audioReady: false,
     coverProcessing: false,
     audioProcessing: false,
-    visibility: visibilitySelect && visibilitySelect.value ? visibilitySelect.value : 'Riêng tư',
+    visibility: visibilitySelect && visibilitySelect.value ? visibilitySelect.value : 'Công khai',
     coverName: '',
     audioName: '',
     coverDataUrl: '',

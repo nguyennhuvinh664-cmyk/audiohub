@@ -204,7 +204,7 @@
         genre: storyRef.genre ? String(storyRef.genre) : '',
         description: storyRef.description ? String(storyRef.description) : '',
         chapterTitle: storyRef.chapterTitle ? String(storyRef.chapterTitle) : '',
-        visibility: storyRef.visibility ? String(storyRef.visibility) : 'Riêng tư',
+        visibility: storyRef.visibility ? String(storyRef.visibility) : 'Công khai',
         audioStatus: storyRef.audioStatus ? String(storyRef.audioStatus) : 'Sẵn sàng',
         coverKey: storyRef.coverKey ? String(storyRef.coverKey) : '',
         createdAt: storyRef.createdAt ? String(storyRef.createdAt) : ''
