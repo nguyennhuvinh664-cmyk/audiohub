@@ -75,7 +75,25 @@
   }
 
   function writeLocalStories(stories) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+    } catch (e) {
+      // localStorage full — strip large base64 fields and retry
+      var slimmed = stories.map(function (s) {
+        var copy = Object.assign({}, s);
+        delete copy.coverData;
+        delete copy.coverDataUrl;
+        delete copy.coverLegacyDataUrl;
+        delete copy.readingText;
+        return copy;
+      });
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(slimmed));
+      } catch (e2) {
+        // Still full — keep only the 10 most recent stories
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(slimmed.slice(0, 10)));
+      }
+    }
   }
 
   function makeId() {
