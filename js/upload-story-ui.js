@@ -629,6 +629,13 @@
         coverLabel.textContent = 'Ảnh bìa đã chọn';
       }
       render();
+
+      // Early upload cover to backend so it persists
+      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
+        window.AudioHubStoryCover.put(file).then(function (coverKey) {
+          if (coverKey) state.coverKey = coverKey;
+        }).catch(function () {});
+      }
     };
     reader.readAsDataURL(file);
 

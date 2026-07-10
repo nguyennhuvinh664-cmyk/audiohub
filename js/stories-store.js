@@ -657,36 +657,63 @@
     if (!localDrafts.length) return;
 
     localDrafts.forEach(function (story) {
-      var payload = mapStoryPayload(story);
-      window.AudioHubApi.request('/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).then(function (created) {
-        if (!created || !created.id) return;
-        var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
-        removeLocalStory(story.id);
-        upsertLocalStory({
-          id: created.id,
-          title: story.title,
-          author: story.author,
-          genre: story.genre,
-          description: story.description,
-          readingText: story.readingText,
-          hashtags: story.hashtags,
-          chapterTitle: story.chapterTitle,
-          chapters: savedChapters,
-          chapterCount: savedChapters.length || story.chapterCount || 0,
-          visibility: story.visibility,
-          audioStatus: story.audioStatus,
-          coverKey: story.coverKey,
-          audioKey: story.audioKey,
-          youtubeUrl: story.youtubeUrl,
-          youtubeId: story.youtubeId,
-          createdAt: created.createdAt || story.createdAt,
-          updatedAt: created.updatedAt || new Date().toISOString()
-        });
-      }).catch(function () {});
+      // Try to upload audio from IndexedDB first
+      var audioPromise = (story.audioKey && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function')
+        ? window.AudioHubStoryAudio.get(story.audioKey).then(function (blob) {
+            return blob ? { audioKey: story.audioKey, audioBlob: blob } : { audioKey: story.audioKey };
+          }).catch(function () { return { audioKey: story.audioKey }; })
+        : Promise.resolve({});
+
+      audioPromise.then(function (audioInfo) {
+        var payload = mapStoryPayload(story);
+        // Upload audio blob to backend if we have one
+        if (audioInfo.audioBlob && audioInfo.audioKey) {
+          var form = new FormData();
+          form.append('audio', audioInfo.audioBlob, 'audio.mp3');
+          // We need to create story first, then upload audio
+        }
+
+        window.AudioHubApi.request('/stories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(function (created) {
+          if (!created || !created.id) return;
+
+          // Upload audio blob to new story if we have one
+          if (audioInfo.audioBlob) {
+            var audioForm = new FormData();
+            audioForm.append('audio', audioInfo.audioBlob, 'audio.mp3');
+            window.AudioHubApi.request('/stories/' + encodeURIComponent(created.id) + '/audio', {
+              method: 'POST',
+              body: audioForm
+            }).catch(function () {});
+          }
+
+          var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
+          removeLocalStory(story.id);
+          upsertLocalStory({
+            id: created.id,
+            title: story.title,
+            author: story.author,
+            genre: story.genre,
+            description: story.description,
+            readingText: story.readingText,
+            hashtags: story.hashtags,
+            chapterTitle: story.chapterTitle,
+            chapters: savedChapters,
+            chapterCount: savedChapters.length || story.chapterCount || 0,
+            visibility: story.visibility,
+            audioStatus: story.audioStatus,
+            coverKey: story.coverKey,
+            audioKey: story.audioKey,
+            youtubeUrl: story.youtubeUrl,
+            youtubeId: story.youtubeId,
+            createdAt: created.createdAt || story.createdAt,
+            updatedAt: created.updatedAt || new Date().toISOString()
+          });
+        }).catch(function () {});
+      });
     });
   }
 
