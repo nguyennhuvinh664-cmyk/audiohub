@@ -3,8 +3,32 @@ import { env } from './config/env.js';
 import { prisma } from './config/prisma.js';
 import { startMaintenanceCron } from './modules/maintenance/maintenance.routes.js';
 
+async function connectWithRetry(maxRetries = 5, delayMs = 10000) {
+  for (let i = 1; i <= maxRetries; i++) {
+    try {
+      await prisma.$connect();
+      console.log(`[audiohub-backend] Database connected on attempt ${i}`);
+      return;
+    } catch (err) {
+      console.error(`[audiohub-backend] DB connection attempt ${i}/${maxRetries} failed, retrying in ${delayMs / 1000}s...`);
+      if (i < maxRetries) await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  throw new Error('Failed to connect to database after ' + maxRetries + ' attempts');
+}
+
 async function bootstrap() {
-  await prisma.$connect();
+  await connectWithRetry();
+
+  // Run migrations after DB is connected
+  try {
+    const { execSync } = await import('child_process');
+    execSync('npx prisma migrate deploy', { stdio: 'inherit', timeout: 60000 });
+    console.log('[audiohub-backend] Migrations applied');
+  } catch (err) {
+    console.error('[audiohub-backend] Migration failed (non-fatal):', err);
+  }
+
   startMaintenanceCron();
 
   app.listen(env.PORT, function () {
