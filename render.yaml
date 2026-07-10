@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: audiohub
+    runtime: node
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && node dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
