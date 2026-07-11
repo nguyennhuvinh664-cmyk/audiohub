@@ -10,7 +10,7 @@ async function connectWithRetry(maxRetries = 5, delayMs = 10000) {
       console.log(`[audiohub-backend] Database connected on attempt ${i}`);
       return;
     } catch (err) {
-      console.error(`[audiohub-backend] DB connection attempt ${i}/${maxRetries} failed, retrying in ${delayMs / 1000}s...`);
+      console.error(`[audiohub-backend] DB connection attempt ${i}/${maxRetries} failed:`, err instanceof Error ? err.message : String(err));
       if (i < maxRetries) await new Promise(r => setTimeout(r, delayMs));
     }
   }
