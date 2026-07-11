@@ -2,7 +2,7 @@ services:
   - type: web
     name: audiohub
     runtime: node
-    buildCommand: cd backend && npm install && npm run build
+    buildCommand: cd backend && npm install --ignore-scripts && npx prisma generate && npx tsc -p tsconfig.json
     startCommand: cd backend && npm run start
     envVars:
       - key: NODE_ENV
