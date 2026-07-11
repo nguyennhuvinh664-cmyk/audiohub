@@ -680,6 +680,81 @@
     return removed;
   }
 
+  // Force-sync ALL local stories to backend (for fixing stale localStorage)
+  function forceSyncAllToApi() {
+    var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
+    if (!hasApi) return Promise.reject(new Error('No API client'));
+    var localStories = readLocalStories();
+    var results = [];
+    localStories.forEach(function (story) {
+      if (!story || !story.id) return;
+      var payload = mapStoryPayload(story);
+      var isLocal = String(story.id).startsWith('s_');
+      var promise = isLocal
+        ? window.AudioHubApi.request('/stories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(function (created) {
+            if (created && created.id) {
+              var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
+              removeLocalStory(story.id);
+              upsertLocalStory({
+                id: created.id, title: story.title, author: story.author,
+                genre: story.genre, description: story.description,
+                readingText: story.readingText, hashtags: story.hashtags,
+                chapterTitle: story.chapterTitle, chapters: savedChapters,
+                chapterCount: savedChapters.length || story.chapterCount || 0,
+                visibility: story.visibility, audioStatus: story.audioStatus,
+                coverKey: story.coverKey, audioKey: story.audioKey,
+                youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
+                createdAt: created.createdAt || story.createdAt,
+                updatedAt: created.updatedAt || new Date().toISOString()
+              });
+              return { oldId: story.id, newId: created.id, title: story.title, ok: true };
+            }
+            return { oldId: story.id, title: story.title, ok: false, reason: 'no-id' };
+          })
+        : window.AudioHubApi.request('/stories/' + encodeURIComponent(story.id), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(function () {
+            return { id: story.id, title: story.title, ok: true };
+          }).catch(function () {
+            // PATCH failed — story not in backend, try POST instead
+            return window.AudioHubApi.request('/stories', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            }).then(function (created) {
+              if (created && created.id) {
+                var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
+                removeLocalStory(story.id);
+                upsertLocalStory({
+                  id: created.id, title: story.title, author: story.author,
+                  genre: story.genre, description: story.description,
+                  readingText: story.readingText, hashtags: story.hashtags,
+                  chapterTitle: story.chapterTitle, chapters: savedChapters,
+                  chapterCount: savedChapters.length || story.chapterCount || 0,
+                  visibility: story.visibility, audioStatus: story.audioStatus,
+                  coverKey: story.coverKey, audioKey: story.audioKey,
+                  youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
+                  createdAt: created.createdAt || story.createdAt,
+                  updatedAt: created.updatedAt || new Date().toISOString()
+                });
+                return { oldId: story.id, newId: created.id, title: story.title, ok: true };
+              }
+              return { oldId: story.id, title: story.title, ok: false, reason: 'post-failed' };
+            }).catch(function (e) {
+              return { oldId: story.id, title: story.title, ok: false, reason: String(e.message || e) };
+            });
+          });
+      results.push(promise);
+    });
+    return Promise.all(results);
+  }
+
   window.AudioHubStories = {
     read: readLocalStories,
     upsert: upsertStory,
@@ -687,7 +762,8 @@
     remove: removeStory,
     sync: syncFromApi,
     trackListen: trackListen,
-    clearListenHistory: clearListenHistory
+    clearListenHistory: clearListenHistory,
+    forceSyncAll: forceSyncAllToApi
   };
 
   // Auto-sync local s_ stories to backend (one-time per story)
