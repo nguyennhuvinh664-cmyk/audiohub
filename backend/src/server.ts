@@ -20,13 +20,17 @@ async function connectWithRetry(maxRetries = 5, delayMs = 10000) {
 async function bootstrap() {
   await connectWithRetry();
 
-  // Run migrations after DB is connected
-  try {
-    const { execSync } = await import('child_process');
-    execSync('npx prisma migrate deploy', { stdio: 'inherit', timeout: 60000 });
-    console.log('[audiohub-backend] Migrations applied');
-  } catch (err) {
-    console.error('[audiohub-backend] Migration failed (non-fatal):', err);
+  // Run migrations after DB is connected (skip if DISABLE_PRISMA_MIGRATE is set)
+  if (!process.env.DISABLE_PRISMA_MIGRATE) {
+    try {
+      const { execSync } = await import('child_process');
+      execSync('npx prisma migrate deploy', { stdio: 'inherit', timeout: 60000 });
+      console.log('[audiohub-backend] Migrations applied');
+    } catch (err) {
+      console.error('[audiohub-backend] Migration failed (non-fatal):', err);
+    }
+  } else {
+    console.log('[audiohub-backend] Skipping migrations (DISABLE_PRISMA_MIGRATE)');
   }
 
   startMaintenanceCron();
