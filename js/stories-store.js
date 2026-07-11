@@ -373,7 +373,11 @@
   function upsertStory(story) {
     var localEntry = upsertLocalStory(story);
 
-    if (canUseApi()) {
+    // Always try to sync to backend — even without a real token yet,
+    // the guest token may become available shortly. If the API rejects
+    // (401), the story is still safe in localStorage.
+    var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
+    if (hasApi) {
       var payload = mapStoryPayload(localEntry);
       if (localEntry.id && !String(localEntry.id).startsWith('s_')) {
         window.AudioHubApi.request('/stories/' + encodeURIComponent(localEntry.id), {
@@ -690,7 +694,8 @@
   // Track stories currently being synced to prevent duplicate POSTs
   var _syncingStories = {};
   function syncLocalStoriesToApi() {
-    if (!canUseApi()) return;
+    var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
+    if (!hasApi) return;
     var localStories = readLocalStories();
     var localDrafts = localStories.filter(function (s) {
       if (!s || !s.id || !String(s.id).startsWith('s_')) return false;
@@ -762,11 +767,21 @@
   }
 
   migrateAnonymousAuthors();
-  // Sync local s_ stories to backend FIRST, then fetch from API
-  syncLocalStoriesToApi();
-  setTimeout(function () {
-    syncFromApi().then(function () {
-      migrateAnonymousAuthors();
-    });
-  }, 2000);
+
+  // Wait for guest token (from auth-state.js) before syncing local stories to backend.
+  // ensureGuestToken() is async — if it hasn't resolved yet, retry shortly.
+  function trySyncThenFetch(attempt) {
+    var hasToken = !!(window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function' && window.AudioHubApi.getToken());
+    if (!hasToken && attempt < 5) {
+      setTimeout(function () { trySyncThenFetch(attempt + 1); }, 800);
+      return;
+    }
+    syncLocalStoriesToApi();
+    setTimeout(function () {
+      syncFromApi().then(function () {
+        migrateAnonymousAuthors();
+      });
+    }, 1500);
+  }
+  trySyncThenFetch(0);
 })();

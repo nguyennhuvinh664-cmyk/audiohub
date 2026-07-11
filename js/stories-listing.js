@@ -418,22 +418,43 @@
   });
 
   function loadAndRenderStories() {
+    // Render local stories first (instant feedback)
     var localStories = window.AudioHubStories.read() || [];
     var localPublic = localStories.filter(function (story) {
       return isPublicVisibility(story);
     });
-
     if (localPublic.length) {
-      renderStories(localStories);
-      return;
+      renderStories(localPublic);
     }
 
-    fetchPublicStories().then(function (publicStories) {
-      if (publicStories.length) {
-        renderStories(publicStories);
+    // Always fetch fresh from API, then merge with local (like stories-home.js)
+    fetchPublicStories().then(function (apiStories) {
+      if (!apiStories || !apiStories.length) {
+        // No API stories — keep local render if any
+        if (!localPublic.length) {
+          renderStories(localStories);
+        }
         return;
       }
-      renderStories(localStories);
+      // Merge: API stories + local-only stories (not in API)
+      var apiIds = {};
+      var apiTitles = {};
+      apiStories.forEach(function (s) {
+        apiIds[s.id] = true;
+        if (s.title) apiTitles[s.title.trim().toLowerCase()] = true;
+      });
+      var localOnly = localPublic.filter(function (s) {
+        if (apiIds[s.id]) return false;
+        if (s.title && apiTitles[s.title.trim().toLowerCase()]) return false;
+        return true;
+      });
+      var merged = apiStories.concat(localOnly);
+      renderStories(merged);
+    }).catch(function () {
+      // API failed — keep local render if any
+      if (!localPublic.length) {
+        renderStories(localStories);
+      }
     });
   }
 
