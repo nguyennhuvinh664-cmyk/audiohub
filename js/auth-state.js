@@ -470,10 +470,21 @@
         }
         return result.token;
       }
-      return null;
+      // Backend returned no token — use local fallback
+      return useLocalFallback();
     }).catch(function () {
-      return null;
+      // Backend unreachable (Render sleeping / CORS) — use local fallback
+      return useLocalFallback();
     });
+  }
+
+  function useLocalFallback() {
+    var fallback = 'guest-' + (window.AudioHubApi && window.AudioHubApi.getGuestId ? window.AudioHubApi.getGuestId() : Date.now().toString(36));
+    setToken(fallback);
+    if (window.AudioHubApi && typeof window.AudioHubApi.setToken === 'function') {
+      window.AudioHubApi.setToken(fallback);
+    }
+    return fallback;
   }
 
   function hydrateAuth() {
