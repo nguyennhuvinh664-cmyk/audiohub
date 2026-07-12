@@ -685,13 +685,39 @@
     var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
     if (!hasApi) return Promise.reject(new Error('No API client'));
 
-    // Wake up Render free tier first (it sleeps after inactivity)
+    // Wake up Render free tier — retry until backend responds (it sleeps after inactivity)
     var baseUrl = window.AudioHubApi.getBaseUrl ? window.AudioHubApi.getBaseUrl() : 'https://audiohub-276v.onrender.com/api/v1';
-    var wakeUp = fetch(baseUrl.replace('/api/v1', '') + '/health', { method: 'GET' })
-      .then(function () { console.log('[forceSync] Backend is awake'); })
-      .catch(function () { console.log('[forceSync] Backend wake-up failed, trying anyway...'); });
+    var healthUrl = baseUrl.replace('/api/v1', '') + '/health';
+    var maxRetries = 12;
+    var attempt = 0;
 
-    return wakeUp.then(function () {
+    function tryWakeUp() {
+      attempt++;
+      console.log('[forceSync] Wake-up attempt ' + attempt + '/' + maxRetries);
+      return fetch(healthUrl, { method: 'GET', mode: 'no-cors' })
+        .then(function () {
+          // no-cors always resolves, so also try real fetch to confirm
+          return fetch(healthUrl, { method: 'GET' });
+        })
+        .then(function (res) {
+          if (res.ok) {
+            console.log('[forceSync] Backend is awake!');
+            return true;
+          }
+          throw new Error('not ready');
+        })
+        .catch(function () {
+          if (attempt >= maxRetries) {
+            console.log('[forceSync] Backend still not ready after ' + maxRetries + ' attempts, proceeding anyway...');
+            return false;
+          }
+          return new Promise(function (resolve) {
+            setTimeout(function () { resolve(tryWakeUp()); }, 5000);
+          });
+        });
+    }
+
+    return tryWakeUp().then(function () {
       return forceSyncAllInner();
     });
   }
