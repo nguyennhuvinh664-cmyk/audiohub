@@ -17,7 +17,9 @@ import chaptersRoutes from './modules/chapters/chapters.routes.js';
 
 export const app = express();
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 app.use(cors({
   origin: env.CORS_ORIGIN === '*' ? true : [env.CORS_ORIGIN, 'https://audiohub-5m4.pages.dev'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
