@@ -396,7 +396,7 @@
           }
         })
         .catch(function (e) {
-          console.warn('[stories] Supabase sync failed:', e);
+          console.warn('[stories] Supabase sync failed:', e.message || e);
         });
       return localEntry;
     }
@@ -577,14 +577,25 @@
   function syncFromApi() {
     // Try Supabase first (direct, no Render dependency)
     if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
-      return window.AudioHubSupabase.fetchPublicStories()
-        .then(function (publicStories) {
+      var userId = window.AudioHubSupabase.getUserId();
+      // Fetch public stories + user's own stories in parallel
+      var fetches = [window.AudioHubSupabase.fetchPublicStories()];
+      if (userId) {
+        fetches.push(window.AudioHubSupabase.fetchUserStories(userId));
+      }
+      return Promise.all(fetches)
+        .then(function (results) {
+          var publicStories = results[0] || [];
+          var userStories = results[1] || [];
           var localStories = readLocalStories();
-          if (!Array.isArray(publicStories) || !publicStories.length) {
+
+          // Merge public + user stories (user stories may include non-PUBLIC)
+          var allRemote = publicStories.concat(userStories);
+          if (!Array.isArray(allRemote) || !allRemote.length) {
             notifyStoriesSynced();
             return localStories;
           }
-          var normalized = publicStories.map(function (story) {
+          var normalized = allRemote.map(function (story) {
             return normalizeStory(story);
           }).filter(Boolean);
           var apiIds = {};

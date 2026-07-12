@@ -37,15 +37,36 @@
   }
 
   /**
-   * Upsert a story to Supabase
+   * Fetch stories by user_id (for cross-device sync of own stories)
+   */
+  function fetchUserStories(userId) {
+    if (!userId) return Promise.resolve([]);
+    return fetch(
+      REST_URL + '/stories?user_id=eq.' + encodeURIComponent(userId) + '&order=created_at.desc&limit=100',
+      { headers: authHeaders() }
+    )
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (rows) {
+        return rows.map(mapRowToStory);
+      });
+  }
+
+  /**
+   * Upsert a story to Supabase (INSERT or UPDATE if exists)
    */
   function upsertStory(story, userId) {
     var row = mapStoryToRow(story, userId);
+    var headers = Object.assign({}, authHeaders(), {
+      'Prefer': 'resolution=merge-duplicates,return=representation'
+    });
     return fetch(
       REST_URL + '/stories',
       {
         method: 'POST',
-        headers: authHeaders(),
+        headers: headers,
         body: JSON.stringify(row)
       }
     )
@@ -130,10 +151,24 @@
     };
   }
 
+  function generateId() {
+    // Generate UUID v4 for new stories
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+
   function mapStoryToRow(story, userId) {
     var visMap = { 'Công khai': 'PUBLIC', 'Không công khai': 'UNLISTED', 'Riêng tư': 'PRIVATE' };
     var audioMap = { 'Sẵn sàng': 'READY', 'Chưa có': 'HIDDEN' };
+    var storyId = story.id;
+    // If story has no ID or is a local draft (s_ prefix), generate new UUID
+    if (!storyId || String(storyId).startsWith('s_')) {
+      storyId = generateId();
+    }
     return {
+      id: storyId,
       title: story.title || 'Truyện mới',
       author: story.author || '',
       genre: story.genre || '',
@@ -154,7 +189,7 @@
       listen_count: story.listenCount || 0,
       listen_count2d: story.listenCount2d || 0,
       listen_count7d: story.listenCount7d || 0,
-      user_id: userId || '00000000-0000-0000-0000-000000000000',
+      user_id: userId || null,
       created_at: story.createdAt || new Date().toISOString(),
       updated_at: story.updatedAt || new Date().toISOString()
     };
@@ -163,6 +198,7 @@
   /* ---- Public API ---- */
   window.AudioHubSupabase = {
     fetchPublicStories: fetchPublicStories,
+    fetchUserStories: fetchUserStories,
     upsertStory: upsertStory,
     deleteStory: deleteStory,
     trackListen: trackListen,
