@@ -598,11 +598,28 @@
           var normalized = allRemote.map(function (story) {
             return normalizeStory(story);
           }).filter(Boolean);
+          // Dedup: remove local stories that already exist on Supabase (by ID or fingerprint)
           var apiIds = {};
-          normalized.forEach(function (s) { apiIds[String(s.id)] = true; });
+          var apiFingerprints = {};
+          normalized.forEach(function (s) {
+            apiIds[String(s.id)] = true;
+            var fp = [
+              String(s.title || '').trim().toLowerCase(),
+              String(s.author || '').trim().toLowerCase()
+            ].join('::');
+            if (fp !== '::') apiFingerprints[fp] = true;
+          });
           var localOnly = localStories.filter(function (item) {
             if (!item || !item.id) return false;
             if (apiIds[String(item.id)]) return false;
+            // Also skip local s_ drafts that match a remote story by title+author
+            if (String(item.id).startsWith('s_')) {
+              var fp = [
+                String(item.title || '').trim().toLowerCase(),
+                String(item.author || '').trim().toLowerCase()
+              ].join('::');
+              if (fp !== '::' && apiFingerprints[fp]) return false;
+            }
             return true;
           });
           var merged = normalized.concat(localOnly).slice(0, 50);
