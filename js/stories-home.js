@@ -240,6 +240,20 @@
 
   /* ── public stories fetch ────────────────────────────── */
   function fetchPublicStories() {
+    // Try Supabase first (direct, no Render dependency)
+    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      return window.AudioHubSupabase.fetchPublicStories()
+        .then(function (rows) {
+          return Array.isArray(rows) ? rows : [];
+        })
+        .catch(function () {
+          return fetchPublicStoriesFallback();
+        });
+    }
+    return fetchPublicStoriesFallback();
+  }
+
+  function fetchPublicStoriesFallback() {
     if (!window.AudioHubApi || typeof window.AudioHubApi.request !== 'function') {
       return Promise.resolve([]);
     }

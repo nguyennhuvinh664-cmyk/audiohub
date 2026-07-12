@@ -373,9 +373,35 @@
   function upsertStory(story) {
     var localEntry = upsertLocalStory(story);
 
-    // Always try to sync to backend — even without a real token yet,
-    // the guest token may become available shortly. If the API rejects
-    // (401), the story is still safe in localStorage.
+    // Sync to Supabase directly (bypasses Render)
+    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      var userId = window.AudioHubSupabase.getUserId();
+      window.AudioHubSupabase.upsertStory(localEntry, userId)
+        .then(function (created) {
+          if (created && created.id && String(created.id) !== String(localEntry.id)) {
+            var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
+            removeLocalStory(localEntry.id);
+            upsertLocalStory({
+              id: created.id, title: localEntry.title, author: localEntry.author,
+              genre: localEntry.genre, description: localEntry.description,
+              readingText: localEntry.readingText, hashtags: localEntry.hashtags,
+              chapterTitle: localEntry.chapterTitle, chapters: savedChapters,
+              chapterCount: savedChapters.length || localEntry.chapterCount || 0,
+              visibility: localEntry.visibility, audioStatus: localEntry.audioStatus,
+              coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
+              youtubeUrl: localEntry.youtubeUrl, youtubeId: localEntry.youtubeId,
+              createdAt: created.created_at || localEntry.createdAt,
+              updatedAt: created.updated_at || new Date().toISOString()
+            });
+          }
+        })
+        .catch(function (e) {
+          console.warn('[stories] Supabase sync failed:', e);
+        });
+      return localEntry;
+    }
+
+    // Fallback: sync to Render backend
     var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
     if (hasApi) {
       var payload = mapStoryPayload(localEntry);
@@ -386,7 +412,6 @@
           body: JSON.stringify(payload)
         }).catch(function () {});
       } else {
-        // Skip if syncLocalStoriesToApi() is already handling this story
         if (_syncingStories[localEntry.id]) {
           return localEntry;
         }
@@ -397,29 +422,18 @@
           body: JSON.stringify(payload)
         }).then(function (created) {
           delete _syncingStories[localEntry.id];
-          if (!created || !created.id) {
-            return;
-          }
-          // Preserve chapters from local entry before removing
+          if (!created || !created.id) return;
           var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
           removeLocalStory(localEntry.id);
           upsertLocalStory({
-            id: created.id,
-            title: localEntry.title,
-            author: localEntry.author,
-            genre: localEntry.genre,
-            description: localEntry.description,
-            readingText: localEntry.readingText,
-            hashtags: localEntry.hashtags,
-            chapterTitle: localEntry.chapterTitle,
-            chapters: savedChapters,
+            id: created.id, title: localEntry.title, author: localEntry.author,
+            genre: localEntry.genre, description: localEntry.description,
+            readingText: localEntry.readingText, hashtags: localEntry.hashtags,
+            chapterTitle: localEntry.chapterTitle, chapters: savedChapters,
             chapterCount: savedChapters.length || localEntry.chapterCount || 0,
-            visibility: localEntry.visibility,
-            audioStatus: localEntry.audioStatus,
-            coverKey: localEntry.coverKey,
-            audioKey: localEntry.audioKey,
-            youtubeUrl: localEntry.youtubeUrl,
-            youtubeId: localEntry.youtubeId,
+            visibility: localEntry.visibility, audioStatus: localEntry.audioStatus,
+            coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
+            youtubeUrl: localEntry.youtubeUrl, youtubeId: localEntry.youtubeId,
             createdAt: created.createdAt || localEntry.createdAt,
             updatedAt: created.updatedAt || new Date().toISOString()
           });
@@ -561,8 +575,41 @@
   }
 
   function syncFromApi() {
+    // Try Supabase first (direct, no Render dependency)
+    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      return window.AudioHubSupabase.fetchPublicStories()
+        .then(function (publicStories) {
+          var localStories = readLocalStories();
+          if (!Array.isArray(publicStories) || !publicStories.length) {
+            notifyStoriesSynced();
+            return localStories;
+          }
+          var normalized = publicStories.map(function (story) {
+            return normalizeStory(story);
+          }).filter(Boolean);
+          var apiIds = {};
+          normalized.forEach(function (s) { apiIds[String(s.id)] = true; });
+          var localOnly = localStories.filter(function (item) {
+            if (!item || !item.id) return false;
+            if (apiIds[String(item.id)]) return false;
+            return true;
+          });
+          var merged = normalized.concat(localOnly).slice(0, 50);
+          writeLocalStories(merged);
+          notifyStoriesUpdated();
+          notifyStoriesSynced();
+          return merged;
+        })
+        .catch(function (e) {
+          console.warn('[stories] Supabase fetch failed, falling back to API:', e);
+          return syncFromApiFallback();
+        });
+    }
+    return syncFromApiFallback();
+  }
+
+  function syncFromApiFallback() {
     if (!canUseApi()) {
-      // Not logged in → fetch public stories from API
       return window.AudioHubApi.request('/stories/public', { method: 'GET' })
         .then(function (publicStories) {
           var localStories = readLocalStories();
