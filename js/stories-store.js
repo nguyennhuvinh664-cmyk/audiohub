@@ -1005,20 +1005,19 @@
 
   migrateAnonymousAuthors();
 
-  // Wait for guest token (from auth-state.js) before syncing local stories to backend.
-  // ensureGuestToken() is async — if it hasn't resolved yet, retry shortly.
-  function trySyncThenFetch(attempt) {
+  // Fetch stories from Supabase immediately (no need to wait for token)
+  syncFromApi().then(function () {
+    migrateAnonymousAuthors();
+  });
+
+  // Sync local drafts to Render backend in background (non-blocking, needs token)
+  function trySyncLocal(attempt) {
     var hasToken = !!(window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function' && window.AudioHubApi.getToken());
-    if (!hasToken && attempt < 5) {
-      setTimeout(function () { trySyncThenFetch(attempt + 1); }, 800);
+    if (!hasToken && attempt < 3) {
+      setTimeout(function () { trySyncLocal(attempt + 1); }, 800);
       return;
     }
     syncLocalStoriesToApi();
-    setTimeout(function () {
-      syncFromApi().then(function () {
-        migrateAnonymousAuthors();
-      });
-    }, 1500);
   }
-  trySyncThenFetch(0);
+  trySyncLocal(0);
 })();
