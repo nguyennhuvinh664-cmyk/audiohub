@@ -734,74 +734,111 @@
 
   function forceSyncAllInner() {
     var localStories = readLocalStories();
+    var baseUrl = window.AudioHubApi.getBaseUrl ? window.AudioHubApi.getBaseUrl() : 'https://audiohub-276v.onrender.com/api/v1';
+    var healthUrl = baseUrl.replace('/api/v1', '') + '/health';
     var results = [];
-    localStories.forEach(function (story) {
-      if (!story || !story.id) return;
+    var pending = localStories.filter(function (s) { return s && s.id; });
+
+    function keepAlive() {
+      fetch(healthUrl, { method: 'GET', mode: 'no-cors' }).catch(function () {});
+    }
+
+    function syncOne(story) {
       var payload = mapStoryPayload(story);
-      var isLocal = String(story.id).startsWith('s_');
-      var promise = isLocal
-        ? window.AudioHubApi.request('/stories', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          }).then(function (created) {
-            if (created && created.id) {
-              var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
-              removeLocalStory(story.id);
-              upsertLocalStory({
-                id: created.id, title: story.title, author: story.author,
-                genre: story.genre, description: story.description,
-                readingText: story.readingText, hashtags: story.hashtags,
-                chapterTitle: story.chapterTitle, chapters: savedChapters,
-                chapterCount: savedChapters.length || story.chapterCount || 0,
-                visibility: story.visibility, audioStatus: story.audioStatus,
-                coverKey: story.coverKey, audioKey: story.audioKey,
-                youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
-                createdAt: created.createdAt || story.createdAt,
-                updatedAt: created.updatedAt || new Date().toISOString()
-              });
-              return { oldId: story.id, newId: created.id, title: story.title, ok: true };
-            }
-            return { oldId: story.id, title: story.title, ok: false, reason: 'no-id' };
-          })
-        : window.AudioHubApi.request('/stories/' + encodeURIComponent(story.id), {
+      // Always try POST first — stories likely don't exist in backend
+      return window.AudioHubApi.request('/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (created) {
+        if (created && created.id) {
+          var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
+          removeLocalStory(story.id);
+          upsertLocalStory({
+            id: created.id, title: story.title, author: story.author,
+            genre: story.genre, description: story.description,
+            readingText: story.readingText, hashtags: story.hashtags,
+            chapterTitle: story.chapterTitle, chapters: savedChapters,
+            chapterCount: savedChapters.length || story.chapterCount || 0,
+            visibility: story.visibility, audioStatus: story.audioStatus,
+            coverKey: story.coverKey, audioKey: story.audioKey,
+            youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
+            createdAt: created.createdAt || story.createdAt,
+            updatedAt: created.updatedAt || new Date().toISOString()
+          });
+          return { oldId: story.id, newId: created.id, title: story.title, ok: true };
+        }
+        return { oldId: story.id, title: story.title, ok: false, reason: 'no-id' };
+      }).catch(function (e) {
+        var msg = String(e.message || e);
+        // If 404 on POST, story might exist — try PATCH
+        if (msg.indexOf('404') !== -1 || msg.indexOf('Not Found') !== -1) {
+          return window.AudioHubApi.request('/stories/' + encodeURIComponent(story.id), {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           }).then(function () {
             return { id: story.id, title: story.title, ok: true };
           }).catch(function () {
-            // PATCH failed — story not in backend, try POST instead
-            return window.AudioHubApi.request('/stories', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            }).then(function (created) {
-              if (created && created.id) {
-                var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
-                removeLocalStory(story.id);
-                upsertLocalStory({
-                  id: created.id, title: story.title, author: story.author,
-                  genre: story.genre, description: story.description,
-                  readingText: story.readingText, hashtags: story.hashtags,
-                  chapterTitle: story.chapterTitle, chapters: savedChapters,
-                  chapterCount: savedChapters.length || story.chapterCount || 0,
-                  visibility: story.visibility, audioStatus: story.audioStatus,
-                  coverKey: story.coverKey, audioKey: story.audioKey,
-                  youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
-                  createdAt: created.createdAt || story.createdAt,
-                  updatedAt: created.updatedAt || new Date().toISOString()
-                });
-                return { oldId: story.id, newId: created.id, title: story.title, ok: true };
-              }
-              return { oldId: story.id, title: story.title, ok: false, reason: 'post-failed' };
-            }).catch(function (e) {
-              return { oldId: story.id, title: story.title, ok: false, reason: String(e.message || e) };
-            });
+            return { oldId: story.id, title: story.title, ok: false, reason: msg };
           });
-      results.push(promise);
-    });
-    return Promise.all(results);
+        }
+        // If 502/503 — Render sleeping, wait and retry once
+        if (msg.indexOf('502') !== -1 || msg.indexOf('503') !== -1 || msg.indexOf('Bad Gateway') !== -1) {
+          console.log('[forceSync] Render sleeping, waiting 20s to wake...');
+          keepAlive();
+          return new Promise(function (resolve) {
+            setTimeout(function () {
+              keepAlive();
+              window.AudioHubApi.request('/stories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              }).then(function (created) {
+                if (created && created.id) {
+                  removeLocalStory(story.id);
+                  upsertLocalStory({
+                    id: created.id, title: story.title, author: story.author,
+                    genre: story.genre, description: story.description,
+                    readingText: story.readingText, hashtags: story.hashtags,
+                    chapterTitle: story.chapterTitle, chapters: Array.isArray(story.chapters) ? story.chapters : [],
+                    chapterCount: (Array.isArray(story.chapters) ? story.chapters.length : 0) || story.chapterCount || 0,
+                    visibility: story.visibility, audioStatus: story.audioStatus,
+                    coverKey: story.coverKey, audioKey: story.audioKey,
+                    youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
+                    createdAt: created.createdAt || story.createdAt,
+                    updatedAt: created.updatedAt || new Date().toISOString()
+                  });
+                  resolve({ oldId: story.id, newId: created.id, title: story.title, ok: true });
+                } else {
+                  resolve({ oldId: story.id, title: story.title, ok: false, reason: 'no-id-retry' });
+                }
+              }).catch(function (e2) {
+                resolve({ oldId: story.id, title: story.title, ok: false, reason: String(e2.message || e2) });
+              });
+            }, 20000);
+          });
+        }
+        return { oldId: story.id, title: story.title, ok: false, reason: msg };
+      });
+    }
+
+    // Process sequentially with keepalive pings to prevent Render from sleeping
+    function processNext(index) {
+      if (index >= pending.length) return Promise.resolve(results);
+      keepAlive();
+      return syncOne(pending[index]).then(function (r) {
+        results.push(r);
+        if (r.ok) console.log('[forceSync] ✅ ' + (r.title || r.oldId));
+        else console.log('[forceSync] ❌ ' + (r.title || r.oldId) + ': ' + r.reason);
+        // Small delay between requests to keep Render alive
+        return new Promise(function (resolve) {
+          setTimeout(function () { resolve(processNext(index + 1)); }, 1500);
+        });
+      });
+    }
+
+    return processNext(0);
   }
 
   window.AudioHubStories = {
