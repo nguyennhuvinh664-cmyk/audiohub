@@ -684,6 +684,19 @@
   function forceSyncAllToApi() {
     var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
     if (!hasApi) return Promise.reject(new Error('No API client'));
+
+    // Wake up Render free tier first (it sleeps after inactivity)
+    var baseUrl = window.AudioHubApi.getBaseUrl ? window.AudioHubApi.getBaseUrl() : 'https://audiohub-276v.onrender.com/api/v1';
+    var wakeUp = fetch(baseUrl.replace('/api/v1', '') + '/health', { method: 'GET' })
+      .then(function () { console.log('[forceSync] Backend is awake'); })
+      .catch(function () { console.log('[forceSync] Backend wake-up failed, trying anyway...'); });
+
+    return wakeUp.then(function () {
+      return forceSyncAllInner();
+    });
+  }
+
+  function forceSyncAllInner() {
     var localStories = readLocalStories();
     var results = [];
     localStories.forEach(function (story) {
