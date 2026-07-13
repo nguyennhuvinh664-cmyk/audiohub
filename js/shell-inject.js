@@ -173,12 +173,4 @@
     document.head.appendChild(fa);
   }
 
-  // Load shared JS modules needed by page-specific scripts
-  var sharedJS = ['api-client', 'supabase-client', 'stories-store', 'stories-cover-store', 'auth-state'];
-  sharedJS.forEach(function (name) {
-    if (document.querySelector('script[src*="' + name + '"]')) return;
-    var s = document.createElement('script');
-    s.src = p + 'js/' + name + '.js';
-    document.body.appendChild(s);
-  });
 })();
