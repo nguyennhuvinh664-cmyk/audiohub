@@ -1698,6 +1698,44 @@
       .catch(function () { return null; });
   }
 
+  function fetchStoryFromSupabase(storyId) {
+    if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.fetchPublicStories !== 'function') {
+      return Promise.resolve(null);
+    }
+    if (String(storyId).startsWith('s_')) {
+      return Promise.resolve(null);
+    }
+    // Fetch all stories and find by ID (Supabase REST doesn't support single-row easily)
+    return window.AudioHubSupabase.fetchPublicStories()
+      .then(function (stories) {
+        var found = null;
+        (stories || []).forEach(function (s) {
+          if (String(s.id) === String(storyId)) found = s;
+        });
+        if (!found) {
+          // Also check user stories
+          var userId = window.AudioHubSupabase.getUserId();
+          if (userId) {
+            return window.AudioHubSupabase.fetchUserStories(userId).then(function (userStories) {
+              (userStories || []).forEach(function (s) {
+                if (String(s.id) === String(storyId)) found = s;
+              });
+              if (found && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+                window.AudioHubStories.upsert(found);
+              }
+              return found;
+            });
+          }
+          return null;
+        }
+        if (found && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+          window.AudioHubStories.upsert(found);
+        }
+        return found;
+      })
+      .catch(function () { return null; });
+  }
+
   function initPlayer() {
     var storyId = resolveStoryId();
 
@@ -1711,14 +1749,22 @@
       // Cache miss — fetch from API, render when ready
       fetchStoryFromApi(storyId).then(function (apiStory) {
         if (apiStory && apiStory.id) {
-          // Re-init from localStorage (now populated by fetchStoryFromApi)
           var resolved = initStoryDetailFromStore(storyId);
           if (resolved) {
             bindStoryData(resolved);
           } else {
-            // Fallback: use API story directly
             bindStoryData(apiStory);
           }
+        }
+      });
+    }
+
+    // STEP 2: Always fetch fresh from Supabase in background (update if newer)
+    if (storyId && !isSyntheticStoryId(storyId) && window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      fetchStoryFromSupabase(storyId).then(function (freshStory) {
+        if (freshStory && freshStory.id) {
+          // Re-render with fresh data
+          bindStoryData(freshStory);
         }
       });
     }
