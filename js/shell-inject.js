@@ -11,7 +11,7 @@
   if (document.querySelector('.m-bottomnav')) return;
 
   // Load required CSS
-  var cssFiles = ['mobile-shared', 'header-enhancements', 'auth-state', 'mobile-app'];
+  var cssFiles = ['style-index', 'mobile-shared', 'header-enhancements', 'auth-state', 'mobile-app'];
   var loadedHrefs = [];
   document.querySelectorAll('link[rel="stylesheet"]').forEach(function (l) {
     loadedHrefs.push(l.getAttribute('href') || '');
