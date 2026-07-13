@@ -27,3 +27,6 @@
 
 # Catch-all for /html/* paths (SPA shell required)
 /html/*  /index.html  200
+
+# Root-level SPA fallback (after all specific rules above)
+/*  /index.html  200
