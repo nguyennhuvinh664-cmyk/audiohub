@@ -420,6 +420,10 @@
 
     // If this is a subpage (not root index.html), load its content into the shell
     if (isKnownRoute(route) && pageName !== 'index.html') {
+      // Clear shell default content so user doesn't see index flash
+      var shellEl = document.getElementById(SHELL_ID);
+      if (shellEl) shellEl.innerHTML = '';
+
       var fetchUrl = getRouteUrl(route);
       fetch(fetchUrl)
         .then(function (res) {
