@@ -49,8 +49,6 @@
   try { localStorage.setItem(key, JSON.stringify(store)); } catch(e) {}
 })();
 </script>
-(function(){if(!document.querySelector(".m-bottomnav")){var f=window.location.pathname.split("/").pop();if(f.indexOf(".")===-1)f+=".html";window.location.replace("/"+f+window.location.search);}})();
-</script>
 
 
 
@@ -318,6 +316,7 @@
   </script>
 
 </div>
-<script src="../js/auth-state.js"></script>
+<script src="../js/shell-inject.js"></script>
+  <script src="../js/auth-state.js"></script>
 </body>
 </html>
