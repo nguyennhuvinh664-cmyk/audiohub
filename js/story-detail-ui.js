@@ -1662,6 +1662,22 @@
     if (!story || !story.id) return;
     trackStoryListen(story.id);
     var detailStoryNode = document.querySelector('[data-detail-story]');
+
+    // Update title + breadcrumb (initStoryDetailFromStore may have used stale cache)
+    var titleNode = detailStoryNode ? detailStoryNode.querySelector('.detail-title') : null;
+    if (titleNode && story.title) titleNode.textContent = story.title;
+    if (story.title) document.title = story.title + ' | AudioHub';
+    if (detailStoryNode) {
+      detailStoryNode.setAttribute('data-title', String(story.title || ''));
+      detailStoryNode.setAttribute('data-story-id', String(story.id || ''));
+    }
+    var audioSubtitle = document.querySelector('.audio-headings p');
+    if (audioSubtitle && story.title) audioSubtitle.textContent = story.title;
+    if (story.genre) {
+      var crumb = document.querySelector('.breadcrumb');
+      if (crumb) crumb.innerHTML = '<a href="index.html">Home</a> <span>/</span> <a href="categories.html">' + escapeHtml(story.genre) + '</a> <span>/</span> <a href="new-posts.html">' + escapeHtml(story.title || 'Chi tiết truyện') + '</a>';
+    }
+
     renderStoryMeta(detailStoryNode, story);
     bindStoryCover(story);
     bindStoryAudio(story);
