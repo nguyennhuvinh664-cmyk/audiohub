@@ -25,6 +25,23 @@
     document.head.appendChild(link);
   });
 
+  // Load Google Fonts if not present
+  if (!document.querySelector('link[href*="fonts.googleapis.com"]')) {
+    var gf1 = document.createElement('link');
+    gf1.rel = 'preconnect';
+    gf1.href = 'https://fonts.googleapis.com';
+    document.head.appendChild(gf1);
+    var gf2 = document.createElement('link');
+    gf2.rel = 'preconnect';
+    gf2.href = 'https://fonts.gstatic.com';
+    gf2.crossOrigin = 'anonymous';
+    document.head.appendChild(gf2);
+    var gfLink = document.createElement('link');
+    gfLink.rel = 'stylesheet';
+    gfLink.href = 'https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap';
+    document.head.appendChild(gfLink);
+  }
+
   // Determine link prefix (subpages are in /html/)
   var isSubpage = window.location.pathname.indexOf('/html/') === 0;
   var p = isSubpage ? '../' : '';
