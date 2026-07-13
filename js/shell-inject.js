@@ -173,10 +173,12 @@
     document.head.appendChild(fa);
   }
 
-  // Load auth-state.js so user info populates in header
-  if (!window.__audiohubAuthLoaded && !document.querySelector('script[src*="auth-state"]')) {
-    var authScript = document.createElement('script');
-    authScript.src = p + 'js/auth-state.js';
-    document.body.appendChild(authScript);
-  }
+  // Load shared JS modules needed by page-specific scripts
+  var sharedJS = ['api-client', 'supabase-client', 'stories-store', 'stories-cover-store', 'auth-state'];
+  sharedJS.forEach(function (name) {
+    if (document.querySelector('script[src*="' + name + '"]')) return;
+    var s = document.createElement('script');
+    s.src = p + 'js/' + name + '.js';
+    document.body.appendChild(s);
+  });
 })();
