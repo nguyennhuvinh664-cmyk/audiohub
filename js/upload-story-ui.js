@@ -597,6 +597,31 @@
     showBanner('Đang hiển thị bản xem trước bên dưới.', false);
   }
 
+  function compressImage(file, maxWidth, quality) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var canvas = document.createElement('canvas');
+          var w = img.width;
+          var h = img.height;
+          if (w > maxWidth) {
+            h = Math.round(h * maxWidth / w);
+            w = maxWidth;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function setCoverPreview(file) {
     if (!file || !coverZone || !previewCover) {
       return;
@@ -617,10 +642,9 @@
     clearObjectUrl(coverObjectUrl);
     coverObjectUrl = URL.createObjectURL(file);
 
-    // Convert to base64 for database storage
-    var reader = new FileReader();
-    reader.onload = function () {
-      state.coverData = reader.result; // data:image/...;base64,...
+    // Compress image before saving (max 800px, JPEG quality 0.7)
+    compressImage(file, 800, 0.7).then(function (compressedDataUrl) {
+      state.coverData = compressedDataUrl; // compressed base64
       state.coverReady = true;
       setCoverProcessing(false);
       previewCover.style.backgroundImage = 'url("' + coverObjectUrl + '")';
@@ -636,8 +660,7 @@
           if (coverKey) state.coverKey = coverKey;
         }).catch(function () {});
       }
-    };
-    reader.readAsDataURL(file);
+    });
 
     // Also try to store via API (for backward compatibility)
     var storePromise = window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function'
@@ -949,6 +972,12 @@
     var built = buildStoryPayload(!!published);
     if (!built.ok) {
       showBanner(built.message, false);
+      return;
+    }
+
+    // Require YouTube URL when publishing (for cross-device audio)
+    if (published && !built.payload.youtubeUrl) {
+      showBanner('Vui lòng nhập link YouTube để có thể nghe audio trên tất cả thiết bị.', false);
       return;
     }
 
