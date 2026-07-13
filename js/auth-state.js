@@ -457,9 +457,12 @@
     if (token && token !== 'demo-local-token') {
       return Promise.resolve(token);
     }
-    // No token or demo token — register as guest
+    // Use local fallback immediately (no waiting for Render backend)
+    var localToken = useLocalFallback();
+
+    // Try to upgrade to real token in background (non-blocking)
     var guestId = window.AudioHubApi && window.AudioHubApi.getGuestId ? window.AudioHubApi.getGuestId() : ('g_' + Date.now().toString(36));
-    return window.AudioHubApi.request('/auth/guest', {
+    window.AudioHubApi.request('/auth/guest', {
       method: 'POST',
       body: JSON.stringify({ guestId: guestId })
     }).then(function (result) {
@@ -468,14 +471,10 @@
         if (window.AudioHubApi && typeof window.AudioHubApi.setToken === 'function') {
           window.AudioHubApi.setToken(result.token);
         }
-        return result.token;
       }
-      // Backend returned no token — use local fallback
-      return useLocalFallback();
-    }).catch(function () {
-      // Backend unreachable (Render sleeping / CORS) — use local fallback
-      return useLocalFallback();
-    });
+    }).catch(function () {});
+
+    return Promise.resolve(localToken);
   }
 
   function useLocalFallback() {
