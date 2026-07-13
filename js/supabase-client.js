@@ -195,10 +195,29 @@
     };
   }
 
+  /**
+   * Fetch a single story by ID from Supabase
+   */
+  function fetchStoryById(storyId) {
+    if (!storyId) return Promise.resolve(null);
+    return fetch(
+      REST_URL + '/stories?id=eq.' + encodeURIComponent(storyId) + '&limit=1',
+      { headers: authHeaders() }
+    )
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (rows) {
+        return rows && rows.length ? mapRowToStory(rows[0]) : null;
+      });
+  }
+
   /* ---- Public API ---- */
   window.AudioHubSupabase = {
     fetchPublicStories: fetchPublicStories,
     fetchUserStories: fetchUserStories,
+    fetchStoryById: fetchStoryById,
     upsertStory: upsertStory,
     deleteStory: deleteStory,
     trackListen: trackListen,

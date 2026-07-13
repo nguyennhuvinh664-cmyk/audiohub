@@ -1690,39 +1690,18 @@
   }
 
   function fetchStoryFromSupabase(storyId) {
-    if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.fetchPublicStories !== 'function') {
+    if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.fetchStoryById !== 'function') {
       return Promise.resolve(null);
     }
     if (String(storyId).startsWith('s_')) {
       return Promise.resolve(null);
     }
-    // Fetch all stories and find by ID (Supabase REST doesn't support single-row easily)
-    return window.AudioHubSupabase.fetchPublicStories()
-      .then(function (stories) {
-        var found = null;
-        (stories || []).forEach(function (s) {
-          if (String(s.id) === String(storyId)) found = s;
-        });
-        if (!found) {
-          // Also check user stories
-          var userId = window.AudioHubSupabase.getUserId();
-          if (userId) {
-            return window.AudioHubSupabase.fetchUserStories(userId).then(function (userStories) {
-              (userStories || []).forEach(function (s) {
-                if (String(s.id) === String(storyId)) found = s;
-              });
-              if (found && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-                window.AudioHubStories.upsert(found);
-              }
-              return found;
-            });
-          }
-          return null;
+    return window.AudioHubSupabase.fetchStoryById(storyId)
+      .then(function (story) {
+        if (story && story.id && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+          window.AudioHubStories.upsert(story);
         }
-        if (found && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-          window.AudioHubStories.upsert(found);
-        }
-        return found;
+        return story;
       })
       .catch(function () { return null; });
   }
