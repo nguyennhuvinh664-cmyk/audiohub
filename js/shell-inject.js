@@ -1,6 +1,6 @@
 /**
  * shell-inject.js
- * Injects SPA shell elements (header, drawer, bottom nav, desktop header)
+ * Injects SPA shell elements (mobile header, desktop header, drawer, bottom nav)
  * into standalone subpages loaded directly (not via SPA router).
  * Skipped automatically when the SPA shell is already present.
  */
@@ -29,7 +29,50 @@
   var isSubpage = window.location.pathname.indexOf('/html/') === 0;
   var p = isSubpage ? '../' : '';
 
-  // Mobile header
+  // ── Desktop header ──
+  var desktopHeader = document.createElement('header');
+  desktopHeader.className = 'header';
+  desktopHeader.innerHTML =
+    '<div class="container header__in">'
+    + '<a href="' + p + 'index.html" class="logo"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></a>'
+    + '<nav class="nav" id="nav">'
+    + '<button class="nav__close" id="navClose"><i class="fa-solid fa-xmark"></i></button>'
+    + '<a href="' + p + 'index.html" class="nav__link"><i class="fa-solid fa-house"></i><span>Trang Chủ</span></a>'
+    + '<div class="nav__dropdown">'
+    + '<a href="' + p + 'categories.html" class="nav__link"><i class="fa-solid fa-layer-group"></i><span>Thể Loại</span></a>'
+    + '<ul class="nav__submenu">'
+    + '<li><a href="' + p + 'categories.html">Cổ Đại</a></li>'
+    + '<li><a href="' + p + 'categories.html">Cổ Tích</a></li>'
+    + '<li><a href="' + p + 'categories.html">Đam Mỹ</a></li>'
+    + '<li><a href="' + p + 'categories.html">Dị Năng</a></li>'
+    + '<li><a href="' + p + 'categories.html">Fanfic</a></li>'
+    + '<li><a href="' + p + 'categories.html">Hệ Thống</a></li>'
+    + '<li><a href="' + p + 'categories.html">Hiện Đại</a></li>'
+    + '<li><a href="' + p + 'categories.html">Hoàng Đế</a></li>'
+    + '<li class="nav__submenu__all"><a href="' + p + 'categories.html">Xem tất cả thể loại <i class="fa-solid fa-chevron-right"></i></a></li>'
+    + '</ul>'
+    + '</div>'
+    + '<a href="' + p + 'trending.html" class="nav__link"><i class="fa-solid fa-fire"></i><span>Truyện Hot</span></a>'
+    + '<a href="' + p + 'completed.html" class="nav__link"><i class="fa-solid fa-circle-check"></i><span>Hoàn Thành</span></a>'
+    + '<a href="' + p + 'hall-of-fame.html" class="nav__link"><i class="fa-solid fa-trophy"></i><span>Vinh Danh</span></a>'
+    + '<div class="nav__mbtns" data-auth-container data-auth-variant="mobile">'
+    + '<a href="' + p + 'login.html" class="btn btn--outline btn--blk">Đăng Nhập</a>'
+    + '<a href="' + p + 'register.html" class="btn btn--primary btn--blk"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>'
+    + '</div>'
+    + '</nav>'
+    + '<div class="header__acts" data-auth-container data-auth-variant="home">'
+    + '<a href="' + p + 'login.html" class="btn btn--outline"><i class="fa-regular fa-user"></i> Đăng Nhập</a>'
+    + '<a href="' + p + 'register.html" class="btn btn--primary"><i class="fa-solid fa-user-plus"></i> Đăng Ký</a>'
+    + '</div>'
+    + '<button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>'
+    + '</div>';
+
+  // Desktop nav overlay
+  var navOv = document.createElement('div');
+  navOv.className = 'nav-ov';
+  navOv.id = 'navOv';
+
+  // ── Mobile header ──
   var header = document.createElement('header');
   header.className = 'm-header';
   header.innerHTML =
@@ -42,22 +85,84 @@
     + '<i class="fa-solid fa-bell"></i><span class="m-badge"></span></button>'
     + '</div>';
 
-  // Bottom nav
-  var nav = document.createElement('nav');
-  nav.className = 'm-bottomnav';
-  nav.setAttribute('aria-label', 'Điều hướng di động');
-  nav.innerHTML =
+  // ── Mobile drawer ──
+  var drawerOverlay = document.createElement('div');
+  drawerOverlay.className = 'm-drawer-overlay';
+  drawerOverlay.id = 'mDrawerOverlay';
+
+  var drawer = document.createElement('nav');
+  drawer.className = 'm-drawer';
+  drawer.id = 'mDrawer';
+  drawer.innerHTML =
+    '<div class="m-drawer__header">'
+    + '<div class="m-drawer__brand"><i class="fa-solid fa-headphones"></i><span>Audio<em>HuB</em></span></div>'
+    + '<div class="m-drawer__tagline">Nghe truyện hay mỗi ngày</div>'
+    + '</div>'
+    + '<div class="m-drawer__section">'
+    + '<div class="m-drawer__label">Điều hướng</div>'
+    + '<a href="' + p + 'index.html" class="m-drawer__link"><i class="fa-solid fa-house"></i> Trang chủ</a>'
+    + '<a href="' + p + 'categories.html" class="m-drawer__link"><i class="fa-solid fa-layer-group"></i> Thể loại</a>'
+    + '<a href="' + p + 'new-posts.html" class="m-drawer__link"><i class="fa-solid fa-clock-rotate-left"></i> Mới đăng</a>'
+    + '<a href="' + p + 'hall-of-fame.html" class="m-drawer__link"><i class="fa-solid fa-trophy"></i> Vinh danh</a>'
+    + '</div>'
+    + '<div class="m-drawer__divider"></div>'
+    + '<div class="m-drawer__section">'
+    + '<div class="m-drawer__label">Cá nhân</div>'
+    + '<a href="' + p + 'account.html#history" class="m-drawer__link"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử nghe</a>'
+    + '<a href="' + p + 'account.html#favorites" class="m-drawer__link"><i class="fa-solid fa-heart"></i> Yêu thích</a>'
+    + '<a href="' + p + 'account.html#playlists" class="m-drawer__link"><i class="fa-solid fa-list"></i> Playlist</a>'
+    + '<a href="' + p + 'account.html#unlocked" class="m-drawer__link"><i class="fa-solid fa-lock-open"></i> Chương đã mở khóa</a>'
+    + '</div>'
+    + '<div class="m-drawer__divider"></div>'
+    + '<div class="m-drawer__logout">'
+    + '<button class="m-drawer__logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>'
+    + '</div>';
+
+  // ── Mobile bottom nav ──
+  var bottomNav = document.createElement('nav');
+  bottomNav.className = 'm-bottomnav';
+  bottomNav.setAttribute('aria-label', 'Điều hướng di động');
+  bottomNav.innerHTML =
     '<a href="' + p + 'index.html" class="m-bottomnav__item"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>'
     + '<a href="' + p + 'categories.html" class="m-bottomnav__item"><i class="fa-solid fa-layer-group"></i><span>Thể loại</span></a>'
     + '<a href="' + p + 'new-posts.html" class="m-bottomnav__item"><i class="fa-solid fa-fire"></i><span>Mới</span></a>'
     + '<a href="' + p + 'hall-of-fame.html" class="m-bottomnav__item"><i class="fa-solid fa-trophy"></i><span>Vinh danh</span></a>'
     + '<a href="' + p + 'account.html" class="m-bottomnav__item"><i class="fa-solid fa-user"></i><span>Tài khoản</span></a>';
 
-  // Insert at start of body
-  document.body.insertBefore(nav, document.body.firstChild);
+  // ── Insert all elements ──
+  // Mobile: bottom nav → header → drawer
+  document.body.insertBefore(bottomNav, document.body.firstChild);
   document.body.insertBefore(header, document.body.firstChild);
+  document.body.insertBefore(drawer, document.body.firstChild);
+  document.body.insertBefore(drawerOverlay, document.body.firstChild);
+  // Desktop: header + nav overlay
+  document.body.insertBefore(desktopHeader, document.body.firstChild);
+  document.body.insertBefore(navOv, document.body.firstChild);
 
-  // Mark body so redirect script knows shell is present
+  // ── Desktop hamburger toggle ──
+  var hamburger = desktopHeader.querySelector('#hamburger');
+  var navEl = desktopHeader.querySelector('#nav');
+  var navClose = desktopHeader.querySelector('#navClose');
+  if (hamburger && navEl) {
+    hamburger.addEventListener('click', function () {
+      navEl.classList.add('is-open');
+      navOv.classList.add('is-open');
+    });
+  }
+  if (navClose && navEl) {
+    navClose.addEventListener('click', function () {
+      navEl.classList.remove('is-open');
+      navOv.classList.remove('is-open');
+    });
+  }
+  if (navOv) {
+    navOv.addEventListener('click', function () {
+      navEl && navEl.classList.remove('is-open');
+      navOv.classList.remove('is-open');
+    });
+  }
+
+  // Mark body so other scripts know shell is present
   document.body.setAttribute('data-shell-injected', '1');
 
   // Load Font Awesome if not present
@@ -66,5 +171,12 @@
     fa.rel = 'stylesheet';
     fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css';
     document.head.appendChild(fa);
+  }
+
+  // Load auth-state.js so user info populates in header
+  if (!window.__audiohubAuthLoaded && !document.querySelector('script[src*="auth-state"]')) {
+    var authScript = document.createElement('script');
+    authScript.src = p + 'js/auth-state.js';
+    document.body.appendChild(authScript);
   }
 })();
