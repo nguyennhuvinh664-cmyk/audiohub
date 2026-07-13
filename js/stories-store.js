@@ -23,10 +23,9 @@
     values.forEach(function (story) {
       var fingerprint = [
         String(story.title || '').trim().toLowerCase(),
-        String(story.author || '').trim().toLowerCase(),
-        String(story.chapterTitle || '').trim().toLowerCase()
+        String(story.author || '').trim().toLowerCase()
       ].join('::');
-      if (!fingerprint || fingerprint === '::::') {
+      if (!fingerprint || fingerprint === '::') {
         pickedByFingerprint[String(story.id)] = story;
         return;
       }

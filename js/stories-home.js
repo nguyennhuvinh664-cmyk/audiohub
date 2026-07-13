@@ -278,15 +278,17 @@
     // Always fetch fresh from API, merge with local
     return fetchPublicStories().then(function (apiStories) {
       var apiIds = {};
-      var apiTitles = {};
+      var apiKeys = {};  // normalized title+author fingerprint
       (apiStories || []).forEach(function (s) {
         apiIds[s.id] = true;
-        if (s.title) apiTitles[s.title.trim().toLowerCase()] = true;
+        var key = (s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase();
+        if (key !== '::') apiKeys[key] = true;
       });
-      // Filter local stories: skip if same ID or same title as API story
+      // Filter local stories: skip if same ID or same title+author as API story
       var localOnly = localPublic.filter(function (s) {
         if (apiIds[s.id]) return false;
-        if (s.title && apiTitles[s.title.trim().toLowerCase()]) return false;
+        var key = (s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase();
+        if (key !== '::' && apiKeys[key]) return false;
         return true;
       });
       return (apiStories || []).concat(localOnly);
