@@ -95,6 +95,14 @@
   var transitioning = false;
   var isInitialLoad = true;
 
+  /** Hide the loading overlay after initial page load */
+  function hideSpaLoader() {
+    var loader = document.getElementById('spa-loader');
+    if (!loader) return;
+    loader.classList.add('fade-out');
+    setTimeout(function () { loader.remove(); }, 350);
+  }
+
   /* ── Helpers ────────────────────────────────────────────────────────── */
 
   /** Get the base path for a given page path */
@@ -470,6 +478,7 @@
         .then(function () {
           isInitialLoad = false;
           transitioning = false;
+          hideSpaLoader();
         });
     } else {
       // Root page — just mark existing CSS/JS for cleanup on navigation
@@ -494,6 +503,7 @@
       });
 
       isInitialLoad = false;
+      hideSpaLoader();
     }
   });
 

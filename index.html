@@ -18,6 +18,22 @@
     @media (max-width: 480px) {
       .cgrid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     }
+    /* Loading overlay — hides flash when F5 loads subpage via SPA shell */
+    #spa-loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #09090f;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity .3s ease;
+    }
+    #spa-loader.fade-out { opacity: 0; pointer-events: none; }
+    #spa-loader .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,.1);
+      border-top-color: #f59e0b;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -144,6 +160,9 @@
   </div>
 </header>
 <div class="nav-ov" id="navOv"></div>
+
+<!-- Loading overlay — shown on F5, hidden after router finishes -->
+<div id="spa-loader"><div class="spinner"></div></div>
 
 <div id="page-content">
 <div class="m-page">
