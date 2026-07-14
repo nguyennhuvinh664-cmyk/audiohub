@@ -10,6 +10,10 @@
   // If SPA shell is already present, do nothing
   if (document.querySelector('.m-bottomnav')) return;
 
+  // Hide body until CSS loads (prevent flash of unstyled content)
+  document.documentElement.style.opacity = '0';
+  document.documentElement.style.transition = 'opacity 0.3s ease';
+
   // Load required CSS
   var cssFiles = ['style-index', 'mobile-shared', 'header-enhancements', 'auth-state', 'mobile-app'];
   var loadedHrefs = [];
@@ -212,5 +216,18 @@
     routerScript.src = p + 'js/spa-router.js';
     document.body.appendChild(routerScript);
   }
+
+  // Show page after CSS loads (prevent flash of unstyled content)
+  function showPage() {
+    document.documentElement.style.opacity = '1';
+  }
+  // Wait for the main CSS file to load, then show
+  var mainCSS = document.querySelector('link[href*="style-index"]');
+  if (mainCSS) {
+    if (mainCSS.sheet) { showPage(); }
+    else { mainCSS.addEventListener('load', showPage); mainCSS.addEventListener('error', showPage); }
+  }
+  // Fallback: show after 800ms no matter what
+  setTimeout(showPage, 800);
 
 })();
