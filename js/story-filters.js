@@ -454,6 +454,11 @@
       applyFilters(false);
     });
 
+    // Re-apply filters after stories-listing.js re-renders cards (fixes race condition)
+    window.addEventListener('audiohub:cards-rendered', function () {
+      applyFilters(false);
+    });
+
     applyFilters(false);
   }
 
