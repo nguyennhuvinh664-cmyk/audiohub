@@ -182,6 +182,22 @@
   // Mark body so other scripts know shell is present
   document.body.setAttribute('data-shell-injected', '1');
 
+  // ── Set active nav link based on current URL ──
+  var currentPath = window.location.pathname.toLowerCase();
+  var currentPage = currentPath.split('/').pop() || 'index.html';
+  document.querySelectorAll('.nav__link, .m-bottomnav__item, .m-drawer__link').forEach(function (link) {
+    var href = (link.getAttribute('href') || '').toLowerCase();
+    // Match by page name (e.g. "trending.html", "categories.html")
+    var linkPage = href.split('/').pop().split('?')[0];
+    if (linkPage && currentPage.indexOf(linkPage) === 0) {
+      link.classList.add('active');
+    }
+    // Also match index.html on root
+    if (currentPage === 'index.html' && linkPage === 'index.html') {
+      link.classList.add('active');
+    }
+  });
+
   // Load Font Awesome if not present
   if (!document.querySelector('link[href*="font-awesome"]')) {
     var fa = document.createElement('link');
