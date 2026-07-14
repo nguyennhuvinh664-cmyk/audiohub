@@ -226,7 +226,20 @@
     const initial = getParams();
     titleInput.value = initial.q;
     authorInput.value = initial.author;
-    genreSelect.value = initial.genre || initial.hashtag;
+    var genreFromUrl = initial.genre || initial.hashtag;
+    // If URL genre doesn't exist as a <option>, add it dynamically so the select can hold it
+    if (genreFromUrl) {
+      var genreMatch = Array.from(genreSelect.options).some(function (opt) {
+        return opt.value === genreFromUrl;
+      });
+      if (!genreMatch) {
+        var tmp = document.createElement('option');
+        tmp.value = genreFromUrl;
+        tmp.textContent = genreFromUrl;
+        genreSelect.appendChild(tmp);
+      }
+    }
+    genreSelect.value = genreFromUrl;
 
     const customGenre = initCustomListingGenreDropdown(genreSelect);
     if (customGenre && typeof customGenre.refresh === 'function') {
