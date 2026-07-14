@@ -197,6 +197,10 @@
     document.querySelectorAll('link[data-page-css]').forEach(function (link) {
       link.remove();
     });
+    // Remove stale CSS-based active nav rules from previous standalone page
+    document.querySelectorAll('style[data-active-nav]').forEach(function (s) {
+      s.remove();
+    });
   }
 
   /** Script helpers */
