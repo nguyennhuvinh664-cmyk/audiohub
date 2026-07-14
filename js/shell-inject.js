@@ -10,9 +10,8 @@
   // If SPA shell is already present, do nothing
   if (document.querySelector('.m-bottomnav')) return;
 
-  // Hide body until CSS loads (prevent flash of unstyled content)
-  document.documentElement.style.opacity = '0';
-  document.documentElement.style.transition = 'opacity 0.3s ease';
+  // Page is hidden by inline <style>html{opacity:0!important}</style> in <head>
+  // We'll remove it after CSS loads (see showPage below)
 
   // Load required CSS
   var cssFiles = ['style-index', 'mobile-shared', 'header-enhancements', 'auth-state', 'mobile-app'];
@@ -187,17 +186,14 @@
   document.body.setAttribute('data-shell-injected', '1');
 
   // ── Set active nav link based on current URL ──
-  var currentPath = window.location.pathname.toLowerCase();
+  var currentPath = window.location.pathname;
+  // Extract just the filename: "/trending.html" → "trending.html", "/html/trending.html" → "trending.html"
   var currentPage = currentPath.split('/').pop() || 'index.html';
   document.querySelectorAll('.nav__link, .m-bottomnav__item, .m-drawer__link').forEach(function (link) {
-    var href = (link.getAttribute('href') || '').toLowerCase();
-    // Match by page name (e.g. "trending.html", "categories.html")
-    var linkPage = href.split('/').pop().split('?')[0];
-    if (linkPage && currentPage.indexOf(linkPage) === 0) {
-      link.classList.add('active');
-    }
-    // Also match index.html on root
-    if (currentPage === 'index.html' && linkPage === 'index.html') {
+    var href = link.getAttribute('href') || '';
+    // Extract filename from href: "../trending.html" → "trending.html"
+    var linkPage = href.split('/').pop().split('?')[0].split('#')[0];
+    if (linkPage && linkPage === currentPage) {
       link.classList.add('active');
     }
   });
@@ -217,9 +213,15 @@
     document.body.appendChild(routerScript);
   }
 
-  // Show page after CSS loads (prevent flash of unstyled content)
+  // Show page after CSS loads — remove the inline FOUC-hiding <style>
+  var _pageShown = false;
   function showPage() {
-    document.documentElement.style.opacity = '1';
+    if (_pageShown) return;
+    _pageShown = true;
+    // Remove the inline <style>html{opacity:0!important}</style> from <head>
+    var s = document.querySelector('style');
+    if (s && s.textContent.indexOf('opacity:0') !== -1) s.remove();
+    document.documentElement.style.opacity = '';
   }
   // Wait for the main CSS file to load, then show
   var mainCSS = document.querySelector('link[href*="style-index"]');
