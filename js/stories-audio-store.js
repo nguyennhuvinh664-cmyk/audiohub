@@ -122,6 +122,13 @@
 
     key = String(key);
 
+    // Ensure we have a real JWT (not local fallback) before API calls.
+    // In incognito, ensureGuestToken() sets a local fallback instantly,
+    // then fetches a real JWT in background. We must wait for it.
+    var authReady = (window.AudioHubAuth && typeof window.AudioHubAuth.ensureGuestToken === 'function')
+      ? window.AudioHubAuth.ensureGuestToken()
+      : Promise.resolve();
+
     return openDb().then(function (db) {
       return new Promise(function (resolve, reject) {
         var tx = db.transaction(STORE_NAME, 'readonly');
@@ -141,7 +148,10 @@
             return;
           }
 
-          getAudioFromApi(key).then(resolve);
+          // Wait for real JWT before hitting API (avoids 401 in incognito)
+          authReady.then(function () {
+            getAudioFromApi(key).then(resolve);
+          });
         };
 
         request.onerror = function () {
@@ -153,7 +163,9 @@
         };
       });
     }).catch(function () {
-      return getAudioFromApi(key);
+      return authReady.then(function () {
+        return getAudioFromApi(key);
+      });
     });
   }
 

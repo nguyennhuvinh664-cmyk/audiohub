@@ -451,18 +451,24 @@
      Always fetches /auth/me if token exists, to ensure profile is fresh.
      ══════════════════════════════════════════════════════════════════ */
 
+  var _guestTokenPromise = null;
+
   function ensureGuestToken() {
     var token = getToken();
-    // Already have a real token (not demo)
-    if (token && token !== 'demo-local-token') {
+    // Already have a real token (not demo, not local fallback)
+    if (token && token !== 'demo-local-token' && token.indexOf('guest-') !== 0) {
       return Promise.resolve(token);
     }
-    // Use local fallback immediately (no waiting for Render backend)
+    // Already fetching — reuse the same promise
+    if (_guestTokenPromise) {
+      return _guestTokenPromise;
+    }
+    // Use local fallback immediately (so API calls don't fail)
     var localToken = useLocalFallback();
 
-    // Try to upgrade to real token in background (non-blocking)
+    // Fetch real JWT from backend, then cache it
     var guestId = window.AudioHubApi && window.AudioHubApi.getGuestId ? window.AudioHubApi.getGuestId() : ('g_' + Date.now().toString(36));
-    window.AudioHubApi.request('/auth/guest', {
+    _guestTokenPromise = window.AudioHubApi.request('/auth/guest', {
       method: 'POST',
       body: JSON.stringify({ guestId: guestId })
     }).then(function (result) {
@@ -471,10 +477,14 @@
         if (window.AudioHubApi && typeof window.AudioHubApi.setToken === 'function') {
           window.AudioHubApi.setToken(result.token);
         }
+        return result.token;
       }
-    }).catch(function () {});
+      return localToken;
+    }).catch(function () {
+      return localToken;
+    });
 
-    return Promise.resolve(localToken);
+    return _guestTokenPromise;
   }
 
   function useLocalFallback() {
