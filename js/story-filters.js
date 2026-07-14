@@ -459,6 +459,13 @@
       applyFilters(false);
     });
 
+    // Fallback: MutationObserver watches for DOM changes in the card grid
+    // Handles cases where cards are added without dispatching an event
+    var observer = new MutationObserver(function () {
+      applyFilters(false);
+    });
+    observer.observe(root, { childList: true });
+
     applyFilters(false);
   }
 
