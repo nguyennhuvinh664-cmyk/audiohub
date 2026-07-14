@@ -190,4 +190,11 @@
     document.head.appendChild(fa);
   }
 
+  // Load SPA router so navigation between standalone pages is smooth (SPA)
+  if (!document.querySelector('script[src*="spa-router"]')) {
+    var routerScript = document.createElement('script');
+    routerScript.src = p + 'js/spa-router.js';
+    document.body.appendChild(routerScript);
+  }
+
 })();

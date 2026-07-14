@@ -426,6 +426,14 @@
     var pageName = extractPageName(window.location.pathname);
     history.replaceState({ route: route, page: pageName }, '', window.location.href);
 
+    // If standalone page (loaded directly, not via SPA shell), content is already present
+    // Just set up link interception — skip the fetch
+    if (document.body.getAttribute('data-shell-injected') === '1') {
+      isInitialLoad = false;
+      hideSpaLoader();
+      return;
+    }
+
     // If this is a subpage (not root index.html), load its content into the shell
     if (isKnownRoute(route) && pageName !== 'index.html') {
       var fetchUrl = getRouteUrl(route);
