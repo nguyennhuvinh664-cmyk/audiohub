@@ -1048,20 +1048,36 @@
     window.AudioHubStoryAudio.get(audioKey)
       .then(function (blob) {
         if (!blob) {
-          showNote('Không tìm thấy file audio đã lưu.');
-          return;
-        }
-        try {
-          var audioUrl = URL.createObjectURL(blob);
-          audioUrlByNode.set(audioNode, audioUrl);
-          audioNode.src = audioUrl;
-          audioNode.classList.remove('is-hidden');
-        } catch (error) {
-          showNote('Không thể tải file audio đã lưu.');
+          // Audio not found — retry once after 3s (upload might still be in progress)
+          showNote('Đang tải audio… (thử lại sau 3 giây)');
+          return new Promise(function (resolve) {
+            setTimeout(function () {
+              window.AudioHubStoryAudio.get(audioKey).then(resolve);
+            }, 3000);
+          }).then(function (retryBlob) {
+            if (retryBlob) {
+              var audioUrl = URL.createObjectURL(retryBlob);
+              audioUrlByNode.set(audioNode, audioUrl);
+              audioNode.src = audioUrl;
+              audioNode.classList.remove('is-hidden');
+              showNote('');
+            } else {
+              showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
+            }
+          });
+        } else {
+          try {
+            var audioUrl = URL.createObjectURL(blob);
+            audioUrlByNode.set(audioNode, audioUrl);
+            audioNode.src = audioUrl;
+            audioNode.classList.remove('is-hidden');
+          } catch (error) {
+            showNote('Không thể tải file audio đã lưu.');
+          }
         }
       })
       .catch(function () {
-        showNote('Không thể tải file audio đã lưu.');
+        showNote('Không thể tải file audio. Kiểm tra kết nối mạng.');
       });
   }
 

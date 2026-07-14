@@ -1028,17 +1028,20 @@
     }
 
     // After story is synced to backend with real CUID, re-upload audio if needed
+    var audioUploadedToBackend = Promise.resolve();
     if (published && story && story.id && state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
       var fileToUpload = state.audioFile;
-      state.audioFile = null; // Clear File object before upsert (can't serialize to JSON)
-      window.AudioHubStoryAudio.put(fileToUpload, story.id).then(function (newAudioKey) {
+      audioUploadedToBackend = window.AudioHubStoryAudio.put(fileToUpload, story.id).then(function (newAudioKey) {
+        state.audioFile = null;
         if (newAudioKey && newAudioKey !== state.audioKey) {
           state.audioKey = newAudioKey;
-          // Update story with new audioKey from backend
           story.audioKey = newAudioKey;
           window.AudioHubStories.upsert(story);
         }
-      }).catch(function () {});
+      }).catch(function (err) {
+        console.warn('[upload] Audio upload to backend failed, will retry later:', err);
+        // Keep state.audioFile for retry — don't clear it
+      });
     }
 
     showBanner(statusLabel + ' Đã lưu vào danh sách demo.', published);
