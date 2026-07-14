@@ -50,25 +50,55 @@
     return 'a_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   }
 
+  var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+  var AUDIO_BUCKET = 'story-audio';
+
+  function uploadToSupabaseStorage(blob, path) {
+    var url = SUPABASE_URL + '/storage/v1/object/' + AUDIO_BUCKET + '/' + encodeURIComponent(path);
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': blob.type || 'audio/mpeg'
+      },
+      body: blob
+    }).then(function (res) {
+      if (!res.ok) throw new Error('Upload failed: ' + res.status);
+      return res.json();
+    }).then(function () {
+      // Return just the path (not full Key with bucket prefix)
+      return path;
+    });
+  }
+
+  function downloadFromSupabaseStorage(path) {
+    var url = SUPABASE_URL + '/storage/v1/object/public/' + AUDIO_BUCKET + '/' + encodeURIComponent(path);
+    return fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('Download failed: ' + res.status);
+      return res.blob();
+    });
+  }
+
   function putAudio(blob, storyId) {
-    // Wait for guest token to be ready before uploading
-    var ensurePromise = (window.AudioHubAuth && window.AudioHubAuth.ensureGuestToken)
-      ? window.AudioHubAuth.ensureGuestToken()
-      : Promise.resolve();
+    if (!blob) return Promise.resolve('');
 
-    return ensurePromise.then(function () {
-      if (canUseApi() && storyId && !String(storyId).startsWith('s_') && blob) {
-        var form = new FormData();
-        form.append('audio', blob, blob.name || 'audio.mp3');
-        return window.AudioHubApi.request('/stories/' + encodeURIComponent(storyId) + '/audio', {
-          method: 'POST',
-          body: form
-        }).then(function (result) {
-          return result && result.audioKey ? String(result.audioKey) : '';
-        });
-      }
+    // Upload to Supabase Storage if we have a real story ID
+    if (storyId && !String(storyId).startsWith('s_')) {
+      var path = storyId + '.mp3';
+      return uploadToSupabaseStorage(blob, path).catch(function () {
+        // Fallback: store in local IndexedDB
+        return putAudioLocal(blob);
+      });
+    }
 
-      return openDb().then(function (db) {
+    // No real story ID yet — store locally
+    return putAudioLocal(blob);
+  }
+
+  function putAudioLocal(blob) {
+    return openDb().then(function (db) {
       return new Promise(function (resolve, reject) {
         var key = makeKey();
         var tx = db.transaction(STORE_NAME, 'readwrite');
@@ -82,36 +112,34 @@
         });
 
         tx.oncomplete = function () {
-          try {
-            db.close();
-          } catch (error) {
-          }
+          try { db.close(); } catch (e) {}
           resolve(key);
         };
 
         tx.onerror = function () {
-          try {
-            db.close();
-          } catch (error) {
-          }
+          try { db.close(); } catch (e) {}
           reject(tx.error || new Error('Failed to store audio'));
         };
       });
     });
-    });
   }
 
   function getAudioFromApi(key) {
-    if (!key || !canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
-      return Promise.resolve(null);
-    }
+    if (!key) return Promise.resolve(null);
 
-    return window.AudioHubApi.requestBlob('/media/audio/' + encodeURIComponent(String(key)), {
-      method: 'GET'
-    }).then(function (blob) {
-      return blob || null;
-    }).catch(function () {
-      return null;
+    // Try Supabase Storage first (public bucket, no auth needed)
+    return downloadFromSupabaseStorage(key).catch(function () {
+      // Fallback: try Render backend
+      if (!canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
+        return null;
+      }
+      return window.AudioHubApi.requestBlob('/media/audio/' + encodeURIComponent(String(key)), {
+        method: 'GET'
+      }).then(function (blob) {
+        return blob || null;
+      }).catch(function () {
+        return null;
+      });
     });
   }
 
