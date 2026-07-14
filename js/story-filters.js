@@ -211,6 +211,7 @@
 
   function initListingFilters() {
     const root = document.querySelector('[data-story-filter-root]');
+    console.log('[Filters] initListingFilters called. root:', root);
     if (!root) return;
 
     const form = document.querySelector('[data-story-filter-form]');
@@ -224,22 +225,27 @@
     if (!form || !titleInput || !authorInput || !genreSelect || !resetButton || !summary || !empty) return;
 
     const initial = getParams();
+    console.log('[Filters] URL params:', JSON.stringify(initial));
     titleInput.value = initial.q;
     authorInput.value = initial.author;
     var genreFromUrl = initial.genre || initial.hashtag;
+    console.log('[Filters] genreFromUrl:', JSON.stringify(genreFromUrl));
     // If URL genre doesn't exist as a <option>, add it dynamically so the select can hold it
     if (genreFromUrl) {
       var genreMatch = Array.from(genreSelect.options).some(function (opt) {
         return opt.value === genreFromUrl;
       });
+      console.log('[Filters] genreMatch in options:', genreMatch, 'options count:', genreSelect.options.length);
       if (!genreMatch) {
         var tmp = document.createElement('option');
         tmp.value = genreFromUrl;
         tmp.textContent = genreFromUrl;
         genreSelect.appendChild(tmp);
+        console.log('[Filters] Added dynamic option:', genreFromUrl);
       }
     }
     genreSelect.value = genreFromUrl;
+    console.log('[Filters] genreSelect.value after set:', JSON.stringify(genreSelect.value));
 
     const customGenre = initCustomListingGenreDropdown(genreSelect);
     if (customGenre && typeof customGenre.refresh === 'function') {
@@ -319,6 +325,7 @@
       var member = isMember();
 
       const cards = Array.from(root.querySelectorAll('.story-card'));
+      console.log('[Filters] applyFilters called. cards:', cards.length, 'genre:', JSON.stringify(filters.genre), 'root children:', root.children.length);
       const matchedCards = [];
 
       cards.forEach(function (card) {
@@ -469,15 +476,18 @@
 
     // Re-apply filters after stories-listing.js re-renders cards (fixes race condition)
     window.addEventListener('audiohub:cards-rendered', function () {
+      console.log('[Filters] audiohub:cards-rendered event received');
       applyFilters(false);
     });
 
     // Fallback: MutationObserver watches for DOM changes in the card grid
     // Handles cases where cards are added without dispatching an event
-    var observer = new MutationObserver(function () {
+    var observer = new MutationObserver(function (mutations) {
+      console.log('[Filters] MutationObserver fired, mutations:', mutations.length, 'root children:', root.children.length);
       applyFilters(false);
     });
     observer.observe(root, { childList: true });
+    console.log('[Filters] MutationObserver set up on root. Initial root children:', root.children.length);
 
     applyFilters(false);
   }

@@ -1,5 +1,6 @@
 (function () {
   var root = document.querySelector('[data-story-filter-root]');
+  console.log('[Listing] root:', root);
   if (!root) {
     return;
   }
@@ -382,6 +383,7 @@
     }
 
     root.innerHTML = picked.map(buildStoryCard).join('');
+    console.log('[Listing] renderStories: rendered', picked.length, 'cards. root children:', root.children.length);
     hydrateCovers(root);
     emitRendered();
 
