@@ -975,12 +975,6 @@
       return;
     }
 
-    // Require YouTube URL when publishing (for cross-device audio)
-    if (published && !built.payload.youtubeUrl) {
-      showBanner('Vui lòng nhập link YouTube để có thể nghe audio trên tất cả thiết bị.', false);
-      return;
-    }
-
     if (authorInput) {
       authorInput.value = built.payload.author;
       authorInput.readOnly = true;
