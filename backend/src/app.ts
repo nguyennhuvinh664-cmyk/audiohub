@@ -45,9 +45,11 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/auth', guestRoutes);
 app.use('/api/v1/stories', storiesRoutes);
-app.use('/api/v1', mediaRoutes);
+// Public routers MUST come before mediaRoutes (which has auth-protected /media/audio/:key)
+// Otherwise Express matches the auth route first and returns 401 for unauthenticated users.
 app.use('/api/v1', coverPublicRouter);
 app.use('/api/v1', audioPublicRouter);
+app.use('/api/v1', mediaRoutes);
 app.use('/api/v1/audio-trash', trashRoutes);
 app.use('/api/v1/maintenance', maintenanceRoutes);
 app.use('/api/v1/playlists', playlistsRoutes);

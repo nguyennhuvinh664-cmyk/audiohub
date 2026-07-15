@@ -9,7 +9,10 @@ import { fail, ok } from '../../shared/http/response.js';
 import { requireAuth, type AuthRequest } from '../../shared/middleware/auth.js';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
+});
 
 function makeKey(prefix: 'c' | 'a') {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;

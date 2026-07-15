@@ -86,15 +86,13 @@
     var email = user.email || '';
     if (!name && !email) return false;
 
-    var adminEmails = ['admin@audiohub.vn', 'admin-test@audiohub.vn'];
-
     var profile = {
       isLoggedIn: true,
       name: name,
       email: email,
       initials: deriveInitials(name),
       tier: user.tier || user.membership || 'Thành viên',
-      isAdmin: !!user.isAdmin || adminEmails.indexOf(email.toLowerCase()) !== -1,
+      isAdmin: !!user.isAdmin,
       id: user.id || ''
     };
 
