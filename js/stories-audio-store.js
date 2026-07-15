@@ -61,14 +61,14 @@
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': blob.type || 'audio/mpeg'
+        'Content-Type': blob.type || 'audio/mpeg',
+        'x-upsert': 'true'
       },
       body: blob
     }).then(function (res) {
       if (!res.ok) throw new Error('Upload failed: ' + res.status);
       return res.json();
     }).then(function () {
-      // Return just the path (not full Key with bucket prefix)
       return path;
     });
   }

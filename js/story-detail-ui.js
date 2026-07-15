@@ -1040,40 +1040,73 @@
     bindStoryVideo(story);
 
     var audioKey = story && story.audioKey ? String(story.audioKey) : '';
-    if (!audioKey || !window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') {
+    var storyId = story && story.id ? String(story.id) : '';
+    if (!audioKey && !storyId) {
       showNote('Chưa có file audio cho truyện này.');
       return;
     }
 
-    window.AudioHubStoryAudio.get(audioKey)
+    // Build list of paths to try (most likely first)
+    var paths = [];
+    if (audioKey) paths.push(audioKey);
+    if (storyId) {
+      var storyIdMp3 = storyId + '.mp3';
+      if (paths.indexOf(storyIdMp3) === -1) paths.push(storyIdMp3);
+    }
+
+    var SUPABASE_STORAGE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
+
+    function fetchDirect(path) {
+      return fetch(SUPABASE_STORAGE_URL + encodeURIComponent(path))
+        .then(function (res) { return res.ok ? res.blob() : Promise.reject(null); });
+    }
+
+    function tryPaths(idx) {
+      if (idx >= paths.length) return Promise.resolve(null);
+      var path = paths[idx];
+
+      // Try AudioHubStoryAudio first (IndexedDB → Supabase → API)
+      var fromStore = (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function')
+        ? window.AudioHubStoryAudio.get(path).catch(function () { return null; })
+        : Promise.resolve(null);
+
+      return fromStore.then(function (blob) {
+        if (blob) return blob;
+        // Direct Supabase Storage fetch (bypasses auth)
+        return fetchDirect(path).catch(function () { return null; });
+      }).then(function (blob) {
+        return blob || tryPaths(idx + 1);
+      });
+    }
+
+    tryPaths(0)
       .then(function (blob) {
-        if (!blob) {
-          // Audio not found — retry once after 3s (upload might still be in progress)
-          showNote('Đang tải audio… (thử lại sau 3 giây)');
-          return new Promise(function (resolve) {
-            setTimeout(function () {
-              window.AudioHubStoryAudio.get(audioKey).then(resolve);
-            }, 3000);
-          }).then(function (retryBlob) {
-            if (retryBlob) {
-              var audioUrl = URL.createObjectURL(retryBlob);
-              audioUrlByNode.set(audioNode, audioUrl);
-              audioNode.src = audioUrl;
-              audioNode.classList.remove('is-hidden');
-              showNote('');
-            } else {
-              showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
-            }
-          });
-        } else {
+        if (blob) {
           try {
             var audioUrl = URL.createObjectURL(blob);
             audioUrlByNode.set(audioNode, audioUrl);
             audioNode.src = audioUrl;
             audioNode.classList.remove('is-hidden');
+            showNote('');
           } catch (error) {
             showNote('Không thể tải file audio đã lưu.');
           }
+        } else {
+          // Retry once after 3s
+          showNote('Đang tải audio… (thử lại sau 3 giây)');
+          setTimeout(function () {
+            tryPaths(0).then(function (retryBlob) {
+              if (retryBlob) {
+                var audioUrl = URL.createObjectURL(retryBlob);
+                audioUrlByNode.set(audioNode, audioUrl);
+                audioNode.src = audioUrl;
+                audioNode.classList.remove('is-hidden');
+                showNote('');
+              } else {
+                showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
+              }
+            });
+          }, 3000);
         }
       })
       .catch(function () {
