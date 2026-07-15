@@ -55,7 +55,7 @@
   var AUDIO_BUCKET = 'story-audio';
 
   function uploadToSupabaseStorage(blob, path) {
-    var url = SUPABASE_URL + '/storage/v1/object/' + AUDIO_BUCKET + '/' + encodeURIComponent(path);
+    var url = SUPABASE_URL + '/storage/v1/object/' + AUDIO_BUCKET + '/' + path;
     return fetch(url, {
       method: 'POST',
       headers: {
