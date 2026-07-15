@@ -379,9 +379,10 @@
         .then(function (created) {
           if (created && created.id && String(created.id) !== String(localEntry.id)) {
             var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
+            var newStoryId = String(created.id);
             removeLocalStory(localEntry.id);
             upsertLocalStory({
-              id: created.id, title: localEntry.title, author: localEntry.author,
+              id: newStoryId, title: localEntry.title, author: localEntry.author,
               genre: localEntry.genre, description: localEntry.description,
               readingText: localEntry.readingText, hashtags: localEntry.hashtags,
               chapterTitle: localEntry.chapterTitle, chapters: savedChapters,
@@ -392,6 +393,24 @@
               createdAt: created.created_at || localEntry.createdAt,
               updatedAt: created.updated_at || new Date().toISOString()
             });
+
+            // Re-upload audio under real CUID so other browsers can find it
+            if (localEntry.audioKey && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
+              window.AudioHubStoryAudio.get(localEntry.audioKey)
+                .then(function (blob) {
+                  if (!blob) return;
+                  window.AudioHubStoryAudio.put(blob, newStoryId).then(function (newKey) {
+                    if (newKey && newKey !== localEntry.audioKey) {
+                      var updatedEntry = getLocalStoryById(newStoryId);
+                      if (updatedEntry) {
+                        updatedEntry.audioKey = newKey;
+                        upsertLocalStory(updatedEntry);
+                      }
+                    }
+                  });
+                })
+                .catch(function () {});
+            }
           }
         })
         .catch(function (e) {

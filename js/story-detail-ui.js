@@ -1804,6 +1804,37 @@
       });
     }
 
+    // STEP 3: Direct audio fallback — try loading audio from Supabase Storage
+    // even when story data isn't available (e.g., incognito, backend down)
+    if (storyId && !isSyntheticStoryId(storyId)) {
+      setTimeout(function () {
+        var audioNode = document.querySelector('[data-story-audio]');
+        var noteNode = document.querySelector('[data-story-audio-note]');
+        if (!audioNode || !audioNode.classList.contains('is-hidden')) return;
+        if (noteNode && noteNode.textContent.indexOf('Audio chưa có') === -1 && noteNode.textContent.indexOf('Chưa có file') === -1) return;
+
+        var SUPABASE_STORAGE = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
+        var paths = [storyId + '.mp3'];
+
+        function tryDirect(idx) {
+          if (idx >= paths.length) return;
+          fetch(SUPABASE_STORAGE + encodeURIComponent(paths[idx]))
+            .then(function (res) { return res.ok ? res.blob() : Promise.reject(null); })
+            .then(function (blob) {
+              if (!blob || !blob.size) return tryDirect(idx + 1);
+              try {
+                var url = URL.createObjectURL(blob);
+                audioNode.src = url;
+                audioNode.classList.remove('is-hidden');
+                if (noteNode) { noteNode.textContent = ''; noteNode.classList.add('is-hidden'); }
+              } catch (e) {}
+            })
+            .catch(function () { tryDirect(idx + 1); });
+        }
+        tryDirect(0);
+      }, 5000);
+    }
+
     var playButton = document.querySelector('[data-player-toggle]');
     var playIcon = playButton ? playButton.querySelector('i') : null;
     var nativeAudio = document.querySelector('[data-story-audio]');
