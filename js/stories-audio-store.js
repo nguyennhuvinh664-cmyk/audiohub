@@ -166,10 +166,10 @@
   function getAudioFromApi(key) {
     if (!key) return Promise.resolve(null);
 
-    // Try Supabase Storage first (public bucket, no auth needed)
-    return downloadFromSupabaseStorage(key).catch(function () {
-      // Fallback: try Render backend public endpoint (no auth needed)
-      return downloadFromRenderBackend(key).catch(function () {
+    // Try Render backend first (public endpoint, no auth needed, fastest)
+    return downloadFromRenderBackend(key).catch(function () {
+      // Fallback: try Supabase Storage (may fail if project deleted)
+      return downloadFromSupabaseStorage(key).catch(function () {
         // Last resort: try authenticated backend API
         if (!canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
           return null;
