@@ -1055,10 +1055,17 @@
     }
 
     var SUPABASE_STORAGE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
+    var RENDER_BACKEND_BASE = 'https://audiohub-276v.onrender.com/api/v1';
 
     function fetchDirect(path) {
       return fetch(SUPABASE_STORAGE_URL + encodeURIComponent(path))
         .then(function (res) { return res.ok ? res.blob() : Promise.reject(null); });
+    }
+
+    function fetchFromBackend(key) {
+      if (!key) return Promise.reject(null);
+      var url = RENDER_BACKEND_BASE + '/media/audio/' + encodeURIComponent(String(key));
+      return fetch(url).then(function (res) { return res.ok ? res.blob() : Promise.reject(null); });
     }
 
     function tryPaths(idx) {
@@ -1074,6 +1081,10 @@
         if (blob) return blob;
         // Direct Supabase Storage fetch (bypasses auth)
         return fetchDirect(path).catch(function () { return null; });
+      }).then(function (blob) {
+        if (blob) return blob;
+        // Render backend public endpoint (works in incognito, no auth)
+        return fetchFromBackend(path).catch(function () { return null; });
       }).then(function (blob) {
         return blob || tryPaths(idx + 1);
       });
@@ -1804,28 +1815,32 @@
       });
     }
 
-    // STEP 2.5: If audioKey is IndexedDB key (a_*), re-upload to Supabase Storage
+    // STEP 2.5: If audioKey is IndexedDB key (a_*), re-upload to Supabase Storage + Render backend
     if (storyId && !isSyntheticStoryId(storyId)) {
       var _sRe = initStoryDetailFromStore(storyId);
       if (_sRe && _sRe.audioKey && String(_sRe.audioKey).indexOf('a_') === 0) {
-        var STORAGE_URL_CHK = 'https://oatwyxkzonhfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
-        fetch(STORAGE_URL_CHK + encodeURIComponent(storyId + '.mp3'))
-          .then(function (res) {
-            if (res.ok) return;
-            if (!window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') return;
-            return window.AudioHubStoryAudio.get(_sRe.audioKey).then(function (blob) {
-              if (!blob) return;
-              return window.AudioHubStoryAudio.put(blob, storyId).then(function (newKey) {
-                if (newKey && newKey !== _sRe.audioKey) {
-                  _sRe.audioKey = newKey;
-                  if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-                    window.AudioHubStories.upsert(_sRe);
-                  }
+        var STORAGE_URL_CHK = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
+        var BACKEND_URL_CHK = 'https://audiohub-276v.onrender.com/api/v1/media/audio/' + encodeURIComponent(storyId);
+        // Check if audio already exists on Supabase OR backend
+        Promise.all([
+          fetch(STORAGE_URL_CHK + encodeURIComponent(storyId + '.mp3')).then(function (r) { return r.ok; }).catch(function () { return false; }),
+          fetch(BACKEND_URL_CHK).then(function (r) { return r.ok; }).catch(function () { return false; })
+        ]).then(function (results) {
+          if (results[0] || results[1]) return; // Audio already available somewhere
+          if (!window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') return;
+          return window.AudioHubStoryAudio.get(_sRe.audioKey).then(function (blob) {
+            if (!blob) return;
+            return window.AudioHubStoryAudio.put(blob, storyId).then(function (newKey) {
+              if (newKey && newKey !== _sRe.audioKey) {
+                _sRe.audioKey = newKey;
+                if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+                  window.AudioHubStories.upsert(_sRe);
                 }
-              });
+              }
             });
-          })
-          .catch(function () {});
+          });
+        })
+        .catch(function () {});
       }
     }
 
@@ -1839,10 +1854,27 @@
         if (noteNode && noteNode.textContent.indexOf('Audio chưa có') === -1 && noteNode.textContent.indexOf('Chưa có file') === -1) return;
 
         var SUPABASE_STORAGE = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
+        var RENDER_BACKEND_BASE = 'https://audiohub-276v.onrender.com/api/v1';
         var paths = [storyId + '.mp3'];
 
         function tryDirect(idx) {
-          if (idx >= paths.length) return;
+          if (idx >= paths.length) {
+            // All Supabase paths exhausted — try Render backend public endpoint
+            var backendUrl = RENDER_BACKEND_BASE + '/media/audio/' + encodeURIComponent(storyId);
+            fetch(backendUrl)
+              .then(function (res) { return res.ok ? res.blob() : Promise.reject(null); })
+              .then(function (blob) {
+                if (!blob || !blob.size) return;
+                try {
+                  var url = URL.createObjectURL(blob);
+                  audioNode.src = url;
+                  audioNode.classList.remove('is-hidden');
+                  if (noteNode) { noteNode.textContent = ''; noteNode.classList.add('is-hidden'); }
+                } catch (e) {}
+              })
+              .catch(function () {});
+            return;
+          }
           fetch(SUPABASE_STORAGE + encodeURIComponent(paths[idx]))
             .then(function (res) { return res.ok ? res.blob() : Promise.reject(null); })
             .then(function (blob) {

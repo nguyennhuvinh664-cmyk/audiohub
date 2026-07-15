@@ -53,6 +53,7 @@
   var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
   var AUDIO_BUCKET = 'story-audio';
+  var RENDER_API_BASE = 'https://audiohub-276v.onrender.com/api/v1';
 
   function uploadToSupabaseStorage(blob, path) {
     var url = SUPABASE_URL + '/storage/v1/object/' + AUDIO_BUCKET + '/' + path;
@@ -73,10 +74,41 @@
     });
   }
 
+  function uploadToRenderBackend(blob, storyId) {
+    var url = RENDER_API_BASE + '/stories/' + encodeURIComponent(storyId) + '/audio';
+    var formData = new FormData();
+    var fileName = (storyId || 'audio') + '.mp3';
+    formData.append('audio', blob, fileName);
+    var headers = {};
+    var token = (window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function')
+      ? window.AudioHubApi.getToken() : '';
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    return fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: formData
+    }).then(function (res) {
+      if (!res.ok) throw new Error('Backend upload failed: ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      var ak = data && data.data && data.data.audioKey ? data.data.audioKey : null;
+      return ak || storyId;
+    });
+  }
+
   function downloadFromSupabaseStorage(path) {
     var url = SUPABASE_URL + '/storage/v1/object/public/' + AUDIO_BUCKET + '/' + encodeURIComponent(path);
     return fetch(url).then(function (res) {
       if (!res.ok) throw new Error('Download failed: ' + res.status);
+      return res.blob();
+    });
+  }
+
+  function downloadFromRenderBackend(key) {
+    if (!key) return Promise.reject(new Error('Missing key'));
+    var url = RENDER_API_BASE + '/media/audio/' + encodeURIComponent(String(key));
+    return fetch(url).then(function (res) {
+      if (!res.ok) throw new Error('Backend download failed: ' + res.status);
       return res.blob();
     });
   }
@@ -88,10 +120,15 @@
     if (storyId) {
       var path = storyId + '.mp3';
       return uploadToSupabaseStorage(blob, path).then(function (uploadedPath) {
+        // Also try Render backend in parallel (best-effort, for cross-browser)
+        uploadToRenderBackend(blob, storyId).catch(function () {});
         return uploadedPath || path;
       }).catch(function () {
-        // Fallback: store in local IndexedDB
-        return putAudioLocal(blob);
+        // Supabase failed — try Render backend (public, works in incognito)
+        return uploadToRenderBackend(blob, storyId).catch(function () {
+          // Both failed — store in local IndexedDB (current browser only)
+          return putAudioLocal(blob);
+        });
       });
     }
 
@@ -131,16 +168,19 @@
 
     // Try Supabase Storage first (public bucket, no auth needed)
     return downloadFromSupabaseStorage(key).catch(function () {
-      // Fallback: try Render backend
-      if (!canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
-        return null;
-      }
-      return window.AudioHubApi.requestBlob('/media/audio/' + encodeURIComponent(String(key)), {
-        method: 'GET'
-      }).then(function (blob) {
-        return blob || null;
-      }).catch(function () {
-        return null;
+      // Fallback: try Render backend public endpoint (no auth needed)
+      return downloadFromRenderBackend(key).catch(function () {
+        // Last resort: try authenticated backend API
+        if (!canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
+          return null;
+        }
+        return window.AudioHubApi.requestBlob('/media/audio/' + encodeURIComponent(String(key)), {
+          method: 'GET'
+        }).then(function (blob) {
+          return blob || null;
+        }).catch(function () {
+          return null;
+        });
       });
     });
   }
