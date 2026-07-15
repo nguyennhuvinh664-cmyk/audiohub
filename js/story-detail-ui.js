@@ -1804,6 +1804,28 @@
       });
     }
 
+    // STEP 2.5: If audioKey is IndexedDB key (a_*), re-upload to Supabase Storage
+    if (storyId && !isSyntheticStoryId(storyId) && story && story.audioKey && String(story.audioKey).indexOf('a_') === 0) {
+      var STORAGE_URL_CHK = 'https://oatwyxkzonhfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
+      fetch(STORAGE_URL_CHK + encodeURIComponent(storyId + '.mp3'))
+        .then(function (res) {
+          if (res.ok) return;
+          if (!window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') return;
+          return window.AudioHubStoryAudio.get(story.audioKey).then(function (blob) {
+            if (!blob) return;
+            return window.AudioHubStoryAudio.put(blob, storyId).then(function (newKey) {
+              if (newKey && newKey !== story.audioKey) {
+                story.audioKey = newKey;
+                if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+                  window.AudioHubStories.upsert(story);
+                }
+              }
+            });
+          });
+        })
+        .catch(function () {});
+    }
+
     // STEP 3: Direct audio fallback — try loading audio from Supabase Storage
     // even when story data isn't available (e.g., incognito, backend down)
     if (storyId && !isSyntheticStoryId(storyId)) {
