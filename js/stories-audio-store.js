@@ -84,16 +84,18 @@
   function putAudio(blob, storyId) {
     if (!blob) return Promise.resolve('');
 
-    // Upload to Supabase Storage if we have a real story ID
-    if (storyId && !String(storyId).startsWith('s_')) {
+    // Upload to Supabase Storage if we have any story ID
+    if (storyId) {
       var path = storyId + '.mp3';
-      return uploadToSupabaseStorage(blob, path).catch(function () {
+      return uploadToSupabaseStorage(blob, path).then(function (uploadedPath) {
+        return uploadedPath || path;
+      }).catch(function () {
         // Fallback: store in local IndexedDB
         return putAudioLocal(blob);
       });
     }
 
-    // No real story ID yet — store locally
+    // No story ID yet — store locally
     return putAudioLocal(blob);
   }
 

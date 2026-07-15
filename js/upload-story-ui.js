@@ -1023,8 +1023,9 @@
 
     // After story is synced to backend with real CUID, re-upload audio if needed
     var audioUploadedToBackend = Promise.resolve();
-    if (published && story && story.id && state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
+    if (published && story && state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
       var fileToUpload = state.audioFile;
+      // Upload immediately — even with s_ ID, Supabase will create a real entry
       audioUploadedToBackend = window.AudioHubStoryAudio.put(fileToUpload, story.id).then(function (newAudioKey) {
         state.audioFile = null;
         if (newAudioKey && newAudioKey !== state.audioKey) {
@@ -1033,8 +1034,8 @@
           window.AudioHubStories.upsert(story);
         }
       }).catch(function (err) {
-        console.warn('[upload] Audio upload to backend failed, will retry later:', err);
-        // Keep state.audioFile for retry — don't clear it
+        console.warn('[upload] Audio upload failed, will retry:', err);
+        // Keep state.audioFile for retry
       });
     }
 
