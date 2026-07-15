@@ -588,6 +588,58 @@
     getTrash: getTrash,
     deleteFromTrash: deleteFromTrash,
     restoreFromTrash: restoreFromTrash,
-    cleanupTrash: cleanupTrash
+    cleanupTrash: cleanupTrash,
+    migrateToSupabase: function () {
+      var STORIES_KEY = 'audiohub-stories';
+      var stories = [];
+      try { stories = JSON.parse(localStorage.getItem(STORIES_KEY) || '[]'); } catch (e) { return Promise.resolve([]); }
+      if (!stories.length) return Promise.resolve([]);
+
+      var toMigrate = stories.filter(function (s) {
+        return s && s.id && s.audioKey && String(s.audioKey).indexOf('a_') === 0;
+      });
+
+      if (!toMigrate.length) return Promise.resolve([]);
+
+      return openDb().then(function (db) {
+        var results = [];
+        var chain = Promise.resolve();
+
+        toMigrate.forEach(function (story) {
+          chain = chain.then(function () {
+            return new Promise(function (resolve) {
+              var tx = db.transaction(STORE_NAME, 'readonly');
+              var store = tx.objectStore(STORE_NAME);
+              var req = store.get(story.audioKey);
+              req.onsuccess = function () {
+                var blob = req.result && req.result.blob ? req.result.blob : null;
+                if (!blob) { resolve(); return; }
+                var path = story.id + '.mp3';
+                uploadToSupabaseStorage(blob, path).then(function () {
+                  // Update audioKey in localStorage
+                  var updated = [];
+                  try { updated = JSON.parse(localStorage.getItem(STORIES_KEY) || '[]'); } catch (e) {}
+                  updated.forEach(function (s) {
+                    if (s && s.id === story.id) s.audioKey = path;
+                  });
+                  try { localStorage.setItem(STORIES_KEY, JSON.stringify(updated)); } catch (e) {}
+                  results.push({ id: story.id, key: path, status: 'ok' });
+                  resolve();
+                }).catch(function (err) {
+                  results.push({ id: story.id, key: story.audioKey, status: 'fail', error: String(err) });
+                  resolve();
+                });
+              };
+              req.onerror = function () { resolve(); };
+            });
+          });
+        });
+
+        return chain.then(function () {
+          try { db.close(); } catch (e) {}
+          return results;
+        });
+      }).catch(function () { return []; });
+    }
   };
 })();
