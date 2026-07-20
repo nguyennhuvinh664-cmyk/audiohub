@@ -2487,6 +2487,13 @@
       var link = chapterNodes[safeIndex];
       if (!link) return;
 
+      // Stop current audio before switching chapter
+      if (nativeAudio && !nativeAudio.paused) {
+        nativeAudio.pause();
+        nativeAudio.currentTime = 0;
+      }
+      playerState.playing = false;
+
       var nextStory = null;
       var playlistItem = null;
       if (overrideState && Array.isArray(overrideState.chapters) && overrideState.chapters[safeIndex]) {
