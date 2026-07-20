@@ -1179,11 +1179,16 @@
       var lines = String(currentStory.readingText).split(/\r?\n/);
       lines.forEach(function (line) {
         var trimmed = line.trim();
-        var m = trimmed.match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter|CHƯƠNG|CHƯONG|CHAPTER)\s+(\d+)\s*[:\-–—]\s*(.+)/i);
+        var m = trimmed.match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter|CHƯƠNG|CHƯONG|CHAPTER)\s+(\d+)\s*[:\-–—:]\s*(.+)/i);
         if (m) {
           chapterTitlesFromText[Number(m[1]) - 1] = m[2].trim();
         }
       });
+    }
+
+    // Use chapterTitle field as fallback for chapter 1
+    if (currentStory && currentStory.chapterTitle && !chapterTitlesFromText[0]) {
+      chapterTitlesFromText[0] = String(currentStory.chapterTitle).trim();
     }
 
     // If no chapters data, auto-generate from readingText or chapterTitle
@@ -1191,6 +1196,13 @@
       for (var ci = 0; ci < total; ci++) {
         var autoTitle = chapterTitlesFromText[ci] || '';
         storyChapters.push({ chapterNumber: ci + 1, title: autoTitle });
+      }
+    } else {
+      // Fill in missing titles from parsed text
+      for (var ti = 0; ti < storyChapters.length; ti++) {
+        if (!storyChapters[ti].title && chapterTitlesFromText[ti]) {
+          storyChapters[ti].title = chapterTitlesFromText[ti];
+        }
       }
     }
 
@@ -1215,9 +1227,9 @@
         chapterTitle = chapterTitlesFromText[i];
       }
 
-      // Format: "Chương {number} - {title}"
+      // Format: "Chương {number}: {title}"
       var displayName = chapterTitle
-        ? ('Chương ' + chapterNum + ' - ' + chapterTitle)
+        ? ('Chương ' + chapterNum + ': ' + chapterTitle)
         : ('Chương ' + chapterNum);
 
       // ── Lock state: only locked if backend provides chapter data with isFree/isUnlocked ──
