@@ -2595,6 +2595,7 @@
 
       // Re-fetch audio for the new story
       if (nextStory) {
+        bindStoryCover(nextStory);
         bindStoryAudio(nextStory);
         // Wait for audio to load then play
         setTimeout(function () {
