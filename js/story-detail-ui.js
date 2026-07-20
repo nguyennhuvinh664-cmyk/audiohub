@@ -1154,7 +1154,8 @@
     var chapterList = document.querySelector('.chapter-list');
     if (!chapterList) return null;
 
-    console.log('[D3] overrideChapterList contextChapters=' + (context && context.chapters ? context.chapters.length : 'none'));
+    var _chCount = context && context.chapters ? context.chapters.length : 0;
+    console.log('[D3] inOverride chapters=' + _chCount);
 
     var chapterCountNode = document.querySelector('.detail-sidebar .section-heading span');
     var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
@@ -1232,7 +1233,7 @@
       // Playlist mode: show story title; normal mode: show chapter title
       var ctxChapter = context && Array.isArray(context.chapters) ? context.chapters[i] : null;
       var storyTitle = ctxChapter && ctxChapter.storyTitle ? String(ctxChapter.storyTitle) : '';
-      if (i === 0) console.log('[D4] ctxChapter0=' + JSON.stringify(ctxChapter) + ' storyTitle=' + storyTitle + ' displayName=' + displayName);
+      if (i === 0) console.log('[D4] ctxChapter=' + (ctxChapter ? ctxChapter.storyTitle : 'null') + ' | displayName=' + displayName);
       var displayName = storyTitle || (chapterTitle
         ? ('Chương ' + chapterNum + ': ' + chapterTitle)
         : ('Chương ' + chapterNum));
@@ -2269,8 +2270,9 @@
     });
 
     var context = resolvePlaylistContext(storyId || '');
-    console.log('[D1] storyId=' + storyId + ' playlistId=' + getQueryParam('playlistId') + ' contextChapters=' + (context && context.chapters ? context.chapters.length : 'none'));
-    if (context && context.chapters && context.chapters[0]) console.log('[D2] ch0=' + JSON.stringify(context.chapters[0]));
+    var _ctx = context && context.chapters ? context.chapters : null;
+    console.log('[D1] storyId=' + storyId + ' | playlistId=' + getQueryParam('playlistId') + ' | chapters=' + (_ctx ? _ctx.length : 'null'));
+    if (_ctx && _ctx[0]) console.log('[D2] ch0.storyTitle=' + _ctx[0].storyTitle + ' | ch0.label=' + _ctx[0].label + ' | ch0.storyId=' + _ctx[0].storyId);
     var overrideState = overrideChapterList(context, story);
     var chapterNodes = Array.prototype.slice.call(document.querySelectorAll('[data-player-chapter]'));
 
