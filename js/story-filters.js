@@ -473,16 +473,16 @@
 
     // Re-apply filters after stories-listing.js re-renders cards (fixes race condition)
     window.addEventListener('audiohub:cards-rendered', function () {
-      // Skip if root is in completed-playlist mode
-      if (root.hasAttribute('data-completed-playlists')) return;
+      // Skip if current page is in completed-playlist mode
+      if (document.querySelector('[data-completed-playlists]')) return;
       applyFilters(false);
     });
 
     // Fallback: MutationObserver watches for DOM changes in the card grid
     // Handles cases where cards are added without dispatching an event
     var observer = new MutationObserver(function () {
-      // Skip if root is in completed-playlist mode
-      if (root.hasAttribute('data-completed-playlists')) return;
+      // Skip if current page is in completed-playlist mode
+      if (document.querySelector('[data-completed-playlists]')) return;
       applyFilters(false);
     });
     observer.observe(root, { childList: true });
