@@ -1297,20 +1297,20 @@
       var displayName = '';
       var isActive = i === activeChapterIndex;
 
-      if (playlistItemsForDisplay && playlistItemsForDisplay[i]) {
-        // Playlist mode: show "Chương X: storyTitle"
-        var item = playlistItemsForDisplay[i];
-        var storyName = item.storyTitle || item.title || '';
-        displayName = storyName ? ('Chương ' + chapterNum + ': ' + storyName) : ('Chương ' + chapterNum);
+      // Get chapter title from story data
+      var ch = storyChapters[i] || {};
+      var chapterTitle = ch.title || '';
+      if (!chapterTitle && chapterTitlesFromText[i]) {
+        chapterTitle = chapterTitlesFromText[i];
+      }
+
+      if (playlistItemsForDisplay) {
+        // Playlist mode: "Chương X: chapterTitle" (use story's chapter data)
+        displayName = chapterTitle
+          ? ('Chương ' + chapterNum + ': ' + chapterTitle)
+          : ('Chương ' + chapterNum);
       } else {
-        // Normal mode: show chapter title
-        var ch = storyChapters[i] || {};
-        var chapterTitle = ch.title || '';
-        // Fallback chain: ch.title → parsed from readingText
-        if (!chapterTitle && chapterTitlesFromText[i]) {
-          chapterTitle = chapterTitlesFromText[i];
-        }
-        // Show chapter title: "Chương X: title" or "Chương X"
+        // Normal mode: "Chương X: title" or "Chương X"
         displayName = chapterTitle
           ? ('Chương ' + chapterNum + ': ' + chapterTitle)
           : ('Chương ' + chapterNum);
