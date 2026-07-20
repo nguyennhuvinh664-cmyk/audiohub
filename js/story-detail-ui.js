@@ -1298,9 +1298,10 @@
       var isActive = i === activeChapterIndex;
 
       if (playlistItemsForDisplay && playlistItemsForDisplay[i]) {
-        // Playlist mode: show story title
+        // Playlist mode: show "Chương X: storyTitle"
         var item = playlistItemsForDisplay[i];
-        displayName = item.storyTitle || item.title || ('Chương ' + chapterNum);
+        var storyName = item.storyTitle || item.title || '';
+        displayName = storyName ? ('Chương ' + chapterNum + ': ' + storyName) : ('Chương ' + chapterNum);
       } else {
         // Normal mode: show chapter title
         var ch = storyChapters[i] || {};
