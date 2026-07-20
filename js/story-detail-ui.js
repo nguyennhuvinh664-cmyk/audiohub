@@ -1154,7 +1154,7 @@
     var chapterList = document.querySelector('.chapter-list');
     if (!chapterList) return null;
 
-    console.log('[DEBUG] overrideChapterList context:', context, 'context.chapters:', context && context.chapters);
+    console.log('[D3] overrideChapterList contextChapters=' + (context && context.chapters ? context.chapters.length : 'none'));
 
     var chapterCountNode = document.querySelector('.detail-sidebar .section-heading span');
     var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
@@ -1232,7 +1232,7 @@
       // Playlist mode: show story title; normal mode: show chapter title
       var ctxChapter = context && Array.isArray(context.chapters) ? context.chapters[i] : null;
       var storyTitle = ctxChapter && ctxChapter.storyTitle ? String(ctxChapter.storyTitle) : '';
-      if (i === 0) console.log('[DEBUG] ctxChapter[0]:', ctxChapter, 'storyTitle:', storyTitle);
+      if (i === 0) console.log('[D4] ctxChapter0=' + JSON.stringify(ctxChapter) + ' storyTitle=' + storyTitle + ' displayName=' + displayName);
       var displayName = storyTitle || (chapterTitle
         ? ('Chương ' + chapterNum + ': ' + chapterTitle)
         : ('Chương ' + chapterNum));
@@ -2269,7 +2269,8 @@
     });
 
     var context = resolvePlaylistContext(storyId || '');
-    console.log('[DEBUG] storyId:', storyId, 'context:', context, 'playlistId param:', getQueryParam('playlistId'));
+    console.log('[D1] storyId=' + storyId + ' playlistId=' + getQueryParam('playlistId') + ' contextChapters=' + (context && context.chapters ? context.chapters.length : 'none'));
+    if (context && context.chapters && context.chapters[0]) console.log('[D2] ch0=' + JSON.stringify(context.chapters[0]));
     var overrideState = overrideChapterList(context, story);
     var chapterNodes = Array.prototype.slice.call(document.querySelectorAll('[data-player-chapter]'));
 
