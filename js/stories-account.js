@@ -1238,6 +1238,20 @@
       var paged = entries.slice(start, end);
       var totalPages = Math.max(1, Math.ceil(entries.length / PLAYLIST_ITEMS_PER_PAGE));
 
+      // Auto-fix: add playlistId to old entries missing it
+      var needSave = false;
+      entries.forEach(function (e) {
+        if (e.href && e.href.indexOf('playlistId=') === -1) {
+          e.href += (e.href.indexOf('?') >= 0 ? '&' : '?') + 'playlistId=' + encodeURIComponent(pl.id);
+          needSave = true;
+        }
+      });
+      if (needSave) {
+        var allPls = readPlaylists();
+        allPls.forEach(function (p) { if (p.id === pl.id) p.entries = entries; });
+        writePlaylists(allPls);
+      }
+
       playlistDetailMount.innerHTML = paged.map(function (entry) {
         var progress = Number(entry.progress) || 0;
         var status = entry.status || 'listening';
