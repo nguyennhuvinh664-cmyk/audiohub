@@ -310,6 +310,8 @@
     }
 
     function applyFilters(updateUrl, forcedPage) {
+      // Skip if current page is in completed-playlist mode (playlists rendered by stories-listing.js)
+      if (document.querySelector('[data-completed-playlists]')) return;
       var storiesContext = getStoriesContext();
       var stories = storiesContext.stories;
       var storiesById = storiesContext.storiesById;
