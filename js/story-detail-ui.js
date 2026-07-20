@@ -1191,12 +1191,9 @@
             return { chapters: chapters, activeIndex: activeIdx, chapterLabel: chapters[activeIdx] ? chapters[activeIdx].label : 'Chương 1' };
           }
           // 1. Try by playlistId first
-          console.log('[FIX] _allPls.length=' + _allPls.length + ' _plId=' + _plId + ' _storyId=' + _storyId);
           if (_plId) {
             for (var i = 0; i < _allPls.length; i++) {
-              console.log('[FIX] pl[' + i + '].id=' + (_allPls[i] ? _allPls[i].id : 'null'));
               if (_allPls[i] && String(_allPls[i].id || '') === String(_plId)) {
-                console.log('[FIX] MATCHED playlist!');
                 context = _buildCtx(_allPls[i]);
                 break;
               }
@@ -1204,15 +1201,11 @@
           }
           // 2. Fallback: search ALL playlists for one containing this story
           if (!context) {
-            console.log('[FIX] No match by ID, searching all...');
             for (var k = 0; k < _allPls.length; k++) {
               _normalizePl(_allPls[k]);
               var items = _allPls[k].items || [];
-              console.log('[FIX] pl[' + k + '] items=' + items.length);
               for (var m = 0; m < items.length; m++) {
-                console.log('[FIX] item[' + m + '].storyId=' + (items[m] ? items[m].storyId : 'null'));
                 if (String(items[m].storyId || '') === String(_storyId)) {
-                  console.log('[FIX] FOUND story in pl[' + k + ']!');
                   context = _buildCtx(_allPls[k]);
                   break;
                 }
@@ -1340,9 +1333,19 @@
       );
     }
 
-    chapterList.innerHTML = chapterRows.join('');
-    if (chapterHeading) chapterHeading.innerHTML = '<i class="fa-solid fa-music"></i> Danh sách chương';
-    if (chapterCountNode) chapterCountNode.textContent = total + ' chương';
+    // Render to ALL .chapter-list elements (mobile + desktop sidebar)
+    var allChapterLists = document.querySelectorAll('.chapter-list');
+    for (var _cli = 0; _cli < allChapterLists.length; _cli++) {
+      allChapterLists[_cli].innerHTML = chapterRows.join('');
+    }
+    var allHeadings = document.querySelectorAll('.detail-sidebar .section-heading h2, .mobile-card .mobile-card__heading h2');
+    for (var _hi = 0; _hi < allHeadings.length; _hi++) {
+      if (allHeadings[_hi].textContent.indexOf('Danh sách chương') >= 0) allHeadings[_hi].innerHTML = '<i class="fa-solid fa-music"></i> Danh sách chương';
+    }
+    var allCounts = document.querySelectorAll('.detail-sidebar .section-heading span, .mobile-card .mobile-card__heading span');
+    for (var _ci2 = 0; _ci2 < allCounts.length; _ci2++) {
+      allCounts[_ci2].textContent = total + ' chương';
+    }
 
     // Hide chapter section if no chapters
     if (total === 0 && chapterSection) {
