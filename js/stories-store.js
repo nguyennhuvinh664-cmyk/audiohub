@@ -1,5 +1,26 @@
 (function () {
   var STORAGE_KEY = 'audiohub-stories';
+  var DELETED_STORIES_KEY = 'audiohub-deleted-stories';
+
+  function getDeletedIds() {
+    try {
+      return JSON.parse(localStorage.getItem(DELETED_STORIES_KEY) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function addDeletedId(id) {
+    var deleted = getDeletedIds();
+    if (deleted.indexOf(id) === -1) {
+      deleted.push(id);
+      try { localStorage.setItem(DELETED_STORIES_KEY, JSON.stringify(deleted)); } catch (e) {}
+    }
+  }
+
+  function isDeleted(id) {
+    return getDeletedIds().indexOf(id) !== -1;
+  }
 
   function safeParse(raw, fallback) {
     try {
@@ -616,6 +637,11 @@
           var normalized = allRemote.map(function (story) {
             return normalizeStory(story);
           }).filter(Boolean);
+          // Filter out locally deleted stories (prevent sync from bringing them back)
+          var deletedIds = getDeletedIds();
+          if (deletedIds.length) {
+            normalized = normalized.filter(function (s) { return deletedIds.indexOf(String(s.id)) === -1; });
+          }
           // Dedup: remove local stories that already exist on Supabase (by ID or fingerprint)
           var apiIds = {};
           var apiFingerprints = {};
@@ -767,8 +793,12 @@
 
   function removeStory(id) {
     var removed = removeLocalStory(id);
-    if (removed && canUseApi() && id && !String(id).startsWith('s_')) {
-      window.AudioHubApi.request('/stories/' + encodeURIComponent(id), { method: 'DELETE' }).catch(function () {});
+    if (removed) {
+      // Track deleted ID so sync doesn't bring it back
+      addDeletedId(id);
+      if (canUseApi() && id && !String(id).startsWith('s_')) {
+        window.AudioHubApi.request('/stories/' + encodeURIComponent(id), { method: 'DELETE' }).catch(function () {});
+      }
     }
     return removed;
   }
