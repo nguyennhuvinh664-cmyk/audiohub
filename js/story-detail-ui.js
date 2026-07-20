@@ -2338,7 +2338,18 @@
 
     var context = resolvePlaylistContext(storyId || '');
     var overrideState = overrideChapterList(context, story);
-    var chapterNodes = Array.prototype.slice.call(document.querySelectorAll('[data-player-chapter]'));
+    // Only use VISIBLE chapter nodes (mobile OR desktop, not both)
+    var allChapterNodes = document.querySelectorAll('[data-player-chapter]');
+    var chapterNodes = [];
+    for (var cn = 0; cn < allChapterNodes.length; cn++) {
+      if (allChapterNodes[cn].offsetParent !== null) {
+        chapterNodes.push(allChapterNodes[cn]);
+      }
+    }
+    // Fallback: if none visible, use all (shouldn't happen)
+    if (!chapterNodes.length) {
+      chapterNodes = Array.prototype.slice.call(allChapterNodes);
+    }
 
     var playerState = {
       playing: false,
