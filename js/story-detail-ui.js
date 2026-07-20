@@ -1227,10 +1227,12 @@
         chapterTitle = chapterTitlesFromText[i];
       }
 
-      // Format: "Chương {number}: {title}"
-      var displayName = chapterTitle
+      // Playlist mode: show story title; normal mode: show chapter title
+      var playlistItem = context && context.playlist && Array.isArray(context.playlist.items) ? context.playlist.items[i] : null;
+      var storyTitle = playlistItem && playlistItem.storyTitle ? String(playlistItem.storyTitle) : '';
+      var displayName = storyTitle || (chapterTitle
         ? ('Chương ' + chapterNum + ': ' + chapterTitle)
-        : ('Chương ' + chapterNum);
+        : ('Chương ' + chapterNum));
 
       // ── Lock state: only locked if backend provides chapter data with isFree/isUnlocked ──
       var isLocked = false;
@@ -1257,7 +1259,7 @@
       }
 
       chapterRows.push(
-        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml('Chương ' + chapterNum) + '" data-chapter-index="' + i + '">'
+        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml(storyTitle || 'Chương ' + chapterNum) + '" data-chapter-index="' + i + '">'
         + '<span class="chapter-dot">' + dotContent + '</span>'
         + '<div class="chapter-item-body">'
         + '<span class="chapter-item-text">' + escapeHtml(displayName) + '</span>'
