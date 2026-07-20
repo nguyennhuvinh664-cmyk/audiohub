@@ -1120,6 +1120,15 @@
             audioNode.src = audioUrl;
             audioNode.classList.remove('is-hidden');
             showNote('');
+            // Auto-play audio (user already clicked story = interaction)
+            var playPromise = audioNode.play();
+            if (playPromise) {
+              playPromise.catch(function () {
+                // Browser blocked auto-play — highlight play button
+                var pb = document.querySelector('[data-player-toggle]');
+                if (pb) { pb.classList.add('pulse-play'); }
+              });
+            }
           } catch (error) {
             showNote('Không thể tải file audio đã lưu.');
           }
@@ -1881,6 +1890,7 @@
                 audioNode.src = url;
                 audioNode.classList.remove('is-hidden');
                 if (noteNode) { noteNode.textContent = ''; noteNode.classList.add('is-hidden'); }
+                audioNode.play().catch(function () {});
               } catch (e) {}
             })
             .catch(function () {
