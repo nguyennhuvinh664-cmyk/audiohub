@@ -527,6 +527,12 @@
             showToast('Đã xóa khỏi "' + target.name + '".');
           } else {
             target.entries = target.entries || [];
+            // Ensure href includes playlistId
+            var baseHref = entry.href || '';
+            if (baseHref && baseHref.indexOf('playlistId=') === -1) {
+              baseHref += (baseHref.indexOf('?') >= 0 ? '&' : '?') + 'playlistId=' + encodeURIComponent(plId);
+            }
+            entry.href = baseHref;
             target.entries.push(entry);
             writePlaylists(lists);
             pickBtn.classList.add('is-added');
@@ -1243,17 +1249,22 @@
         }
         var thumbStyle = coverKey ? '' : 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
         var genreBadge = entry.genre ? '<span class="genre-badge">' + escapeHtml(entry.genre) + '</span>' : '';
+        // Ensure entry href includes playlistId
+        var entryHref = entry.href || '#';
+        if (entryHref !== '#' && entryHref.indexOf('playlistId=') === -1) {
+          entryHref += (entryHref.indexOf('?') >= 0 ? '&' : '?') + 'playlistId=' + encodeURIComponent(pl.id);
+        }
         return '' +
           '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
-            '<a class="playlist-entry-thumb" href="' + escapeHtml(entry.href || '#') + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
+            '<a class="playlist-entry-thumb" href="' + escapeHtml(entryHref) + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
               '<span>' + escapeHtml((entry.title || 'AH').slice(0,2).toUpperCase()) + '</span>' +
             '</a>' +
             '<div class="playlist-entry-main">' +
-              '<a class="playlist-entry-title" href="' + escapeHtml(entry.href || '#') + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
+              '<a class="playlist-entry-title" href="' + escapeHtml(entryHref) + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
               '<div class="playlist-entry-meta"><span>' + escapeHtml(entry.author || 'Ẩn danh') + '</span>' + genreBadge + '</div>' +
             '</div>' +
             '<div class="playlist-entry-actions">' +
-              '<a href="' + escapeHtml(entry.href || '#') + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
+              '<a href="' + escapeHtml(entryHref) + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
               '<button type="button" class="playlist-btn playlist-btn--remove" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
             '</div>' +
           '</div>';
@@ -1402,7 +1413,11 @@
           playlists.forEach(function (p) { if (p.id === plId) target = p; });
           if (target && (target.entries || []).length) {
             var first = target.entries[0];
-            if (first && first.href) { if (window.AudioHubRouter) { window.AudioHubRouter.navigate(first.href); } else { window.location.href = first.href; } }
+            if (first && first.href) {
+              var navHref = first.href;
+              if (navHref.indexOf('playlistId=') === -1) navHref += (navHref.indexOf('?') >= 0 ? '&' : '?') + 'playlistId=' + encodeURIComponent(plId);
+              if (window.AudioHubRouter) { window.AudioHubRouter.navigate(navHref); } else { window.location.href = navHref; }
+            }
           }
         }
         return;
