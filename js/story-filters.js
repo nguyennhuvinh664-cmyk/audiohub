@@ -213,6 +213,10 @@
     const root = document.querySelector('[data-story-filter-root]');
     if (!root) return;
 
+    // Skip on completed.html — playlists are rendered by stories-listing.js
+    var currentPage = String(window.location.pathname || '').toLowerCase();
+    if (currentPage.indexOf('completed.html') >= 0) return;
+
     const form = document.querySelector('[data-story-filter-form]');
     const titleInput = document.querySelector('[data-filter-title]');
     const authorInput = document.querySelector('[data-filter-author]');
