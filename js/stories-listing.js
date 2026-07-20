@@ -202,8 +202,10 @@
 
       var picked = [];
       source.forEach(function (playlist) {
+        // Check both 'state' (done/ongoing) and 'status' for compatibility
+        var state = String(playlist && playlist.state || '').trim();
         var status = String(playlist && playlist.status || '').trim();
-        if (status !== 'Đã hoàn thành') return;
+        if (state !== 'done' && status !== 'Đã hoàn thành') return;
         var items = Array.isArray(playlist && playlist.items) ? playlist.items : [];
         if (!items.length) return;
         var firstItem = items[0] || {};
