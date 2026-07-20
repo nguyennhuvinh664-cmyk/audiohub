@@ -1228,8 +1228,8 @@
       }
 
       // Playlist mode: show story title; normal mode: show chapter title
-      var playlistItem = context && context.playlist && Array.isArray(context.playlist.items) ? context.playlist.items[i] : null;
-      var storyTitle = playlistItem && playlistItem.storyTitle ? String(playlistItem.storyTitle) : '';
+      var ctxChapter = context && Array.isArray(context.chapters) ? context.chapters[i] : null;
+      var storyTitle = ctxChapter && ctxChapter.storyTitle ? String(ctxChapter.storyTitle) : '';
       var displayName = storyTitle || (chapterTitle
         ? ('Chương ' + chapterNum + ': ' + chapterTitle)
         : ('Chương ' + chapterNum));
