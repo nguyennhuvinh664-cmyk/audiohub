@@ -70,6 +70,43 @@
     );
   }
 
+  function buildPlaylistCard(playlist) {
+    var name = escapeHtml(playlist.name || 'Playlist');
+    var entries = playlist.entries || playlist.items || [];
+    var count = entries.length;
+    var firstEntry = entries[0] || {};
+    var firstStoryId = String(firstEntry.storyId || firstEntry.key || '');
+    var coverKey = String(firstEntry.coverKey || '');
+
+    if (!coverKey && firstStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+      var story = window.AudioHubStories.getById(firstStoryId);
+      if (story && story.coverKey) coverKey = String(story.coverKey);
+    }
+
+    var href = firstStoryId
+      ? '/story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(playlist.id)
+      : '#';
+
+    return (
+      '<div class="story-card" data-story-card ' +
+      'data-story-id="' + escapeHtml(playlist.id) + '" data-title="' + name + '" data-author="Admin" data-genre="Playlist" data-description="Playlist đã hoàn thành">' +
+      '<a href="' + href + '" class="story-card__link">' +
+      '<div class="story-card__thumb" data-cover-key="' + escapeHtml(coverKey) + '" style="background:linear-gradient(135deg,#10b981,#10b981aa)">' +
+      '<span class="story-chapters">' + count + ' truyện</span>' +
+      '</div>' +
+      '<div class="story-card__body">' +
+      '<div class="story-meta"><span>Playlist</span><span><i class="fa-solid fa-circle-check"></i> Đã hoàn thành</span></div>' +
+      '<h2 class="story-title">' + name + '</h2>' +
+      '<div class="story-footer"><span><i class="fa-regular fa-user"></i> Admin</span><span class="story-rating"><i class="fa-solid fa-star"></i> —</span></div>' +
+      '<div class="story-card__actions">' +
+      '<a href="' + href + '" class="story-card__listen"><i class="fa-solid fa-play"></i> Nghe ngay</a>' +
+      '</div>' +
+      '</div>' +
+      '</a>' +
+      '</div>'
+    );
+  }
+
   var coverUrlByNode = new WeakMap();
 
   function applyCoverUrl(node, blob) {
@@ -194,7 +231,7 @@
     }
   }
 
-  function pickCompletedStoriesFromPlaylists(publicStories, apiPlaylists) {
+  function pickCompletedPlaylists(apiPlaylists) {
     try {
       var source = Array.isArray(apiPlaylists)
         ? apiPlaylists
@@ -206,28 +243,9 @@
         var state = String(playlist && playlist.state || '').trim();
         var status = String(playlist && playlist.status || '').trim();
         if (state !== 'done' && status !== 'Đã hoàn thành') return;
-        var items = Array.isArray(playlist && playlist.items) ? playlist.items : [];
-        if (!items.length) return;
-        var firstItem = items[0] || {};
-        var storyId = firstItem.storyId ? String(firstItem.storyId).trim() : '';
-        var playlistName = String(playlist && playlist.name || '').trim();
-        var fallbackTitle = playlistName || String(firstItem.storyTitle || 'Playlist hoàn thành').trim();
-        var fallbackAuthor = String(firstItem.storyAuthor || 'AudioHub').trim();
-        var updatedAt = String(playlist && playlist.updatedAt || playlist && playlist.createdAt || new Date().toISOString());
-
-        picked.push({
-          id: storyId || ('playlist-' + String(playlist && playlist.id || 'x')),
-          title: fallbackTitle,
-          author: fallbackAuthor,
-          genre: 'Playlist',
-          description: 'Nội dung lấy từ playlist đã hoàn thành.',
-          visibility: 'Công khai',
-          coverKey: '',
-          createdAt: updatedAt,
-          updatedAt: updatedAt,
-          listenCount7d: 0,
-          listenCount: 0
-        });
+        var entries = playlist.entries || playlist.items || [];
+        if (!entries.length) return;
+        picked.push(playlist);
       });
 
       return picked.sort(function (a, b) {
@@ -331,44 +349,44 @@
       if (canUsePlaylistApi()) {
         window.AudioHubApi.request('/playlists', { method: 'GET' })
           .then(function (rows) {
-            var pickedFromApi = pickCompletedStoriesFromPlaylists(publicStories, rows);
+            var pickedFromApi = pickCompletedPlaylists(rows);
             if (!pickedFromApi.length) {
-              var fallbackLocal = pickCompletedStoriesFromPlaylists(publicStories);
+              var fallbackLocal = pickCompletedPlaylists();
               if (!fallbackLocal.length) {
-                root.innerHTML = '';
+                root.innerHTML = '<p style="color:var(--t3);font-size:.9rem;padding:20px 0;text-align:center;">Chưa có playlist nào hoàn thành.</p>';
                 emitRendered();
                 return;
               }
-              root.innerHTML = fallbackLocal.map(buildStoryCard).join('');
+              root.innerHTML = fallbackLocal.map(buildPlaylistCard).join('');
               hydrateCovers(root);
               emitRendered();
               return;
             }
-            root.innerHTML = pickedFromApi.map(buildStoryCard).join('');
+            root.innerHTML = pickedFromApi.map(buildPlaylistCard).join('');
             hydrateCovers(root);
             emitRendered();
           })
           .catch(function () {
-            var fallbackLocal = pickCompletedStoriesFromPlaylists(publicStories);
+            var fallbackLocal = pickCompletedPlaylists();
             if (!fallbackLocal.length) {
-              root.innerHTML = '';
+              root.innerHTML = '<p style="color:var(--t3);font-size:.9rem;padding:20px 0;text-align:center;">Chưa có playlist nào hoàn thành.</p>';
               emitRendered();
               return;
             }
-            root.innerHTML = fallbackLocal.map(buildStoryCard).join('');
+            root.innerHTML = fallbackLocal.map(buildPlaylistCard).join('');
             hydrateCovers(root);
             emitRendered();
           });
         return;
       }
 
-      var fallback = pickCompletedStoriesFromPlaylists(publicStories);
+      var fallback = pickCompletedPlaylists();
       if (!fallback.length) {
-        root.innerHTML = '';
+        root.innerHTML = '<p style="color:var(--t3);font-size:.9rem;padding:20px 0;text-align:center;">Chưa có playlist nào hoàn thành.</p>';
         emitRendered();
         return;
       }
-      root.innerHTML = fallback.map(buildStoryCard).join('');
+      root.innerHTML = fallback.map(buildPlaylistCard).join('');
       hydrateCovers(root);
       emitRendered();
       return;
