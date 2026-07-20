@@ -2266,6 +2266,10 @@
     });
 
     var context = resolvePlaylistContext(storyId || '');
+    var _plId = getQueryParam('playlistId');
+    var _ch = context && context.chapters ? context.chapters.length : 0;
+    var _ch0 = context && context.chapters && context.chapters[0] ? context.chapters[0].storyTitle : 'N/A';
+    alert('playlistId=' + _plId + ' chapters=' + _ch + ' ch0.title=' + _ch0);
     var overrideState = overrideChapterList(context, story);
     var chapterNodes = Array.prototype.slice.call(document.querySelectorAll('[data-player-chapter]'));
 
