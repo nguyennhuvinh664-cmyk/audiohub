@@ -1191,9 +1191,12 @@
             return { chapters: chapters, activeIndex: activeIdx, chapterLabel: chapters[activeIdx] ? chapters[activeIdx].label : 'Chương 1' };
           }
           // 1. Try by playlistId first
+          console.log('[FIX] _allPls.length=' + _allPls.length + ' _plId=' + _plId + ' _storyId=' + _storyId);
           if (_plId) {
             for (var i = 0; i < _allPls.length; i++) {
+              console.log('[FIX] pl[' + i + '].id=' + (_allPls[i] ? _allPls[i].id : 'null'));
               if (_allPls[i] && String(_allPls[i].id || '') === String(_plId)) {
+                console.log('[FIX] MATCHED playlist!');
                 context = _buildCtx(_allPls[i]);
                 break;
               }
@@ -1201,11 +1204,15 @@
           }
           // 2. Fallback: search ALL playlists for one containing this story
           if (!context) {
+            console.log('[FIX] No match by ID, searching all...');
             for (var k = 0; k < _allPls.length; k++) {
               _normalizePl(_allPls[k]);
               var items = _allPls[k].items || [];
+              console.log('[FIX] pl[' + k + '] items=' + items.length);
               for (var m = 0; m < items.length; m++) {
+                console.log('[FIX] item[' + m + '].storyId=' + (items[m] ? items[m].storyId : 'null'));
                 if (String(items[m].storyId || '') === String(_storyId)) {
+                  console.log('[FIX] FOUND story in pl[' + k + ']!');
                   context = _buildCtx(_allPls[k]);
                   break;
                 }
