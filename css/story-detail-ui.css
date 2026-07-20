@@ -994,3 +994,10 @@
 .pulse-play {
   animation: pulse-play 1.2s ease-in-out infinite !important;
 }
+
+/* Hide mobile chapter list on desktop */
+@media (min-width: 769px) {
+  .mobile-chapter-list {
+    display: none !important;
+  }
+}
