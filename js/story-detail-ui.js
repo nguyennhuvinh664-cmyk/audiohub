@@ -454,7 +454,8 @@
 
     var chapterCountNode = document.querySelector('.detail-sidebar .section-heading span');
     var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
-    var total = Math.max(6, Number(story && story.chapterCount) || 12);
+    var total = Number(story && story.chapterCount) || 4;
+    if (total < 1) total = 4;
     var rows = [];
 
     for (var i = 1; i <= total; i += 1) {
@@ -922,17 +923,23 @@
     grid.innerHTML = picked.map(function (item) {
       var title = escapeHtml(String(item.title || 'Truyện đề xuất'));
       var genre = escapeHtml(String(item.genre || 'Khác'));
-      var author = escapeHtml(String(item.author || 'áº¨n danh'));
+      var author = escapeHtml(String(item.author || 'Ẩn danh'));
       var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id));
       var coverKey = escapeHtml(String(item.coverKey || ''));
       var visibility = escapeHtml(String(item.visibility || ''));
       var storyId = escapeHtml(String(item.id || ''));
+      var chapters = Number(item.chapterCount || 0) || '';
+      var chaptersLabel = chapters ? (chapters + ' Chương') : '';
+      var views = Number(item.listenCount || 0);
+      var viewsLabel = views ? (views + ' views') : '— views';
+      var isCompleted = item.isCompleted ? '<span class="story-badge story-badge--full">FULL</span>' : '';
       return '<a href="' + href + '" class="story-card" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
         + '<div class="story-card__thumb" data-related-cover-key="' + coverKey + '">'
         + '<button class="story-fav" type="button" aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>'
-        + '<span class="story-chapters">Demo</span>'
+        + isCompleted
+        + (chaptersLabel ? '<span class="story-chapters">' + chaptersLabel + '</span>' : '')
         + '</div>'
-        + '<div class="story-card__body"><div class="story-meta"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> — views</span></div>'
+        + '<div class="story-card__body"><div class="story-meta"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> ' + viewsLabel + '</span></div>'
         + '<h3 class="story-title">' + title + '</h3><div class="story-footer"><span><i class="fa-regular fa-user"></i> ' + author + '</span>'
         + '<span class="story-rating"><i class="fa-solid fa-star"></i> 5 (1)</span></div></div></a>';
     }).join('');
@@ -1157,6 +1164,12 @@
     // ── Chapter data ──
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
     var total = storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0;
+    // If still 0, count from readingText
+    if (!total && currentStory && currentStory.readingText) {
+      var chapterMatches = String(currentStory.readingText).match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter)\s+\d+/gim);
+      if (chapterMatches) total = chapterMatches.length;
+    }
+    if (!total) total = 4; // Minimum for demo
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
     var chapterTitleFallback = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
 
