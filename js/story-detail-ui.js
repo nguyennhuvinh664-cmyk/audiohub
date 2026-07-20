@@ -1225,8 +1225,16 @@
     var loggedIn = !!(window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function' && window.AudioHubAccess.isMember()) || isLoggedIn();
 
     // ── Chapter data ──
+    // Playlist mode: show playlist items (stories); normal mode: show story chapters
+    var playlistItemsForDisplay = null;
+    if (context && context.playlist && Array.isArray(context.playlist.items) && context.playlist.items.length) {
+      playlistItemsForDisplay = context.playlist.items;
+    } else if (context && Array.isArray(context.chapters) && context.chapters.length) {
+      playlistItemsForDisplay = context.chapters;
+    }
+
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
-    var total = storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0;
+    var total = playlistItemsForDisplay ? playlistItemsForDisplay.length : (storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0);
     // If still 0, count from readingText
     if (!total && currentStory && currentStory.readingText) {
       var chapterMatches = String(currentStory.readingText).match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter)\s+\d+/gim);
@@ -1271,34 +1279,46 @@
 
     // ── Active chapter index ──
     var activeChapterIndex = 0;
-    var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
-    if (currentChapterLabel) {
-      var match = currentChapterLabel.match(/(\d+)/);
-      if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
+    if (playlistItemsForDisplay && context && typeof context.chapterIndex === 'number') {
+      // Playlist mode: use chapterIndex from context (position in playlist)
+      activeChapterIndex = Math.max(0, Math.min(total - 1, context.chapterIndex));
+    } else {
+      var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
+      if (currentChapterLabel) {
+        var match = currentChapterLabel.match(/(\d+)/);
+        if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
+      }
     }
 
     // ── Build chapter rows ──
     var chapterRows = [];
     for (var i = 0; i < total; i++) {
-      var ch = storyChapters[i] || {};
-      var chapterNum = ch.chapterNumber || (i + 1);
-      var chapterTitle = ch.title || '';
+      var chapterNum = i + 1;
+      var displayName = '';
       var isActive = i === activeChapterIndex;
 
-      // Fallback chain: ch.title → parsed from readingText
-      if (!chapterTitle && chapterTitlesFromText[i]) {
-        chapterTitle = chapterTitlesFromText[i];
+      if (playlistItemsForDisplay && playlistItemsForDisplay[i]) {
+        // Playlist mode: show story title
+        var item = playlistItemsForDisplay[i];
+        displayName = item.storyTitle || item.title || ('Chương ' + chapterNum);
+      } else {
+        // Normal mode: show chapter title
+        var ch = storyChapters[i] || {};
+        var chapterTitle = ch.title || '';
+        // Fallback chain: ch.title → parsed from readingText
+        if (!chapterTitle && chapterTitlesFromText[i]) {
+          chapterTitle = chapterTitlesFromText[i];
+        }
+        // Show chapter title: "Chương X: title" or "Chương X"
+        displayName = chapterTitle
+          ? ('Chương ' + chapterNum + ': ' + chapterTitle)
+          : ('Chương ' + chapterNum);
       }
-
-      // Show chapter title: "Chương X: title" or "Chương X"
-      var displayName = chapterTitle
-        ? ('Chương ' + chapterNum + ': ' + chapterTitle)
-        : ('Chương ' + chapterNum);
 
       // ── Lock state ──
       var isLocked = false;
-      if (storyChapters.length > 0 && ch.id) {
-        var playable = ch.isFree || ch.isUnlocked;
+      if (!playlistItemsForDisplay && storyChapters.length > 0 && storyChapters[i] && storyChapters[i].id) {
+        var playable = storyChapters[i].isFree || storyChapters[i].isUnlocked;
         isLocked = !playable;
       }
 
@@ -1336,13 +1356,15 @@
     for (var _cli = 0; _cli < allChapterLists.length; _cli++) {
       allChapterLists[_cli].innerHTML = chapterRows.join('');
     }
+    var countLabel = playlistItemsForDisplay ? 'truyện' : 'chương';
+    var headingText = playlistItemsForDisplay ? 'Danh sách phát' : 'Danh sách chương';
     var allHeadings = document.querySelectorAll('.detail-sidebar .section-heading h2, .mobile-card .mobile-card__heading h2');
     for (var _hi = 0; _hi < allHeadings.length; _hi++) {
-      if (allHeadings[_hi].textContent.indexOf('Danh sách') >= 0) allHeadings[_hi].innerHTML = '<i class="fa-solid fa-music"></i> Danh sách chương';
+      if (allHeadings[_hi].textContent.indexOf('Danh sách') >= 0) allHeadings[_hi].innerHTML = '<i class="fa-solid fa-music"></i> ' + headingText;
     }
     var allCounts = document.querySelectorAll('.detail-sidebar .section-heading span, .mobile-card .mobile-card__heading span');
     for (var _ci2 = 0; _ci2 < allCounts.length; _ci2++) {
-      allCounts[_ci2].textContent = total + ' chương';
+      allCounts[_ci2].textContent = total + ' ' + countLabel;
     }
 
     // Hide chapter section if no chapters
