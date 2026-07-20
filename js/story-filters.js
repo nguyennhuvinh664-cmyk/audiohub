@@ -312,9 +312,15 @@
       return { stories: stories, storiesById: storiesById };
     }
 
+    function isCompletedPage() {
+      var p = String(window.location.pathname || '').toLowerCase();
+      return p.indexOf('completed.html') >= 0;
+    }
+
     function applyFilters(updateUrl, forcedPage) {
-      // Skip if current page is in completed-playlist mode (playlists rendered by stories-listing.js)
-      if (window.__completedPlaylistsMode) return;
+      // Skip if current page is completed.html — playlists are rendered by stories-listing.js
+      // Check URL directly (not just the flag) to handle SPA stale closures before flag is set
+      if (window.__completedPlaylistsMode || isCompletedPage()) return;
       var storiesContext = getStoriesContext();
       var stories = storiesContext.stories;
       var storiesById = storiesContext.storiesById;
@@ -473,21 +479,22 @@
     }
 
     window.addEventListener('audiohub:stories-updated', function () {
+      if (window.__completedPlaylistsMode || isCompletedPage()) return;
       applyFilters(false);
     });
 
     // Re-apply filters after stories-listing.js re-renders cards (fixes race condition)
     window.addEventListener('audiohub:cards-rendered', function () {
-      // Skip if current page is in completed-playlist mode
-      if (window.__completedPlaylistsMode) return;
+      // Skip if current page is completed.html — playlists are rendered by stories-listing.js
+      if (window.__completedPlaylistsMode || isCompletedPage()) return;
       applyFilters(false);
     });
 
     // Fallback: MutationObserver watches for DOM changes in the card grid
     // Handles cases where cards are added without dispatching an event
     var observer = new MutationObserver(function () {
-      // Skip if current page is in completed-playlist mode
-      if (window.__completedPlaylistsMode) return;
+      // Skip if current page is completed.html — playlists are rendered by stories-listing.js
+      if (window.__completedPlaylistsMode || isCompletedPage()) return;
       applyFilters(false);
     });
     observer.observe(root, { childList: true });
