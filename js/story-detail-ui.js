@@ -1054,31 +1054,35 @@
       if (paths.indexOf(storyIdMp3) === -1) paths.push(storyIdMp3);
     }
 
-    var SUPABASE_STORAGE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
     var RENDER_BACKEND_BASE = 'https://audiohub-276v.onrender.com/api/v1';
 
-    function fetchDirect(path) {
-      return fetch(SUPABASE_STORAGE_URL + encodeURIComponent(path))
-        .then(function (res) { return res.ok ? res.blob() : Promise.reject(null); });
+    function fetchWithTimeout(url, timeoutMs) {
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+      return fetch(url, { signal: controller.signal })
+        .then(function (res) {
+          clearTimeout(timer);
+          return res.ok ? res.blob() : Promise.reject(null);
+        })
+        .catch(function (err) {
+          clearTimeout(timer);
+          return Promise.reject(null);
+        });
     }
 
     function fetchFromBackend(key) {
       if (!key) return Promise.reject(null);
       var url = RENDER_BACKEND_BASE + '/media/audio/' + encodeURIComponent(String(key));
-      return fetch(url).then(function (res) { return res.ok ? res.blob() : Promise.reject(null); });
+      return fetchWithTimeout(url, 15000); // 15s timeout per attempt
     }
 
     function tryPaths(idx) {
       if (idx >= paths.length) return Promise.resolve(null);
       var path = paths[idx];
 
-      // Try Render backend first (public, no auth, fastest)
+      // Try Render backend first (public, no auth)
       return fetchFromBackend(path).catch(function () { return null; })
       .then(function (blob) {
-        if (blob) return blob;
-        // Direct Supabase Storage fetch
-        return fetchDirect(path).catch(function () { return null; });
-      }).then(function (blob) {
         if (blob) return blob;
         // Try AudioHubStoryAudio (IndexedDB)
         var fromStore = (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function')
@@ -1090,8 +1094,25 @@
       });
     }
 
-    tryPaths(0)
-      .then(function (blob) {
+    // Retry loop: try up to 4 times with increasing delays (0s, 10s, 20s, 40s)
+    var maxRetries = 4;
+    var retryDelays = [0, 10000, 20000, 40000];
+    var retryMessages = [
+      'Đang tải audio…',
+      'Đang chờ server khởi động… (lần 2)',
+      'Đang chờ server khởi động… (lần 3)',
+      'Đang chờ server khởi động… (lần cuối)'
+    ];
+
+    function attemptLoad(retryIdx) {
+      if (retryIdx >= maxRetries) {
+        showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
+        return;
+      }
+      if (retryIdx > 0) {
+        showNote(retryMessages[retryIdx]);
+      }
+      tryPaths(0).then(function (blob) {
         if (blob) {
           try {
             var audioUrl = URL.createObjectURL(blob);
@@ -1103,26 +1124,14 @@
             showNote('Không thể tải file audio đã lưu.');
           }
         } else {
-          // Retry once after 3s
-          showNote('Đang tải audio… (thử lại sau 3 giây)');
-          setTimeout(function () {
-            tryPaths(0).then(function (retryBlob) {
-              if (retryBlob) {
-                var audioUrl = URL.createObjectURL(retryBlob);
-                audioUrlByNode.set(audioNode, audioUrl);
-                audioNode.src = audioUrl;
-                audioNode.classList.remove('is-hidden');
-                showNote('');
-              } else {
-                showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
-              }
-            });
-          }, 3000);
+          setTimeout(function () { attemptLoad(retryIdx + 1); }, retryDelays[retryIdx + 1] || 10000);
         }
-      })
-      .catch(function () {
-        showNote('Không thể tải file audio. Kiểm tra kết nối mạng.');
+      }).catch(function () {
+        setTimeout(function () { attemptLoad(retryIdx + 1); }, retryDelays[retryIdx + 1] || 10000);
       });
+    }
+
+    attemptLoad(0);
   }
 
   function overrideChapterList(context, currentStory) {
@@ -1844,7 +1853,7 @@
       }
     }
 
-    // STEP 3: Direct audio fallback — try loading audio from Supabase Storage
+    // STEP 3: Direct audio fallback — try loading audio from Render backend
     // even when story data isn't available (e.g., incognito, backend down)
     if (storyId && !isSyntheticStoryId(storyId)) {
       setTimeout(function () {
@@ -1853,18 +1862,20 @@
         if (!audioNode || !audioNode.classList.contains('is-hidden')) return;
         if (noteNode && noteNode.textContent.indexOf('Audio chưa có') === -1 && noteNode.textContent.indexOf('Chưa có file') === -1) return;
 
-        var SUPABASE_STORAGE = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
         var RENDER_BACKEND_BASE = 'https://audiohub-276v.onrender.com/api/v1';
-        var paths = [storyId + '.mp3'];
 
-        function tryDirect(idx) {
-          if (idx >= paths.length) return;
-          // Try Render backend first (public, no auth)
+        function tryBackendWithTimeout(retryIdx) {
+          if (retryIdx >= 3) return;
+          var controller = new AbortController();
+          var timer = setTimeout(function () { controller.abort(); }, 15000);
           var backendUrl = RENDER_BACKEND_BASE + '/media/audio/' + encodeURIComponent(storyId);
-          fetch(backendUrl)
-            .then(function (res) { return res.ok ? res.blob() : Promise.reject(null); })
+          fetch(backendUrl, { signal: controller.signal })
+            .then(function (res) {
+              clearTimeout(timer);
+              return res.ok ? res.blob() : Promise.reject(null);
+            })
             .then(function (blob) {
-              if (!blob || !blob.size) return trySupabase(idx);
+              if (!blob || !blob.size) return Promise.reject(null);
               try {
                 var url = URL.createObjectURL(blob);
                 audioNode.src = url;
@@ -1872,25 +1883,12 @@
                 if (noteNode) { noteNode.textContent = ''; noteNode.classList.add('is-hidden'); }
               } catch (e) {}
             })
-            .catch(function () { trySupabase(idx); });
+            .catch(function () {
+              clearTimeout(timer);
+              setTimeout(function () { tryBackendWithTimeout(retryIdx + 1); }, 10000);
+            });
         }
-
-        function trySupabase(idx) {
-          if (idx >= paths.length) return;
-          fetch(SUPABASE_STORAGE + encodeURIComponent(paths[idx]))
-            .then(function (res) { return res.ok ? res.blob() : Promise.reject(null); })
-            .then(function (blob) {
-              if (!blob || !blob.size) return tryDirect(idx + 1);
-              try {
-                var url = URL.createObjectURL(blob);
-                audioNode.src = url;
-                audioNode.classList.remove('is-hidden');
-                if (noteNode) { noteNode.textContent = ''; noteNode.classList.add('is-hidden'); }
-              } catch (e) {}
-            })
-            .catch(function () { tryDirect(idx + 1); });
-        }
-        tryDirect(0);
+        tryBackendWithTimeout(0);
       }, 2000);
     }
 

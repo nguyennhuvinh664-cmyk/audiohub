@@ -107,9 +107,15 @@
   function downloadFromRenderBackend(key) {
     if (!key) return Promise.reject(new Error('Missing key'));
     var url = RENDER_API_BASE + '/media/audio/' + encodeURIComponent(String(key));
-    return fetch(url).then(function (res) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 15000);
+    return fetch(url, { signal: controller.signal }).then(function (res) {
+      clearTimeout(timer);
       if (!res.ok) throw new Error('Backend download failed: ' + res.status);
       return res.blob();
+    }).catch(function (err) {
+      clearTimeout(timer);
+      throw err;
     });
   }
 
