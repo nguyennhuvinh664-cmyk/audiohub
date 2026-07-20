@@ -45,6 +45,7 @@ model Story {
   coverKey     String?            @map("cover_key")
   coverData    String?            @map("cover_data")
   audioKey     String?            @map("audio_key")
+  audioData    String?            @map("audio_data")
   youtubeUrl   String?            @map("youtube_url")
   youtubeId    String?            @map("youtube_id")
   createdAt    DateTime           @default(now()) @map("created_at")

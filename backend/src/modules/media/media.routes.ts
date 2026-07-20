@@ -64,18 +64,23 @@ router.post('/stories/:id/audio', requireAuth, upload.single('audio'), async (re
   const key = makeKey('a');
   const storagePath = await saveFile('audio', key, req.file);
 
+  // Store audio as base64 in Story table (persists across deploys)
+  const mimeType = req.file.mimetype || 'audio/mpeg';
+  const base64 = req.file.buffer.toString('base64');
+  const audioData = `data:${mimeType};base64,${base64}`;
+
   await prisma.mediaAsset.create({
     data: {
       key,
       ownerUserId: req.auth!.userId,
       kind: MediaKind.AUDIO,
-      mimeType: req.file.mimetype || 'application/octet-stream',
+      mimeType,
       sizeBytes: req.file.size,
       storagePath
     }
   });
 
-  await prisma.story.update({ where: { id: story.id }, data: { audioKey: key } });
+  await prisma.story.update({ where: { id: story.id }, data: { audioKey: key, audioData } });
 
   return ok(res, { audioKey: key }, 201);
 });
@@ -86,6 +91,7 @@ router.get('/media/audio/:key', requireAuth, async (req: AuthRequest, res) => {
     return fail(res, 'Missing audio key', 400);
   }
 
+  // Try MediaAsset first (file on disk)
   const asset = await prisma.mediaAsset.findFirst({
     where: {
       key,
@@ -94,18 +100,33 @@ router.get('/media/audio/:key', requireAuth, async (req: AuthRequest, res) => {
     }
   });
 
-  if (!asset) {
-    return fail(res, 'Audio not found', 404);
+  if (asset) {
+    try {
+      const buffer = await fs.readFile(asset.storagePath);
+      res.setHeader('Content-Type', asset.mimeType || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'private, max-age=3600');
+      return res.status(200).send(buffer);
+    } catch {
+      // File missing from disk — fall through to DB fallback
+    }
   }
 
-  try {
-    const buffer = await fs.readFile(asset.storagePath);
-    res.setHeader('Content-Type', asset.mimeType || 'application/octet-stream');
+  // Fallback: serve from Story.audioData (base64 in DB, persists across deploys)
+  const story = await prisma.story.findFirst({
+    where: { audioKey: key, deletedAt: null }
+  });
+
+  if (story && (story as any).audioData) {
+    const dataUrl = String((story as any).audioData);
+    const base64Part = dataUrl.split(',')[1] || '';
+    const buffer = Buffer.from(base64Part, 'base64');
+    const mime = dataUrl.startsWith('data:') ? dataUrl.split(';')[0].split(':')[1] : 'audio/mpeg';
+    res.setHeader('Content-Type', mime);
     res.setHeader('Cache-Control', 'private, max-age=3600');
     return res.status(200).send(buffer);
-  } catch {
-    return fail(res, 'Audio file is missing on storage', 404);
   }
+
+  return fail(res, 'Audio not found', 404);
 });
 
 // Public cover serving — no auth required
@@ -144,22 +165,38 @@ audioPublicRouter.get('/media/audio/:key', async (req, res) => {
     return fail(res, 'Missing audio key', 400);
   }
 
+  // Try MediaAsset first (file on disk)
   const asset = await prisma.mediaAsset.findFirst({
     where: { key, kind: MediaKind.AUDIO }
   });
 
-  if (!asset) {
-    return fail(res, 'Audio not found', 404);
+  if (asset) {
+    try {
+      const buffer = await fs.readFile(asset.storagePath);
+      res.setHeader('Content-Type', asset.mimeType || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.status(200).send(buffer);
+    } catch {
+      // File missing from disk — fall through to DB fallback
+    }
   }
 
-  try {
-    const buffer = await fs.readFile(asset.storagePath);
-    res.setHeader('Content-Type', asset.mimeType || 'application/octet-stream');
+  // Fallback: serve from Story.audioData (base64 in DB, persists across deploys)
+  const story = await prisma.story.findFirst({
+    where: { audioKey: key, deletedAt: null }
+  });
+
+  if (story && (story as any).audioData) {
+    const dataUrl = String((story as any).audioData);
+    const base64Part = dataUrl.split(',')[1] || '';
+    const buffer = Buffer.from(base64Part, 'base64');
+    const mime = dataUrl.startsWith('data:') ? dataUrl.split(';')[0].split(':')[1] : 'audio/mpeg';
+    res.setHeader('Content-Type', mime);
     res.setHeader('Cache-Control', 'public, max-age=3600');
     return res.status(200).send(buffer);
-  } catch {
-    return fail(res, 'Audio file is missing on storage', 404);
   }
+
+  return fail(res, 'Audio not found', 404);
 });
 
 export { coverPublicRouter, audioPublicRouter };
