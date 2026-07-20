@@ -217,6 +217,9 @@
     var currentPage = String(window.location.pathname || '').toLowerCase();
     if (currentPage.indexOf('completed.html') >= 0) return;
 
+    // Clear completed-playlists flag when navigating to a non-completed page
+    window.__completedPlaylistsMode = false;
+
     const form = document.querySelector('[data-story-filter-form]');
     const titleInput = document.querySelector('[data-filter-title]');
     const authorInput = document.querySelector('[data-filter-author]');
@@ -311,7 +314,7 @@
 
     function applyFilters(updateUrl, forcedPage) {
       // Skip if current page is in completed-playlist mode (playlists rendered by stories-listing.js)
-      if (document.querySelector('[data-completed-playlists]')) return;
+      if (window.__completedPlaylistsMode) return;
       var storiesContext = getStoriesContext();
       var stories = storiesContext.stories;
       var storiesById = storiesContext.storiesById;
@@ -476,7 +479,7 @@
     // Re-apply filters after stories-listing.js re-renders cards (fixes race condition)
     window.addEventListener('audiohub:cards-rendered', function () {
       // Skip if current page is in completed-playlist mode
-      if (document.querySelector('[data-completed-playlists]')) return;
+      if (window.__completedPlaylistsMode) return;
       applyFilters(false);
     });
 
@@ -484,7 +487,7 @@
     // Handles cases where cards are added without dispatching an event
     var observer = new MutationObserver(function () {
       // Skip if current page is in completed-playlist mode
-      if (document.querySelector('[data-completed-playlists]')) return;
+      if (window.__completedPlaylistsMode) return;
       applyFilters(false);
     });
     observer.observe(root, { childList: true });

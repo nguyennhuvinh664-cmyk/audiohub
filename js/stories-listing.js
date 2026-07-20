@@ -346,7 +346,8 @@
     }
 
     if (page.indexOf('completed.html') >= 0) {
-      // Mark root as completed-playlist mode — story-filters.js must not overwrite
+      // Mark as completed-playlist mode — story-filters.js must not overwrite
+      window.__completedPlaylistsMode = true;
       root.setAttribute('data-completed-playlists', '');
       if (canUsePlaylistApi()) {
         window.AudioHubApi.request('/playlists', { method: 'GET' })
