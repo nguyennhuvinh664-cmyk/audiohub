@@ -317,10 +317,18 @@
       return p.indexOf('completed.html') >= 0;
     }
 
+    function shouldSkipFilters() {
+      // Skip during SPA navigation (old observers must not overwrite new page content)
+      if (window.__spaNavigating) return true;
+      // Skip on completed.html — playlists are rendered by stories-listing.js
+      if (window.__completedPlaylistsMode) return true;
+      if (isCompletedPage()) return true;
+      return false;
+    }
+
     function applyFilters(updateUrl, forcedPage) {
-      // Skip if current page is completed.html — playlists are rendered by stories-listing.js
-      // Check URL directly (not just the flag) to handle SPA stale closures before flag is set
-      if (window.__completedPlaylistsMode || isCompletedPage()) return;
+      // Skip if filters should not run (SPA navigation, completed page, etc.)
+      if (shouldSkipFilters()) return;
       var storiesContext = getStoriesContext();
       var stories = storiesContext.stories;
       var storiesById = storiesContext.storiesById;
@@ -479,22 +487,22 @@
     }
 
     window.addEventListener('audiohub:stories-updated', function () {
-      if (window.__completedPlaylistsMode || isCompletedPage()) return;
+      if (shouldSkipFilters()) return;
       applyFilters(false);
     });
 
     // Re-apply filters after stories-listing.js re-renders cards (fixes race condition)
     window.addEventListener('audiohub:cards-rendered', function () {
-      // Skip if current page is completed.html — playlists are rendered by stories-listing.js
-      if (window.__completedPlaylistsMode || isCompletedPage()) return;
+      // Skip if filters should not run
+      if (shouldSkipFilters()) return;
       applyFilters(false);
     });
 
     // Fallback: MutationObserver watches for DOM changes in the card grid
     // Handles cases where cards are added without dispatching an event
     var observer = new MutationObserver(function () {
-      // Skip if current page is completed.html — playlists are rendered by stories-listing.js
-      if (window.__completedPlaylistsMode || isCompletedPage()) return;
+      // Skip if filters should not run (SPA navigation, completed page, etc.)
+      if (shouldSkipFilters()) return;
       applyFilters(false);
     });
     observer.observe(root, { childList: true });

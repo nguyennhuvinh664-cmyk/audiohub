@@ -303,6 +303,9 @@
 
         // Use View Transitions API if available
         var updateDOM = function () {
+          // Signal that SPA navigation is in progress — old observers must not interfere
+          window.__spaNavigating = true;
+
           // 1. Remove old page CSS
           removePageCSS();
 
@@ -350,6 +353,9 @@
 
             // 11. Reinitialize shared modules that depend on DOM
             reinitSharedModules();
+
+            // 12. Clear SPA navigation flag — new scripts are loaded
+            window.__spaNavigating = false;
           });
         };
 
