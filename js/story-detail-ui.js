@@ -2546,16 +2546,21 @@
 
       var nextStory = null;
       var playlistItem = null;
+      console.log('[CHAPTER-DEBUG] safeIndex:', safeIndex, 'overrideState:', overrideState);
       if (overrideState && Array.isArray(overrideState.chapters) && overrideState.chapters[safeIndex]) {
         playlistItem = overrideState.chapters[safeIndex];
+        console.log('[CHAPTER-DEBUG] playlistItem:', playlistItem);
         if (playlistItem.storyId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
           nextStory = window.AudioHubStories.getById(String(playlistItem.storyId));
+          console.log('[CHAPTER-DEBUG] nextStory:', nextStory ? nextStory.title : 'NOT FOUND');
         }
         if (nextStory && String(nextStory.visibility || '').trim() === 'Không công khai' && !isMember()) {
           showAuthRequiredModal();
           renderPlayer();
           return;
         }
+      } else {
+        console.log('[CHAPTER-DEBUG] No overrideState.chapters[' + safeIndex + ']');
       }
 
       // Update active chapter classes
@@ -2581,6 +2586,7 @@
 
       // Update overview and URL
       if (playlistItem) {
+        console.log('[CHAPTER-DEBUG] Calling applyStoryOverviewFromPlaylistItem with:', playlistItem);
         applyStoryOverviewFromPlaylistItem(playlistItem);
         // Update URL without reload
         var newUrl = 'story-detail.html?id=' + encodeURIComponent(playlistItem.storyId || '');
