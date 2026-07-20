@@ -1232,6 +1232,18 @@
       var chapterMatches = String(currentStory.readingText).match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter)\s+\d+/gim);
       if (chapterMatches) total = chapterMatches.length;
     }
+
+    // ── Playlist mode: use playlist items count instead of story chapters ──
+    var playlistItems = null;
+    if (context && context.playlist && Array.isArray(context.playlist.items) && context.playlist.items.length) {
+      playlistItems = context.playlist.items;
+      total = playlistItems.length;
+    } else if (context && Array.isArray(context.chapters) && context.chapters.length) {
+      // Fallback: context.chapters from _buildCtx
+      playlistItems = context.chapters;
+      total = playlistItems.length;
+    }
+
     if (!total) total = 4; // Minimum for demo
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
     var chapterTitleFallback = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
@@ -1271,10 +1283,15 @@
 
     // ── Active chapter index ──
     var activeChapterIndex = 0;
-    var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
-    if (currentChapterLabel) {
-      var match = currentChapterLabel.match(/(\d+)/);
-      if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
+    // Playlist mode: use chapterIndex from context (position in playlist)
+    if (context && typeof context.chapterIndex === 'number') {
+      activeChapterIndex = Math.max(0, Math.min(total - 1, context.chapterIndex));
+    } else {
+      var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
+      if (currentChapterLabel) {
+        var match = currentChapterLabel.match(/(\d+)/);
+        if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
+      }
     }
 
     // ── Build chapter rows ──
@@ -1291,8 +1308,8 @@
       }
 
       // Playlist mode: show story title; normal mode: show chapter title
-      var ctxChapter = context && Array.isArray(context.chapters) ? context.chapters[i] : null;
-      var storyTitle = ctxChapter && ctxChapter.storyTitle ? String(ctxChapter.storyTitle) : '';
+      var ctxItem = playlistItems ? (playlistItems[i] || null) : null;
+      var storyTitle = ctxItem && ctxItem.storyTitle ? String(ctxItem.storyTitle) : '';
       var displayName = storyTitle || (chapterTitle
         ? ('Chương ' + chapterNum + ': ' + chapterTitle)
         : ('Chương ' + chapterNum));
