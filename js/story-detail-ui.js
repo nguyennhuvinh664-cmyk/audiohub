@@ -1154,40 +1154,64 @@
     var chapterList = document.querySelector('.chapter-list');
     if (!chapterList) return null;
 
-    // ── If context is null but URL has playlistId, build context from localStorage ──
+    // ── If context is null, build from localStorage by finding playlist that contains this story ──
     if (!context) {
-      var _plId = getQueryParam('playlistId');
       var _storyId = getQueryParam('id');
-      if (_plId && _storyId) {
+      var _plId = getQueryParam('playlistId');
+      if (_storyId) {
         try {
           var _allPls = safeParse(window.localStorage.getItem('audiohub-playlists-v1') || '[]', []);
-          for (var _pi = 0; _pi < _allPls.length; _pi++) {
-            var _pl = _allPls[_pi];
-            if (!_pl || String(_pl.id || '') !== String(_plId)) continue;
-            var _ents = _pl.entries || _pl.items || [];
-            // Normalize entries to items
-            if (!_pl.items && Array.isArray(_pl.entries) && _pl.entries.length) {
-              _pl.items = _pl.entries.map(function (e, i) {
+          // Helper: normalize playlist entries → items
+          function _normalizePl(pl) {
+            if (Array.isArray(pl.items) && pl.items.length) return;
+            if (Array.isArray(pl.entries) && pl.entries.length) {
+              pl.items = pl.entries.map(function (e, i) {
                 return { storyId: String(e.key || e.storyId || ''), storyTitle: String(e.title || e.storyTitle || ''), label: 'Chương ' + (i + 1), index: i };
               });
-              _ents = _pl.items;
             }
-            var _chapters = [];
-            for (var _ci = 0; _ci < _ents.length; _ci++) {
-              var _e = _ents[_ci];
-              _chapters.push({
-                label: _e.label || ('Chương ' + (_ci + 1)),
-                storyId: String(_e.storyId || _e.key || ''),
-                storyTitle: String(_e.storyTitle || _e.title || ''),
-                index: typeof _e.index === 'number' ? _e.index : _ci
+          }
+          // Helper: build context from playlist
+          function _buildCtx(pl) {
+            _normalizePl(pl);
+            var ents = pl.items || [];
+            var chapters = [];
+            for (var i = 0; i < ents.length; i++) {
+              var e = ents[i];
+              chapters.push({
+                label: e.label || ('Chương ' + (i + 1)),
+                storyId: String(e.storyId || e.key || ''),
+                storyTitle: String(e.storyTitle || e.title || ''),
+                index: typeof e.index === 'number' ? e.index : i
               });
             }
-            var _activeIdx = 0;
-            for (var _ai = 0; _ai < _chapters.length; _ai++) {
-              if (String(_chapters[_ai].storyId) === String(_storyId)) { _activeIdx = _ai; break; }
+            var activeIdx = 0;
+            for (var j = 0; j < chapters.length; j++) {
+              if (String(chapters[j].storyId) === String(_storyId)) { activeIdx = j; break; }
             }
-            context = { chapters: _chapters, activeIndex: _activeIdx, chapterLabel: _chapters[_activeIdx] ? _chapters[_activeIdx].label : 'Chương 1' };
-            break;
+            return { chapters: chapters, activeIndex: activeIdx, chapterLabel: chapters[activeIdx] ? chapters[activeIdx].label : 'Chương 1' };
+          }
+          // 1. Try by playlistId first
+          if (_plId) {
+            for (var i = 0; i < _allPls.length; i++) {
+              if (_allPls[i] && String(_allPls[i].id || '') === String(_plId)) {
+                context = _buildCtx(_allPls[i]);
+                break;
+              }
+            }
+          }
+          // 2. Fallback: search ALL playlists for one containing this story
+          if (!context) {
+            for (var k = 0; k < _allPls.length; k++) {
+              _normalizePl(_allPls[k]);
+              var items = _allPls[k].items || [];
+              for (var m = 0; m < items.length; m++) {
+                if (String(items[m].storyId || '') === String(_storyId)) {
+                  context = _buildCtx(_allPls[k]);
+                  break;
+                }
+              }
+              if (context) break;
+            }
           }
         } catch (e) {}
       }
