@@ -2397,37 +2397,16 @@
       if (playerRoot) playerRoot.classList.toggle('is-playing', playerState.playing);
     }
 
-    var chapterListRoot = document.querySelector('.chapter-list');
-    if (chapterListRoot) {
-      chapterListRoot.addEventListener('click', function (event) {
-        var target = event.target;
-        if (!(target instanceof Element)) return;
-        var link = target.closest('a.chapter-item');
-        if (!link) return;
-
-        var href = String(link.getAttribute('href') || '');
-        var currentStoryId = story && story.id ? String(story.id) : '';
-        var linkedStoryId = String(link.getAttribute('data-player-story-id') || '').trim();
-
-        if (!linkedStoryId && href.indexOf('story-detail.html') >= 0) {
-          var match = href.match(/[?&]id=([^&]+)/);
-          if (match && match[1]) {
-            try { linkedStoryId = decodeURIComponent(match[1]); } catch (error) { linkedStoryId = match[1]; }
-          }
-        }
-
-        var isDifferentStory = !!(linkedStoryId && currentStoryId && linkedStoryId !== currentStoryId);
-        if (isDifferentStory && !isMember()) {
-          event.preventDefault();
-          event.stopPropagation();
-          if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
-          showAuthRequiredModal();
-        }
-      }, true);
-    }
-
     chapterNodes.forEach(function (link, index) {
       link.addEventListener('click', function (event) {
+        event.preventDefault();
+
+        // Stop any currently playing audio immediately
+        if (nativeAudio && !nativeAudio.paused) {
+          nativeAudio.pause();
+          nativeAudio.currentTime = 0;
+        }
+
         var linkedStory = null;
         var linkedStoryId = String(link.getAttribute('data-player-story-id') || '').trim();
 
@@ -2443,13 +2422,11 @@
         var isDifferentStory = !!(linkedStoryId && currentStoryId && linkedStoryId !== currentStoryId);
 
         if (isDifferentStory && !isMember()) {
-          event.preventDefault();
           showAuthRequiredModal();
           return;
         }
 
         if (linkedStory && String(linkedStory.visibility || '').trim() === 'Không công khai' && !isMember()) {
-          event.preventDefault();
           showAuthRequiredModal();
           return;
         }
