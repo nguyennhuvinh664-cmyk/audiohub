@@ -1225,8 +1225,19 @@
     var loggedIn = !!(window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function' && window.AudioHubAccess.isMember()) || isLoggedIn();
 
     // ── Chapter data ──
+    // Playlist mode: show playlist items (stories); normal mode: show story chapters
+    var playlistMode = false;
+    var playlistItemsForDisplay = null;
+    if (context && context.playlist && Array.isArray(context.playlist.items) && context.playlist.items.length) {
+      playlistMode = true;
+      playlistItemsForDisplay = context.playlist.items;
+    } else if (context && Array.isArray(context.chapters) && context.chapters.length) {
+      playlistMode = true;
+      playlistItemsForDisplay = context.chapters;
+    }
+
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
-    var total = storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0;
+    var total = playlistMode ? playlistItemsForDisplay.length : (storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0);
     // If still 0, count from readingText
     if (!total && currentStory && currentStory.readingText) {
       var chapterMatches = String(currentStory.readingText).match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter)\s+\d+/gim);
@@ -1271,34 +1282,49 @@
 
     // ── Active chapter index ──
     var activeChapterIndex = 0;
-    var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
-    if (currentChapterLabel) {
-      var match = currentChapterLabel.match(/(\d+)/);
-      if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
+    if (playlistMode && context && typeof context.chapterIndex === 'number') {
+      // Playlist mode: use chapterIndex from context (position in playlist)
+      activeChapterIndex = Math.max(0, Math.min(total - 1, context.chapterIndex));
+    } else {
+      var currentChapterLabel = context && context.chapterLabel ? String(context.chapterLabel) : '';
+      if (currentChapterLabel) {
+        var match = currentChapterLabel.match(/(\d+)/);
+        if (match) activeChapterIndex = Math.max(0, Math.min(total - 1, Number(match[1]) - 1));
+      }
     }
 
     // ── Build chapter rows ──
     var chapterRows = [];
     for (var i = 0; i < total; i++) {
-      var ch = storyChapters[i] || {};
-      var chapterNum = ch.chapterNumber || (i + 1);
-      var chapterTitle = ch.title || '';
       var isActive = i === activeChapterIndex;
+      var chapterNum = i + 1;
+      var displayName = '';
+      var playerChapterAttr = '';
 
-      // Fallback chain: ch.title → parsed from readingText
-      if (!chapterTitle && chapterTitlesFromText[i]) {
-        chapterTitle = chapterTitlesFromText[i];
+      if (playlistMode && playlistItemsForDisplay && playlistItemsForDisplay[i]) {
+        // Playlist mode: show story title
+        var item = playlistItemsForDisplay[i];
+        displayName = item.storyTitle || item.title || ('Chương ' + chapterNum);
+        playerChapterAttr = displayName;
+      } else {
+        // Normal mode: show chapter title
+        var ch = storyChapters[i] || {};
+        var chapterTitle = ch.title || '';
+        // Fallback chain: ch.title → parsed from readingText
+        if (!chapterTitle && chapterTitlesFromText[i]) {
+          chapterTitle = chapterTitlesFromText[i];
+        }
+        // Show chapter title: "Chương X: title" or "Chương X"
+        displayName = chapterTitle
+          ? ('Chương ' + chapterNum + ': ' + chapterTitle)
+          : ('Chương ' + chapterNum);
+        playerChapterAttr = displayName;
       }
 
-      // Show chapter title: "Chương X: title" or "Chương X"
-      var displayName = chapterTitle
-        ? ('Chương ' + chapterNum + ': ' + chapterTitle)
-        : ('Chương ' + chapterNum);
-
-      // ── Lock state: only locked if backend provides chapter data with isFree/isUnlocked ──
+      // ── Lock state ──
       var isLocked = false;
-      if (storyChapters.length > 0 && ch.id) {
-        var playable = ch.isFree || ch.isUnlocked || (ch.unlockAt && new Date(ch.unlockAt).getTime() <= Date.now());
+      if (!playlistMode && storyChapters.length > 0 && storyChapters[i] && storyChapters[i].id) {
+        var playable = storyChapters[i].isFree || storyChapters[i].isUnlocked;
         isLocked = !playable;
       }
 
@@ -1320,7 +1346,7 @@
       }
 
       chapterRows.push(
-        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml(storyTitle || 'Chương ' + chapterNum) + '" data-chapter-index="' + i + '">'
+        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml(playerChapterAttr) + '" data-chapter-index="' + i + '">'
         + '<span class="chapter-dot">' + dotContent + '</span>'
         + '<div class="chapter-item-body">'
         + '<span class="chapter-item-text">' + escapeHtml(displayName) + '</span>'
@@ -1336,13 +1362,14 @@
     for (var _cli = 0; _cli < allChapterLists.length; _cli++) {
       allChapterLists[_cli].innerHTML = chapterRows.join('');
     }
+    var countLabel = playlistMode ? 'truyện' : 'chương';
     var allHeadings = document.querySelectorAll('.detail-sidebar .section-heading h2, .mobile-card .mobile-card__heading h2');
     for (var _hi = 0; _hi < allHeadings.length; _hi++) {
-      if (allHeadings[_hi].textContent.indexOf('Danh sách chương') >= 0) allHeadings[_hi].innerHTML = '<i class="fa-solid fa-music"></i> Danh sách chương';
+      if (allHeadings[_hi].textContent.indexOf('Danh sách') >= 0) allHeadings[_hi].innerHTML = '<i class="fa-solid fa-music"></i> Danh sách phát';
     }
     var allCounts = document.querySelectorAll('.detail-sidebar .section-heading span, .mobile-card .mobile-card__heading span');
     for (var _ci2 = 0; _ci2 < allCounts.length; _ci2++) {
-      allCounts[_ci2].textContent = total + ' chương';
+      allCounts[_ci2].textContent = total + ' ' + countLabel;
     }
 
     // Hide chapter section if no chapters
