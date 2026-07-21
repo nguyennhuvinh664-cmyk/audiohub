@@ -518,4 +518,20 @@
   if (typeof window.AudioHubStories.sync === 'function') {
     window.AudioHubStories.sync();
   }
+
+  // Completed page: playlist search filter
+  var searchInput = document.getElementById('completed-search-input');
+  if (searchInput) {
+    function normalizeText(value) {
+      return String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+    }
+    searchInput.addEventListener('input', function () {
+      var query = normalizeText(searchInput.value);
+      var cards = root.querySelectorAll('[data-playlist-card]');
+      for (var i = 0; i < cards.length; i++) {
+        var title = normalizeText(cards[i].getAttribute('data-title'));
+        cards[i].style.display = (!query || title.indexOf(query) >= 0) ? '' : 'none';
+      }
+    });
+  }
 })();
