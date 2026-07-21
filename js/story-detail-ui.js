@@ -1449,11 +1449,19 @@
     }, 100);
 
     // ── No playlist → hide chapter list entirely ──
+    console.log('[CHAPTER-HIDE] context:', context, 'chapterList:', !!chapterList);
     if (!context) {
       var _mobileChSection = document.querySelector('.mobile-chapter-list');
-      var _desktopChSection = chapterList ? chapterList.closest('.sidebar-panel') : null;
+      // Hide parent section of chapter-list (broader selector)
+      var _desktopChSection = chapterList ? (chapterList.closest('.sidebar-panel') || chapterList.closest('section') || chapterList.parentElement) : null;
+      console.log('[CHAPTER-HIDE] hiding mobile:', !!_mobileChSection, 'desktop:', !!_desktopChSection);
       if (_mobileChSection) _mobileChSection.style.display = 'none';
       if (_desktopChSection) _desktopChSection.style.display = 'none';
+      // Also hide ALL chapter list parents as safety
+      document.querySelectorAll('.chapter-list').forEach(function(cl) {
+        var sec = cl.closest('section') || cl.parentElement;
+        if (sec) sec.style.display = 'none';
+      });
       return null;
     }
 
@@ -2438,7 +2446,17 @@
     });
 
     var context = resolvePlaylistContext(storyId || '');
+    console.log('[CHAPTER-HIDE] initPlayer context:', context);
     var overrideState = overrideChapterList(context, story);
+    // SAFETY: if no playlist context, ensure chapter list is hidden
+    if (!context) {
+      document.querySelectorAll('.chapter-list').forEach(function(cl) {
+        var sec = cl.closest('section') || cl.closest('.sidebar-panel') || cl.parentElement;
+        if (sec) { sec.style.display = 'none'; console.log('[CHAPTER-HIDE] safety hid:', sec); }
+      });
+      var mobCh = document.querySelector('.mobile-chapter-list');
+      if (mobCh) mobCh.style.display = 'none';
+    }
     // Only use VISIBLE chapter nodes (mobile OR desktop, not both)
     var allChapterNodes = document.querySelectorAll('[data-player-chapter]');
     var chapterNodes = [];
