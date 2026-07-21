@@ -514,19 +514,49 @@
     window.AudioHubStories.sync();
   }
 
-  // Completed page: playlist search filter
-  var searchInput = document.getElementById('completed-search-input');
-  if (searchInput) {
+  // Completed page: playlist filter panel
+  (function initCompletedFilter() {
+    var filterForm = document.querySelector('[data-completed-filter-form]');
+    var titleInput = document.getElementById('completed-filter-title');
+    var resetBtn = document.querySelector('[data-completed-filter-reset]');
+    var summaryEl = document.querySelector('[data-completed-filter-summary]');
+    var emptyEl = document.querySelector('[data-completed-filter-empty]');
+    if (!filterForm || !titleInput) return;
+
     function normalizeText(value) {
       return String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
     }
-    searchInput.addEventListener('input', function () {
-      var query = normalizeText(searchInput.value);
+
+    function applyFilter() {
+      var query = normalizeText(titleInput.value);
       var cards = root.querySelectorAll('[data-playlist-card]');
+      var visible = 0;
       for (var i = 0; i < cards.length; i++) {
         var title = normalizeText(cards[i].getAttribute('data-title'));
-        cards[i].style.display = (!query || title.indexOf(query) >= 0) ? '' : 'none';
+        var match = !query || title.indexOf(query) >= 0;
+        cards[i].style.display = match ? '' : 'none';
+        if (match) visible++;
       }
+      if (summaryEl) {
+        summaryEl.textContent = query
+          ? 'Tìm thấy ' + visible + ' playlist phù hợp.'
+          : 'Hiển thị tất cả playlist trong danh sách.';
+      }
+      if (emptyEl) {
+        emptyEl.style.display = visible === 0 ? '' : 'none';
+      }
+    }
+
+    filterForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      applyFilter();
     });
-  }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        titleInput.value = '';
+        applyFilter();
+      });
+    }
+  })();
 })();
