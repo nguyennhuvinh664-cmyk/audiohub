@@ -240,7 +240,7 @@
     listEl.innerHTML = items.map(function(s) { return buildStoryCard(s); }).join('');
     hydrateCovers(listEl);
   }
-  renderList(stories);
+  renderList(stories.slice().sort(function(a, b) { return new Date(b.createdAt || 0) - new Date(a.createdAt || 0); }));
 
   // ── Covers ──
   function hydrateCovers(root) {
@@ -293,8 +293,14 @@
       btn.classList.add('is-active');
       var type = btn.getAttribute('data-sort');
       var sorted = stories.slice();
-      if (type === 'popular') sorted.sort(function(a, b) { return (b.listenCount || b.views || 0) - (a.listenCount || a.views || 0); });
-      else if (type === 'oldest') sorted.reverse();
+      if (type === 'popular') {
+        sorted.sort(function(a, b) { return (b.listenCount || b.views || 0) - (a.listenCount || a.views || 0); });
+      } else if (type === 'oldest') {
+        sorted.sort(function(a, b) { return new Date(a.createdAt || 0) - new Date(b.createdAt || 0); });
+      } else {
+        // latest: newest first
+        sorted.sort(function(a, b) { return new Date(b.createdAt || 0) - new Date(a.createdAt || 0); });
+      }
       renderList(sorted);
     });
   });
