@@ -1281,6 +1281,14 @@
     var chapterHeading = document.querySelector('.detail-sidebar .section-heading h2');
     var chapterSection = chapterList.closest('.detail-sidebar__section') || chapterList.parentElement;
 
+    // ── Ensure chapter sections visible (playlist mode) ──
+    if (context) {
+      var _mobCh = document.querySelector('.mobile-chapter-list');
+      var _deskCh = chapterList.closest('.sidebar-panel');
+      if (_mobCh) _mobCh.style.display = '';
+      if (_deskCh) _deskCh.style.display = '';
+    }
+
     // ── Login status ──
     var loggedIn = !!(window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function' && window.AudioHubAccess.isMember()) || isLoggedIn();
 
@@ -1439,6 +1447,15 @@
       var activeItem = chapterList.querySelector('.chapter-item.is-active');
       if (activeItem) activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }, 100);
+
+    // ── No playlist → hide chapter list entirely ──
+    if (!context) {
+      var _mobileChSection = document.querySelector('.mobile-chapter-list');
+      var _desktopChSection = chapterList ? chapterList.closest('.sidebar-panel') : null;
+      if (_mobileChSection) _mobileChSection.style.display = 'none';
+      if (_desktopChSection) _desktopChSection.style.display = 'none';
+      return null;
+    }
 
     // For playlist mode, return override state
     if (context && context.playlist && Array.isArray(context.playlist.items)) {
