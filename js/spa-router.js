@@ -45,7 +45,7 @@
     'new-posts.html':       ['story-filters', 'library-state'],
     'popular.html':         ['story-filters', 'library-state'],
     'trending.html':        ['story-filters', 'library-state'],
-    'completed.html':       ['library-state'],
+    'completed.html':       ['story-filters', 'library-state'],
     'upload-story.html':    ['upload-story'],
     'edit-profile.html':    ['edit-profile'],
     'hall-of-fame.html':    ['hall-of-fame'],
