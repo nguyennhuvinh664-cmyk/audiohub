@@ -378,7 +378,7 @@
       if (!pl) return false;
       var idx = findStoryInPl(pl, storyId);
       if (idx >= 0) { chosen = pl; chosenIndex = idx; return true; }
-      if (pl.items && pl.items.length) { chosen = pl; chosenIndex = 0; return true; }
+      // Do NOT fallback to a playlist that doesn't contain this story
       return false;
     });
 
