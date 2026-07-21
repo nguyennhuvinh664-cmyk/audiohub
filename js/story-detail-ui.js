@@ -297,8 +297,6 @@
   // destroying stories fetched from the public API.
   // Story detail fetches directly from GET /stories/public/:id instead.
 
-  ensureStoryContext();
-
   window.addEventListener('audiohub:stories-updated', function () {
     ensureStoryContext();
   });
@@ -1449,18 +1447,14 @@
     }, 100);
 
     // ── No playlist → hide chapter list entirely ──
-    console.log('[CHAPTER-HIDE] context:', context, 'chapterList:', !!chapterList);
     if (!context) {
-      var _mobileChSection = document.querySelector('.mobile-chapter-list');
-      // Hide parent section of chapter-list (broader selector)
-      var _desktopChSection = chapterList ? (chapterList.closest('.sidebar-panel') || chapterList.closest('section') || chapterList.parentElement) : null;
-      console.log('[CHAPTER-HIDE] hiding mobile:', !!_mobileChSection, 'desktop:', !!_desktopChSection);
-      if (_mobileChSection) _mobileChSection.style.display = 'none';
-      if (_desktopChSection) _desktopChSection.style.display = 'none';
-      // Also hide ALL chapter list parents as safety
+      // Hide mobile chapter section
+      var _mobileCh = document.querySelector('.mobile-chapter-list');
+      if (_mobileCh) _mobileCh.style.display = 'none';
+      // Hide desktop: hide ALL parent sections of .chapter-list
       document.querySelectorAll('.chapter-list').forEach(function(cl) {
-        var sec = cl.closest('section') || cl.parentElement;
-        if (sec) sec.style.display = 'none';
+        var parent = cl.closest('section') || cl.parentElement;
+        if (parent) parent.style.display = 'none';
       });
       return null;
     }
@@ -2446,13 +2440,12 @@
     });
 
     var context = resolvePlaylistContext(storyId || '');
-    console.log('[CHAPTER-HIDE] initPlayer context:', context);
     var overrideState = overrideChapterList(context, story);
     // SAFETY: if no playlist context, ensure chapter list is hidden
     if (!context) {
       document.querySelectorAll('.chapter-list').forEach(function(cl) {
-        var sec = cl.closest('section') || cl.closest('.sidebar-panel') || cl.parentElement;
-        if (sec) { sec.style.display = 'none'; console.log('[CHAPTER-HIDE] safety hid:', sec); }
+        var sec = cl.closest('section') || cl.parentElement;
+        if (sec) sec.style.display = 'none';
       });
       var mobCh = document.querySelector('.mobile-chapter-list');
       if (mobCh) mobCh.style.display = 'none';
@@ -2676,21 +2669,16 @@
 
       var nextStory = null;
       var playlistItem = null;
-      console.log('[CHAPTER-DEBUG] safeIndex:', safeIndex, 'overrideState:', overrideState);
       if (overrideState && Array.isArray(overrideState.chapters) && overrideState.chapters[safeIndex]) {
         playlistItem = overrideState.chapters[safeIndex];
-        console.log('[CHAPTER-DEBUG] playlistItem:', playlistItem);
         if (playlistItem.storyId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
           nextStory = window.AudioHubStories.getById(String(playlistItem.storyId));
-          console.log('[CHAPTER-DEBUG] nextStory:', nextStory ? nextStory.title : 'NOT FOUND');
         }
         if (nextStory && String(nextStory.visibility || '').trim() === 'Không công khai' && !isMember()) {
           showAuthRequiredModal();
           renderPlayer();
           return;
         }
-      } else {
-        console.log('[CHAPTER-DEBUG] No overrideState.chapters[' + safeIndex + ']');
       }
 
       // Update active chapter classes
@@ -2716,7 +2704,6 @@
 
       // Update overview and URL
       if (playlistItem) {
-        console.log('[CHAPTER-DEBUG] Calling applyStoryOverviewFromPlaylistItem with:', playlistItem);
         applyStoryOverviewFromPlaylistItem(playlistItem);
         // Update URL without reload
         var newUrl = 'story-detail.html?id=' + encodeURIComponent(playlistItem.storyId || '');

@@ -1,3 +1,7 @@
+# Backend proxy
+/api/*                     https://audiohub-api.onrender.com/api/*   301
+/auth/*                    https://audiohub-api.onrender.com/auth/*  301
+
 # Root-level pages → serve actual /html/ files (standalone, no SPA shell)
 /about.html         /html/about.html         200
 /account.html       /html/account.html       200
@@ -6,6 +10,7 @@
 /blog.html          /html/blog.html          200
 /categories.html    /html/categories.html    200
 /change-password.html /html/change-password.html 200
+/channel.html       /html/channel.html       200
 /completed.html     /html/completed.html     200
 /contact.html       /html/contact.html       200
 /drafts             /html/drafts.html        200
@@ -24,37 +29,6 @@
 /upload-story       /html/upload-story.html  200
 /upload-story.html  /html/upload-story.html  200
 /user-account.html  /html/user-account.html  200
-/channel.html       /html/channel.html       200
-
-# /html/* subpages — self-rewrite so SPA router fetch() gets real files
-/html/about.html         /html/about.html         200
-/html/account.html       /html/account.html       200
-/html/affiliate.html     /html/affiliate.html     200
-/html/authors.html       /html/authors.html       200
-/html/blog.html          /html/blog.html          200
-/html/categories.html    /html/categories.html    200
-/html/change-password.html /html/change-password.html 200
-/html/completed.html     /html/completed.html     200
-/html/contact.html       /html/contact.html       200
-/html/drafts.html        /html/drafts.html        200
-/html/edit-profile.html  /html/edit-profile.html  200
-/html/hall-of-fame.html  /html/hall-of-fame.html  200
-/html/hall-of-hearts.html /html/hall-of-hearts.html 200
-/html/login.html         /html/login.html         200
-/html/new-posts.html     /html/new-posts.html     200
-/html/popular.html       /html/popular.html       200
-/html/privacy.html       /html/privacy.html       200
-/html/register.html      /html/register.html      200
-/html/story-detail.html  /html/story-detail.html  200
-/html/terms.html         /html/terms.html         200
-/html/trending.html      /html/trending.html      200
-/html/upload-story.html  /html/upload-story.html  200
-/html/user-account.html  /html/user-account.html  200
-/html/channel.html       /html/channel.html       200
-
-# Backend proxy
-/auth/*                    https://audiohub-api.onrender.com/auth/*  301
-/api/*                     https://audiohub-api.onrender.com/api/*   301
 
 # SPA fallback — must be last
 /*  /index.html  200

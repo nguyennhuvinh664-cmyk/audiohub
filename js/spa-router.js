@@ -365,13 +365,12 @@
         };
 
         if (!isInitialLoad && document.startViewTransition) {
-          document.startViewTransition(updateDOM);
+          document.startViewTransition(updateDOM).finished.then(function() { transitioning = false; }).catch(function() { transitioning = false; });
         } else {
-          updateDOM();
+          updateDOM().then(function() { transitioning = false; }).catch(function() { transitioning = false; });
         }
 
         isInitialLoad = false;
-        transitioning = false;
       })
       .catch(function (err) {
         console.warn('[SPA Router] Fetch failed, falling back to full navigation:', err);

@@ -301,7 +301,7 @@
     }
 
     if (page.indexOf('completed.html') >= 0) {
-      return pickCompletedStoriesFromPlaylists(publicStories);
+      return []; // completed.html uses playlist cards, not story cards
     }
 
     return publicStories;
