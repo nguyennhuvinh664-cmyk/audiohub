@@ -76,9 +76,11 @@
   if (subBtnActive) subBtnActive.addEventListener('click', function() { toggleSub(authorName); updateSubUI(); });
   updateSubUI();
 
-  // ── Featured ──
+  // ── Featured (story with most listens) ──
   if (stories.length) {
-    var first = stories[0];
+    var first = stories.slice().sort(function(a, b) {
+      return (b.listenCount || b.views || 0) - (a.listenCount || a.views || 0);
+    })[0];
     var ft = document.querySelector('[data-featured-title]');
     var fm = document.querySelector('[data-featured-meta]');
     var fd = document.querySelector('[data-featured-desc]');
