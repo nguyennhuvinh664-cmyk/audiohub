@@ -338,11 +338,6 @@
     }
     var page = String(window.location.pathname || '').toLowerCase();
 
-    // DEBUG: log to identify why completed page check fails
-    if (document.querySelector('.stories-hero__title')) {
-      console.log('[renderStories] pathname=' + window.location.pathname + ' page=' + page + ' stories=' + stories.length + ' completedCheck=' + (page.indexOf('completed.html') >= 0));
-    }
-
     var publicStories = stories.filter(function (story) {
       return isPublicVisibility(story);
     });
