@@ -17,6 +17,7 @@
   }
   function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
   function fmt(n) { return (n || 0).toLocaleString(); }
+  function parseDate(v) { var t = Date.parse(String(v || '')); return isNaN(t) ? 0 : t; }
 
   // ── Load stories ──
   var allStories = [];
@@ -36,13 +37,12 @@
   var totalViews = stories.reduce(function(sum, s) { return sum + (s.listenCount || s.views || 0); }, 0);
 
   // ── Load playlists ──
-  var playlists = [];
+  var authorPlaylists = [];
   try {
     var plRaw = localStorage.getItem('audiohub-playlists-v1');
-    playlists = plRaw ? JSON.parse(plRaw) : [];
-    if (!Array.isArray(playlists)) playlists = [];
-  } catch (e) { playlists = []; }
-  var authorPlaylists = playlists;
+    var allPl = plRaw ? JSON.parse(plRaw) : [];
+    if (Array.isArray(allPl)) authorPlaylists = allPl;
+  } catch (e) {}
 
   // ── Channel info ──
   var nameEl = document.querySelector('[data-channel-name]');
@@ -52,7 +52,6 @@
   var iniEl = document.querySelector('[data-channel-initials]');
   if (iniEl) iniEl.textContent = initials;
 
-  // Stats in header
   var statsEl = document.querySelector('[data-channel-stats]');
   if (statsEl) statsEl.innerHTML = '';
 
@@ -76,119 +75,49 @@
   if (subBtnActive) subBtnActive.addEventListener('click', function() { toggleSub(authorName); updateSubUI(); });
   updateSubUI();
 
-  // ── Featured (story with most listens) ──
+  // ── Featured (most listened) ──
   if (stories.length) {
-    var first = stories.slice().sort(function(a, b) {
+    var featured = stories.slice().sort(function(a, b) {
       return (b.listenCount || b.views || 0) - (a.listenCount || a.views || 0);
     })[0];
+
     var ft = document.querySelector('[data-featured-title]');
     var fm = document.querySelector('[data-featured-meta]');
     var fd = document.querySelector('[data-featured-desc]');
     var fi = document.querySelector('[data-featured-initials]');
-    if (ft) ft.textContent = first.title;
-    if (fm) fm.textContent = fmt(first.listenCount || first.views) + ' lượt nghe';
-    if (fd) fd.textContent = first.description || '';
-    if (fi) fi.textContent = (first.title || 'AH').substring(0, 2).toUpperCase();
+    if (ft) ft.textContent = featured.title;
+    if (fm) fm.textContent = fmt(featured.listenCount || featured.views) + ' lượt nghe';
+    if (fd) fd.textContent = featured.description || '';
+    if (fi) fi.textContent = (featured.title || 'AH').substring(0, 2).toUpperCase();
 
-    if (first.coverKey && window.AudioHubStoryCover) {
+    if (featured.coverKey && window.AudioHubStoryCover) {
       var thumb = document.querySelector('.ch-featured__thumb');
       if (thumb) {
-        window.AudioHubStoryCover.get(first.coverKey).then(function(blob) {
+        window.AudioHubStoryCover.get(featured.coverKey).then(function(blob) {
           if (blob) { thumb.style.backgroundImage = 'url("' + URL.createObjectURL(blob) + '")'; thumb.style.backgroundSize = 'cover'; thumb.style.backgroundPosition = 'center'; }
         }).catch(function() {});
       }
     }
 
-    // Featured favorite button
+    // Featured favorite
     var featFavBtn = document.querySelector('[data-featured-fav]');
     if (featFavBtn && window.AudioHubLibrary) {
-      var favActive = window.AudioHubLibrary.isFavorited(first);
-      function updateFeatFavUI() {
-        var isFav = window.AudioHubLibrary.isFavorited(first);
+      function updateFeatFav() {
+        var isFav = window.AudioHubLibrary.isFavorited(featured);
         featFavBtn.innerHTML = isFav
           ? '<i class="fa-solid fa-heart"></i> Đã yêu thích'
           : '<i class="fa-regular fa-heart"></i> Yêu thích';
       }
-      updateFeatFavUI();
+      updateFeatFav();
       featFavBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        window.AudioHubLibrary.toggleFavorite(first);
-        updateFeatFavUI();
+        window.AudioHubLibrary.toggleFavorite(featured);
+        updateFeatFav();
       });
     }
   }
 
-  // ── Grid (home) ──
-  var grid = document.querySelector('[data-audios-grid]');
-  if (grid) {
-    if (!stories.length) {
-      grid.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book"></i><p>Tác giả chưa có audio nào</p></div>';
-    } else {
-      grid.innerHTML = stories.slice(0, 8).map(function(s) { return buildStoryCard(s); }).join('');
-      hydrateCovers(grid);
-      // Favorite buttons
-      if (window.AudioHubLibrary) {
-        grid.querySelectorAll('[data-fav]').forEach(function(btn) {
-          var card = btn.closest('[data-story-id]');
-          var sid = card ? card.getAttribute('data-story-id') : '';
-          var story = stories.find(function(s) { return String(s.id) === sid; });
-          if (!story) return;
-          function updateUI() {
-            var isFav = window.AudioHubLibrary.isFavorited(story);
-            btn.innerHTML = isFav ? '<i class="fa-solid fa-heart"></i> Đã yêu thích' : '<i class="fa-regular fa-heart"></i> Yêu thích';
-            btn.classList.toggle('is-active', isFav);
-          }
-          updateUI();
-          btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.AudioHubLibrary.toggleFavorite(story);
-            updateUI();
-          });
-        });
-      }
-    }
-  }
-
-  // ── Playlist tab ──
-  var playlistTab = document.querySelector('[data-tab-content="playlist"]');
-  if (playlistTab) {
-    if (authorPlaylists.length) {
-      // Build a map of storyId -> coverKey for quick lookup
-      var storyCoverMap = {};
-      stories.forEach(function(s) {
-        var sid = String(s.id || '').trim();
-        if (sid && s.coverKey) storyCoverMap[sid] = s.coverKey;
-      });
-
-      playlistTab.innerHTML = '<div class="ch-playlists-grid">' + authorPlaylists.map(function(pl) {
-        var count = (pl.entries || []).length;
-        var doneCount = (pl.entries || []).filter(function(e) { return e.status === 'done'; }).length;
-        var firstEntry = (pl.entries || [])[0] || {};
-        var firstStoryId = String(firstEntry.key || firstEntry.storyId || '');
-        // Look up cover from the story itself
-        var coverKey = firstStoryId ? (storyCoverMap[firstStoryId] || '') : '';
-        var href = firstStoryId ? ('story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
-        var state = String(pl.state || '').trim();
-        var badgeText = state === 'done' ? 'Bản Full' : (count + ' truyện');
-        var thumbStyle = coverKey ? '' : 'background:linear-gradient(135deg,#1a1040,#2d1b69)';
-        return '<div class="ch-playlist-card">'
-          + '<a href="' + href + '" class="ch-playlist-card__link">'
-          + '<div class="ch-playlist-card__thumb" data-cover="' + coverKey + '" style="' + thumbStyle + '">'
-          + (coverKey ? '' : '<i class="fa-solid fa-list"></i>')
-          + '<span class="ch-playlist-card__badge">' + badgeText + '</span>'
-          + '</div>'
-          + '<h3 class="ch-playlist-card__title">' + esc(pl.name || 'Playlist') + '</h3>'
-          + '<p class="ch-playlist-card__meta">Cập nhật hôm qua</p>'
-          + '<span class="ch-playlist-card__link-text">Xem toàn bộ danh sách</span>'
-          + '</a></div>';
-      }).join('') + '</div>';
-      // Hydrate covers after DOM update
-      requestAnimationFrame(function() { hydrateCovers(playlistTab); });
-    }
-  }
-
-  // ── Genre colors (same as homepage) ──
+  // ── Genre colors ──
   var genreColors = {
     'tiên hiệp': '#7c3aed', 'kiem hiep': '#0891b2', 'kiếm hiệp': '#0891b2',
     'ngôn tình': '#be185d', 'huyền huyễn': '#065f46', 'huyen huyen': '#065f46',
@@ -202,12 +131,11 @@
   };
   function genreColor(genre) {
     var key = String(genre || '').trim().toLowerCase();
-    return (typeof genreColors !== 'undefined' && genreColors[key]) || '#334155';
+    return genreColors[key] || '#334155';
   }
-  function makeInitials(title) { return String(title || 'AH').split(/\s+/).filter(Boolean).slice(0, 2).map(function(w) { return w[0]; }).join('').toUpperCase(); }
 
-  // ── Build homepage-style card ──
-  function buildStoryCard(story) {
+  // ── Build card ──
+  function buildCard(story) {
     var storyId = String(story && story.id || '').trim();
     var href = storyId ? ('story-detail.html?id=' + encodeURIComponent(storyId)) : '#';
     var title = String(story.title || 'Truyện mới');
@@ -232,34 +160,80 @@
       + '</div></a></div>';
   }
 
-  // ── List (audios tab) ──
-  var listEl = document.querySelector('[data-audios-list]');
-  function renderList(items) {
-    if (!listEl) return;
-    if (!items.length) { listEl.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book"></i><p>Không có audio</p></div>'; return; }
-    listEl.innerHTML = items.map(function(s) { return buildStoryCard(s); }).join('');
-    hydrateCovers(listEl);
-  }
-  renderList(stories.slice().sort(function(a, b) { return new Date(b.createdAt || 0) - new Date(a.createdAt || 0); }));
-
-  // ── Covers ──
+  // ── Hydrate covers ──
   function hydrateCovers(root) {
     root.querySelectorAll('[data-cover]').forEach(function(el) {
       var key = el.getAttribute('data-cover');
-      if (!key) return;
-      if (!window.AudioHubStoryCover) return;
+      if (!key || !window.AudioHubStoryCover) return;
       window.AudioHubStoryCover.get(key).then(function(blob) {
         if (!blob) return;
         var url = URL.createObjectURL(blob);
         el.style.backgroundImage = 'url("' + url + '")';
         el.style.backgroundSize = 'cover';
         el.style.backgroundPosition = 'center';
-        // Remove placeholder icon if present
         var icon = el.querySelector('i');
         if (icon) icon.style.display = 'none';
       }).catch(function() {});
     });
   }
+
+  // ── Attach favorite handlers ──
+  function attachFavHandlers(root) {
+    if (!window.AudioHubLibrary) return;
+    root.querySelectorAll('[data-fav]').forEach(function(btn) {
+      var card = btn.closest('[data-story-id]');
+      var sid = card ? card.getAttribute('data-story-id') : '';
+      var story = stories.find(function(s) { return String(s.id) === sid; });
+      if (!story) return;
+      function updateUI() {
+        var isFav = window.AudioHubLibrary.isFavorited(story);
+        btn.innerHTML = isFav ? '<i class="fa-solid fa-heart"></i> Đã yêu thích' : '<i class="fa-regular fa-heart"></i> Yêu thích';
+        btn.classList.toggle('is-active', isFav);
+      }
+      updateUI();
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.AudioHubLibrary.toggleFavorite(story);
+        updateUI();
+      });
+    });
+  }
+
+  // ── Render grid (single source of truth) ──
+  var grid = document.querySelector('[data-audios-grid]');
+  function renderGrid(items) {
+    if (!grid) return;
+    if (!items.length) {
+      grid.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book"></i><p>Không có audio</p></div>';
+      return;
+    }
+    grid.innerHTML = items.map(buildCard).join('');
+    hydrateCovers(grid);
+    attachFavHandlers(grid);
+  }
+
+  // Initial render: newest first
+  renderGrid(stories.slice().sort(function(a, b) { return parseDate(b.createdAt) - parseDate(a.createdAt); }));
+
+  // ── Sort ──
+  var sortBtns = document.querySelectorAll('.ch-sort-btn');
+  sortBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      sortBtns.forEach(function(b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      var type = btn.getAttribute('data-sort');
+      var sorted = stories.slice();
+      if (type === 'popular') {
+        sorted.sort(function(a, b) { return (b.listenCount || b.views || 0) - (a.listenCount || a.views || 0); });
+      } else if (type === 'oldest') {
+        sorted.sort(function(a, b) { return parseDate(a.createdAt) - parseDate(b.createdAt); });
+      } else {
+        sorted.sort(function(a, b) { return parseDate(b.createdAt) - parseDate(a.createdAt); });
+      }
+      renderGrid(sorted);
+    });
+  });
 
   // ── Tabs ──
   var tabBtns = document.querySelectorAll('.ch-tab');
@@ -275,35 +249,37 @@
     });
   });
 
-  // Tab link from home
-  document.querySelectorAll('[data-tab-link]').forEach(function(link) {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      var tab = link.getAttribute('data-tab-link');
-      var btn = document.querySelector('[data-tab="' + tab + '"]');
-      if (btn) btn.click();
+  // ── Playlist tab ──
+  var playlistTab = document.querySelector('[data-tab-content="playlist"]');
+  if (playlistTab && authorPlaylists.length) {
+    var storyCoverMap = {};
+    stories.forEach(function(s) {
+      var sid = String(s.id || '').trim();
+      if (sid && s.coverKey) storyCoverMap[sid] = s.coverKey;
     });
-  });
 
-  // ── Sort ──
-  var sortBtns = document.querySelectorAll('.ch-sort-btn');
-  sortBtns.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      sortBtns.forEach(function(b) { b.classList.remove('is-active'); });
-      btn.classList.add('is-active');
-      var type = btn.getAttribute('data-sort');
-      var sorted = stories.slice();
-      if (type === 'popular') {
-        sorted.sort(function(a, b) { return (b.listenCount || b.views || 0) - (a.listenCount || a.views || 0); });
-      } else if (type === 'oldest') {
-        sorted.sort(function(a, b) { return new Date(a.createdAt || 0) - new Date(b.createdAt || 0); });
-      } else {
-        // latest: newest first
-        sorted.sort(function(a, b) { return new Date(b.createdAt || 0) - new Date(a.createdAt || 0); });
-      }
-      renderList(sorted);
-    });
-  });
+    playlistTab.innerHTML = '<div class="ch-playlists-grid">' + authorPlaylists.map(function(pl) {
+      var count = (pl.entries || []).length;
+      var firstEntry = (pl.entries || [])[0] || {};
+      var firstStoryId = String(firstEntry.key || firstEntry.storyId || '');
+      var coverKey = firstStoryId ? (storyCoverMap[firstStoryId] || '') : '';
+      var href = firstStoryId ? ('story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
+      var state = String(pl.state || '').trim();
+      var badgeText = state === 'done' ? 'Bản Full' : (count + ' truyện');
+      var thumbStyle = coverKey ? '' : 'background:linear-gradient(135deg,#1a1040,#2d1b69)';
+      return '<div class="ch-playlist-card">'
+        + '<a href="' + href + '" class="ch-playlist-card__link">'
+        + '<div class="ch-playlist-card__thumb" data-cover="' + coverKey + '" style="' + thumbStyle + '">'
+        + (coverKey ? '' : '<i class="fa-solid fa-list"></i>')
+        + '<span class="ch-playlist-card__badge">' + badgeText + '</span>'
+        + '</div>'
+        + '<h3 class="ch-playlist-card__title">' + esc(pl.name || 'Playlist') + '</h3>'
+        + '<p class="ch-playlist-card__meta">' + count + ' truyện</p>'
+        + '<span class="ch-playlist-card__link-text">Xem toàn bộ danh sách</span>'
+        + '</a></div>';
+    }).join('') + '</div>';
+    requestAnimationFrame(function() { hydrateCovers(playlistTab); });
+  }
 
   // ── About ──
   var aboutDesc = document.querySelector('[data-about-desc]');
@@ -314,22 +290,11 @@
 
   if (aboutDesc && stories.length) aboutDesc.textContent = stories[0].authorDesc || 'Tác giả truyện audio trên AudioHub.';
   if (aboutJoined && stories.length) {
-    var oldest = stories.slice().sort(function(a, b) { return new Date(a.createdAt || 0) - new Date(b.createdAt || 0); })[0];
+    var oldest = stories.slice().sort(function(a, b) { return parseDate(a.createdAt) - parseDate(b.createdAt); })[0];
     if (oldest.createdAt) aboutJoined.textContent = new Date(oldest.createdAt).toLocaleDateString('vi-VN');
   }
   if (aboutViews) aboutViews.textContent = fmt(totalViews);
   if (aboutAudios) aboutAudios.textContent = stories.length;
   if (aboutPlaylists) aboutPlaylists.textContent = authorPlaylists.length;
-
-  // ── Mobile nav ──
-  var navToggle = document.querySelector('[data-nav-toggle]');
-  var navDrawer = document.querySelector('[data-nav-drawer]');
-  var navOverlay = document.querySelector('[data-nav-overlay]');
-  var navClose = document.querySelector('[data-nav-close]');
-  function openNav() { if (navDrawer) navDrawer.classList.add('is-open'); if (navOverlay) navOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden'; }
-  function closeNav() { if (navDrawer) navDrawer.classList.remove('is-open'); if (navOverlay) navOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
-  if (navToggle) navToggle.addEventListener('click', openNav);
-  if (navClose) navClose.addEventListener('click', closeNav);
-  if (navOverlay) navOverlay.addEventListener('click', closeNav);
 
 })();
