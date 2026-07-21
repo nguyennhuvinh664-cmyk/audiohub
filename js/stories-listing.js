@@ -337,6 +337,12 @@
       stories = readSeedStoriesFromCards();
     }
     var page = String(window.location.pathname || '').toLowerCase();
+
+    // DEBUG: log to identify why completed page check fails
+    if (document.querySelector('.stories-hero__title')) {
+      console.log('[renderStories] pathname=' + window.location.pathname + ' page=' + page + ' stories=' + stories.length + ' completedCheck=' + (page.indexOf('completed.html') >= 0));
+    }
+
     var publicStories = stories.filter(function (story) {
       return isPublicVisibility(story);
     });
@@ -345,17 +351,20 @@
       window.dispatchEvent(new CustomEvent('audiohub:cards-rendered'));
     }
 
-    if (page.indexOf('completed.html') >= 0) {
-      // Mark as completed-playlist mode — story-filters.js must not overwrite
+    // BULLETPROOF: detect completed page by hero title (not pathname)
+    var heroTitle = document.querySelector('.stories-hero__title');
+    var isCompletedPage = heroTitle && heroTitle.textContent.indexOf('Hoàn Thành') >= 0;
+    if (isCompletedPage) {
       window.__completedPlaylistsMode = true;
       root.setAttribute('data-completed-playlists', '');
+    }
 
-      // If playlists already rendered, do NOT re-render (second renderStories call
-      // with merged stories would otherwise overwrite playlist cards with story cards)
-      if (root.childElementCount > 0 && root.querySelector('[data-playlist-card]')) {
-        return;
-      }
+    // If playlists already rendered, NEVER re-render
+    if (root.querySelector('[data-playlist-card]')) {
+      return;
+    }
 
+    if (isCompletedPage) {
       if (canUsePlaylistApi()) {
         window.AudioHubApi.request('/playlists', { method: 'GET' })
           .then(function (rows) {
@@ -401,9 +410,6 @@
       emitRendered();
       return;
     }
-
-    // NEVER render story cards on completed.html — only playlist cards allowed
-    if (page.indexOf('completed.html') >= 0) return;
 
     if (!stories.length) {
       return;
