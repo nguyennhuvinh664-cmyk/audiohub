@@ -41,6 +41,98 @@
     </div>
   </section>
 
+  <!-- Tabs -->
+  <nav class="ch-tabs">
+    <div class="container">
+      <div class="ch-tabs__inner">
+        <button class="ch-tab is-active" data-tab="audios"><i class="fa-solid fa-headphones"></i> Audio</button>
+        <button class="ch-tab" data-tab="playlist"><i class="fa-solid fa-list"></i> Playlist</button>
+        <button class="ch-tab" data-tab="about"><i class="fa-solid fa-circle-info"></i> Giới thiệu</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="ch-main">
+    <div class="container">
+
+      <!-- Featured -->
+      <div class="ch-featured" data-featured-section>
+        <div class="ch-featured__cover">
+          <div class="ch-featured__thumb"><span data-featured-initials>AH</span></div>
+          <div class="ch-featured__play"><i class="fa-solid fa-play"></i></div>
+        </div>
+        <div class="ch-featured__info">
+          <span class="ch-eyebrow"><i class="fa-solid fa-fire"></i> Truyện nổi bật</span>
+          <h2 class="ch-featured__title" data-featured-title>Đang tải...</h2>
+          <p class="ch-featured__meta" data-featured-meta></p>
+          <p class="ch-featured__desc" data-featured-desc></p>
+          <div class="ch-featured__actions">
+            <a href="#" class="btn btn--primary"><i class="fa-solid fa-play"></i> Nghe ngay</a>
+            <a href="#" class="btn btn--outline"><i class="fa-solid fa-plus"></i> Thêm vào playlist</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="ch-stats-row">
+        <div class="ch-stat-card"><i class="fa-solid fa-headphones"></i><div><strong data-stat-audios>0</strong><span>Audio</span></div></div>
+        <div class="ch-stat-card"><i class="fa-solid fa-eye"></i><div><strong data-stat-views>0</strong><span>Lượt nghe</span></div></div>
+        <div class="ch-stat-card"><i class="fa-solid fa-list"></i><div><strong data-stat-playlists>0</strong><span>Playlist</span></div></div>
+        <div class="ch-stat-card"><i class="fa-solid fa-bell"></i><div><strong data-stat-subs>0</strong><span>Đăng ký</span></div></div>
+      </div>
+
+      <!-- Tab: Audios -->
+      <div class="ch-tab-content is-active" data-tab-content="audios">
+        <div class="ch-section">
+          <div class="ch-section__head">
+            <h2><i class="fa-solid fa-headphones"></i> Tất cả Audio</h2>
+          </div>
+          <div class="ch-sort-bar">
+            <button class="ch-sort-btn is-active" data-sort="latest">Mới nhất</button>
+            <button class="ch-sort-btn" data-sort="popular">Phổ biến</button>
+            <button class="ch-sort-btn" data-sort="oldest">Cũ nhất</button>
+          </div>
+          <div class="ch-grid" data-audios-grid></div>
+          <div class="ch-list" data-audios-list style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Playlist -->
+      <div class="ch-tab-content" data-tab-content="playlist" hidden>
+        <div class="ch-section">
+          <div class="ch-section__head">
+            <h2><i class="fa-solid fa-list"></i> Playlist</h2>
+          </div>
+          <div class="ch-playlists-grid"></div>
+        </div>
+      </div>
+
+      <!-- Tab: About -->
+      <div class="ch-tab-content" data-tab-content="about" hidden>
+        <div class="ch-about">
+          <div class="ch-about__main">
+            <h3>Giới thiệu</h3>
+            <p data-about-desc>Tác giả truyện audio trên AudioHub.</p>
+            <h3>Thống kê</h3>
+            <div class="ch-about__socials">
+              <a href="#" class="ch-social-btn"><i class="fa-brands fa-facebook"></i> Facebook</a>
+              <a href="#" class="ch-social-btn"><i class="fa-brands fa-youtube"></i> YouTube</a>
+              <a href="#" class="ch-social-btn"><i class="fa-solid fa-globe"></i> Website</a>
+            </div>
+          </div>
+          <div class="ch-about__side">
+            <div class="ch-about__stat"><i class="fa-solid fa-calendar"></i><div><strong>Tham gia</strong><span data-about-joined>—</span></div></div>
+            <div class="ch-about__stat"><i class="fa-solid fa-eye"></i><div><strong>Tổng lượt nghe</strong><span data-about-views>0</span></div></div>
+            <div class="ch-about__stat"><i class="fa-solid fa-headphones"></i><div><strong>Audio</strong><span data-about-audios>0</span></div></div>
+            <div class="ch-about__stat"><i class="fa-solid fa-list"></i><div><strong>Playlist</strong><span data-about-playlists>0</span></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   </div> <!-- /m-page -->
 
 </div>

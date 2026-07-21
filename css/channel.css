@@ -346,6 +346,13 @@ body.channel-page { background: var(--ch-bg); color: var(--ch-text); }
   gap: 16px;
 }
 
+/* ═══ Story Grid ═══ */
+.ch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
 /* ═══ Responsive ═══ */
 @media (max-width: 1080px) {
   .ch-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
