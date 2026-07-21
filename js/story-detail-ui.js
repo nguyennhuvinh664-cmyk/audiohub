@@ -1242,11 +1242,19 @@
             }
             return { chapters: chapters, activeIndex: activeIdx, chapterLabel: chapters[activeIdx] ? chapters[activeIdx].label : 'Chương 1' };
           }
-          // 1. Try by playlistId first
+          // 1. Try by playlistId first — but only if story is actually in it
           if (_plId) {
             for (var i = 0; i < _allPls.length; i++) {
               if (_allPls[i] && String(_allPls[i].id || '') === String(_plId)) {
-                context = _buildCtx(_allPls[i]);
+                var _testCtx = _buildCtx(_allPls[i]);
+                // Verify story is actually in this playlist
+                var _found = false;
+                for (var _fc = 0; _fc < _testCtx.chapters.length; _fc++) {
+                  if (String(_testCtx.chapters[_fc].storyId) === String(_storyId)) { _found = true; break; }
+                }
+                if (_found) {
+                  context = _testCtx;
+                }
                 break;
               }
             }
