@@ -518,6 +518,8 @@
   (function initCompletedFilter() {
     var filterForm = document.querySelector('[data-completed-filter-form]');
     var titleInput = document.getElementById('completed-filter-title');
+    var authorInput = document.getElementById('completed-filter-author');
+    var genreSelect = document.getElementById('completed-filter-genre');
     var resetBtn = document.querySelector('[data-completed-filter-reset]');
     var summaryEl = document.querySelector('[data-completed-filter-summary]');
     var emptyEl = document.querySelector('[data-completed-filter-empty]');
@@ -528,17 +530,26 @@
     }
 
     function applyFilter() {
-      var query = normalizeText(titleInput.value);
+      var qTitle = normalizeText(titleInput.value);
+      var qAuthor = normalizeText(authorInput ? authorInput.value : '');
+      var qGenre = normalizeText(genreSelect ? genreSelect.value : '');
       var cards = root.querySelectorAll('[data-playlist-card]');
       var visible = 0;
       for (var i = 0; i < cards.length; i++) {
-        var title = normalizeText(cards[i].getAttribute('data-title'));
-        var match = !query || title.indexOf(query) >= 0;
-        cards[i].style.display = match ? '' : 'none';
+        var card = cards[i];
+        var title = normalizeText(card.getAttribute('data-title'));
+        var author = normalizeText(card.getAttribute('data-author'));
+        var genre = normalizeText(card.getAttribute('data-genre'));
+        var match = true;
+        if (qTitle && title.indexOf(qTitle) < 0) match = false;
+        if (qAuthor && author.indexOf(qAuthor) < 0) match = false;
+        if (qGenre && genre.indexOf(qGenre) < 0) match = false;
+        card.style.display = match ? '' : 'none';
         if (match) visible++;
       }
+      var hasQuery = qTitle || qAuthor || qGenre;
       if (summaryEl) {
-        summaryEl.textContent = query
+        summaryEl.textContent = hasQuery
           ? 'Tìm thấy ' + visible + ' playlist phù hợp.'
           : 'Hiển thị tất cả playlist trong danh sách.';
       }
@@ -555,13 +566,16 @@
     if (resetBtn) {
       resetBtn.addEventListener('click', function () {
         titleInput.value = '';
+        if (authorInput) authorInput.value = '';
+        if (genreSelect) genreSelect.value = '';
         applyFilter();
       });
     }
 
     // Re-apply filter after playlist cards are rendered asynchronously
     window.addEventListener('audiohub:cards-rendered', function () {
-      if (titleInput.value) applyFilter();
+      var hasQuery = (titleInput.value || '').trim() || (authorInput && authorInput.value || '').trim() || (genreSelect && genreSelect.value || '').trim();
+      if (hasQuery) applyFilter();
     });
   })();
 })();
