@@ -98,6 +98,24 @@
         }).catch(function() {});
       }
     }
+
+    // Featured favorite button
+    var featFavBtn = document.querySelector('[data-featured-fav]');
+    if (featFavBtn && window.AudioHubLibrary) {
+      var favActive = window.AudioHubLibrary.isFavorited(first);
+      function updateFeatFavUI() {
+        var isFav = window.AudioHubLibrary.isFavorited(first);
+        featFavBtn.innerHTML = isFav
+          ? '<i class="fa-solid fa-heart"></i> Đã yêu thích'
+          : '<i class="fa-regular fa-heart"></i> Yêu thích';
+      }
+      updateFeatFavUI();
+      featFavBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.AudioHubLibrary.toggleFavorite(first);
+        updateFeatFavUI();
+      });
+    }
   }
 
   // ── Grid (home) ──
@@ -108,6 +126,27 @@
     } else {
       grid.innerHTML = stories.slice(0, 8).map(function(s) { return buildStoryCard(s); }).join('');
       hydrateCovers(grid);
+      // Favorite buttons
+      if (window.AudioHubLibrary) {
+        grid.querySelectorAll('[data-fav]').forEach(function(btn) {
+          var card = btn.closest('[data-story-id]');
+          var sid = card ? card.getAttribute('data-story-id') : '';
+          var story = stories.find(function(s) { return String(s.id) === sid; });
+          if (!story) return;
+          function updateUI() {
+            var isFav = window.AudioHubLibrary.isFavorited(story);
+            btn.innerHTML = isFav ? '<i class="fa-solid fa-heart"></i> Đã yêu thích' : '<i class="fa-regular fa-heart"></i> Yêu thích';
+            btn.classList.toggle('is-active', isFav);
+          }
+          updateUI();
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.AudioHubLibrary.toggleFavorite(story);
+            updateUI();
+          });
+        });
+      }
     }
   }
 
