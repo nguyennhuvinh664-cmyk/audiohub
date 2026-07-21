@@ -88,7 +88,7 @@
       : '#';
 
     return (
-      '<div class="story-card" data-story-card ' +
+      '<div class="story-card" data-story-card data-playlist-card ' +
       'data-story-id="' + escapeHtml(playlist.id) + '" data-title="' + name + '" data-author="Admin" data-genre="Playlist" data-description="Playlist đã hoàn thành">' +
       '<a href="' + href + '" class="story-card__link">' +
       '<div class="story-card__thumb" data-cover-key="' + escapeHtml(coverKey) + '" style="background:linear-gradient(135deg,#10b981,#10b981aa)">' +
@@ -349,6 +349,13 @@
       // Mark as completed-playlist mode — story-filters.js must not overwrite
       window.__completedPlaylistsMode = true;
       root.setAttribute('data-completed-playlists', '');
+
+      // If playlists already rendered, do NOT re-render (second renderStories call
+      // with merged stories would otherwise overwrite playlist cards with story cards)
+      if (root.childElementCount > 0 && root.querySelector('[data-playlist-card]')) {
+        return;
+      }
+
       if (canUsePlaylistApi()) {
         window.AudioHubApi.request('/playlists', { method: 'GET' })
           .then(function (rows) {
