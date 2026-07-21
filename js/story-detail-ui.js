@@ -1358,7 +1358,8 @@
       allChapterLists[_cli].innerHTML = chapterRows.join('');
     }
     var countLabel = playlistItemsForDisplay ? 'truyện' : 'chương';
-    var headingText = playlistItemsForDisplay ? 'Danh sách phát' : 'Danh sách chương';
+    var playlistName = (context && context.playlist && context.playlist.name) || '';
+    var headingText = playlistItemsForDisplay ? (playlistName || 'Danh sách phát') : 'Danh sách chương';
     var allHeadings = document.querySelectorAll('.detail-sidebar .section-heading h2, .mobile-card .mobile-card__heading h2');
     for (var _hi = 0; _hi < allHeadings.length; _hi++) {
       if (allHeadings[_hi].textContent.indexOf('Danh sách') >= 0) allHeadings[_hi].innerHTML = '<i class="fa-solid fa-music"></i> ' + headingText;
