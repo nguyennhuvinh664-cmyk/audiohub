@@ -306,6 +306,11 @@
           // Signal that SPA navigation is in progress — old observers must not interfere
           window.__spaNavigating = true;
 
+          // 0. Disconnect old page observers (story-filters.js MutationObserver, etc.)
+          if (typeof window.__storyFiltersCleanup === 'function') {
+            try { window.__storyFiltersCleanup(); } catch (e) {}
+          }
+
           // 1. Remove old page CSS
           removePageCSS();
 

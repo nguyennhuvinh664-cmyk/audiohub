@@ -486,17 +486,24 @@
       }, true);
     }
 
-    window.addEventListener('audiohub:stories-updated', function () {
+    // Disconnect any previous story-filters observers (SPA navigation cleanup)
+    if (window.__storyFiltersCleanup) {
+      try { window.__storyFiltersCleanup(); } catch (e) {}
+    }
+
+    var storiesUpdatedHandler = function () {
       if (shouldSkipFilters()) return;
       applyFilters(false);
-    });
+    };
+    window.addEventListener('audiohub:stories-updated', storiesUpdatedHandler);
 
     // Re-apply filters after stories-listing.js re-renders cards (fixes race condition)
-    window.addEventListener('audiohub:cards-rendered', function () {
+    var cardsRenderedHandler = function () {
       // Skip if filters should not run
       if (shouldSkipFilters()) return;
       applyFilters(false);
-    });
+    };
+    window.addEventListener('audiohub:cards-rendered', cardsRenderedHandler);
 
     // Fallback: MutationObserver watches for DOM changes in the card grid
     // Handles cases where cards are added without dispatching an event
@@ -506,6 +513,13 @@
       applyFilters(false);
     });
     observer.observe(root, { childList: true });
+
+    // Store cleanup function globally so SPA router can disconnect before DOM swap
+    window.__storyFiltersCleanup = function () {
+      try { observer.disconnect(); } catch (e) {}
+      try { window.removeEventListener('audiohub:stories-updated', storiesUpdatedHandler); } catch (e) {}
+      try { window.removeEventListener('audiohub:cards-rendered', cardsRenderedHandler); } catch (e) {}
+    };
 
     applyFilters(false);
   }
