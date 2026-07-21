@@ -558,5 +558,10 @@
         applyFilter();
       });
     }
+
+    // Re-apply filter after playlist cards are rendered asynchronously
+    window.addEventListener('audiohub:cards-rendered', function () {
+      if (titleInput.value) applyFilter();
+    });
   })();
 })();
