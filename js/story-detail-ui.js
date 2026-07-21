@@ -814,7 +814,26 @@
     if (!list || !window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return;
 
     var allStories = window.AudioHubStories.read() || [];
-    var inPlaylist = !!new URLSearchParams(window.location.search).get('playlistId');
+
+    // Check if current story is ACTUALLY in the playlist (not just URL has playlistId)
+    var inPlaylist = false;
+    var playlistIdParam = new URLSearchParams(window.location.search).get('playlistId');
+    if (playlistIdParam && currentStory) {
+      try {
+        var plRaw = localStorage.getItem('audiohub-playlists-v1');
+        var allPlaylists = plRaw ? JSON.parse(plRaw) : [];
+        if (Array.isArray(allPlaylists)) {
+          var matchedPl = allPlaylists.find(function(p) { return String(p.id) === String(playlistIdParam); });
+          if (matchedPl) {
+            var entries = matchedPl.entries || matchedPl.items || [];
+            inPlaylist = entries.some(function(e) {
+              return String(e.storyId || e.key || '') === String(currentStory.id || '');
+            });
+          }
+        }
+      } catch (e) {}
+    }
+
     var stories;
 
     if (!inPlaylist && currentStory) {
