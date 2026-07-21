@@ -911,7 +911,7 @@
       picked = picked.concat(filler);
     }
 
-    picked = picked.slice(0, 3);
+    picked = picked.slice(0, 4);
     if (!picked.length) {
       return;
     }
