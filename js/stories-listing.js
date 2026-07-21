@@ -402,6 +402,9 @@
       return;
     }
 
+    // NEVER render story cards on completed.html — only playlist cards allowed
+    if (page.indexOf('completed.html') >= 0) return;
+
     if (!stories.length) {
       return;
     }
