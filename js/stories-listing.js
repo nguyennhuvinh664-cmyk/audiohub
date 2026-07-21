@@ -550,8 +550,8 @@
       var hasQuery = qTitle || qAuthor || qGenre;
       if (summaryEl) {
         summaryEl.textContent = hasQuery
-          ? 'Tìm thấy ' + visible + ' playlist phù hợp.'
-          : 'Hiển thị tất cả playlist trong danh sách.';
+          ? 'Tìm thấy ' + visible + ' truyện phù hợp.'
+          : 'Hiển thị tất cả truyện trong danh sách.';
       }
       if (emptyEl) {
         emptyEl.style.display = visible === 0 ? '' : 'none';
