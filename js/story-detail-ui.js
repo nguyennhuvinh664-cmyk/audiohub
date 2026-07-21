@@ -813,7 +813,40 @@
     var list = document.querySelector('.mini-list');
     if (!list || !window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return;
 
-    var stories = pickTrendingStories(window.AudioHubStories.read() || []).slice(0, 8);
+    var allStories = window.AudioHubStories.read() || [];
+    var inPlaylist = !!new URLSearchParams(window.location.search).get('playlistId');
+    var stories;
+
+    if (!inPlaylist && currentStory) {
+      // Not in playlist: show same author + same genre stories
+      var author = String(currentStory.author || '').trim().toLowerCase();
+      var genre = String(currentStory.genre || '').trim().toLowerCase();
+      var currentId = String(currentStory.id || '');
+      stories = allStories.filter(function (s) {
+        if (!s || !s.id || String(s.id) === currentId) return false;
+        if (String(s.visibility || '').trim() !== 'Công khai') return false;
+        var sAuthor = String(s.author || '').trim().toLowerCase();
+        var sGenre = String(s.genre || '').trim().toLowerCase();
+        return (author && sAuthor === author) || (genre && sGenre === genre);
+      }).sort(function (a, b) {
+        return (b.listenCount || b.views || 0) - (a.listenCount || a.views || 0);
+      });
+    } else {
+      // In playlist: show trending
+      stories = pickTrendingStories(allStories);
+    }
+
+    stories = stories.slice(0, 8);
+
+    // Update heading based on context
+    var heading = list.closest('.sidebar-panel') ? list.closest('.sidebar-panel').querySelector('.section-heading h2') : null;
+    if (heading) {
+      if (!inPlaylist && currentStory) {
+        heading.innerHTML = '<i class="fa-solid fa-book-open"></i> Có thể bạn thích';
+      } else {
+        heading.innerHTML = '<i class="fa-solid fa-arrow-trend-up"></i> Truyện Trending';
+      }
+    }
 
     if (!stories.length) {
       list.innerHTML = '';
