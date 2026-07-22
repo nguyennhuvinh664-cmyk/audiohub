@@ -1163,23 +1163,18 @@
       var hue1 = Math.abs(hash) % 360;
       var hue2 = (hue1 + 40) % 360;
       var gradient = 'linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%))';
-      var thumbStyle = 'width:100%;height:100px;background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;flex-shrink:0;';
-      if (coverData) {
-        thumbStyle = 'width:100%;height:100px;background-image:url("' + coverData + '");background-size:cover;background-position:center;flex-shrink:0;';
-      }
+      var bgProp = coverData
+        ? 'background-image:url("' + coverData + '");background-size:cover;background-position:center;'
+        : 'background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;';
       var initials = title.slice(0, 2).toUpperCase();
-      var cardStyle = 'display:flex;flex-direction:column;width:100%;min-height:220px;border-radius:12px;background:#121826;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:rgba(255,255,255,.9);margin:0;';
-      var bodyStyle = 'padding:10px 12px;';
-      return '<a href="' + href + '" class="story-card story-card--mini" style="' + cardStyle + '" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
-        + '<div class="story-card__thumb" style="' + thumbStyle + '">'
-        + '<button class="story-fav" type="button" aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>'
-        + isCompleted
-        + (chaptersLabel ? '<span class="story-chapters">' + chaptersLabel + '</span>' : '')
-        + (coverData ? '' : '<span style="font-size:18px">' + initials + '</span>')
-        + '</div>'
-        + '<div class="story-card__body" style="' + bodyStyle + '"><div class="story-meta" style="font-size:.72rem;color:rgba(255,255,255,.45);margin-bottom:4px;display:flex;gap:8px;"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> ' + viewsLabel + '</span></div>'
-        + '<h3 class="story-title" style="font-size:.82rem;font-weight:700;margin:0 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#fff;">' + title + '</h3><div class="story-footer" style="font-size:.72rem;color:rgba(255,255,255,.45);display:flex;justify-content:space-between;"><span><i class="fa-regular fa-user"></i> ' + author + '</span>'
-        + '<span class="story-rating"><i class="fa-solid fa-star" style="color:#f59e0b"></i> 5 (1)</span></div></div></a>';
+      return '<a href="' + href + '" style="display:block;width:200px;min-width:200px;border-radius:12px;background:#121826;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:#fff;overflow:hidden;flex-shrink:0;" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
+        + '<div style="position:relative;width:100%;height:120px;' + bgProp + '">'
+        + (coverData ? '' : '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:700;color:rgba(255,255,255,.7)">' + initials + '</span>')
+        + '<div style="position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,.8));">'
+        + '<div style="font-size:.7rem;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + genre + ' · ' + viewsLabel + '</div>'
+        + '<div style="font-size:.78rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + title + '</div>'
+        + '<div style="font-size:.68rem;color:rgba(255,255,255,.5);"><i class="fa-regular fa-user"></i> ' + author + ' <i class="fa-solid fa-star" style="color:#f59e0b"></i> 5</div>'
+        + '</div></div></a>';
     }).join('');
 
     // Force parent panel height — it's collapsed to 82px due to CSS conflicts
@@ -1190,7 +1185,7 @@
       panel.style.overflow = 'visible';
     }
     // Force layout via inline style to bypass CSS conflicts from style-categories.css
-    grid.style.cssText = 'display:flex!important;gap:12px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;';
+    grid.style.cssText = 'display:flex!important;gap:12px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;align-items:flex-start;';
 
     Array.prototype.slice.call(grid.querySelectorAll('.story-fav')).forEach(function (button) {
       button.addEventListener('click', function (event) {
