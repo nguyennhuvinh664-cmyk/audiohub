@@ -118,9 +118,6 @@
       .trim();
   }
 
-  function ensureStoryIdInLinks() {
-  }
-
   function isSyntheticStoryId(value) {
     var id = String(value || '').trim().toLowerCase();
     return !!id && (id.indexOf('playlist-') === 0 || id.indexOf('seed-card-') === 0);
@@ -1042,31 +1039,6 @@
 
   var audioUrlByNode = new WeakMap();
 
-  function extractYoutubeId(value) {
-    var raw = String(value || '').trim();
-    if (!raw) return '';
-    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
-    var patterns = [
-      /[?&]v=([a-zA-Z0-9_-]{11})/,
-      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
-    ];
-    for (var i = 0; i < patterns.length; i += 1) {
-      var match = raw.match(patterns[i]);
-      if (match && match[1]) return match[1];
-    }
-    return '';
-  }
-
-  function bindStoryVideo(story) {
-    // YouTube embed removed — audio is handled by the player section
-    var videoWrap = document.querySelector('[data-story-video-wrap]');
-    var videoNode = document.querySelector('[data-story-video]');
-    if (videoWrap) videoWrap.classList.add('is-hidden');
-    if (videoNode) videoNode.innerHTML = '';
-  }
-
   function bindStoryAudio(story) {
     var audioNode = document.querySelector('[data-story-audio]');
     var noteNode = document.querySelector('[data-story-audio-note]');
@@ -1093,8 +1065,6 @@
       noteNode.textContent = '';
       noteNode.classList.add('is-hidden');
     }
-
-    bindStoryVideo(story);
 
     var audioKey = story && story.audioKey ? String(story.audioKey) : '';
     var storyId = story && story.id ? String(story.id) : '';
@@ -1288,7 +1258,7 @@
     }
 
     // ── Login status ──
-    var loggedIn = !!(window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function' && window.AudioHubAccess.isMember()) || isLoggedIn();
+    var loggedIn = isMember();
 
     // ── Chapter data ──
     // Playlist mode: show playlist items (stories); normal mode: show story chapters
@@ -2800,18 +2770,7 @@
       });
     }
 
-    speedNodes.forEach(function (button) {
-      button.addEventListener('click', function () {
-        playerState.speed = button.getAttribute('data-player-speed');
-        if (nativeAudio) {
-          var numericRate = Number(String(playerState.speed || '1').replace('x', ''));
-          if (!isNaN(numericRate) && numericRate > 0) {
-            nativeAudio.playbackRate = numericRate;
-          }
-        }
-        renderPlayer();
-      });
-    });
+    // Speed button click handlers are registered below (sheetSpeedBtns)
 
     if (volumeSlider) volumeSlider.addEventListener('input', function () {
       playerState.volume = volumeSlider.value + '%';

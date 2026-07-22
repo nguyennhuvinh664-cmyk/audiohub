@@ -426,11 +426,7 @@
 
   /** Handle browser back/forward */
   window.addEventListener('popstate', function (event) {
-    if (event.state && event.state.route) {
-      navigateTo(window.location.href, false);
-    } else {
-      navigateTo(window.location.href, false);
-    }
+    navigateTo(window.location.href, false);
   });
 
   /** Handle initial page load */

@@ -33,8 +33,7 @@
     gap: 16px !important;
   }
 
-  .detail-content,
-  .detail-sidebar {
+  .detail-content {
     display: flex !important;
     flex-direction: column !important;
     gap: 16px !important;
