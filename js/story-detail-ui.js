@@ -1168,7 +1168,7 @@
         thumbStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
       }
       var initials = title.slice(0, 2).toUpperCase();
-      return '<a href="' + href + '" class="story-card" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
+      return '<a href="' + href + '" class="story-card story-card--mini" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
         + '<div class="story-card__thumb" style="' + thumbStyle + '">'
         + '<button class="story-fav" type="button" aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>'
         + isCompleted
