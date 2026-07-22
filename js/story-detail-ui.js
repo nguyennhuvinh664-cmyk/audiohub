@@ -687,6 +687,21 @@
       return;
     }
 
+    // Fallback: fetch coverData directly from Supabase if story has an ID
+    var storyId = story && story.id ? String(story.id) : '';
+    if (storyId && !String(storyId).startsWith('s_') && window.AudioHubSupabase && typeof window.AudioHubSupabase.fetchStoryById === 'function') {
+      window.AudioHubSupabase.fetchStoryById(storyId).then(function (fresh) {
+        if (fresh && fresh.coverData) {
+          applyCoverUrl(fresh.coverData);
+          // Also update local story cache
+          if (story) story.coverData = fresh.coverData;
+          if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+            window.AudioHubStories.upsert(Object.assign({}, story, { coverData: fresh.coverData }));
+          }
+        }
+      }).catch(function () {});
+    }
+
     // Fallback to coverKey (IndexedDB/API) — legacy method
     var coverKey = story && story.coverKey ? String(story.coverKey) : '';
     if (!coverKey) return;
@@ -745,6 +760,47 @@
         })
         .catch(function () {});
     }
+  }
+
+  // Batch-fetch missing coverData from Supabase for sidebar/related thumbnails
+  function fetchMissingCoversFromSupabase() {
+    if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.fetchStoryById !== 'function') return;
+    var SUPABASE_REST = '/supabase/rest/v1';
+    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+    // Find all thumb elements with a cover key but no background image
+    var nodes = document.querySelectorAll('[data-mini-trending-cover-key], [data-related-cover-key]');
+    var idsToFetch = [];
+    var nodeMap = {};
+    nodes.forEach(function (node) {
+      if (node.style.backgroundImage && node.style.backgroundImage !== 'none') return;
+      var key = node.getAttribute('data-mini-trending-cover-key') || node.getAttribute('data-related-cover-key') || '';
+      if (!key) return;
+      // Check if this key looks like a story ID (UUID format)
+      if (key.indexOf('-') > 10 && key.length > 30) {
+        if (idsToFetch.indexOf(key) === -1) idsToFetch.push(key);
+        if (!nodeMap[key]) nodeMap[key] = [];
+        nodeMap[key].push(node);
+      }
+    });
+    if (!idsToFetch.length) return;
+    // Batch fetch cover_data from Supabase
+    var idsParam = idsToFetch.map(encodeURIComponent).join(',');
+    fetch(SUPABASE_REST + '/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    }).then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        (rows || []).forEach(function (row) {
+          if (!row.cover_data || !nodeMap[row.id]) return;
+          nodeMap[row.id].forEach(function (node) {
+            try {
+              node.style.backgroundImage = 'url("' + row.cover_data + '")';
+              node.style.backgroundSize = 'cover';
+              node.style.backgroundPosition = 'center';
+              node.textContent = '';
+            } catch (e) {}
+          });
+        });
+      }).catch(function () {});
   }
 
   function updateAudioHeadingStoryTitle(story) {
@@ -817,6 +873,17 @@
     if (!list || !window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return;
 
     var allStories = window.AudioHubStories.read() || [];
+    // If localStorage is sparse, fetch from Supabase to fill in
+    if (allStories.length < 4 && window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      window.AudioHubSupabase.fetchPublicStories().then(function (remote) {
+        if (remote && remote.length) {
+          remote.forEach(function (s) { window.AudioHubStories.upsert(s); });
+          renderSidebarTrending(currentStory);
+          fetchMissingCoversFromSupabase();
+        }
+      }).catch(function () {});
+      return;
+    }
 
     // Check if current story is ACTUALLY in the playlist (not just URL has playlistId)
     var inPlaylist = false;
@@ -935,6 +1002,17 @@
     if (!story) return;
 
     var allStories = window.AudioHubStories.read() || [];
+    // If localStorage is sparse, fetch from Supabase to fill in
+    if (allStories.length < 4 && window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      window.AudioHubSupabase.fetchPublicStories().then(function (remote) {
+        if (remote && remote.length) {
+          remote.forEach(function (s) { window.AudioHubStories.upsert(s); });
+          renderRelatedStories(story, forcedTag);
+          fetchMissingCoversFromSupabase();
+        }
+      }).catch(function () {});
+      return;
+    }
     var currentId = String(story.id || '');
     var currentGenre = String(story.genre || '').trim();
     var currentAuthor = String(story.author || '').trim();
@@ -1968,6 +2046,7 @@
     updateAudioHeadingStoryTitle(story);
     renderRelatedStories(story);
     renderSidebarTrending(story);
+    fetchMissingCoversFromSupabase();
   }
 
   function fetchStoryFromApi(storyId) {
