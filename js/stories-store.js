@@ -614,6 +614,62 @@
     return merged;
   }
 
+  /* Self-heal: upload coverData from local stories to Supabase so other devices can use it */
+  function uploadCoversToSupabase(stories) {
+    if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.isAvailable !== 'function') return;
+    if (!window.AudioHubSupabase.isAvailable()) return;
+
+    var SUPABASE_REST = '/supabase/rest/v1';
+    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+
+    stories.forEach(function (story) {
+      if (!story || !story.id) return;
+      if (String(story.id).startsWith('s_')) return; // skip drafts
+      if (!story.coverData) return; // need coverData to upload
+
+      // Upload coverData to Supabase
+      fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(story.id), {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cover_data: story.coverData })
+      }).then(function (r) {
+        if (r.ok) console.log('[stories] Uploaded cover for', story.id);
+      }).catch(function () {});
+    });
+
+    // Recover covers from IndexedDB for stories that have coverKey but no coverData
+    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+    stories.forEach(function (story) {
+      if (!story || !story.id) return;
+      if (String(story.id).startsWith('s_')) return;
+      if (story.coverData) return; // already has coverData
+      var key = story.coverKey || '';
+      if (!key || String(key).indexOf('c_') !== 0) return; // only local IndexedDB keys
+
+      window.AudioHubStoryCover.get(key).then(function (blob) {
+        if (!blob || !blob.size) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var dataUrl = reader.result;
+          // Save to Supabase
+          fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(story.id), {
+            method: 'PATCH',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cover_data: dataUrl })
+          }).then(function (r) {
+            if (r.ok) console.log('[stories] Recovered+uploaded cover for', story.id);
+          }).catch(function () {});
+          // Update local story with coverData
+          story.coverData = dataUrl;
+          writeLocalStories(readLocalStories().map(function (s) {
+            return String(s.id) === String(story.id) ? story : s;
+          }));
+        };
+        reader.readAsDataURL(blob);
+      }).catch(function () {});
+    });
+  }
+
   function syncFromApi() {
     // Try Supabase first (direct, no Render dependency)
     if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
@@ -682,6 +738,8 @@
           writeLocalStories(merged);
           notifyStoriesUpdated();
           notifyStoriesSynced();
+          // Self-heal: upload coverData to Supabase for stories that have it locally
+          uploadCoversToSupabase(merged);
           return merged;
         })
         .catch(function (e) {
