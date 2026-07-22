@@ -114,29 +114,8 @@
             return;
           }
 
-          // Not in IndexedDB — try API fallback with timeout
-          if (canUseApi()) {
-            var controller = new AbortController();
-            var timer = setTimeout(function () { controller.abort(); }, 6000);
-            window.AudioHubApi.requestBlob('/media/covers/' + encodeURIComponent(key), { signal: controller.signal })
-              .then(function (blob) {
-                clearTimeout(timer);
-                if (blob) {
-                  // Cache locally for next time
-                  storeLocal(key, blob).catch(function () {});
-                  resolve(blob);
-                } else {
-                  resolve(null);
-                }
-              })
-              .catch(function () {
-                clearTimeout(timer);
-                resolve(null);
-              });
-            return;
-          }
-
-          resolve(null);
+          // Not in IndexedDB — try multiple fallbacks
+          tryFetchCover(key, storeLocal).then(resolve).catch(function () { resolve(null); });
         };
 
         request.onerror = function () {
@@ -145,6 +124,34 @@
         };
       });
     });
+  }
+
+  // Try fetching cover from multiple sources with timeout
+  function tryFetchCover(key, cacheFn) {
+    var API_FALLBACK = '/api/v1/media/covers/';
+
+    function fetchWithTimeout(url, timeoutMs) {
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+      return fetch(url, { signal: controller.signal }).then(function (res) {
+        clearTimeout(timer);
+        if (!res.ok) throw new Error('Failed');
+        return res.blob();
+      }).catch(function (err) {
+        clearTimeout(timer);
+        throw err;
+      });
+    }
+
+    // Always try Render backend API (works with or without token for public covers)
+    return fetchWithTimeout(API_FALLBACK + encodeURIComponent(key), 8000)
+      .then(function (blob) {
+        if (blob && blob.size > 0) {
+          if (cacheFn) cacheFn(key, blob).catch(function () {});
+          return blob;
+        }
+        throw new Error('Empty');
+      });
   }
 
   function deleteCover(key) {
