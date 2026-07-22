@@ -50,7 +50,7 @@
     return 'a_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   }
 
-  var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+  var SUPABASE_URL = '/supabase';
   var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
   var AUDIO_BUCKET = 'story-audio';
   var RENDER_API_BASE = '/api/v1';
@@ -98,7 +98,12 @@
 
   function downloadFromSupabaseStorage(path) {
     var url = SUPABASE_URL + '/storage/v1/object/public/' + AUDIO_BUCKET + '/' + encodeURIComponent(path);
-    return fetch(url).then(function (res) {
+    return fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY
+      }
+    }).then(function (res) {
       if (!res.ok) throw new Error('Download failed: ' + res.status);
       return res.blob();
     });

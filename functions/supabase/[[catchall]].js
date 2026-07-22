@@ -1,8 +1,13 @@
-// Cloudflare Pages Function: proxy /media/* to Render backend (avoids CORS)
+// Cloudflare Pages Function: proxy /supabase/* to Supabase (avoids CORS)
+const SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+
 export async function onRequest(context) {
-  const BACKEND = 'https://audiohub-276v.onrender.com';
   const url = new URL(context.request.url);
-  const targetUrl = BACKEND + url.pathname + url.search;
+  // /supabase/rest/v1/... → https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/...
+  const targetUrl = SUPABASE_URL + url.pathname.replace('/supabase', '') + url.search;
+
+  const headers = new Headers(context.request.headers);
+  headers.set('Origin', SUPABASE_URL);
 
   // Handle CORS preflight
   if (context.request.method === 'OPTIONS') {
@@ -10,15 +15,12 @@ export async function onRequest(context) {
       status: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
         'Access-Control-Allow-Headers': '*',
         'Access-Control-Max-Age': '86400',
       },
     });
   }
-
-  const headers = new Headers(context.request.headers);
-  headers.set('Origin', new URL(BACKEND).origin);
 
   const response = await fetch(targetUrl, {
     method: context.request.method,
@@ -34,7 +36,7 @@ export async function onRequest(context) {
     headers: response.headers,
   });
   newResponse.headers.set('Access-Control-Allow-Origin', '*');
-  newResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  newResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   newResponse.headers.set('Access-Control-Allow-Headers', '*');
 
   return newResponse;

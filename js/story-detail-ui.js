@@ -2036,7 +2036,7 @@
     if (storyId && !isSyntheticStoryId(storyId)) {
       var _sRe = initStoryDetailFromStore(storyId);
       if (_sRe && _sRe.audioKey && String(_sRe.audioKey).indexOf('a_') === 0) {
-        var STORAGE_URL_CHK = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
+        var STORAGE_URL_CHK = '/supabase/storage/v1/object/public/story-audio/';
         var BACKEND_URL_CHK = '/api/v1/media/audio/' + encodeURIComponent(storyId);
         // Check if audio already exists on Supabase OR backend
         Promise.all([

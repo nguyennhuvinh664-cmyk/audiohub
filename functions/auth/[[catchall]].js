@@ -4,6 +4,19 @@ export async function onRequest(context) {
   const url = new URL(context.request.url);
   const targetUrl = BACKEND + url.pathname + url.search;
 
+  // Handle CORS preflight
+  if (context.request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
+
   const headers = new Headers(context.request.headers);
   headers.set('Origin', new URL(BACKEND).origin);
 

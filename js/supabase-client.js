@@ -8,7 +8,8 @@
   var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
 
-  var REST_URL = SUPABASE_URL + '/rest/v1';
+  // Use relative URL to proxy through Cloudflare Functions (avoids CORS)
+  var REST_URL = '/supabase/rest/v1';
 
   function authHeaders() {
     return {
