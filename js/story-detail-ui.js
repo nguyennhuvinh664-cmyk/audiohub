@@ -1981,27 +1981,28 @@
       // Cache hit — render immediately
       bindStoryData(story);
     } else if (storyId && !isSyntheticStoryId(storyId)) {
-      // Cache miss — fetch from API, render when ready
-      fetchStoryFromApi(storyId).then(function (apiStory) {
-        if (apiStory && apiStory.id) {
-          var resolved = initStoryDetailFromStore(storyId);
-          if (resolved) {
-            bindStoryData(resolved);
+      // Cache miss — try Supabase first (faster), then fall back to Render API
+      if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+        fetchStoryFromSupabase(storyId).then(function (apiStory) {
+          if (apiStory && apiStory.id) {
+            bindStoryData(apiStory);
           } else {
+            // Supabase miss — try Render API
+            fetchStoryFromApi(storyId).then(function (fallbackStory) {
+              if (fallbackStory && fallbackStory.id) {
+                bindStoryData(fallbackStory);
+              }
+            });
+          }
+        });
+      } else {
+        // No Supabase — use Render API directly
+        fetchStoryFromApi(storyId).then(function (apiStory) {
+          if (apiStory && apiStory.id) {
             bindStoryData(apiStory);
           }
-        }
-      });
-    }
-
-    // STEP 2: Always fetch fresh from Supabase in background (update if newer)
-    if (storyId && !isSyntheticStoryId(storyId) && window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
-      fetchStoryFromSupabase(storyId).then(function (freshStory) {
-        if (freshStory && freshStory.id) {
-          // Re-render with fresh data
-          bindStoryData(freshStory);
-        }
-      });
+        });
+      }
     }
 
     // STEP 2.5: If audioKey is IndexedDB key (a_*), re-upload to Supabase Storage + Render backend

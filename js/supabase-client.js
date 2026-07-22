@@ -19,13 +19,28 @@
     };
   }
 
+  // Timeout helper — abort fetch after ms milliseconds
+  function fetchWithTimeout(url, options, ms) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, ms || 8000);
+    var opts = Object.assign({}, options || {}, { signal: controller.signal });
+    return fetch(url, opts).then(function (res) {
+      clearTimeout(timer);
+      return res;
+    }).catch(function (err) {
+      clearTimeout(timer);
+      throw err;
+    });
+  }
+
   /**
    * Fetch all public stories from Supabase
    */
   function fetchPublicStories() {
-    return fetch(
+    return fetchWithTimeout(
       REST_URL + '/stories?visibility=eq.PUBLIC&order=created_at.desc&limit=100',
-      { headers: authHeaders() }
+      { headers: authHeaders() },
+      8000
     )
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -41,9 +56,10 @@
    */
   function fetchUserStories(userId) {
     if (!userId) return Promise.resolve([]);
-    return fetch(
+    return fetchWithTimeout(
       REST_URL + '/stories?user_id=eq.' + encodeURIComponent(userId) + '&order=created_at.desc&limit=100',
-      { headers: authHeaders() }
+      { headers: authHeaders() },
+      8000
     )
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -200,9 +216,10 @@
    */
   function fetchStoryById(storyId) {
     if (!storyId) return Promise.resolve(null);
-    return fetch(
+    return fetchWithTimeout(
       REST_URL + '/stories?id=eq.' + encodeURIComponent(storyId) + '&limit=1',
-      { headers: authHeaders() }
+      { headers: authHeaders() },
+      8000
     )
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);

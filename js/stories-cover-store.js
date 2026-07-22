@@ -114,10 +114,13 @@
             return;
           }
 
-          // Not in IndexedDB — try API fallback
+          // Not in IndexedDB — try API fallback with timeout
           if (canUseApi()) {
-            window.AudioHubApi.requestBlob('/media/covers/' + encodeURIComponent(key))
+            var controller = new AbortController();
+            var timer = setTimeout(function () { controller.abort(); }, 6000);
+            window.AudioHubApi.requestBlob('/media/covers/' + encodeURIComponent(key), { signal: controller.signal })
               .then(function (blob) {
+                clearTimeout(timer);
                 if (blob) {
                   // Cache locally for next time
                   storeLocal(key, blob).catch(function () {});
@@ -127,6 +130,7 @@
                 }
               })
               .catch(function () {
+                clearTimeout(timer);
                 resolve(null);
               });
             return;

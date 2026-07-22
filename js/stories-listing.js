@@ -48,12 +48,15 @@
     var views = story.listenCount || story.listenCount7d || 0;
     var viewsLabel = views >= 1000 ? (views / 1000).toFixed(1) + 'K' : String(views);
 
+    // Include coverData inline if available (for incognito/fast loading)
+    var coverDataAttr = story.coverData ? (' data-cover-data="' + escapeHtml(story.coverData).substring(0, 100) + '"') : '';
+
     return (
       '<div class="story-card" data-story-card ' +
       'data-story-id="' + escapeHtml(story.id) + '" data-title="' + title + '" data-author="' + author + '" data-genre="' + genre + '" data-description="' + description + '" ' +
       'data-progress="Demo" data-note="' + escapeHtml(note) + '">' +
       '<a href="' + href + '" class="story-card__link">' +
-      '<div class="story-card__thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '" style="background:linear-gradient(135deg,' + color + ',' + color + 'aa)">' +
+      '<div class="story-card__thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '"' + coverDataAttr + ' style="background:linear-gradient(135deg,' + color + ',' + color + 'aa)">' +
       '<span class="story-chapters">Demo</span>' +
       '</div>' +
       '<div class="story-card__body">' +
@@ -126,14 +129,23 @@
   }
 
   function hydrateCovers(container) {
-    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') {
-      return;
-    }
-
     var nodes = Array.prototype.slice.call(container.querySelectorAll('[data-cover-key]'));
     nodes.forEach(function (node) {
+      // 1) Try inline coverData first (fast, works in incognito)
+      var coverData = node.getAttribute('data-cover-data');
+      if (coverData) {
+        try {
+          node.style.background = '';
+          node.style.backgroundImage = 'url("' + coverData + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
+        } catch (e) {}
+        return;
+      }
+
+      // 2) Fallback to IndexedDB/API via coverKey
       var key = node.getAttribute('data-cover-key');
-      if (!key) {
+      if (!key || !window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') {
         return;
       }
 
