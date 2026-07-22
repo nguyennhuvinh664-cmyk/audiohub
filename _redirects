@@ -52,10 +52,7 @@
 /html/user-account.html  /html/user-account.html  200
 /html/channel.html       /html/channel.html       200
 
-# Backend proxy
-/auth/*                    https://audiohub-276v.onrender.com/auth/*  301
-/api/*                     https://audiohub-276v.onrender.com/api/*   301
-/media/*                   https://audiohub-276v.onrender.com/media/*  301
+# Backend proxy is handled by Cloudflare Pages Functions (functions/api, functions/media, functions/auth)
 
 # SPA fallback — must be last
 /*  /index.html  200
