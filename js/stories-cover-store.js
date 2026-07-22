@@ -126,9 +126,10 @@
     });
   }
 
-  // Try fetching cover from multiple sources with timeout
+  // Try fetching cover from multiple sources in parallel
   function tryFetchCover(key, cacheFn) {
-    var API_FALLBACK = '/api/v1/media/covers/';
+    var SUPABASE_STORAGE = '/supabase/storage/v1/object/public/story-covers/';
+    var RENDER_API = '/api/v1/media/covers/';
 
     function fetchWithTimeout(url, timeoutMs) {
       var controller = new AbortController();
@@ -143,15 +144,31 @@
       });
     }
 
-    // Always try Render backend API (works with or without token for public covers)
-    return fetchWithTimeout(API_FALLBACK + encodeURIComponent(key), 8000)
-      .then(function (blob) {
+    // Race: try Supabase Storage AND Render backend in parallel, use first success
+    return new Promise(function (resolve) {
+      var resolved = false;
+      function done(blob) {
+        if (resolved) return;
+        resolved = true;
         if (blob && blob.size > 0) {
           if (cacheFn) cacheFn(key, blob).catch(function () {});
-          return blob;
+          resolve(blob);
+        } else {
+          resolve(null);
         }
-        throw new Error('Empty');
-      });
+      }
+
+      // Source 1: Supabase Storage (fast, public)
+      fetchWithTimeout(SUPABASE_STORAGE + encodeURIComponent(key), 5000)
+        .then(done).catch(function () {});
+
+      // Source 2: Render backend API (may be slow on free tier)
+      fetchWithTimeout(RENDER_API + encodeURIComponent(key), 10000)
+        .then(done).catch(function () {});
+
+      // Timeout fallback — resolve null after 12s if both fail
+      setTimeout(function () { done(null); }, 12000);
+    });
   }
 
   function deleteCover(key) {
