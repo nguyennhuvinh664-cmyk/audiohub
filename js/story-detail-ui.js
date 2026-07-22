@@ -872,13 +872,27 @@
       var views2d = Number(item.listenCount2d || 0);
       var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
       var coverKey = escapeHtml(String(item.coverKey || ''));
+      var coverData = item.coverData ? escapeHtml(String(item.coverData)) : '';
+      var coverDataAttr = coverData ? (' data-mini-cover-data="' + coverData.substring(0, 100) + '"') : '';
       return '<a href="' + href + '" class="mini-story">'
-        + '<div class="mini-thumb" data-mini-trending-cover-key="' + coverKey + '">' + escapeHtml(title.slice(0, 2).toUpperCase()) + '</div>'
+        + '<div class="mini-thumb" data-mini-trending-cover-key="' + coverKey + '"' + coverDataAttr + '>' + escapeHtml(title.slice(0, 2).toUpperCase()) + '</div>'
         + '<div><h3>' + title + '</h3><p><i class="fa-regular fa-eye"></i> ' + views2d + ' lượt nghe (2 ngày)</p></div></a>';
     }).join('');
 
     if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
       Array.prototype.slice.call(list.querySelectorAll('[data-mini-trending-cover-key]')).forEach(function (thumbNode) {
+        // 1) Try inline coverData first (fast, works in incognito)
+        var coverDataInline = thumbNode.getAttribute('data-mini-cover-data');
+        if (coverDataInline) {
+          try {
+            thumbNode.style.backgroundImage = 'url("' + coverDataInline + '")';
+            thumbNode.style.backgroundSize = 'cover';
+            thumbNode.style.backgroundPosition = 'center';
+            thumbNode.textContent = '';
+          } catch (e) {}
+          return;
+        }
+        // 2) Fallback to IndexedDB/API
         var key = String(thumbNode.getAttribute('data-mini-trending-cover-key') || '');
         if (!key) return;
         window.AudioHubStoryCover.get(key)
@@ -973,6 +987,7 @@
       var author = escapeHtml(String(item.author || 'Ẩn danh'));
       var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id));
       var coverKey = escapeHtml(String(item.coverKey || ''));
+      var coverData = item.coverData ? escapeHtml(String(item.coverData)) : '';
       var visibility = escapeHtml(String(item.visibility || ''));
       var storyId = escapeHtml(String(item.id || ''));
       var chapters = Number(item.chapterCount || 0) || '';
@@ -980,8 +995,9 @@
       var views = Number(item.listenCount || 0);
       var viewsLabel = views ? (views + ' views') : '— views';
       var isCompleted = item.isCompleted ? '<span class="story-badge story-badge--full">FULL</span>' : '';
+      var coverDataAttr = coverData ? (' data-related-cover-data="' + coverData.substring(0, 100) + '"') : '';
       return '<a href="' + href + '" class="story-card" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
-        + '<div class="story-card__thumb" data-related-cover-key="' + coverKey + '">'
+        + '<div class="story-card__thumb" data-related-cover-key="' + coverKey + '"' + coverDataAttr + '>'
         + '<button class="story-fav" type="button" aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>'
         + isCompleted
         + (chaptersLabel ? '<span class="story-chapters">' + chaptersLabel + '</span>' : '')
@@ -993,6 +1009,17 @@
 
     if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
       Array.prototype.slice.call(grid.querySelectorAll('[data-related-cover-key]')).forEach(function (thumbNode) {
+        // 1) Try inline coverData first (fast, works in incognito)
+        var coverDataInline = thumbNode.getAttribute('data-related-cover-data');
+        if (coverDataInline) {
+          try {
+            thumbNode.style.backgroundImage = 'url("' + coverDataInline + '")';
+            thumbNode.style.backgroundSize = 'cover';
+            thumbNode.style.backgroundPosition = 'center';
+          } catch (e) {}
+          return;
+        }
+        // 2) Fallback to IndexedDB/API
         var coverKey = String(thumbNode.getAttribute('data-related-cover-key') || '');
         if (!coverKey) return;
         window.AudioHubStoryCover.get(coverKey)
