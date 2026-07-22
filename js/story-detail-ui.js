@@ -679,6 +679,31 @@
 
   var coverUrlByNode = new WeakMap();
 
+  // Self-heal: recover cover from IndexedDB and persist to Supabase
+  function selfHealCoverFromIndexedDB(storyId, coverKey) {
+    if (!coverKey || !window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+    if (!storyId || String(storyId).startsWith('s_')) return;
+    window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+      if (!blob || !blob.size) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var dataUrl = reader.result;
+        applyCoverUrl(dataUrl);
+        // Persist to Supabase
+        var SUPABASE_REST = '/supabase/rest/v1';
+        var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+        fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(storyId), {
+          method: 'PATCH',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cover_data: dataUrl })
+        }).catch(function () {});
+        // Update local cache
+        if (story) story.coverData = dataUrl;
+      };
+      reader.readAsDataURL(blob);
+    }).catch(function () {});
+  }
+
   function bindStoryCover(story) {
     // Try coverData (base64) first — new method
     var coverData = story && story.coverData ? String(story.coverData) : '';
@@ -693,11 +718,14 @@
       window.AudioHubSupabase.fetchStoryById(storyId).then(function (fresh) {
         if (fresh && fresh.coverData) {
           applyCoverUrl(fresh.coverData);
-          // Also update local story cache
+          // Self-heal: update local + Supabase cache
           if (story) story.coverData = fresh.coverData;
           if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
             window.AudioHubStories.upsert(Object.assign({}, story, { coverData: fresh.coverData }));
           }
+        } else if (fresh && fresh.coverKey && !fresh.coverData) {
+          // Self-heal: recover from IndexedDB and update Supabase
+          selfHealCoverFromIndexedDB(storyId, fresh.coverKey);
         }
       }).catch(function () {});
     }
@@ -763,11 +791,12 @@
   }
 
   // Batch-fetch missing coverData from Supabase for sidebar/related thumbnails
+  // Also self-heals: if cover exists in IndexedDB but not in Supabase, uploads it
   function fetchMissingCoversFromSupabase() {
     if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.fetchStoryById !== 'function') return;
     var SUPABASE_REST = '/supabase/rest/v1';
     var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-    // Find all thumb elements with a cover key but no background image
+    // Find all thumb elements with a story ID but no background image
     var nodes = document.querySelectorAll('[data-mini-trending-cover-key], [data-related-cover-key]');
     var idsToFetch = [];
     var nodeMap = {};
@@ -783,23 +812,64 @@
       }
     });
     if (!idsToFetch.length) return;
-    // Batch fetch cover_data from Supabase
+    // Batch fetch cover_data + cover_key from Supabase
     var idsParam = idsToFetch.map(encodeURIComponent).join(',');
-    fetch(SUPABASE_REST + '/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
+    fetch(SUPABASE_REST + '/stories?id=in.(' + idsParam + ')&select=id,cover_data,cover_key', {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     }).then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
+        var missingCovers = []; // stories with cover_key but no cover_data
         (rows || []).forEach(function (row) {
-          if (!row.cover_data || !nodeMap[row.id]) return;
-          nodeMap[row.id].forEach(function (node) {
-            try {
-              node.style.backgroundImage = 'url("' + row.cover_data + '")';
-              node.style.backgroundSize = 'cover';
-              node.style.backgroundPosition = 'center';
-              node.textContent = '';
-            } catch (e) {}
-          });
+          if (row.cover_data && nodeMap[row.id]) {
+            // Has cover_data — apply directly
+            nodeMap[row.id].forEach(function (node) {
+              try {
+                node.style.backgroundImage = 'url("' + row.cover_data + '")';
+                node.style.backgroundSize = 'cover';
+                node.style.backgroundPosition = 'center';
+                node.textContent = '';
+              } catch (e) {}
+            });
+          } else if (row.cover_key && !row.cover_data) {
+            // Has cover_key but no cover_data — try IndexedDB recovery
+            missingCovers.push(row);
+          }
         });
+        // Self-heal: try to recover covers from IndexedDB and update Supabase
+        if (missingCovers.length && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+          missingCovers.forEach(function (row) {
+            window.AudioHubStoryCover.get(row.cover_key).then(function (blob) {
+              if (!blob || !blob.size) return;
+              // Convert blob to base64 data URL
+              var reader = new FileReader();
+              reader.onload = function () {
+                var dataUrl = reader.result;
+                // Apply to DOM
+                if (nodeMap[row.id]) {
+                  nodeMap[row.id].forEach(function (node) {
+                    try {
+                      node.style.backgroundImage = 'url("' + dataUrl + '")';
+                      node.style.backgroundSize = 'cover';
+                      node.style.backgroundPosition = 'center';
+                      node.textContent = '';
+                    } catch (e) {}
+                  });
+                }
+                // Update Supabase so other devices can use it
+                fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(row.id), {
+                  method: 'PATCH',
+                  headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_KEY,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ cover_data: dataUrl })
+                }).catch(function () {});
+              };
+              reader.readAsDataURL(blob);
+            }).catch(function () {});
+          });
+        }
       }).catch(function () {});
   }
 
