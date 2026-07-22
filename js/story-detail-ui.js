@@ -862,6 +862,49 @@
       }).catch(function () {});
   }
 
+  /* ── Load card covers from local stories (coverData or IndexedDB by coverKey) ── */
+  function loadCardCoversFromIndexedDB() {
+    if (!window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return;
+    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+    var allStories = window.AudioHubStories.read() || [];
+    var storyMap = {};
+    allStories.forEach(function (s) { if (s && s.id) storyMap[String(s.id)] = s; });
+
+    var nodes = document.querySelectorAll('[data-cover-story-id]');
+    nodes.forEach(function (node) {
+      // Skip if already has a real image
+      if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
+      var id = node.getAttribute('data-cover-story-id') || '';
+      var story = storyMap[id];
+      if (!story) return;
+
+      // Try coverData first
+      if (story.coverData) {
+        try {
+          node.style.backgroundImage = 'url("' + story.coverData + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
+          node.textContent = '';
+        } catch (e) {}
+        return;
+      }
+
+      // Try IndexedDB via coverKey
+      var coverKey = story.coverKey || '';
+      if (!coverKey) return;
+      window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+        if (!blob || !blob.size) return;
+        var url = URL.createObjectURL(blob);
+        try {
+          node.style.backgroundImage = 'url("' + url + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
+          node.textContent = '';
+        } catch (e) {}
+      }).catch(function () {});
+    });
+  }
+
   function updateAudioHeadingStoryTitle(story) {
     var playerSubtitle = document.querySelector('.audio-headings p');
     if (!playerSubtitle) return;
@@ -939,6 +982,7 @@
           remote.forEach(function (s) { window.AudioHubStories.upsert(s); });
           renderSidebarTrending(currentStory);
           fetchMissingCoversFromSupabase();
+          loadCardCoversFromIndexedDB();
         }
       }).catch(function () {});
       return;
@@ -2056,6 +2100,7 @@
     renderRelatedStories(story);
     renderSidebarTrending(story);
     fetchMissingCoversFromSupabase();
+    loadCardCoversFromIndexedDB();
   }
 
   function fetchStoryFromApi(storyId) {
