@@ -409,7 +409,7 @@
               chapterTitle: localEntry.chapterTitle, chapters: savedChapters,
               chapterCount: savedChapters.length || localEntry.chapterCount || 0,
               visibility: localEntry.visibility, audioStatus: localEntry.audioStatus,
-              coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
+              coverData: localEntry.coverData, coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
               youtubeUrl: localEntry.youtubeUrl, youtubeId: localEntry.youtubeId,
               createdAt: created.created_at || localEntry.createdAt,
               updatedAt: created.updated_at || new Date().toISOString()
@@ -471,7 +471,7 @@
             chapterTitle: localEntry.chapterTitle, chapters: savedChapters,
             chapterCount: savedChapters.length || localEntry.chapterCount || 0,
             visibility: localEntry.visibility, audioStatus: localEntry.audioStatus,
-            coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
+            coverData: localEntry.coverData, coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
             youtubeUrl: localEntry.youtubeUrl, youtubeId: localEntry.youtubeId,
             createdAt: created.createdAt || localEntry.createdAt,
             updatedAt: created.updatedAt || new Date().toISOString()
@@ -593,6 +593,7 @@
     }
 
     var merged = normalizeStory(remoteEntry);
+    if (!merged.coverData && localEntry.coverData) merged.coverData = String(localEntry.coverData);
     if (!merged.coverKey && localEntry.coverKey) merged.coverKey = String(localEntry.coverKey);
     if (!merged.audioKey && localEntry.audioKey) merged.audioKey = String(localEntry.audioKey);
     if (!merged.youtubeUrl && localEntry.youtubeUrl) merged.youtubeUrl = String(localEntry.youtubeUrl);
@@ -634,8 +635,19 @@
             notifyStoriesSynced();
             return localStories;
           }
+          var localById = {};
+          localStories.forEach(function (item) {
+            if (item && item.id) localById[String(item.id)] = item;
+          });
           var normalized = allRemote.map(function (story) {
-            return normalizeStory(story);
+            var entry = normalizeStory(story);
+            // Preserve local coverData/coverKey when remote has none
+            var local = localById[String(entry.id)];
+            if (local) {
+              if (!entry.coverData && local.coverData) entry.coverData = String(local.coverData);
+              if (!entry.coverKey && local.coverKey) entry.coverKey = String(local.coverKey);
+            }
+            return entry;
           }).filter(Boolean);
           // Filter out locally deleted stories (prevent sync from bringing them back)
           var deletedIds = getDeletedIds();
@@ -884,7 +896,7 @@
             chapterTitle: story.chapterTitle, chapters: savedChapters,
             chapterCount: savedChapters.length || story.chapterCount || 0,
             visibility: story.visibility, audioStatus: story.audioStatus,
-            coverKey: story.coverKey, audioKey: story.audioKey,
+            coverData: story.coverData, coverKey: story.coverKey, audioKey: story.audioKey,
             youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
             createdAt: created.createdAt || story.createdAt,
             updatedAt: created.updatedAt || new Date().toISOString()
@@ -927,7 +939,7 @@
                     chapterTitle: story.chapterTitle, chapters: Array.isArray(story.chapters) ? story.chapters : [],
                     chapterCount: (Array.isArray(story.chapters) ? story.chapters.length : 0) || story.chapterCount || 0,
                     visibility: story.visibility, audioStatus: story.audioStatus,
-                    coverKey: story.coverKey, audioKey: story.audioKey,
+                    coverData: story.coverData, coverKey: story.coverKey, audioKey: story.audioKey,
                     youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
                     createdAt: created.createdAt || story.createdAt,
                     updatedAt: created.updatedAt || new Date().toISOString()
@@ -1037,6 +1049,7 @@
             chapterCount: savedChapters.length || story.chapterCount || 0,
             visibility: story.visibility,
             audioStatus: story.audioStatus,
+            coverData: story.coverData,
             coverKey: story.coverKey,
             audioKey: story.audioKey,
             youtubeUrl: story.youtubeUrl,

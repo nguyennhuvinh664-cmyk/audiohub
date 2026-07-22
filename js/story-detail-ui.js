@@ -722,17 +722,25 @@
       } catch (error) {}
     }
 
-    // Legacy: try IndexedDB then API
+    // Legacy: try IndexedDB then API then Supabase Storage
     if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
       window.AudioHubStoryCover.get(coverKey)
         .then(function (blob) {
           if (blob) {
             applyCoverUrl(URL.createObjectURL(blob));
-          } else if (window.AudioHubApi && typeof window.AudioHubApi.requestBlob === 'function') {
-            // Fallback: fetch from API
-            window.AudioHubApi.requestBlob('/media/covers/' + encodeURIComponent(coverKey))
-              .then(function (blob) { if (blob) applyCoverUrl(URL.createObjectURL(blob)); })
-              .catch(function () {});
+          } else {
+            // Fallback: try Supabase Storage + Render API in parallel
+            var SUPABASE_COVER_URL = '/supabase/storage/v1/object/public/story-covers/' + encodeURIComponent(coverKey);
+            var RENDER_COVER_URL = '/api/v1/media/covers/' + encodeURIComponent(coverKey);
+            var resolved = false;
+            function onCoverBlob(b) {
+              if (resolved || !b || !b.size) return;
+              resolved = true;
+              applyCoverUrl(URL.createObjectURL(b));
+            }
+            fetch(SUPABASE_COVER_URL).then(function (r) { return r.ok ? r.blob() : Promise.reject(); }).then(onCoverBlob).catch(function () {});
+            fetch(RENDER_COVER_URL).then(function (r) { return r.ok ? r.blob() : Promise.reject(); }).then(onCoverBlob).catch(function () {});
+            setTimeout(function () { resolved = true; }, 10000);
           }
         })
         .catch(function () {});
