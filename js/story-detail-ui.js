@@ -796,20 +796,18 @@
     if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.fetchStoryById !== 'function') return;
     var SUPABASE_REST = '/supabase/rest/v1';
     var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-    // Find all thumb elements with a story ID but no background image
-    var nodes = document.querySelectorAll('[data-mini-trending-cover-key], [data-related-cover-key]');
+    // Find all thumb elements with data-cover-story-id
+    var nodes = document.querySelectorAll('[data-cover-story-id]');
     var idsToFetch = [];
     var nodeMap = {};
     nodes.forEach(function (node) {
-      if (node.style.backgroundImage && node.style.backgroundImage !== 'none') return;
-      var key = node.getAttribute('data-mini-trending-cover-key') || node.getAttribute('data-related-cover-key') || '';
-      if (!key) return;
-      // Check if this key looks like a story ID (UUID format)
-      if (key.indexOf('-') > 10 && key.length > 30) {
-        if (idsToFetch.indexOf(key) === -1) idsToFetch.push(key);
-        if (!nodeMap[key]) nodeMap[key] = [];
-        nodeMap[key].push(node);
-      }
+      // Skip if already has a real image (not gradient)
+      if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
+      var id = node.getAttribute('data-cover-story-id') || '';
+      if (!id || id.length < 10) return;
+      if (idsToFetch.indexOf(id) === -1) idsToFetch.push(id);
+      if (!nodeMap[id]) nodeMap[id] = [];
+      nodeMap[id].push(node);
     });
     if (!idsToFetch.length) return;
     // Batch fetch cover_data + cover_key from Supabase
@@ -818,10 +816,9 @@
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     }).then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
-        var missingCovers = []; // stories with cover_key but no cover_data
+        var missingCovers = [];
         (rows || []).forEach(function (row) {
           if (row.cover_data && nodeMap[row.id]) {
-            // Has cover_data — apply directly
             nodeMap[row.id].forEach(function (node) {
               try {
                 node.style.backgroundImage = 'url("' + row.cover_data + '")';
@@ -831,20 +828,17 @@
               } catch (e) {}
             });
           } else if (row.cover_key && !row.cover_data) {
-            // Has cover_key but no cover_data — try IndexedDB recovery
             missingCovers.push(row);
           }
         });
-        // Self-heal: try to recover covers from IndexedDB and update Supabase
+        // Self-heal from IndexedDB
         if (missingCovers.length && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
           missingCovers.forEach(function (row) {
             window.AudioHubStoryCover.get(row.cover_key).then(function (blob) {
               if (!blob || !blob.size) return;
-              // Convert blob to base64 data URL
               var reader = new FileReader();
               reader.onload = function () {
                 var dataUrl = reader.result;
-                // Apply to DOM
                 if (nodeMap[row.id]) {
                   nodeMap[row.id].forEach(function (node) {
                     try {
@@ -855,14 +849,9 @@
                     } catch (e) {}
                   });
                 }
-                // Update Supabase so other devices can use it
                 fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(row.id), {
                   method: 'PATCH',
-                  headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': 'Bearer ' + SUPABASE_KEY,
-                    'Content-Type': 'application/json'
-                  },
+                  headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
                   body: JSON.stringify({ cover_data: dataUrl })
                 }).catch(function () {});
               };
@@ -1016,49 +1005,23 @@
       var title = escapeHtml(String(item.title || 'Truyện'));
       var views2d = Number(item.listenCount2d || 0);
       var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
-      var coverKey = escapeHtml(String(item.coverKey || ''));
+      var storyId = escapeHtml(String(item.id || ''));
       var coverData = item.coverData ? escapeHtml(String(item.coverData)) : '';
-      var coverDataAttr = coverData ? (' data-mini-cover-data="' + coverData.substring(0, 100) + '"') : '';
+      var initials = title.slice(0, 2).toUpperCase();
+      // Generate gradient based on title hash
+      var hash = 0;
+      for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
+      var hue1 = Math.abs(hash) % 360;
+      var hue2 = (hue1 + 40) % 360;
+      var gradient = 'linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%))';
+      var coverStyle = 'background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;';
+      if (coverData) {
+        coverStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
+      }
       return '<a href="' + href + '" class="mini-story">'
-        + '<div class="mini-thumb" data-mini-trending-cover-key="' + coverKey + '"' + coverDataAttr + '>' + escapeHtml(title.slice(0, 2).toUpperCase()) + '</div>'
+        + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="' + coverStyle + '">' + (coverData ? '' : initials) + '</div>'
         + '<div><h3>' + title + '</h3><p><i class="fa-regular fa-eye"></i> ' + views2d + ' lượt nghe (2 ngày)</p></div></a>';
     }).join('');
-
-    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-      Array.prototype.slice.call(list.querySelectorAll('[data-mini-trending-cover-key]')).forEach(function (thumbNode) {
-        // 1) Try inline coverData first (fast, works in incognito)
-        var coverDataInline = thumbNode.getAttribute('data-mini-cover-data');
-        if (coverDataInline) {
-          try {
-            thumbNode.style.backgroundImage = 'url("' + coverDataInline + '")';
-            thumbNode.style.backgroundSize = 'cover';
-            thumbNode.style.backgroundPosition = 'center';
-            thumbNode.textContent = '';
-          } catch (e) {}
-          return;
-        }
-        // 2) Fallback to IndexedDB/API
-        var key = String(thumbNode.getAttribute('data-mini-trending-cover-key') || '');
-        if (!key) return;
-        window.AudioHubStoryCover.get(key)
-          .then(function (blob) {
-            if (!blob) return;
-            try {
-              var prev = coverUrlByNode.get(thumbNode);
-              if (prev) {
-                URL.revokeObjectURL(prev);
-              }
-              var url = URL.createObjectURL(blob);
-              coverUrlByNode.set(thumbNode, url);
-              thumbNode.style.backgroundImage = 'url("' + url + '")';
-              thumbNode.style.backgroundSize = 'cover';
-              thumbNode.style.backgroundPosition = 'center';
-              thumbNode.textContent = '';
-            } catch (error) {}
-          })
-          .catch(function () {});
-      });
-    }
   }
 
   function renderRelatedStories(story, forcedTag) {
@@ -1142,7 +1105,6 @@
       var genre = escapeHtml(String(item.genre || 'Khác'));
       var author = escapeHtml(String(item.author || 'Ẩn danh'));
       var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id));
-      var coverKey = escapeHtml(String(item.coverKey || ''));
       var coverData = item.coverData ? escapeHtml(String(item.coverData)) : '';
       var visibility = escapeHtml(String(item.visibility || ''));
       var storyId = escapeHtml(String(item.id || ''));
@@ -1151,51 +1113,28 @@
       var views = Number(item.listenCount || 0);
       var viewsLabel = views ? (views + ' views') : '— views';
       var isCompleted = item.isCompleted ? '<span class="story-badge story-badge--full">FULL</span>' : '';
-      var coverDataAttr = coverData ? (' data-related-cover-data="' + coverData.substring(0, 100) + '"') : '';
-      return '<a href="' + href + '" class="story-card" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
-        + '<div class="story-card__thumb" data-related-cover-key="' + coverKey + '"' + coverDataAttr + '>'
+      // Gradient fallback based on title hash
+      var hash = 0;
+      for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
+      var hue1 = Math.abs(hash) % 360;
+      var hue2 = (hue1 + 40) % 360;
+      var gradient = 'linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%))';
+      var thumbStyle = 'background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;';
+      if (coverData) {
+        thumbStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
+      }
+      var initials = title.slice(0, 2).toUpperCase();
+      return '<a href="' + href + '" class="story-card" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
+        + '<div class="story-card__thumb" style="' + thumbStyle + '">'
         + '<button class="story-fav" type="button" aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>'
         + isCompleted
         + (chaptersLabel ? '<span class="story-chapters">' + chaptersLabel + '</span>' : '')
+        + (coverData ? '' : '<span style="font-size:18px">' + initials + '</span>')
         + '</div>'
         + '<div class="story-card__body"><div class="story-meta"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> ' + viewsLabel + '</span></div>'
         + '<h3 class="story-title">' + title + '</h3><div class="story-footer"><span><i class="fa-regular fa-user"></i> ' + author + '</span>'
         + '<span class="story-rating"><i class="fa-solid fa-star"></i> 5 (1)</span></div></div></a>';
     }).join('');
-
-    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-      Array.prototype.slice.call(grid.querySelectorAll('[data-related-cover-key]')).forEach(function (thumbNode) {
-        // 1) Try inline coverData first (fast, works in incognito)
-        var coverDataInline = thumbNode.getAttribute('data-related-cover-data');
-        if (coverDataInline) {
-          try {
-            thumbNode.style.backgroundImage = 'url("' + coverDataInline + '")';
-            thumbNode.style.backgroundSize = 'cover';
-            thumbNode.style.backgroundPosition = 'center';
-          } catch (e) {}
-          return;
-        }
-        // 2) Fallback to IndexedDB/API
-        var coverKey = String(thumbNode.getAttribute('data-related-cover-key') || '');
-        if (!coverKey) return;
-        window.AudioHubStoryCover.get(coverKey)
-          .then(function (blob) {
-            if (!blob) return;
-            try {
-              var prev = coverUrlByNode.get(thumbNode);
-              if (prev) {
-                URL.revokeObjectURL(prev);
-              }
-              var url = URL.createObjectURL(blob);
-              coverUrlByNode.set(thumbNode, url);
-              thumbNode.style.backgroundImage = 'url("' + url + '")';
-              thumbNode.style.backgroundSize = 'cover';
-              thumbNode.style.backgroundPosition = 'center';
-            } catch (error) {}
-          })
-          .catch(function () {});
-      });
-    }
 
     Array.prototype.slice.call(grid.querySelectorAll('.story-fav')).forEach(function (button) {
       button.addEventListener('click', function (event) {
