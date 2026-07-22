@@ -53,7 +53,7 @@
   var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
   var AUDIO_BUCKET = 'story-audio';
-  var RENDER_API_BASE = 'https://audiohub-276v.onrender.com/api/v1';
+  var RENDER_API_BASE = '/api/v1';
 
   function uploadToSupabaseStorage(blob, path) {
     var url = SUPABASE_URL + '/storage/v1/object/' + AUDIO_BUCKET + '/' + path;

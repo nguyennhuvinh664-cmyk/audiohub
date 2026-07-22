@@ -809,7 +809,7 @@
     if (!hasApi) return Promise.reject(new Error('No API client'));
 
     // Wake up Render free tier — it sleeps after inactivity and takes 30-60s to start
-    var baseUrl = window.AudioHubApi.getBaseUrl ? window.AudioHubApi.getBaseUrl() : 'https://audiohub-276v.onrender.com/api/v1';
+    var baseUrl = window.AudioHubApi.getBaseUrl ? window.AudioHubApi.getBaseUrl() : '/api/v1';
     var healthUrl = baseUrl.replace('/api/v1', '') + '/health';
     var maxRetries = 6;
     var attempt = 0;
@@ -857,7 +857,7 @@
 
   function forceSyncAllInner() {
     var localStories = readLocalStories();
-    var baseUrl = window.AudioHubApi.getBaseUrl ? window.AudioHubApi.getBaseUrl() : 'https://audiohub-276v.onrender.com/api/v1';
+    var baseUrl = window.AudioHubApi.getBaseUrl ? window.AudioHubApi.getBaseUrl() : '/api/v1';
     var healthUrl = baseUrl.replace('/api/v1', '') + '/health';
     var results = [];
     var pending = localStories.filter(function (s) { return s && s.id; });

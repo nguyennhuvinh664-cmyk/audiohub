@@ -1108,7 +1108,7 @@
       if (paths.indexOf(storyIdMp3) === -1) paths.push(storyIdMp3);
     }
 
-    var RENDER_BACKEND_BASE = 'https://audiohub-276v.onrender.com/api/v1';
+    var RENDER_BACKEND_BASE = '/api/v1';
 
     function fetchWithTimeout(url, timeoutMs) {
       var controller = new AbortController();
@@ -2037,7 +2037,7 @@
       var _sRe = initStoryDetailFromStore(storyId);
       if (_sRe && _sRe.audioKey && String(_sRe.audioKey).indexOf('a_') === 0) {
         var STORAGE_URL_CHK = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-audio/';
-        var BACKEND_URL_CHK = 'https://audiohub-276v.onrender.com/api/v1/media/audio/' + encodeURIComponent(storyId);
+        var BACKEND_URL_CHK = '/api/v1/media/audio/' + encodeURIComponent(storyId);
         // Check if audio already exists on Supabase OR backend
         Promise.all([
           fetch(STORAGE_URL_CHK + encodeURIComponent(storyId + '.mp3')).then(function (r) { return r.ok; }).catch(function () { return false; }),
@@ -2070,7 +2070,7 @@
         if (!audioNode || !audioNode.classList.contains('is-hidden')) return;
         if (noteNode && noteNode.textContent.indexOf('Audio chưa có') === -1 && noteNode.textContent.indexOf('Chưa có file') === -1) return;
 
-        var RENDER_BACKEND_BASE = 'https://audiohub-276v.onrender.com/api/v1';
+        var RENDER_BACKEND_BASE = '/api/v1';
 
         function tryBackendWithTimeout(retryIdx) {
           if (retryIdx >= 3) return;

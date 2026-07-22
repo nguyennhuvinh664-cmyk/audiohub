@@ -7,7 +7,8 @@
     if (configured) {
       return configured;
     }
-    return 'https://audiohub-276v.onrender.com/api/v1';
+    // Use relative URL to go through Cloudflare Pages proxy (avoids CORS)
+    return '/api/v1';
   }
 
   function setBaseUrl(baseUrl) {
