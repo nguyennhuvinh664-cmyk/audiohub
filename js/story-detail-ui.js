@@ -1163,9 +1163,9 @@
       var hue1 = Math.abs(hash) % 360;
       var hue2 = (hue1 + 40) % 360;
       var gradient = 'linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%))';
-      var thumbStyle = 'background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;';
+      var thumbStyle = 'background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;height:100px;min-height:100px;aspect-ratio:unset;';
       if (coverData) {
-        thumbStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
+        thumbStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;height:100px;min-height:100px;aspect-ratio:unset;';
       }
       var initials = title.slice(0, 2).toUpperCase();
       return '<a href="' + href + '" class="story-card story-card--mini" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
