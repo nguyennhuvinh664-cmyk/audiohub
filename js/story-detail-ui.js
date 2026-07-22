@@ -1168,7 +1168,8 @@
         thumbStyle = 'width:100%;height:100px;background-image:url("' + coverData + '");background-size:cover;background-position:center;flex-shrink:0;';
       }
       var initials = title.slice(0, 2).toUpperCase();
-      var cardStyle = 'display:flex;flex-direction:column;width:100%;min-height:220px;border-radius:12px;background:#121826;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:inherit;margin:0;overflow:hidden;';
+      var cardStyle = 'display:flex;flex-direction:column;width:100%;min-height:220px;border-radius:12px;background:#121826;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:inherit;margin:0;';
+      var bodyStyle = 'padding:10px 12px;';
       return '<a href="' + href + '" class="story-card story-card--mini" style="' + cardStyle + '" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
         + '<div class="story-card__thumb" style="' + thumbStyle + '">'
         + '<button class="story-fav" type="button" aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>'
@@ -1176,9 +1177,9 @@
         + (chaptersLabel ? '<span class="story-chapters">' + chaptersLabel + '</span>' : '')
         + (coverData ? '' : '<span style="font-size:18px">' + initials + '</span>')
         + '</div>'
-        + '<div class="story-card__body"><div class="story-meta"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> ' + viewsLabel + '</span></div>'
-        + '<h3 class="story-title">' + title + '</h3><div class="story-footer"><span><i class="fa-regular fa-user"></i> ' + author + '</span>'
-        + '<span class="story-rating"><i class="fa-solid fa-star"></i> 5 (1)</span></div></div></a>';
+        + '<div class="story-card__body" style="' + bodyStyle + '"><div class="story-meta" style="font-size:.72rem;color:rgba(255,255,255,.45);margin-bottom:4px;display:flex;gap:8px;"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> ' + viewsLabel + '</span></div>'
+        + '<h3 class="story-title" style="font-size:.82rem;font-weight:700;margin:0 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#fff;">' + title + '</h3><div class="story-footer" style="font-size:.72rem;color:rgba(255,255,255,.45);display:flex;justify-content:space-between;"><span><i class="fa-regular fa-user"></i> ' + author + '</span>'
+        + '<span class="story-rating"><i class="fa-solid fa-star" style="color:#f59e0b"></i> 5 (1)</span></div></div></a>';
     }).join('');
 
     // Force layout via inline style to bypass CSS conflicts from style-categories.css
