@@ -1163,12 +1163,12 @@
       var hue1 = Math.abs(hash) % 360;
       var hue2 = (hue1 + 40) % 360;
       var gradient = 'linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%))';
-      var thumbStyle = 'background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;height:100px;min-height:100px;aspect-ratio:unset;';
+      var thumbStyle = 'width:100%;height:100px;background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;flex-shrink:0;';
       if (coverData) {
-        thumbStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;height:100px;min-height:100px;aspect-ratio:unset;';
+        thumbStyle = 'width:100%;height:100px;background-image:url("' + coverData + '");background-size:cover;background-position:center;flex-shrink:0;';
       }
       var initials = title.slice(0, 2).toUpperCase();
-      var cardStyle = 'display:flex;flex-direction:column;border-radius:12px;background:#121826;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:inherit;';
+      var cardStyle = 'display:flex;flex-direction:column;width:100%;border-radius:12px;background:#121826;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:inherit;margin:0;';
       return '<a href="' + href + '" class="story-card story-card--mini" style="' + cardStyle + '" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
         + '<div class="story-card__thumb" style="' + thumbStyle + '">'
         + '<button class="story-fav" type="button" aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i></button>'
