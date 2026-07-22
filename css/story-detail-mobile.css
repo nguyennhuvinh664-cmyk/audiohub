@@ -553,7 +553,8 @@
   }
 
   .related-grid {
-    display: flex;
+    display: flex !important;
+    grid-template-columns: none !important;
     gap: 12px;
     overflow-x: auto;
     padding-bottom: 4px;
@@ -577,9 +578,9 @@
   }
 
   .story-card--mini .story-card__thumb {
-    aspect-ratio: unset;
-    min-height: 100px;
-    height: 100px;
+    aspect-ratio: unset !important;
+    min-height: 100px !important;
+    height: 100px !important;
     margin: 8px 8px 0;
     border-radius: 10px;
   }
