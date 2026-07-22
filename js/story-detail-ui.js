@@ -1182,6 +1182,13 @@
         + '<span class="story-rating"><i class="fa-solid fa-star" style="color:#f59e0b"></i> 5 (1)</span></div></div></a>';
     }).join('');
 
+    // Force parent panel height — it's collapsed to 82px due to CSS conflicts
+    var panel = grid.closest('.related-panel') || grid.parentElement;
+    if (panel) {
+      panel.style.minHeight = '280px';
+      panel.style.height = 'auto';
+      panel.style.overflow = 'visible';
+    }
     // Force layout via inline style to bypass CSS conflicts from style-categories.css
     grid.style.cssText = 'display:flex!important;gap:12px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;';
 
