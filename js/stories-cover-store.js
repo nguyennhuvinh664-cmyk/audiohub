@@ -76,7 +76,7 @@
       var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
       var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
       var filePath = storyId + '/cover';
-      var uploadUrl = '/supabase/storage/v1/object/story-covers/' + encodeURIComponent(filePath);
+      var uploadUrl = SUPABASE_URL + '/storage/v1/object/story-covers/' + encodeURIComponent(filePath);
 
       function tryUpload(method) {
         return fetch(uploadUrl, {
