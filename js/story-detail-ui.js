@@ -835,6 +835,15 @@
                 node.textContent = '';
               } catch (e) {}
             });
+            // Save cover_data back to localStorage so next load is instant
+            try {
+              var allLocal = window.AudioHubStories.read() || [];
+              var target = allLocal.find(function (s) { return String(s.id) === String(row.id); });
+              if (target && !target.coverData) {
+                target.coverData = row.cover_data;
+                window.AudioHubStories.write(allLocal);
+              }
+            } catch (e) {}
           } else if (row.cover_key && !row.cover_data) {
             missingCovers.push(row);
           }
