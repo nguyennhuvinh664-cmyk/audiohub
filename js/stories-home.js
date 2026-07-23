@@ -477,127 +477,64 @@
     });
   }
 
-  /* ── load covers: DB first (fast), then Storage fallback ── */
+  /* ── load covers: batch-fetch from Supabase DB ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
-    console.log('[Covers] loadHomeCovers: found', nodes.length, 'thumbnail nodes');
     var allItems = [];
     nodes.forEach(function (node) {
-      // Skip if cover already applied
       if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
       var id = node.getAttribute('data-cover-story-id') || '';
       if (!id || id.length < 10) return;
       allItems.push({ id: id, node: node });
     });
-
     if (allItems.length === 0) return;
 
-    // Step 1: Batch-fetch cover_data from Supabase DB (most reliable)
-    healMissingCovers(allItems, function (stillMissing) {
-      // Step 2: For items still without cover, try direct Storage URLs
-      stillMissing.forEach(function (item) {
-        var url = getCoverUrl(item.id);
-        if (url) applyCoverToThumb(item.node, url);
-      });
-    });
-  }
-
-  /** Self-healing: fetch cover_data from Supabase for covers that failed to load from Storage */
-  function healMissingCovers(items, onStillMissing) {
-    console.log('[Covers] healMissingCovers called with', items.length, 'items');
-    if (!window.AudioHubSupabase || !window.AudioHubSupabase.isAvailable()) {
-      console.log('[Covers] Supabase not available, skipping DB fetch');
-      if (onStillMissing) onStillMissing(items);
-      return;
-    }
-    var ids = items.map(function (i) { return i.id; });
-    // Batch-fetch cover_data + cover_key for missing stories
-    var select = 'id,cover_data,cover_key';
+    var ids = allItems.map(function (i) { return i.id; });
     var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
-    var url = '/supabase/rest/v1/stories?' + filter + '&select=' + select;
-    console.log('[Covers] Fetching cover_data from DB:', url);
+    var url = '/supabase/rest/v1/stories?' + filter + '&select=id,cover_data,cover_key';
+
     fetch(url, {
       headers: {
         'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
         'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
       }
     }).then(function (r) { return r.json(); }).then(function (rows) {
-      console.log('[Covers] DB response:', Array.isArray(rows) ? rows.length + ' rows' : rows);
-      if (!Array.isArray(rows)) {
-        if (onStillMissing) onStillMissing(items);
-        return;
-      }
+      if (!Array.isArray(rows)) return;
       var byId = {};
       rows.forEach(function (r) { byId[r.id] = r; });
-      var stillMissing = [];
-      items.forEach(function (item) {
+
+      allItems.forEach(function (item) {
         var row = byId[item.id];
-        if (!row) { stillMissing.push(item); return; }
-        // Try cover_data (base64)
+        if (!row) return;
+
+        // 1) Try cover_data from DB (base64)
         if (row.cover_data) {
           applyCoverToThumb(item.node, row.cover_data);
-          reUploadCover(item.id, row.cover_data);
-        } else if (row.cover_key && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-          // Try IndexedDB via coverKey
-          window.AudioHubStoryCover.get(row.cover_key).then(function (blob) {
-            if (blob) {
-              applyCoverToThumb(item.node, URL.createObjectURL(blob));
-              reUploadCover(item.id, blob);
-            } else {
-              stillMissing.push(item);
-            }
-          }).catch(function () { stillMissing.push(item); });
-        } else {
-          stillMissing.push(item);
+          return;
         }
+
+        // 2) Try IndexedDB via cover_key
+        if (row.cover_key && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+          window.AudioHubStoryCover.get(row.cover_key).then(function (blob) {
+            if (blob) applyCoverToThumb(item.node, URL.createObjectURL(blob));
+          }).catch(function () {});
+          return;
+        }
+
+        // 3) Fallback: direct Supabase Storage URL
+        var directUrl = getCoverUrl(item.id);
+        if (directUrl) applyCoverToThumb(item.node, directUrl);
       });
-      if (onStillMissing && stillMissing.length > 0) onStillMissing(stillMissing);
     }).catch(function () {
-      if (onStillMissing) onStillMissing(items);
+      // On fetch error, fallback to direct Storage URLs
+      allItems.forEach(function (item) {
+        var directUrl = getCoverUrl(item.id);
+        if (directUrl) applyCoverToThumb(item.node, directUrl);
+      });
     });
   }
 
-  /** Re-upload cover to Supabase Storage so next visit loads faster */
-  function reUploadCover(storyId, source) {
-    if (!storyId || String(storyId).startsWith('s_')) return;
-    var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-    var filePath = storyId + '/cover';
-    var uploadUrl = SUPABASE_URL + '/storage/v1/object/story-covers/' + encodeURIComponent(filePath);
 
-    // Convert data URL or URL to blob if needed
-    var blobPromise;
-    if (source instanceof Blob) {
-      blobPromise = Promise.resolve(source);
-    } else if (typeof source === 'string' && source.indexOf('data:') === 0) {
-      // Convert base64 data URL to blob
-      var parts = source.split(',');
-      var mime = parts[0].match(/:(.*?);/)[1];
-      var binary = atob(parts[1]);
-      var arr = new Uint8Array(binary.length);
-      for (var i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-      blobPromise = Promise.resolve(new Blob([arr], { type: mime }));
-    } else {
-      return; // Can't convert
-    }
-
-    blobPromise.then(function (blob) {
-      fetch(uploadUrl, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
-        body: blob
-      }).then(function (r) {
-        if (r.status === 409) {
-          return fetch(uploadUrl, {
-            method: 'PUT',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
-            body: blob
-          });
-        }
-        return r;
-      }).catch(function () {});
-    }).catch(function () {});
-  }
 
   renderHomeStories();
 })();
