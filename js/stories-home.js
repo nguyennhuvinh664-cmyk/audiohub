@@ -477,38 +477,36 @@
     });
   }
 
-  /* ── load covers — fast path: direct Supabase Storage URLs ── */
+  /* ── load covers: DB first (fast), then Storage fallback ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
-    var missingIds = [];
+    var allItems = [];
     nodes.forEach(function (node) {
       // Skip if cover already applied
       if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
       var id = node.getAttribute('data-cover-story-id') || '';
       if (!id || id.length < 10) return;
-      var url = getCoverUrl(id);
-      if (url) {
-        applyCoverToThumb(node, url);
-        // Check if image actually loaded after a short delay
-        missingIds.push({ id: id, node: node });
-      }
+      allItems.push({ id: id, node: node });
     });
 
-    // Self-healing: after 3s, check which covers failed to load and fetch from Supabase DB
-    if (missingIds.length > 0) {
-      setTimeout(function () {
-        var stillMissing = missingIds.filter(function (item) {
-          return !item.node.style.backgroundImage || item.node.style.backgroundImage.indexOf('gradient') !== -1;
-        });
-        if (stillMissing.length === 0) return;
-        healMissingCovers(stillMissing);
-      }, 3000);
-    }
+    if (allItems.length === 0) return;
+
+    // Step 1: Batch-fetch cover_data from Supabase DB (most reliable)
+    healMissingCovers(allItems, function (stillMissing) {
+      // Step 2: For items still without cover, try direct Storage URLs
+      stillMissing.forEach(function (item) {
+        var url = getCoverUrl(item.id);
+        if (url) applyCoverToThumb(item.node, url);
+      });
+    });
   }
 
   /** Self-healing: fetch cover_data from Supabase for covers that failed to load from Storage */
-  function healMissingCovers(items) {
-    if (!window.AudioHubSupabase || !window.AudioHubSupabase.isAvailable()) return;
+  function healMissingCovers(items, onStillMissing) {
+    if (!window.AudioHubSupabase || !window.AudioHubSupabase.isAvailable()) {
+      if (onStillMissing) onStillMissing(items);
+      return;
+    }
     var ids = items.map(function (i) { return i.id; });
     // Batch-fetch cover_data + cover_key for missing stories
     var select = 'id,cover_data,cover_key';
@@ -520,30 +518,38 @@
         'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
       }
     }).then(function (r) { return r.json(); }).then(function (rows) {
-      if (!Array.isArray(rows)) return;
+      if (!Array.isArray(rows)) {
+        if (onStillMissing) onStillMissing(items);
+        return;
+      }
       var byId = {};
       rows.forEach(function (r) { byId[r.id] = r; });
+      var stillMissing = [];
       items.forEach(function (item) {
         var row = byId[item.id];
-        if (!row) return;
+        if (!row) { stillMissing.push(item); return; }
         // Try cover_data (base64)
         if (row.cover_data) {
           applyCoverToThumb(item.node, row.cover_data);
-          // Re-upload to Storage for next time
           reUploadCover(item.id, row.cover_data);
         } else if (row.cover_key && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
           // Try IndexedDB via coverKey
           window.AudioHubStoryCover.get(row.cover_key).then(function (blob) {
             if (blob) {
-              var objUrl = URL.createObjectURL(blob);
-              applyCoverToThumb(item.node, objUrl);
-              // Upload to Storage for next time
+              applyCoverToThumb(item.node, URL.createObjectURL(blob));
               reUploadCover(item.id, blob);
+            } else {
+              stillMissing.push(item);
             }
-          }).catch(function () {});
+          }).catch(function () { stillMissing.push(item); });
+        } else {
+          stillMissing.push(item);
         }
       });
-    }).catch(function () {});
+      if (onStillMissing && stillMissing.length > 0) onStillMissing(stillMissing);
+    }).catch(function () {
+      if (onStillMissing) onStillMissing(items);
+    });
   }
 
   /** Re-upload cover to Supabase Storage so next visit loads faster */
