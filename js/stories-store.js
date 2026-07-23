@@ -390,14 +390,34 @@
     };
   }
 
-  function upsertStory(story) {
-    var localEntry = upsertLocalStory(story);
+  /* ── Toast helper ─────────────────────────────────────────────────── */
+  function showToast(message, type) {
+    try {
+      var existing = document.querySelector('.audiohub-sync-toast');
+      if (existing) existing.remove();
+      var toast = document.createElement('div');
+      toast.className = 'audiohub-sync-toast audiohub-sync-toast--' + (type || 'info');
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(function () { toast.classList.add('is-visible'); }, 10);
+      setTimeout(function () {
+        toast.classList.remove('is-visible');
+        setTimeout(function () { toast.remove(); }, 400);
+      }, 4000);
+    } catch (e) {}
+  }
 
-    // Sync to Supabase directly (bypasses Render)
-    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+  /* ── Supabase sync with retry ────────────────────────────────────── */
+  function syncToSupabaseWithRetry(localEntry, maxRetries) {
+    var retries = maxRetries || 3;
+    var delay = 2000; // 2 seconds between retries
+
+    function attempt(attemptNum) {
       var userId = window.AudioHubSupabase.getUserId();
       window.AudioHubSupabase.upsertStory(localEntry, userId)
         .then(function (created) {
+          console.log('[stories] ✅ Supabase sync success:', localEntry.title);
+          showToast('✅ Đã đồng bộ lên cloud — có thể xem trên thiết bị khác!', 'success');
           if (created && created.id && String(created.id) !== String(localEntry.id)) {
             var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
             var newStoryId = String(created.id);
@@ -435,8 +455,26 @@
           }
         })
         .catch(function (e) {
-          console.warn('[stories] Supabase sync failed:', e.message || e);
+          var errMsg = e.message || e;
+          console.warn('[stories] Supabase sync failed (attempt ' + attemptNum + '/' + retries + '):', errMsg);
+          if (attemptNum < retries) {
+            setTimeout(function () { attempt(attemptNum + 1); }, delay * attemptNum);
+          } else {
+            console.error('[stories] ❌ Supabase sync FAILED after ' + retries + ' attempts:', localEntry.title);
+            showToast('⚠️ Đồng bộ cloud thất bại. Truyện chỉ lưu trên thiết bị này. Kiểm tra kết nối mạng.', 'error');
+          }
         });
+    }
+
+    attempt(1);
+  }
+
+  function upsertStory(story) {
+    var localEntry = upsertLocalStory(story);
+
+    // Sync to Supabase directly (bypasses Render)
+    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      syncToSupabaseWithRetry(localEntry, 3);
       return localEntry;
     }
 

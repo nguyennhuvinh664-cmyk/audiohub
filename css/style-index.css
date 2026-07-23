@@ -721,3 +721,41 @@ body.no-scroll { overflow:hidden; }
   .ggrid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .footer__inner { grid-template-columns: 1fr; }
 }
+
+/* ── Sync Toast ─────────────────────────────────────────── */
+.audiohub-sync-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.audiohub-sync-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.audiohub-sync-toast--success {
+  background: #065f46;
+  color: #d1fae5;
+  border: 1px solid #10b981;
+}
+.audiohub-sync-toast--error {
+  background: #7f1d1d;
+  color: #fecaca;
+  border: 1px solid #ef4444;
+}
+.audiohub-sync-toast--info {
+  background: #1e3a5f;
+  color: #bfdbfe;
+  border: 1px solid #3b82f6;
+}

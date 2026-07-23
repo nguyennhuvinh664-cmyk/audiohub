@@ -71,7 +71,39 @@
   }
 
   function putCover(blob, storyId) {
-    // API path: upload to server AND save locally
+    // Upload to Supabase Storage (cross-device accessible, no CORS issues)
+    if (storyId && !String(storyId).startsWith('s_') && blob) {
+      var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+      var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+      var filePath = storyId + '/cover';
+      var uploadUrl = '/supabase/storage/v1/object/story-covers/' + encodeURIComponent(filePath);
+
+      fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'image/jpeg'
+        },
+        body: blob
+      }).then(function (r) {
+        // If 409 (already exists), try PUT to overwrite
+        if (r.status === 409) {
+          return fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': 'Bearer ' + SUPABASE_KEY,
+              'Content-Type': 'image/jpeg'
+            },
+            body: blob
+          });
+        }
+        return r;
+      }).catch(function () {});
+    }
+
+    // API path: upload to Render backend AND save locally
     if (canUseApi() && storyId && !String(storyId).startsWith('s_') && blob) {
       var form = new FormData();
       form.append('cover', blob, blob.name || 'cover.jpg');
@@ -79,9 +111,7 @@
         method: 'POST',
         body: form
       }).then(function (result) {
-        // Server now returns { coverData } (base64) instead of { coverKey }
         var serverKey = result && result.coverKey ? String(result.coverKey) : '';
-        // Also store blob locally so getCover() can find it
         var localKey = serverKey || makeKey();
         storeLocal(localKey, blob).catch(function () {});
         return serverKey || localKey;

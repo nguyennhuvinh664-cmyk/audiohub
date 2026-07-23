@@ -128,6 +128,8 @@
     }
   }
 
+  var LISTING_SUPABASE_STORAGE = '/supabase/storage/v1/object/public/story-covers/';
+
   function hydrateCovers(container) {
     var nodes = Array.prototype.slice.call(container.querySelectorAll('[data-cover-key]'));
     nodes.forEach(function (node) {
@@ -145,20 +147,39 @@
 
       // 2) Fallback to IndexedDB/API via coverKey
       var key = node.getAttribute('data-cover-key');
-      if (!key || !window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') {
+      if (key && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        window.AudioHubStoryCover.get(key)
+          .then(function (blob) {
+            if (blob) {
+              applyCoverUrl(node, blob);
+              return;
+            }
+            // 3) IndexedDB empty — try Supabase Storage by story ID
+            tryStorageCoverFallback(node);
+          })
+          .catch(function () {
+            tryStorageCoverFallback(node);
+          });
         return;
       }
 
-      window.AudioHubStoryCover.get(key)
-        .then(function (blob) {
-          if (!blob) {
-            return;
-          }
-          applyCoverUrl(node, blob);
-        })
-        .catch(function () {
-        });
+      // 3) No coverKey — try Supabase Storage by story ID
+      tryStorageCoverFallback(node);
     });
+  }
+
+  /** Try loading cover from Supabase Storage by story ID (for incognito / other devices) */
+  function tryStorageCoverFallback(node) {
+    var storyId = node.getAttribute('data-story-id') || '';
+    if (!storyId || storyId.length < 10) return;
+    var url = LISTING_SUPABASE_STORAGE + encodeURIComponent(storyId) + '/cover';
+    fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('not found');
+      return r.blob();
+    }).then(function (blob) {
+      if (!blob || blob.size === 0) return;
+      applyCoverUrl(node, blob);
+    }).catch(function () {});
   }
 
   function isMember() {
