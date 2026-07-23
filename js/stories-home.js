@@ -44,6 +44,9 @@
   function setThumbImage(thumb, story) {
     if (!thumb || !story) return;
 
+    // Skip if cover already applied (by loadHomeCovers or previous render)
+    if (thumb.style.backgroundImage && thumb.style.backgroundImage.indexOf('url(') !== -1) return;
+
     // 1) Set gradient background based on genre
     var color = genreColor(story.genre);
     thumb.style.background = 'linear-gradient(135deg, ' + color + ' 0%, ' + color + 'cc 100%)';
