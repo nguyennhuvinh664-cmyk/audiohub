@@ -1179,11 +1179,6 @@
 
     // Force horizontal flex layout via individual style properties (highest specificity)
     var panel = grid.closest('.related-panel') || grid.parentElement;
-    if (panel) {
-      panel.style.minHeight = '280px';
-      panel.style.height = 'auto';
-      panel.style.overflow = 'visible';
-    }
     grid.style.display = 'flex';
     grid.style.flexDirection = 'row';
     grid.style.flexWrap = 'nowrap';
