@@ -24,3 +24,4 @@ backend/tmp-check.sql
 npm-debug.log*
 build-spa.js
 fix-spa-*.js
+migrate-covers.js
