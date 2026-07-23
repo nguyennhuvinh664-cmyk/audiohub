@@ -2097,7 +2097,6 @@
     bindStoryCover(story);
     bindStoryAudio(story);
     updateAudioHeadingStoryTitle(story);
-    renderRelatedStories(story);
     renderSidebarTrending(story);
     fetchMissingCoversFromSupabase();
     loadCardCoversFromIndexedDB();
