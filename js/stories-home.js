@@ -462,6 +462,7 @@
 
     // Then fetch from API in background
     loadStoriesForHome().then(function (stories) {
+      console.log('[Covers] API returned', stories.length, 'stories, calling loadHomeCovers');
       renderHomeStoriesFrom(stories);
       bindHomeGenreDropdown();
       loadHomeCovers();
@@ -479,7 +480,9 @@
 
   /* ── load covers: batch-fetch from Supabase DB ── */
   function loadHomeCovers() {
+    console.log('[Covers] loadHomeCovers called');
     var nodes = document.querySelectorAll('[data-cover-story-id]');
+    console.log('[Covers] Found', nodes.length, 'nodes');
     var allItems = [];
     nodes.forEach(function (node) {
       if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
@@ -499,6 +502,7 @@
         'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
       }
     }).then(function (r) { return r.json(); }).then(function (rows) {
+      console.log('[Covers] DB returned', Array.isArray(rows) ? rows.length : 'not array', 'rows');
       if (!Array.isArray(rows)) return;
       var byId = {};
       rows.forEach(function (r) { byId[r.id] = r; });
@@ -525,7 +529,9 @@
         var directUrl = getCoverUrl(item.id);
         if (directUrl) applyCoverToThumb(item.node, directUrl);
       });
-    }).catch(function () {
+      console.log('[Covers] Done applying covers');
+    }).catch(function (e) {
+      console.log('[Covers] Fetch error:', e);
       // On fetch error, fallback to direct Storage URLs
       allItems.forEach(function (item) {
         var directUrl = getCoverUrl(item.id);
