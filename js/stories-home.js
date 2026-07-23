@@ -478,11 +478,9 @@
     });
   }
 
-  /* ── load covers: batch-fetch from Supabase DB ── */
+  /* ── load covers: batch-fetch from Supabase DB in small batches ── */
   function loadHomeCovers() {
-    console.log('[Covers] loadHomeCovers called');
     var nodes = document.querySelectorAll('[data-cover-story-id]');
-    console.log('[Covers] Found', nodes.length, 'nodes');
     var allItems = [];
     nodes.forEach(function (node) {
       if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
@@ -492,54 +490,61 @@
     });
     if (allItems.length === 0) return;
 
-    var ids = allItems.map(function (i) { return i.id; });
-    var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
-    var url = '/supabase/rest/v1/stories?' + filter + '&select=id,cover_data,cover_key';
+    // Fetch in batches of 5 to avoid huge responses (cover_data can be 1-8MB each)
+    var BATCH_SIZE = 5;
+    var batches = [];
+    for (var i = 0; i < allItems.length; i += BATCH_SIZE) {
+      batches.push(allItems.slice(i, i + BATCH_SIZE));
+    }
 
-    fetch(url, {
-      headers: {
-        'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
-        'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
-      }
-    }).then(function (r) { return r.json(); }).then(function (rows) {
-      console.log('[Covers] DB returned', Array.isArray(rows) ? rows.length : 'not array', 'rows');
-      if (!Array.isArray(rows)) return;
-      var byId = {};
-      rows.forEach(function (r) { byId[r.id] = r; });
+    batches.forEach(function (batch, batchIdx) {
+      setTimeout(function () {
+        var ids = batch.map(function (i) { return i.id; });
+        var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
+        var url = '/supabase/rest/v1/stories?' + filter + '&select=id,cover_data,cover_key';
 
-      allItems.forEach(function (item) {
-        var row = byId[item.id];
-        if (!row) return;
+        fetch(url, {
+          headers: {
+            'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
+            'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
+          }
+        }).then(function (r) { return r.json(); }).then(function (rows) {
+          if (!Array.isArray(rows)) return;
+          var byId = {};
+          rows.forEach(function (r) { byId[r.id] = r; });
 
-        // 1) Try cover_data from DB (base64)
-        if (row.cover_data) {
-          applyCoverToThumb(item.node, row.cover_data);
-          return;
-        }
+          batch.forEach(function (item) {
+            var row = byId[item.id];
+            if (!row) return;
 
-        // 2) Try IndexedDB via cover_key
-        if (row.cover_key && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-          window.AudioHubStoryCover.get(row.cover_key).then(function (blob) {
-            if (blob) applyCoverToThumb(item.node, URL.createObjectURL(blob));
-          }).catch(function () {});
-          return;
-        }
+            // 1) cover_data from DB (base64)
+            if (row.cover_data) {
+              applyCoverToThumb(item.node, row.cover_data);
+              return;
+            }
 
-        // 3) Fallback: direct Supabase Storage URL
-        var directUrl = getCoverUrl(item.id);
-        if (directUrl) applyCoverToThumb(item.node, directUrl);
-      });
-      console.log('[Covers] Done applying covers');
-    }).catch(function (e) {
-      console.log('[Covers] Fetch error:', e);
-      // On fetch error, fallback to direct Storage URLs
-      allItems.forEach(function (item) {
-        var directUrl = getCoverUrl(item.id);
-        if (directUrl) applyCoverToThumb(item.node, directUrl);
-      });
+            // 2) IndexedDB via cover_key
+            if (row.cover_key && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+              window.AudioHubStoryCover.get(row.cover_key).then(function (blob) {
+                if (blob) applyCoverToThumb(item.node, URL.createObjectURL(blob));
+              }).catch(function () {});
+              return;
+            }
+
+            // 3) Fallback: direct Supabase Storage URL
+            var directUrl = getCoverUrl(item.id);
+            if (directUrl) applyCoverToThumb(item.node, directUrl);
+          });
+        }).catch(function () {
+          // On error, fallback to Storage URLs
+          batch.forEach(function (item) {
+            var directUrl = getCoverUrl(item.id);
+            if (directUrl) applyCoverToThumb(item.node, directUrl);
+          });
+        });
+      }, batchIdx * 500); // 500ms between batches
     });
   }
-
 
 
   renderHomeStories();
