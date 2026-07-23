@@ -762,6 +762,14 @@
           audioCover.style.backgroundSize = 'cover';
           audioCover.style.backgroundPosition = 'center';
         }
+
+        // Next chapter thumbnail
+        var nextupThumb = document.querySelector('.sd-nextup__thumb');
+        if (nextupThumb) {
+          nextupThumb.style.backgroundImage = 'url("' + url + '")';
+          nextupThumb.style.backgroundSize = 'cover';
+          nextupThumb.style.backgroundPosition = 'center';
+        }
       } catch (error) {}
     }
 
