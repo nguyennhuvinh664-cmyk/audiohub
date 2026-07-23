@@ -478,71 +478,15 @@
     });
   }
 
-  /* ── load covers: batch-fetch from Supabase DB in small batches ── */
+  /* ── load covers: direct Supabase Storage URLs (fast, no proxy) ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
-    var allItems = [];
     nodes.forEach(function (node) {
       if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
       var id = node.getAttribute('data-cover-story-id') || '';
       if (!id || id.length < 10) return;
-      allItems.push({ id: id, node: node });
-    });
-    if (allItems.length === 0) return;
-
-    // Fetch in batches of 5 to avoid huge responses (cover_data can be 1-8MB each)
-    var BATCH_SIZE = 5;
-    var batches = [];
-    for (var i = 0; i < allItems.length; i += BATCH_SIZE) {
-      batches.push(allItems.slice(i, i + BATCH_SIZE));
-    }
-
-    batches.forEach(function (batch, batchIdx) {
-      setTimeout(function () {
-        var ids = batch.map(function (i) { return i.id; });
-        var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
-        var url = '/supabase/rest/v1/stories?' + filter + '&select=id,cover_data,cover_key';
-
-        fetch(url, {
-          headers: {
-            'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
-            'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
-          }
-        }).then(function (r) { return r.json(); }).then(function (rows) {
-          if (!Array.isArray(rows)) return;
-          var byId = {};
-          rows.forEach(function (r) { byId[r.id] = r; });
-
-          batch.forEach(function (item) {
-            var row = byId[item.id];
-            if (!row) return;
-
-            // 1) cover_data from DB (base64)
-            if (row.cover_data) {
-              applyCoverToThumb(item.node, row.cover_data);
-              return;
-            }
-
-            // 2) IndexedDB via cover_key
-            if (row.cover_key && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-              window.AudioHubStoryCover.get(row.cover_key).then(function (blob) {
-                if (blob) applyCoverToThumb(item.node, URL.createObjectURL(blob));
-              }).catch(function () {});
-              return;
-            }
-
-            // 3) Fallback: direct Supabase Storage URL
-            var directUrl = getCoverUrl(item.id);
-            if (directUrl) applyCoverToThumb(item.node, directUrl);
-          });
-        }).catch(function () {
-          // On error, fallback to Storage URLs
-          batch.forEach(function (item) {
-            var directUrl = getCoverUrl(item.id);
-            if (directUrl) applyCoverToThumb(item.node, directUrl);
-          });
-        });
-      }, batchIdx * 500); // 500ms between batches
+      var url = getCoverUrl(id);
+      if (url) applyCoverToThumb(node, url);
     });
   }
 
