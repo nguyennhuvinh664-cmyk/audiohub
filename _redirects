@@ -51,6 +51,7 @@
 /html/upload-story.html  /html/upload-story.html  200
 /html/user-account.html  /html/user-account.html  200
 /html/channel.html       /html/channel.html       200
+/html/migrate-covers.html  /html/migrate-covers.html  200
 
 # Backend proxy is handled by Cloudflare Pages Functions (functions/api, functions/media, functions/auth)
 
