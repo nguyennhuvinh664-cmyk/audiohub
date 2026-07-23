@@ -474,6 +474,7 @@
       .then(function (rows) {
         console.log('[Covers] Got', (rows || []).length, 'rows');
         (rows || []).forEach(function (row) {
+          console.log('[Covers]', row.id, 'cover_data:', row.cover_data ? ('YES ' + row.cover_data.length + ' chars') : 'NO', 'nodes:', (nodeMap[row.id] || []).length);
           if (row.cover_data && nodeMap[row.id]) {
             nodeMap[row.id].forEach(function (node) {
               try {
@@ -483,7 +484,8 @@
                 node.style.background = '';
                 var si = node.querySelector('.si');
                 if (si) si.textContent = '';
-              } catch (e) {}
+                console.log('[Covers] Applied cover to', row.id, 'bg:', node.style.backgroundImage.substring(0, 60));
+              } catch (e) { console.log('[Covers] Error applying:', e.message); }
             });
             // Cache to localStorage
             try {
