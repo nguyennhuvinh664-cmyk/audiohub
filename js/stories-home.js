@@ -436,6 +436,7 @@
     loadStoriesForHome().then(function (stories) {
       renderHomeStoriesFrom(stories);
       bindHomeGenreDropdown();
+      loadHomeCovers();
 
       var form = document.querySelector('[data-home-search-form]');
       if (form && !form._bound) {
@@ -497,5 +498,4 @@
   }
 
   renderHomeStories();
-  loadHomeCovers();
 })();
