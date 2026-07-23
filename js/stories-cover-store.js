@@ -156,10 +156,10 @@
     });
   }
 
-  // Try fetching cover from multiple sources in parallel
+  // Try fetching cover from Supabase Storage (direct URL, fast CDN)
   function tryFetchCover(key, cacheFn) {
-    var SUPABASE_STORAGE = '/supabase/storage/v1/object/public/story-covers/';
-    var RENDER_API = '/api/v1/media/covers/';
+    var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+    var SUPABASE_STORAGE = SUPABASE_DIRECT + '/storage/v1/object/public/story-covers/';
 
     function fetchWithTimeout(url, timeoutMs) {
       var controller = new AbortController();
@@ -174,31 +174,16 @@
       });
     }
 
-    // Race: try Supabase Storage AND Render backend in parallel, use first success
-    return new Promise(function (resolve) {
-      var resolved = false;
-      function done(blob) {
-        if (resolved) return;
-        resolved = true;
+    // Single source: Supabase Storage direct (fast CDN, no proxy)
+    return fetchWithTimeout(SUPABASE_STORAGE + encodeURIComponent(key), 5000)
+      .then(function (blob) {
         if (blob && blob.size > 0) {
           if (cacheFn) cacheFn(key, blob).catch(function () {});
-          resolve(blob);
-        } else {
-          resolve(null);
+          return blob;
         }
-      }
-
-      // Source 1: Supabase Storage (fast, public)
-      fetchWithTimeout(SUPABASE_STORAGE + encodeURIComponent(key), 5000)
-        .then(done).catch(function () {});
-
-      // Source 2: Render backend API (may be slow on free tier)
-      fetchWithTimeout(RENDER_API + encodeURIComponent(key), 10000)
-        .then(done).catch(function () {});
-
-      // Timeout fallback — resolve null after 12s if both fail
-      setTimeout(function () { done(null); }, 12000);
-    });
+        return null;
+      })
+      .catch(function () { return null; });
   }
 
   function deleteCover(key) {

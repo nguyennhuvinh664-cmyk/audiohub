@@ -780,18 +780,14 @@
           if (blob) {
             applyCoverUrl(URL.createObjectURL(blob));
           } else {
-            // Fallback: try Supabase Storage + Render API in parallel
-            var SUPABASE_COVER_URL = '/supabase/storage/v1/object/public/story-covers/' + encodeURIComponent(coverKey);
-            var RENDER_COVER_URL = '/api/v1/media/covers/' + encodeURIComponent(coverKey);
-            var resolved = false;
-            function onCoverBlob(b) {
-              if (resolved || !b || !b.size) return;
-              resolved = true;
-              applyCoverUrl(URL.createObjectURL(b));
-            }
-            fetch(SUPABASE_COVER_URL).then(function (r) { return r.ok ? r.blob() : Promise.reject(); }).then(onCoverBlob).catch(function () {});
-            fetch(RENDER_COVER_URL).then(function (r) { return r.ok ? r.blob() : Promise.reject(); }).then(onCoverBlob).catch(function () {});
-            setTimeout(function () { resolved = true; }, 10000);
+            // Fallback: direct Supabase Storage URL (fast CDN, no proxy)
+            var directCoverUrl = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + encodeURIComponent(coverKey);
+            fetch(directCoverUrl).then(function (r) {
+              if (!r.ok) throw new Error('not found');
+              return r.blob();
+            }).then(function (b) {
+              if (b && b.size > 0) applyCoverUrl(URL.createObjectURL(b));
+            }).catch(function () {});
           }
         })
         .catch(function () {});
