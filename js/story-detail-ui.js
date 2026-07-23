@@ -1177,21 +1177,8 @@
         + '</div></div></a>';
     }).join('');
 
-    // Force horizontal flex layout via individual style properties (highest specificity)
-    var panel = grid.closest('.related-panel') || grid.parentElement;
-    grid.style.display = 'flex';
-    grid.style.flexDirection = 'row';
-    grid.style.flexWrap = 'nowrap';
-    grid.style.gap = '12px';
-    grid.style.overflowX = 'auto';
-    grid.style.overflowY = 'visible';
-    grid.style.paddingBottom = '4px';
-    grid.style.scrollSnapType = 'x mandatory';
-    grid.style.webkitOverflowScrolling = 'touch';
-    grid.style.alignItems = 'flex-start';
-    grid.style.gridTemplateColumns = 'none';
-    grid.style.width = '100%';
-    grid.style.maxWidth = 'none';
+    // Add class for horizontal scroll layout (CSS in related-hscroll.css)
+    grid.classList.add('related-hscroll');
 
     Array.prototype.slice.call(grid.querySelectorAll('.story-fav')).forEach(function (button) {
       button.addEventListener('click', function (event) {

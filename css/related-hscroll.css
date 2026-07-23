@@ -1,0 +1,72 @@
+/* ══════════════════════════════════════════════════════════════
+   RELATED STORIES — Horizontal scroll cards
+   Uses unique class name "hscroll" to avoid ALL CSS conflicts
+   ══════════════════════════════════════════════════════════════ */
+
+.related-hscroll {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding-bottom: 4px !important;
+  scroll-snap-type: x mandatory !important;
+  -webkit-overflow-scrolling: touch !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  /* Kill any grid behavior */
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  grid-auto-flow: unset !important;
+  grid-auto-columns: unset !important;
+  grid-auto-rows: unset !important;
+}
+
+/* Each story card link */
+.related-hscroll > a {
+  display: block !important;
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+  flex: 0 0 200px !important;
+  border-radius: 12px !important;
+  background: #121826 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  text-decoration: none !important;
+  color: #fff !important;
+  overflow: hidden !important;
+  scroll-snap-align: start !important;
+  position: relative !important;
+}
+
+/* Thumbnail container — fixed 120px height */
+.related-hscroll > a > div:first-child {
+  position: relative !important;
+  width: 100% !important;
+  height: 120px !important;
+  min-height: 120px !important;
+  max-height: 120px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Text overlay at bottom of thumbnail */
+.related-hscroll > a > div:first-child > div {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  padding: 6px 8px !important;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85)) !important;
+}
+
+/* Also reset the parent panel — no height constraints */
+.related-panel {
+  overflow: visible !important;
+  overflow-x: clip !important;
+}
