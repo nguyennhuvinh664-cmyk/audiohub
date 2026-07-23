@@ -102,7 +102,7 @@
 
     var badgeText = story.isCompleted ? 'Full' : (story.listenCount2d > 5 ? 'Hot' : 'Mới');
     return '<a href="' + href + '" class="sc" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + visibility + '">'
-      + '<div class="sc__th" style="--c:' + color + '">'
+      + '<div class="sc__th" data-cover-story-id="' + String(story.id || '') + '" style="--c:' + color + '">'
       + '<span class="bx bn">' + badgeText + '</span>'
       + '<span class="si">' + initials + '</span>'
       + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
