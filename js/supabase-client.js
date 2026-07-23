@@ -39,7 +39,7 @@
    */
   function fetchPublicStories() {
     return fetchWithTimeout(
-      REST_URL + '/stories?visibility=eq.PUBLIC&order=created_at.desc&limit=100&select=id,title,author,genre,description,chapter_title,chapters,chapter_count,visibility,audio_status,status,is_completed,cover_key,audio_key,youtube_url,youtube_id,listen_count,listen_count2d,listen_count7d,created_at,updated_at,user_id',
+      REST_URL + '/stories?visibility=eq.PUBLIC&order=created_at.desc&limit=100',
       { headers: authHeaders() },
       8000
     )
