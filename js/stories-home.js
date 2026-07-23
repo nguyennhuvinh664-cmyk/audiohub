@@ -485,6 +485,16 @@
       if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
       var id = node.getAttribute('data-cover-story-id') || '';
       if (!id || id.length < 10) return;
+
+      // Local stories (s_ prefix): try IndexedDB
+      if (id.indexOf('s_') === 0 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        window.AudioHubStoryCover.get(id).then(function (blob) {
+          if (blob) applyCoverToThumb(node, URL.createObjectURL(blob));
+        }).catch(function () {});
+        return;
+      }
+
+      // Cloud stories: direct Storage URL
       var url = getCoverUrl(id);
       if (url) applyCoverToThumb(node, url);
     });
