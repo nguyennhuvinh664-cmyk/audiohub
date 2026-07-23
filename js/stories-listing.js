@@ -132,6 +132,7 @@
 
   function hydrateCovers(container) {
     var nodes = Array.prototype.slice.call(container.querySelectorAll('[data-cover-key]'));
+    var missingItems = [];
     nodes.forEach(function (node) {
       // 1) Try inline coverData first (fast, works in incognito)
       var coverData = node.getAttribute('data-cover-data');
@@ -155,6 +156,7 @@
           node.style.backgroundSize = 'cover';
           node.style.backgroundPosition = 'center';
         } catch (e) {}
+        missingItems.push({ id: storyId, node: node });
         return;
       }
 
@@ -168,6 +170,45 @@
           .catch(function () {});
       }
     });
+
+    // Self-healing: after 3s, fetch cover_data from Supabase for covers that failed
+    if (missingItems.length > 0) {
+      setTimeout(function () {
+        var stillMissing = missingItems.filter(function (item) {
+          return !item.node.style.backgroundImage || item.node.style.backgroundImage.indexOf('gradient') !== -1;
+        });
+        if (stillMissing.length === 0) return;
+        healListingCovers(stillMissing);
+      }, 3000);
+    }
+  }
+
+  function healListingCovers(items) {
+    if (!window.AudioHubSupabase || !window.AudioHubSupabase.isAvailable()) return;
+    var ids = items.map(function (i) { return i.id; });
+    var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
+    var url = '/supabase/rest/v1/stories?' + filter + '&select=id,cover_data';
+    fetch(url, {
+      headers: {
+        'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
+        'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
+      }
+    }).then(function (r) { return r.json(); }).then(function (rows) {
+      if (!Array.isArray(rows)) return;
+      var byId = {};
+      rows.forEach(function (r) { byId[r.id] = r; });
+      items.forEach(function (item) {
+        var row = byId[item.id];
+        if (row && row.cover_data) {
+          try {
+            item.node.style.background = '';
+            item.node.style.backgroundImage = 'url("' + row.cover_data + '")';
+            item.node.style.backgroundSize = 'cover';
+            item.node.style.backgroundPosition = 'center';
+          } catch (e) {}
+        }
+      });
+    }).catch(function () {});
   }
 
   function isMember() {

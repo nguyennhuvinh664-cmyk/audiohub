@@ -78,28 +78,31 @@
       var filePath = storyId + '/cover';
       var uploadUrl = '/supabase/storage/v1/object/story-covers/' + encodeURIComponent(filePath);
 
-      fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Content-Type': 'image/jpeg'
-        },
-        body: blob
-      }).then(function (r) {
+      function tryUpload(method) {
+        return fetch(uploadUrl, {
+          method: method,
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'image/jpeg'
+          },
+          body: blob
+        });
+      }
+
+      tryUpload('POST').then(function (r) {
+        if (r.ok) return r;
         // If 409 (already exists), try PUT to overwrite
-        if (r.status === 409) {
-          return fetch(uploadUrl, {
-            method: 'PUT',
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': 'Bearer ' + SUPABASE_KEY,
-              'Content-Type': 'image/jpeg'
-            },
-            body: blob
-          });
-        }
-        return r;
+        if (r.status === 409) return tryUpload('PUT');
+        // Retry once on failure
+        return new Promise(function (resolve) {
+          setTimeout(function () { tryUpload('POST').then(resolve).catch(function () { resolve(null); }); }, 2000);
+        });
+      }).catch(function () {
+        // Retry once on network error
+        return new Promise(function (resolve) {
+          setTimeout(function () { tryUpload('POST').then(resolve).catch(function () { resolve(null); }); }, 2000);
+        });
       }).catch(function () {});
     }
 

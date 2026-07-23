@@ -781,7 +781,7 @@
             applyCoverUrl(URL.createObjectURL(blob));
           } else {
             // Fallback: direct Supabase Storage URL (fast CDN, no proxy)
-            var directCoverUrl = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + encodeURIComponent(coverKey);
+            var directCoverUrl = storyId ? ('https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + encodeURIComponent(storyId) + '/cover') : '';
             fetch(directCoverUrl).then(function (r) {
               if (!r.ok) throw new Error('not found');
               return r.blob();
