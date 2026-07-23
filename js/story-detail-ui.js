@@ -1177,15 +1177,12 @@
         + '</div></div></a>';
     }).join('');
 
-    // Force parent panel height — it's collapsed to 82px due to CSS conflicts
+    // Force layout via CSS class — inline styles alone can't beat style-categories.css grid rules
     var panel = grid.closest('.related-panel') || grid.parentElement;
     if (panel) {
-      panel.style.minHeight = '280px';
-      panel.style.height = 'auto';
-      panel.style.overflow = 'visible';
+      panel.classList.add('forced-layout');
     }
-    // Force layout via inline style to bypass CSS conflicts from style-categories.css
-    grid.style.cssText = 'display:flex!important;gap:12px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;align-items:flex-start;';
+    grid.classList.add('forced-layout');
 
     Array.prototype.slice.call(grid.querySelectorAll('.story-fav')).forEach(function (button) {
       button.addEventListener('click', function (event) {
