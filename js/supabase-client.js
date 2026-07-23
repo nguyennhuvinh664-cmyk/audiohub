@@ -38,8 +38,9 @@
    * Fetch all public stories from Supabase
    */
   function fetchPublicStories() {
+    // Exclude cover_data (can be 8MB+ per story) — load covers separately
     return fetchWithTimeout(
-      REST_URL + '/stories?visibility=eq.PUBLIC&order=created_at.desc&limit=100',
+      REST_URL + '/stories?visibility=eq.PUBLIC&order=created_at.desc&limit=100&select=id,title,author,genre,description,chapter_title,chapters,chapter_count,visibility,audio_status,status,is_completed,cover_key,audio_key,youtube_url,youtube_id,listen_count,listen_count2d,listen_count7d,created_at,updated_at,user_id',
       { headers: authHeaders() },
       8000
     )

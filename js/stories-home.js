@@ -448,5 +448,54 @@
     });
   }
 
+  /* ── load covers from Supabase (separate from story list) ── */
+  function loadHomeCovers() {
+    if (!window.AudioHubSupabase || !window.AudioHubSupabase.isAvailable()) return;
+    var SUPABASE_REST = '/supabase/rest/v1';
+    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+    var nodes = document.querySelectorAll('[data-cover-story-id]');
+    var idsToFetch = [];
+    var nodeMap = {};
+    nodes.forEach(function (node) {
+      if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
+      var id = node.getAttribute('data-cover-story-id') || '';
+      if (!id || id.length < 10) return;
+      if (idsToFetch.indexOf(id) === -1) idsToFetch.push(id);
+      if (!nodeMap[id]) nodeMap[id] = [];
+      nodeMap[id].push(node);
+    });
+    if (!idsToFetch.length) return;
+    var idsParam = idsToFetch.map(encodeURIComponent).join(',');
+    fetch(SUPABASE_REST + '/stories?id=in.(' + idsParam + ')&select=id,cover_data,cover_key', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    }).then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        (rows || []).forEach(function (row) {
+          if (row.cover_data && nodeMap[row.id]) {
+            nodeMap[row.id].forEach(function (node) {
+              try {
+                node.style.backgroundImage = 'url("' + row.cover_data + '")';
+                node.style.backgroundSize = 'cover';
+                node.style.backgroundPosition = 'center';
+                node.style.background = '';
+                var si = node.querySelector('.si');
+                if (si) si.textContent = '';
+              } catch (e) {}
+            });
+            // Cache to localStorage
+            try {
+              var allLocal = window.AudioHubStories.read() || [];
+              var target = allLocal.find(function (s) { return String(s.id) === String(row.id); });
+              if (target && !target.coverData) {
+                target.coverData = row.cover_data;
+                window.AudioHubStories.write(allLocal);
+              }
+            } catch (e) {}
+          }
+        });
+      }).catch(function () {});
+  }
+
   renderHomeStories();
+  loadHomeCovers();
 })();
