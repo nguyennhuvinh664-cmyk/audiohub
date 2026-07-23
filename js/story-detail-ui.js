@@ -1177,12 +1177,26 @@
         + '</div></div></a>';
     }).join('');
 
-    // Force layout via CSS class — inline styles alone can't beat style-categories.css grid rules
+    // Force horizontal flex layout via individual style properties (highest specificity)
     var panel = grid.closest('.related-panel') || grid.parentElement;
     if (panel) {
-      panel.classList.add('forced-layout');
+      panel.style.minHeight = '280px';
+      panel.style.height = 'auto';
+      panel.style.overflow = 'visible';
     }
-    grid.classList.add('forced-layout');
+    grid.style.display = 'flex';
+    grid.style.flexDirection = 'row';
+    grid.style.flexWrap = 'nowrap';
+    grid.style.gap = '12px';
+    grid.style.overflowX = 'auto';
+    grid.style.overflowY = 'visible';
+    grid.style.paddingBottom = '4px';
+    grid.style.scrollSnapType = 'x mandatory';
+    grid.style.webkitOverflowScrolling = 'touch';
+    grid.style.alignItems = 'flex-start';
+    grid.style.gridTemplateColumns = 'none';
+    grid.style.width = '100%';
+    grid.style.maxWidth = 'none';
 
     Array.prototype.slice.call(grid.querySelectorAll('.story-fav')).forEach(function (button) {
       button.addEventListener('click', function (event) {
