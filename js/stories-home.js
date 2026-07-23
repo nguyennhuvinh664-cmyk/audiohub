@@ -480,6 +480,7 @@
   /* ── load covers: DB first (fast), then Storage fallback ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
+    console.log('[Covers] loadHomeCovers: found', nodes.length, 'thumbnail nodes');
     var allItems = [];
     nodes.forEach(function (node) {
       // Skip if cover already applied
@@ -503,7 +504,9 @@
 
   /** Self-healing: fetch cover_data from Supabase for covers that failed to load from Storage */
   function healMissingCovers(items, onStillMissing) {
+    console.log('[Covers] healMissingCovers called with', items.length, 'items');
     if (!window.AudioHubSupabase || !window.AudioHubSupabase.isAvailable()) {
+      console.log('[Covers] Supabase not available, skipping DB fetch');
       if (onStillMissing) onStillMissing(items);
       return;
     }
@@ -512,12 +515,14 @@
     var select = 'id,cover_data,cover_key';
     var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
     var url = '/supabase/rest/v1/stories?' + filter + '&select=' + select;
+    console.log('[Covers] Fetching cover_data from DB:', url);
     fetch(url, {
       headers: {
         'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
         'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
       }
     }).then(function (r) { return r.json(); }).then(function (rows) {
+      console.log('[Covers] DB response:', Array.isArray(rows) ? rows.length + ' rows' : rows);
       if (!Array.isArray(rows)) {
         if (onStillMissing) onStillMissing(items);
         return;
