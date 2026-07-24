@@ -12,6 +12,181 @@
   var youtubeInput = document.querySelector('[data-upload-youtube-url]');
   var visibilitySelect = document.querySelector('[data-upload-visibility]');
 
+  /* ── Story name select dropdown ── */
+  (function initStoryNameSelect() {
+    var selectRoot = document.querySelector('[data-story-name-select]');
+    var trigger = document.querySelector('[data-story-name-trigger]');
+    var menu = document.querySelector('[data-story-name-menu]');
+    var list = document.querySelector('[data-story-name-list]');
+    var searchInput = document.querySelector('[data-story-name-search]');
+    var addBtn = document.querySelector('[data-story-name-add]');
+    if (!selectRoot || !trigger || !menu || !list) return;
+
+    var allStories = [];
+    var isAddingNew = false;
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function fetchAllStories() {
+      var sources = [];
+      // Local stories
+      if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+        var local = window.AudioHubStories.read() || [];
+        sources = sources.concat(local);
+      }
+      // API stories
+      if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable && window.AudioHubSupabase.isAvailable()) {
+        sources.push(
+          window.AudioHubSupabase.fetchPublicStories().then(function (rows) {
+            return Array.isArray(rows) ? rows : [];
+          }).catch(function () { return []; })
+        );
+      }
+      Promise.all(sources).then(function (results) {
+        var merged = [];
+        var seen = {};
+        results.forEach(function (arr) {
+          (Array.isArray(arr) ? arr : []).forEach(function (s) {
+            var id = String(s && s.id || '');
+            if (id && !seen[id]) { seen[id] = true; merged.push(s); }
+          });
+        });
+        allStories = merged;
+        renderList('');
+      });
+    }
+
+    function renderList(query) {
+      var q = String(query || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+      var filtered = allStories.filter(function (s) {
+        if (!q) return true;
+        var title = String(s.title || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+        var author = String(s.author || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+        return title.indexOf(q) >= 0 || author.indexOf(q) >= 0;
+      });
+      // Sort newest first
+      filtered.sort(function (a, b) {
+        var ta = Date.parse(a.createdAt || a.updatedAt || 0) || 0;
+        var tb = Date.parse(b.createdAt || b.updatedAt || 0) || 0;
+        return tb - ta;
+      });
+      var html = '';
+      filtered.forEach(function (s) {
+        var title = escapeHtml(s.title);
+        var genre = escapeHtml(s.genre || '');
+        html += '<button type="button" class="story-name-select__item" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '">' +
+          '<span class="story-name-select__item-title">' + title + '</span>' +
+          (genre ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') +
+          '</button>';
+      });
+      if (!filtered.length && !isAddingNew) {
+        html = '<div class="story-name-select__empty">Không tìm thấy truyện</div>';
+      }
+      list.innerHTML = html;
+    }
+
+    function selectStory(story) {
+      if (!story) return;
+      isAddingNew = false;
+      // Set hidden input value
+      if (titleInput) titleInput.value = story.title || '';
+      // Auto-fill form
+      if (genreSelect && story.genre) genreSelect.value = story.genre;
+      if (descriptionInput && story.description) descriptionInput.value = story.description;
+      if (chapterInput && story.chapterTitle) chapterInput.value = story.chapterTitle;
+      // Update trigger text
+      trigger.innerHTML = escapeHtml(story.title) + ' <i class="fa-solid fa-chevron-down"></i>';
+      trigger.classList.add('is-selected');
+      // Close menu
+      menu.classList.add('is-hidden');
+      trigger.setAttribute('aria-expanded', 'false');
+      render();
+    }
+
+    function startAddNew() {
+      isAddingNew = true;
+      if (titleInput) { titleInput.value = ''; titleInput.focus(); }
+      trigger.innerHTML = 'Nhập tên truyện mới... <i class="fa-solid fa-chevron-down"></i>';
+      trigger.classList.remove('is-selected');
+      list.innerHTML = '';
+      // Focus on search input as text input
+      if (searchInput) {
+        searchInput.placeholder = 'Nhập tên truyện mới...';
+        searchInput.value = '';
+        searchInput.focus();
+      }
+    }
+
+    // Toggle menu
+    trigger.addEventListener('click', function () {
+      var hidden = menu.classList.toggle('is-hidden');
+      trigger.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+      if (!hidden) {
+        isAddingNew = false;
+        if (searchInput) { searchInput.placeholder = 'Tìm truyện...'; searchInput.value = ''; }
+        renderList('');
+        if (searchInput) searchInput.focus();
+      }
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function (e) {
+      if (!selectRoot.contains(e.target)) {
+        menu.classList.add('is-hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Search filter
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        if (isAddingNew) {
+          // Typing in "add new" mode → update hidden input
+          if (titleInput) titleInput.value = searchInput.value.trim();
+          trigger.innerHTML = (searchInput.value.trim() || 'Nhập tên truyện mới...') + ' <i class="fa-solid fa-chevron-down"></i>';
+          render();
+          return;
+        }
+        renderList(searchInput.value);
+      });
+      searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (isAddingNew || !list.querySelector('.story-name-select__item')) {
+            // No matches → create new
+            var val = searchInput.value.trim();
+            if (val) {
+              if (titleInput) titleInput.value = val;
+              trigger.innerHTML = escapeHtml(val) + ' <i class="fa-solid fa-chevron-down"></i>';
+              trigger.classList.add('is-selected');
+              menu.classList.add('is-hidden');
+              isAddingNew = false;
+              render();
+            }
+          }
+        }
+      });
+    }
+
+    // Click on story item
+    list.addEventListener('click', function (e) {
+      var btn = e.target.closest('.story-name-select__item');
+      if (!btn) return;
+      var id = btn.getAttribute('data-story-id');
+      var story = allStories.find(function (s) { return String(s.id) === id; });
+      if (story) selectStory(story);
+    });
+
+    // Add new button
+    if (addBtn) {
+      addBtn.addEventListener('click', function () {
+        startAddNew();
+      });
+    }
+  })();
+
   function extractYoutubeId(value) {
     var raw = String(value || '').trim();
     if (!raw) return '';
