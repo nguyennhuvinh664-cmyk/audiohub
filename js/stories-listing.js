@@ -135,6 +135,18 @@
     var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
 
     nodes.forEach(function (node) {
+      // For playlist cards, try IndexedDB with coverKey (playlist.id won't have a cover in Storage)
+      var isPlaylist = node.closest('[data-playlist-card]');
+      if (isPlaylist) {
+        var pk = node.getAttribute('data-cover-key');
+        if (pk && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+          window.AudioHubStoryCover.get(pk).then(function (blob) {
+            if (blob) applyCoverUrl(node, blob);
+          }).catch(function () {});
+        }
+        return;
+      }
+
       var storyId = (node.closest('[data-story-id]') || node).getAttribute('data-story-id') || '';
       if (!storyId || storyId.length < 5) return;
 
