@@ -494,9 +494,48 @@
         return;
       }
 
-      // Cloud stories: direct Storage URL
+      // Cloud stories: direct Storage URL with self-healing fallback
       var url = getCoverUrl(id);
-      if (url) applyCoverToThumb(node, url);
+      if (!url) return;
+      applyCoverToThumb(node, url);
+
+      // If cover missing from Storage → onerror: fetch from DB, upload to Storage
+      node.addEventListener('error', function handler() {
+        node.removeEventListener('error', handler);
+        var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+        var SUPABASE_REST_DIRECT = SUPABASE_DIRECT + '/rest/v1';
+        var filePath = encodeURIComponent(id) + '/cover';
+        var storageUrl = SUPABASE_STORAGE_DIRECT + filePath;
+        var uploadUrl = SUPABASE_DIRECT + '/storage/v1/object/story-covers/' + filePath;
+
+        fetch(SUPABASE_REST_DIRECT + '/stories?id=eq.' + encodeURIComponent(id) + '&select=cover_data', {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        }).then(function (r) { return r.json(); }).then(function (rows) {
+          var coverData = rows && rows[0] && rows[0].cover_data;
+          if (!coverData) return;
+          // Upload to Storage (POST first, PUT if exists)
+          fetch(uploadUrl, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
+            body: coverData
+          }).then(function (r) {
+            if (r.status === 409) return fetch(uploadUrl, {
+              method: 'PUT',
+              headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
+              body: coverData
+            });
+            return r;
+          }).then(function () {
+            // Apply the cover (fresh Storage URL, bypass cache)
+            applyCoverToThumb(node, storageUrl + '?t=' + Date.now());
+          }).catch(function () {});
+        }).catch(function () {});
+      });
+      // Trigger error check: set a broken src on a hidden img to test the Storage URL
+      var probe = new Image();
+      probe.onerror = function () { node.dispatchEvent(new Event('error')); };
+      probe.onload = function () {}; // already applied, no action needed
+      probe.src = url;
     });
   }
 
