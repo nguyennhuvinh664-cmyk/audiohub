@@ -642,8 +642,23 @@
 }
 
 .story-name-select__list {
-  max-height: 240px;
+  max-height: 280px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.15) transparent;
+}
+
+.story-name-select__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.story-name-select__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.story-name-select__list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.15);
+  border-radius: 3px;
 }
 
 .story-name-select__item {

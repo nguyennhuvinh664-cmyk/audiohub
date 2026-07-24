@@ -85,7 +85,7 @@
       var q = String(query || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
       var filtered = allStories.filter(function (s) {
         if (!q) return true;
-        var title = String(s.title || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+        var title = String(s.title || s.name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
         var author = String(s.author || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
         return title.indexOf(q) >= 0 || author.indexOf(q) >= 0;
       });
