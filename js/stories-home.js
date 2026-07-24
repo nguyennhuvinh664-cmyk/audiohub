@@ -138,6 +138,34 @@
       + '</div></a>';
   }
 
+  /* ── card builder for playlists (series) ─────────────── */
+  function buildPlaylistCardHtml(pl) {
+    var entries = pl.entries || pl.items || [];
+    var count = entries.length;
+    var firstEntry = entries[0] || {};
+    var firstStoryId = String(firstEntry.storyId || firstEntry.key || '');
+    var href = firstStoryId
+      ? '/story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)
+      : '#';
+    var title = String(pl.name || 'Truyện mới');
+    var initials = makeInitials(title);
+    var isDone = String(pl.state || '').trim() === 'done';
+    var badgeText = isDone ? 'Full' : 'Mới';
+    var color = isDone ? '#10b981' : '#f59e0b';
+
+    return '<a href="' + href + '" class="sc" data-playlist-id="' + escapeHtml(pl.id) + '">'
+      + '<div class="sc__th" style="--c:' + color + '" data-cover-story-id="' + escapeHtml(firstStoryId) + '">'
+      + '<span class="bx ' + (isDone ? 'bf' : 'bn') + '">' + badgeText + '</span>'
+      + '<span class="si">' + escapeHtml(initials) + '</span>'
+      + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
+      + '</div>'
+      + '<div class="sc__in">'
+      + '<p class="sc__genre">' + escapeHtml(title) + '</p>'
+      + '<p class="sc__nm">' + escapeHtml(title) + '</p>'
+      + '<p class="sc__mt"><i class="fa-solid fa-layer-group"></i> ' + count + ' tập</p>'
+      + '</div></a>';
+  }
+
   /* ── card updater ────────────────────────────────────── */
   function setCard(card, story) {
     if (!card || !story) return;
@@ -187,6 +215,19 @@
     root.innerHTML = list.map(buildHomeCardHtml).join('');
     Array.prototype.slice.call(root.querySelectorAll('a.sc')).forEach(function (card, index) {
       setCard(card, list[index]);
+    });
+  }
+
+  /* ── render playlist list ────────────────────────────── */
+  function renderPlaylistCardList(root, playlists) {
+    if (!root) return;
+    var list = (playlists || []).filter(function (pl) {
+      return pl && pl.id && pl.name;
+    });
+    root.innerHTML = list.map(buildPlaylistCardHtml).join('');
+    // Load covers for playlist cards
+    Array.prototype.slice.call(root.querySelectorAll('[data-cover-story-id]')).forEach(function (node) {
+      loadHomeCovers();
     });
   }
 
@@ -439,7 +480,33 @@
       return story.isCompleted;
     });
 
-    renderCardList(document.querySelector('.cgrid'), newStories.slice(0, 12));
+    // Load playlists (series) for main grid instead of individual stories
+    var playlists = [];
+    try {
+      var plRaw = window.localStorage.getItem('audiohub-playlists-v1');
+      var plParsed = plRaw ? JSON.parse(plRaw) : [];
+      playlists = Array.isArray(plParsed) ? plParsed : [];
+    } catch (e) {}
+
+    // Sort playlists by createdAt (newest first)
+    playlists.sort(function (a, b) {
+      return parseTime(b.createdAt) - parseTime(a.createdAt);
+    });
+
+    // Filter by genre if selected (match first story's genre)
+    if (selectedGenre) {
+      playlists = playlists.filter(function (pl) {
+        var entries = pl.entries || pl.items || [];
+        if (!entries.length) return false;
+        var firstStoryId = String(entries[0].storyId || entries[0].key || '');
+        if (!firstStoryId) return false;
+        var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
+          ? window.AudioHubStories.getById(firstStoryId) : null;
+        return story && normalizeGenre(story.genre) === selNorm;
+      });
+    }
+
+    renderPlaylistCardList(document.querySelector('.cgrid'), playlists.slice(0, 12));
     renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
     renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
 
