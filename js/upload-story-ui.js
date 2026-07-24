@@ -860,25 +860,8 @@
         coverLabel.textContent = 'Ảnh bìa đã chọn';
       }
       render();
-
-      // Early upload cover to backend so it persists
-      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
-        window.AudioHubStoryCover.put(file).then(function (coverKey) {
-          if (coverKey) state.coverKey = coverKey;
-        }).catch(function () {});
-      }
+      // Cover will be uploaded to Storage after publish (with storyId)
     });
-
-    // Also try to store via API (for backward compatibility)
-    var storePromise = window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function'
-      ? window.AudioHubStoryCover.put(file)
-      : Promise.reject(new Error('missing cover store'));
-
-    storePromise
-      .then(function (coverKey) {
-        state.coverKey = coverKey;
-      })
-      .catch(function () {});
   }
 
   function setAudioPreview(file) {
@@ -1194,6 +1177,17 @@
       return;
     }
 
+    // Validate BEFORE upsert
+    if (published && !state.coverData && !state.coverKey) {
+      showBanner('Ảnh bìa chưa lưu xong. Đợi vài giây rồi bấm lại.', false);
+      return;
+    }
+
+    if (published && !state.audioKey) {
+      showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
+      return;
+    }
+
     setSubmitting(true);
     window.setTimeout(function () {
       setSubmitting(false);
@@ -1218,24 +1212,31 @@
       return;
     }
 
-    if (published && !state.coverData && !state.coverKey) {
-      showBanner('Ảnh bìa chưa lưu xong. Đợi vài giây rồi bấm lại.', false);
-      return;
-    }
-
-    if (published && !state.audioKey) {
-      showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
-      return;
-    }
-
-    // After story is synced to backend with real CUID, re-upload cover to Storage
+    // After story is synced to backend with real CUID, upload cover to Storage + DB
     if (published && story && story.id && !String(story.id).startsWith('s_') && state.coverData && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
       // Convert base64 dataUrl to blob, then upload to Storage with story.id
       try {
         var coverBlob = dataUrlToBlob(state.coverData);
         if (coverBlob) {
-          window.AudioHubStoryCover.put(coverBlob, story.id).catch(function () {});
+          window.AudioHubStoryCover.put(coverBlob, story.id).then(function () {
+            console.log('[upload] Cover uploaded to Storage for', story.id);
+          }).catch(function (err) {
+            console.warn('[upload] Cover upload failed:', err);
+          });
         }
+      } catch (e) {}
+
+      // Also PATCH cover_data to DB directly (for self-heal on other devices)
+      try {
+        var SUPABASE_REST_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1';
+        var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+        fetch(SUPABASE_REST_DIRECT + '/stories?id=eq.' + encodeURIComponent(story.id), {
+          method: 'PATCH',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cover_data: state.coverData })
+        }).then(function (r) {
+          if (r.ok) console.log('[upload] cover_data saved to DB for', story.id);
+        }).catch(function () {});
       } catch (e) {}
     }
 
