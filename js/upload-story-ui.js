@@ -18,6 +18,7 @@
     var trigger = document.querySelector('[data-story-name-trigger]');
     var menu = document.querySelector('[data-story-name-menu]');
     var list = document.querySelector('[data-story-name-list]');
+    var searchInput = document.querySelector('[data-story-name-search]');
     var addBtn = document.querySelector('[data-story-name-add]');
     if (!selectRoot || !trigger || !menu || !list) return;
 
@@ -120,9 +121,17 @@
       trigger.setAttribute('aria-expanded', hidden ? 'false' : 'true');
       if (!hidden) {
         isAddingNew = false;
+        if (searchInput) { searchInput.value = ''; searchInput.focus(); }
         renderList('');
       }
     });
+
+    // Search filter
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        renderList(searchInput.value);
+      });
+    }
 
     // Close on outside click
     document.addEventListener('click', function (e) {
