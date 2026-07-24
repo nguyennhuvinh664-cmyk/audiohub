@@ -43,7 +43,35 @@
   /* ── Supabase direct URL (bypass proxy, faster) ──────── */
   var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
   var SUPABASE_STORAGE_DIRECT = SUPABASE_DIRECT + '/storage/v1/object/public/story-covers/';
+  var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
   var COVER_CACHE_KEY = 'audiohub-cover-cache-v1';
+  var PLAYLISTS_STORAGE_URL = SUPABASE_STORAGE_DIRECT + 'playlists/index.json';
+  var PLAYLISTS_LOCAL_KEY = 'audiohub-playlists-v1';
+
+  /** Fetch playlists from Supabase Storage (shared across all users) */
+  function fetchPlaylistsFromStorage() {
+    return fetch(PLAYLISTS_STORAGE_URL + '?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (data) { return Array.isArray(data) ? data : []; })
+      .catch(function () { return []; });
+  }
+
+  /** Load playlists: try Storage first, fallback to localStorage */
+  function loadPlaylists() {
+    return fetchPlaylistsFromStorage().then(function (storagePlaylists) {
+      if (storagePlaylists.length > 0) {
+        // Sync to localStorage for offline fallback
+        try { localStorage.setItem(PLAYLISTS_LOCAL_KEY, JSON.stringify(storagePlaylists)); } catch (e) {}
+        return storagePlaylists;
+      }
+      // Fallback to localStorage
+      try {
+        var raw = localStorage.getItem(PLAYLISTS_LOCAL_KEY) || '';
+        var parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) { return []; }
+    });
+  }
 
   function readCoverCache() {
     try { return JSON.parse(localStorage.getItem(COVER_CACHE_KEY) || '{}'); } catch (e) { return {}; }
@@ -480,33 +508,28 @@
       return story.isCompleted;
     });
 
-    // Load playlists (series) for main grid instead of individual stories
-    var playlists = [];
-    try {
-      var plRaw = window.localStorage.getItem('audiohub-playlists-v1');
-      var plParsed = plRaw ? JSON.parse(plRaw) : [];
-      playlists = Array.isArray(plParsed) ? plParsed : [];
-    } catch (e) {}
-
-    // Sort playlists by createdAt (newest first)
-    playlists.sort(function (a, b) {
-      return parseTime(b.createdAt) - parseTime(a.createdAt);
-    });
-
-    // Filter by genre if selected (match first story's genre)
-    if (selectedGenre) {
-      playlists = playlists.filter(function (pl) {
-        var entries = pl.entries || pl.items || [];
-        if (!entries.length) return false;
-        var firstStoryId = String(entries[0].storyId || entries[0].key || '');
-        if (!firstStoryId) return false;
-        var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
-          ? window.AudioHubStories.getById(firstStoryId) : null;
-        return story && normalizeGenre(story.genre) === selNorm;
+    // Load playlists (series) from Supabase Storage (shared) or localStorage
+    loadPlaylists().then(function (playlists) {
+      // Sort playlists by createdAt (newest first)
+      playlists.sort(function (a, b) {
+        return parseTime(b.createdAt) - parseTime(a.createdAt);
       });
-    }
 
-    renderPlaylistCardList(document.querySelector('.cgrid'), playlists.slice(0, 12));
+      // Filter by genre if selected (match first story's genre)
+      if (selectedGenre) {
+        playlists = playlists.filter(function (pl) {
+          var entries = pl.entries || pl.items || [];
+          if (!entries.length) return false;
+          var firstStoryId = String(entries[0].storyId || entries[0].key || '');
+          if (!firstStoryId) return false;
+          var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
+            ? window.AudioHubStories.getById(firstStoryId) : null;
+          return story && normalizeGenre(story.genre) === selNorm;
+        });
+      }
+
+      renderPlaylistCardList(document.querySelector('.cgrid'), playlists.slice(0, 12));
+    });
     renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
     renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
 

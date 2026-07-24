@@ -12,6 +12,35 @@
   var youtubeInput = document.querySelector('[data-upload-youtube-url]');
   var visibilitySelect = document.querySelector('[data-upload-visibility]');
 
+  /* ── Playlist sync to Supabase Storage ── */
+  var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+  var PLAYLISTS_STORAGE_URL = SUPABASE_DIRECT + '/storage/v1/object/story-covers/playlists/index.json';
+  var PLAYLIST_KEY = 'audiohub-playlists-v1';
+
+  /** Sync playlists from localStorage to Supabase Storage */
+  function syncPlaylistsToStorage() {
+    try {
+      var raw = localStorage.getItem(PLAYLIST_KEY) || '';
+      var playlists = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(playlists)) return;
+
+      fetch(PLAYLISTS_STORAGE_URL, {
+        method: 'PUT',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(playlists)
+      }).then(function (r) {
+        if (r.ok) console.log('[upload] Playlists synced to Storage');
+      }).catch(function (e) {
+        console.warn('[upload] Playlist sync failed:', e);
+      });
+    } catch (e) {}
+  }
+
   /* ── Story name select dropdown ── */
   (function initStoryNameSelect() {
     var selectRoot = document.querySelector('[data-story-name-select]');
@@ -166,6 +195,7 @@
         };
         playlists.push(newPlaylist);
         localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+        syncPlaylistsToStorage();
       } catch (e) {}
 
       // Set hidden input value
@@ -1290,6 +1320,7 @@
               });
               matchedPl.entries = entries;
               localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+              syncPlaylistsToStorage();
               console.log('[upload] Added story to playlist:', matchedPl.name);
             }
           }
