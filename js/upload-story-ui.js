@@ -18,7 +18,6 @@
     var trigger = document.querySelector('[data-story-name-trigger]');
     var menu = document.querySelector('[data-story-name-menu]');
     var list = document.querySelector('[data-story-name-list]');
-    var searchInput = document.querySelector('[data-story-name-search]');
     var addBtn = document.querySelector('[data-story-name-add]');
     if (!selectRoot || !trigger || !menu || !list) return;
 
@@ -134,13 +133,9 @@
       if (titleInput) { titleInput.value = ''; titleInput.focus(); }
       trigger.innerHTML = 'Nhập tên truyện mới... <i class="fa-solid fa-chevron-down"></i>';
       trigger.classList.remove('is-selected');
-      list.innerHTML = '';
-      // Focus on search input as text input
-      if (searchInput) {
-        searchInput.placeholder = 'Nhập tên truyện mới...';
-        searchInput.value = '';
-        searchInput.focus();
-      }
+      list.innerHTML = '<div class="story-name-select__empty">Gõ tên truyện mới ở ô Tên truyện bên dưới</div>';
+      menu.classList.add('is-hidden');
+      trigger.setAttribute('aria-expanded', 'false');
     }
 
     // Toggle menu
@@ -149,9 +144,7 @@
       trigger.setAttribute('aria-expanded', hidden ? 'false' : 'true');
       if (!hidden) {
         isAddingNew = false;
-        if (searchInput) { searchInput.placeholder = 'Tìm truyện...'; searchInput.value = ''; }
         renderList('');
-        if (searchInput) searchInput.focus();
       }
     });
 
@@ -162,37 +155,6 @@
         trigger.setAttribute('aria-expanded', 'false');
       }
     });
-
-    // Search filter
-    if (searchInput) {
-      searchInput.addEventListener('input', function () {
-        if (isAddingNew) {
-          // Typing in "add new" mode → update hidden input
-          if (titleInput) titleInput.value = searchInput.value.trim();
-          trigger.innerHTML = (searchInput.value.trim() || 'Nhập tên truyện mới...') + ' <i class="fa-solid fa-chevron-down"></i>';
-          render();
-          return;
-        }
-        renderList(searchInput.value);
-      });
-      searchInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (isAddingNew || !list.querySelector('.story-name-select__item')) {
-            // No matches → create new
-            var val = searchInput.value.trim();
-            if (val) {
-              if (titleInput) titleInput.value = val;
-              trigger.innerHTML = escapeHtml(val) + ' <i class="fa-solid fa-chevron-down"></i>';
-              trigger.classList.add('is-selected');
-              menu.classList.add('is-hidden');
-              isAddingNew = false;
-              render();
-            }
-          }
-        }
-      });
-    }
 
     // Click on story item
     list.addEventListener('click', function (e) {
