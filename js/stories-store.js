@@ -657,7 +657,7 @@
     if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.isAvailable !== 'function') return;
     if (!window.AudioHubSupabase.isAvailable()) return;
 
-    var SUPABASE_REST = '/supabase/rest/v1';
+    var SUPABASE_REST = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1';
     var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
 
     stories.forEach(function (story) {
@@ -665,7 +665,7 @@
       if (String(story.id).startsWith('s_')) return; // skip drafts
       if (!story.coverData) return; // need coverData to upload
 
-      // Upload coverData to Supabase
+      // Upload coverData to Supabase (direct, bypass broken proxy)
       fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(story.id), {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },

@@ -187,7 +187,7 @@
     if (!window.AudioHubSupabase || !window.AudioHubSupabase.isAvailable()) return;
     var ids = items.map(function (i) { return i.id; });
     var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
-    var url = '/supabase/rest/v1/stories?' + filter + '&select=id,cover_data';
+    var url = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?' + filter + '&select=id,cover_data';
     fetch(url, {
       headers: {
         'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
