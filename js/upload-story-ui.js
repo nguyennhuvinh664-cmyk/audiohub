@@ -76,7 +76,7 @@
       filtered.forEach(function (s) {
         var title = escapeHtml(s.title);
         var genre = escapeHtml(s.genre || '');
-        var tag = s._isPlaylist ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Playlist</span>' : '';
+        var tag = s._isPlaylist ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Truyện</span>' : '';
         html += '<button type="button" class="story-name-select__item' + (s._isPlaylist ? ' story-name-select__item--playlist' : '') + '" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '" data-is-playlist="' + (s._isPlaylist ? '1' : '0') + '">' +
           '<span class="story-name-select__item-title">' + title + '</span>' +
           '<span class="story-name-select__item-meta">' + tag + (genre && !s._isPlaylist ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span>' +

@@ -282,7 +282,7 @@
       storiesDraftsNote.textContent = drafts.length ? '' : 'Chưa có nháp nào.';
     }
     if (document.querySelector('[data-content-tab="playlist"]')) {
-      document.querySelector('[data-content-tab="playlist"]').textContent = 'Danh sách phát';
+      document.querySelector('[data-content-tab="playlist"]').textContent = 'Truyện đã lưu';
     }
   }
 
@@ -467,7 +467,7 @@
 
         if (!playlists.length) {
           // show mini toast
-          showToast('Bạn chưa có playlist nào. Hãy tạo trong tab "Danh sách phát".');
+          showToast('Bạn chưa có truyện nào. Hãy tạo trong tab "Truyện đã lưu".');
           return;
         }
 
@@ -487,7 +487,7 @@
         modal.innerHTML = '' +
           '<div class="pl-picker">' +
             '<div class="pl-picker__header">' +
-              '<span>Lưu vào playlist</span>' +
+              '<span>Lưu vào truyện</span>' +
               '<button type="button" class="pl-picker__close" id="pl-picker-close"><i class="fa-solid fa-xmark"></i></button>' +
             '</div>' +
             '<ul class="pl-picker__list">' +
@@ -866,7 +866,7 @@
             '<button type="button" class="yt-card__menu-btn" data-story-menu="' + escapeHtml(storyId) + '" aria-label="Tùy chọn" title="Tùy chọn"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
             '<div class="yt-card__menu is-hidden" data-story-menu-panel="' + escapeHtml(storyId) + '">' +
               '<a href="' + escapeHtml(storyHref(story)) + '" class="yt-card__menu-item"><i class="fa-solid fa-eye"></i> Xem truyện</a>' +
-              '<button type="button" class="yt-card__menu-item" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '"><i class="fa-solid fa-list"></i> Thêm vào playlist</button>' +
+              '<button type="button" class="yt-card__menu-item" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '"><i class="fa-solid fa-list"></i> Thêm vào truyện</button>' +
               '<a href="' + escapeHtml(editHref) + '" class="yt-card__menu-item"><i class="fa-solid fa-pen"></i> Chỉnh sửa</a>' +
               '<button type="button" class="yt-card__menu-item yt-card__menu-item--danger" data-story-delete-one="' + escapeHtml(storyId) + '"><i class="fa-solid fa-trash"></i> Xóa truyện</button>' +
             '</div>' +
@@ -1120,8 +1120,8 @@
     if (playlistNote) playlistNote.classList.toggle('is-hidden', true);
 
     if (!list.length) {
-      playlistListMount.innerHTML = '<p class="playlist-empty">Chưa có playlist nào. Tạo playlist đầu tiên của bạn.</p>';
-      if (playlistDetailMount) playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một playlist để xem chi tiết.</p>';
+      playlistListMount.innerHTML = '<p class="playlist-empty">Chưa có truyện nào. Tạo truyện đầu tiên của bạn.</p>';
+      if (playlistDetailMount) playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một truyện để xem chi tiết.</p>';
       return;
     }
 
@@ -1153,7 +1153,7 @@
 
       return '' +
         '<div class="pl-card' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
-          '<div class="pl-card__name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Playlist') + '</div>' +
+          '<div class="pl-card__name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Truyện') + '</div>' +
           '<div class="pl-card__meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
           '<div class="pl-card__actions">' +
             '<div class="pl-card__state-wrap">' +
@@ -1166,7 +1166,7 @@
               '</div>' +
             '</div>' +
             '<button type="button" class="pl-icon-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
-            '<button type="button" class="pl-icon-btn pl-icon-btn--danger" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa playlist"><i class="fa-solid fa-trash"></i></button>' +
+            '<button type="button" class="pl-icon-btn pl-icon-btn--danger" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa truyện"><i class="fa-solid fa-trash"></i></button>' +
           '</div>' +
         '</div>';
     }).join('');
@@ -1217,19 +1217,19 @@
 
     function renderContent() {
       if (!activePlaylistId) {
-        playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một playlist để xem chi tiết.</p>';
+        playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một truyện để xem chi tiết.</p>';
         return;
       }
       var list = readPlaylists();
       var pl = null;
       list.forEach(function (p) { if (p.id === activePlaylistId) pl = p; });
       if (!pl) {
-        playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist không tồn tại.</p>';
+        playlistDetailMount.innerHTML = '<p class="playlist-empty">Truyện không tồn tại.</p>';
         return;
       }
       var entries = pl.entries || [];
       if (!entries.length) {
-        playlistDetailMount.innerHTML = '<p class="playlist-empty">Playlist chưa có truyện nào.</p>';
+        playlistDetailMount.innerHTML = '<p class="playlist-empty">Truyện chưa có nội dung nào.</p>';
         return;
       }
 
@@ -1279,7 +1279,7 @@
             '</div>' +
             '<div class="playlist-entry-actions">' +
               '<a href="' + escapeHtml(entryHref) + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
-              '<button type="button" class="playlist-btn playlist-btn--remove" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi playlist"><i class="fa-solid fa-xmark"></i></button>' +
+              '<button type="button" class="playlist-btn playlist-btn--remove" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi truyện"><i class="fa-solid fa-xmark"></i></button>' +
             '</div>' +
           '</div>';
       }).join('');
@@ -1390,7 +1390,7 @@
       var deleteBtn = event.target.closest('[data-playlist-delete]');
       if (deleteBtn) {
         var plId = deleteBtn.getAttribute('data-playlist-delete');
-        if (plId && window.confirm('Xóa playlist này?')) {
+        if (plId && window.confirm('Xóa truyện này?')) {
           deletePlaylist(plId);
           renderPlaylist();
         }

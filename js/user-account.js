@@ -305,7 +305,7 @@
       return String(p.createdBy || 'user') === 'user';
     });
     if (!playlists.length) {
-      container.innerHTML = '<div class="ua-empty"><i class="fa-solid fa-list"></i><p>Chưa có playlist nào</p></div>';
+      container.innerHTML = '<div class="ua-empty"><i class="fa-solid fa-list"></i><p>Chưa có truyện nào</p></div>';
       return;
     }
 
@@ -324,7 +324,7 @@
         + '<span class="ua-pl-card__badge">' + badgeText + '</span>'
         + '</div>'
         + '<div class="ua-pl-card__body">'
-        + '<div class="ua-pl-card__title">' + esc(pl.name || 'Playlist') + '</div>'
+        + '<div class="ua-pl-card__title">' + esc(pl.name || 'Truyện') + '</div>'
         + '<div class="ua-pl-card__meta">' + count + ' truyện</div>'
         + '</div>'
         + '</a>';
@@ -682,7 +682,7 @@
     if (!btn || !input) return;
     btn.addEventListener('click', function() {
       var name = input.value.trim();
-      if (!name) { showToast('Nhập tên playlist'); return; }
+      if (!name) { showToast('Nhập tên truyện'); return; }
       var playlists = getPlaylists();
       playlists.push({
         id: 'pl_' + Date.now(),
@@ -697,7 +697,7 @@
       if (form) form.hidden = true;
       renderPlaylists();
       renderProfile();
-      showToast('Đã tạo playlist "' + name + '"');
+      showToast('Đã tạo truyện "' + name + '"');
     });
   });
 
