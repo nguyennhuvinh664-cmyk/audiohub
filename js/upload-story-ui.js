@@ -16,6 +16,7 @@
   (function initStoryNameSelect() {
     var selectRoot = document.querySelector('[data-story-name-select]');
     var trigger = document.querySelector('[data-story-name-trigger]');
+    var nameInput = document.querySelector('[data-story-name-input]');
     var menu = document.querySelector('[data-story-name-menu]');
     var list = document.querySelector('[data-story-name-list]');
     var searchInput = document.querySelector('[data-story-name-search]');
@@ -107,12 +108,36 @@
 
     function startAddNew() {
       isAddingNew = true;
-      if (titleInput) { titleInput.value = ''; titleInput.focus(); }
-      trigger.innerHTML = 'Nhập tên truyện mới... <i class="fa-solid fa-chevron-down"></i>';
-      trigger.classList.remove('is-selected');
-      list.innerHTML = '<div class="story-name-select__empty">Gõ tên truyện mới ở ô Tên truyện bên dưới</div>';
+      // Hide trigger, show text input
+      trigger.classList.add('is-hidden');
+      if (nameInput) {
+        nameInput.classList.remove('is-hidden');
+        nameInput.value = '';
+        nameInput.focus();
+      }
       menu.classList.add('is-hidden');
       trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function confirmAddNew() {
+      var val = nameInput ? nameInput.value.trim() : '';
+      if (!val) return;
+      // Set hidden input value
+      if (titleInput) titleInput.value = val;
+      // Update trigger text
+      trigger.innerHTML = escapeHtml(val) + ' <i class="fa-solid fa-chevron-down"></i>';
+      trigger.classList.add('is-selected');
+      // Hide input, show trigger
+      if (nameInput) nameInput.classList.add('is-hidden');
+      trigger.classList.remove('is-hidden');
+      isAddingNew = false;
+      render();
+    }
+
+    function cancelAddNew() {
+      if (nameInput) nameInput.classList.add('is-hidden');
+      trigger.classList.remove('is-hidden');
+      isAddingNew = false;
     }
 
     // Toggle menu
@@ -130,6 +155,28 @@
     if (searchInput) {
       searchInput.addEventListener('input', function () {
         renderList(searchInput.value);
+      });
+    }
+
+    // Name input: Enter to confirm, Escape to cancel
+    if (nameInput) {
+      nameInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirmAddNew();
+        } else if (e.key === 'Escape') {
+          cancelAddNew();
+        }
+      });
+      nameInput.addEventListener('blur', function () {
+        // Small delay to allow click events to fire first
+        setTimeout(function () {
+          if (isAddingNew && nameInput && nameInput.value.trim()) {
+            confirmAddNew();
+          } else if (isAddingNew) {
+            cancelAddNew();
+          }
+        }, 150);
       });
     }
 
