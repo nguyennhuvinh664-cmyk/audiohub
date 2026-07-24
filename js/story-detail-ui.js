@@ -690,7 +690,7 @@
         var dataUrl = reader.result;
         applyCoverUrl(dataUrl);
         // Persist to Supabase
-        var SUPABASE_REST = '/supabase/rest/v1';
+        var SUPABASE_REST = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1';
         var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
         fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(storyId), {
           method: 'PATCH',
@@ -798,7 +798,7 @@
   // Also self-heals: if cover exists in IndexedDB but not in Supabase, uploads it
   function fetchMissingCoversFromSupabase() {
     if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.fetchStoryById !== 'function') return;
-    var SUPABASE_REST = '/supabase/rest/v1';
+    var SUPABASE_REST = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1';
     var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
     // Find all thumb elements with data-cover-story-id
     var nodes = document.querySelectorAll('[data-cover-story-id]');
