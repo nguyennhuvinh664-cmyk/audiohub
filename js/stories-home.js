@@ -100,12 +100,8 @@
       return;
     }
 
-    // 4) Fast path: direct Supabase Storage URL (no fetch needed, browser loads directly)
-    var directUrl = getCoverUrl(story.id);
-    if (directUrl) {
-      applyCoverToThumb(thumb, directUrl);
-      return;
-    }
+    // 4) Cloud story: let loadHomeCovers() handle Storage URL with probe + self-heal
+    //    (don't apply Storage URL here — it would skip the probe in loadHomeCovers)
 
     // 5) Legacy: coverKey → IndexedDB
     if (story.coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
