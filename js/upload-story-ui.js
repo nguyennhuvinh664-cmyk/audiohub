@@ -171,6 +171,9 @@
         startAddNew();
       });
     }
+
+    // Load stories on init
+    fetchAllStories();
   })();
 
   function extractYoutubeId(value) {
