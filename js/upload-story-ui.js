@@ -122,6 +122,24 @@
     function confirmAddNew() {
       var val = nameInput ? nameInput.value.trim() : '';
       if (!val) return;
+
+      // Create playlist in localStorage
+      var PLAYLIST_KEY = 'audiohub-playlists-v1';
+      try {
+        var raw = localStorage.getItem(PLAYLIST_KEY) || '';
+        var playlists = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(playlists)) playlists = [];
+        var newPlaylist = {
+          id: 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now(),
+          name: val,
+          entries: [],
+          createdBy: 'admin',
+          createdAt: new Date().toISOString()
+        };
+        playlists.push(newPlaylist);
+        localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+      } catch (e) {}
+
       // Set hidden input value
       if (titleInput) titleInput.value = val;
       // Update trigger text
@@ -131,7 +149,11 @@
       if (nameInput) nameInput.classList.add('is-hidden');
       trigger.classList.remove('is-hidden');
       isAddingNew = false;
-      render();
+
+      // Refresh playlist list and select the new one
+      fetchAllStories();
+      var created = allStories.find(function (s) { return s.title === val; });
+      if (created) selectStory(created);
     }
 
     function cancelAddNew() {
