@@ -44,6 +44,29 @@
           }).catch(function () { return []; })
         );
       }
+      // Playlists from localStorage
+      try {
+        var plRaw = localStorage.getItem('audiohub-playlists-v1') || '';
+        var playlists = plRaw ? JSON.parse(plRaw) : [];
+        if (Array.isArray(playlists)) {
+          playlists.forEach(function (pl) {
+            if (!pl || !pl.name) return;
+            var entries = pl.entries || pl.items || [];
+            var firstStoryId = entries[0] ? String(entries[0].storyId || entries[0].key || '') : '';
+            sources.push(Promise.resolve([{
+              id: pl.id || ('pl_' + pl.name),
+              title: pl.name,
+              author: 'Admin',
+              genre: 'Playlist',
+              description: entries.length + ' truyện',
+              _isPlaylist: true,
+              _firstStoryId: firstStoryId,
+              _entries: entries
+            }]));
+          });
+        }
+      } catch (e) {}
+
       Promise.all(sources).then(function (results) {
         var merged = [];
         var seen = {};
@@ -76,9 +99,10 @@
       filtered.forEach(function (s) {
         var title = escapeHtml(s.title);
         var genre = escapeHtml(s.genre || '');
-        html += '<button type="button" class="story-name-select__item" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '">' +
+        var tag = s._isPlaylist ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Playlist</span>' : '';
+        html += '<button type="button" class="story-name-select__item' + (s._isPlaylist ? ' story-name-select__item--playlist' : '') + '" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '" data-is-playlist="' + (s._isPlaylist ? '1' : '0') + '">' +
           '<span class="story-name-select__item-title">' + title + '</span>' +
-          (genre ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') +
+          '<span class="story-name-select__item-meta">' + tag + (genre && !s._isPlaylist ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span>' +
           '</button>';
       });
       if (!filtered.length && !isAddingNew) {
