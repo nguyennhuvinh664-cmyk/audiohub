@@ -286,6 +286,8 @@
 
     // Load stories on init
     fetchAllStories();
+    // Sync existing playlists to Storage on page load
+    syncPlaylistsToStorage();
   })();
 
   function dataUrlToBlob(dataUrl) {
