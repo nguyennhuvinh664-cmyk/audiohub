@@ -135,7 +135,7 @@
     var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
 
     nodes.forEach(function (node) {
-      var storyId = node.getAttribute('data-story-id') || '';
+      var storyId = (node.closest('[data-story-id]') || node).getAttribute('data-story-id') || '';
       if (!storyId || storyId.length < 5) return;
 
       // Skip if cover already applied
