@@ -128,87 +128,66 @@
     }
   }
 
-  var LISTING_SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/';
 
   function hydrateCovers(container) {
     var nodes = Array.prototype.slice.call(container.querySelectorAll('[data-cover-key]'));
-    var missingItems = [];
+    var LISTING_SUPABASE_DIRECT_STORAGE = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/';
+    var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+
     nodes.forEach(function (node) {
-      // 1) Try inline coverData first (fast, works in incognito)
-      var coverData = node.getAttribute('data-cover-data');
-      if (coverData) {
-        try {
-          node.style.background = '';
-          node.style.backgroundImage = 'url("' + coverData + '")';
-          node.style.backgroundSize = 'cover';
-          node.style.backgroundPosition = 'center';
-        } catch (e) {}
-        return;
-      }
-
-      // 2) Direct Supabase Storage URL by story ID (fastest, no fetch needed)
       var storyId = node.getAttribute('data-story-id') || '';
-      if (storyId && storyId.length >= 10) {
-        var directUrl = LISTING_SUPABASE_DIRECT + encodeURIComponent(storyId) + '/cover';
-        try {
-          node.style.background = '';
-          node.style.backgroundImage = 'url("' + directUrl + '")';
-          node.style.backgroundSize = 'cover';
-          node.style.backgroundPosition = 'center';
-        } catch (e) {}
-        missingItems.push({ id: storyId, node: node });
+      if (!storyId || storyId.length < 5) return;
+
+      // Skip if cover already applied
+      if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
+
+      // Local stories (s_ prefix): try IndexedDB
+      if (storyId.indexOf('s_') === 0 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        window.AudioHubStoryCover.get(storyId).then(function (blob) {
+          if (blob) applyCoverUrl(node, blob);
+        }).catch(function () {});
         return;
       }
 
-      // 3) Legacy: coverKey → IndexedDB
-      var key = node.getAttribute('data-cover-key');
-      if (key && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-        window.AudioHubStoryCover.get(key)
-          .then(function (blob) {
-            if (blob) applyCoverUrl(node, blob);
-          })
-          .catch(function () {});
-      }
+      // Cloud stories: direct Storage URL with self-healing
+      var url = LISTING_SUPABASE_DIRECT_STORAGE + encodeURIComponent(storyId) + '/cover';
+      node.style.background = '';
+      node.style.backgroundImage = 'url("' + url + '")';
+      node.style.backgroundSize = 'cover';
+      node.style.backgroundPosition = 'center';
+
+      // Probe: if Storage URL 404, fetch from DB + upload to Storage
+      var probe = new Image();
+      probe.onerror = function () {
+        var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+        var SUPABASE_REST = SUPABASE_DIRECT + '/rest/v1';
+        var filePath = encodeURIComponent(storyId) + '/cover';
+        var storageUrl = LISTING_SUPABASE_DIRECT_STORAGE + filePath;
+        var uploadUrl = SUPABASE_DIRECT + '/storage/v1/object/story-covers/' + filePath;
+
+        fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(storyId) + '&select=cover_data', {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        }).then(function (r) { return r.json(); }).then(function (rows) {
+          var coverData = rows && rows[0] && rows[0].cover_data;
+          if (!coverData) return;
+          fetch(uploadUrl, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
+            body: coverData
+          }).then(function (r) {
+            if (r.status === 409) return fetch(uploadUrl, {
+              method: 'PUT',
+              headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
+              body: coverData
+            });
+            return r;
+          }).then(function () {
+            node.style.backgroundImage = 'url("' + storageUrl + '?t=' + Date.now() + '")';
+          }).catch(function () {});
+        }).catch(function () {});
+      };
+      probe.src = url;
     });
-
-    // Self-healing: after 3s, fetch cover_data from Supabase for covers that failed
-    if (missingItems.length > 0) {
-      setTimeout(function () {
-        var stillMissing = missingItems.filter(function (item) {
-          return !item.node.style.backgroundImage || item.node.style.backgroundImage.indexOf('gradient') !== -1;
-        });
-        if (stillMissing.length === 0) return;
-        healListingCovers(stillMissing);
-      }, 3000);
-    }
-  }
-
-  function healListingCovers(items) {
-    if (!window.AudioHubSupabase || !window.AudioHubSupabase.isAvailable()) return;
-    var ids = items.map(function (i) { return i.id; });
-    var filter = 'id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
-    var url = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?' + filter + '&select=id,cover_data';
-    fetch(url, {
-      headers: {
-        'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
-        'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
-      }
-    }).then(function (r) { return r.json(); }).then(function (rows) {
-      if (!Array.isArray(rows)) return;
-      var byId = {};
-      rows.forEach(function (r) { byId[r.id] = r; });
-      items.forEach(function (item) {
-        var row = byId[item.id];
-        if (row && row.cover_data) {
-          try {
-            item.node.style.background = '';
-            item.node.style.backgroundImage = 'url("' + row.cover_data + '")';
-            item.node.style.backgroundSize = 'cover';
-            item.node.style.backgroundPosition = 'center';
-          } catch (e) {}
-        }
-      });
-    }).catch(function () {});
   }
 
   function isMember() {
@@ -366,7 +345,9 @@
       return []; // completed.html uses playlist cards, not story cards
     }
 
-    return publicStories;
+    return publicStories.slice().sort(function (a, b) {
+      return parseTime(b.createdAt || b.updatedAt) - parseTime(a.createdAt || a.updatedAt);
+    });
   }
 
   function readSeedStoriesFromCards() {
