@@ -367,7 +367,7 @@
       });
 
       var pagination = document.querySelector('.pagination');
-      var pageSize = 12;
+      var pageSize = 20;
       var totalItems = matchedCards.length;
       var totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
       var requestedPage = typeof forcedPage === 'number' && forcedPage > 0
