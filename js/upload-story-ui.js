@@ -208,6 +208,17 @@
     fetchAllStories();
   })();
 
+  function dataUrlToBlob(dataUrl) {
+    if (!dataUrl || typeof dataUrl !== 'string') return null;
+    var parts = dataUrl.split(',');
+    if (parts.length < 2) return null;
+    var mime = (parts[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+    var raw = atob(parts[1]);
+    var arr = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
   function extractYoutubeId(value) {
     var raw = String(value || '').trim();
     if (!raw) return '';
@@ -1215,6 +1226,17 @@
     if (published && !state.audioKey) {
       showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
       return;
+    }
+
+    // After story is synced to backend with real CUID, re-upload cover to Storage
+    if (published && story && story.id && !String(story.id).startsWith('s_') && state.coverData && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
+      // Convert base64 dataUrl to blob, then upload to Storage with story.id
+      try {
+        var coverBlob = dataUrlToBlob(state.coverData);
+        if (coverBlob) {
+          window.AudioHubStoryCover.put(coverBlob, story.id).catch(function () {});
+        }
+      } catch (e) {}
     }
 
     // After story is synced to backend with real CUID, re-upload audio if needed
