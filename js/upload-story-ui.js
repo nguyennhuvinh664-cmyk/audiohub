@@ -1262,6 +1262,41 @@
       return;
     }
 
+    // After publish: add story to playlist if a playlist name was selected
+    if (published && story && story.id && titleInput && titleInput.value.trim()) {
+      var selectedName = titleInput.value.trim();
+      var PLAYLIST_KEY = 'audiohub-playlists-v1';
+      try {
+        var plRaw = localStorage.getItem(PLAYLIST_KEY) || '';
+        var playlists = plRaw ? JSON.parse(plRaw) : [];
+        if (Array.isArray(playlists)) {
+          var matchedPl = playlists.find(function (pl) {
+            return pl && pl.name && pl.name.toLowerCase() === selectedName.toLowerCase();
+          });
+          if (matchedPl) {
+            // Add story to playlist entries if not already there
+            var entries = matchedPl.entries || [];
+            var alreadyExists = entries.some(function (e) {
+              return String(e.storyId || e.key || '') === String(story.id);
+            });
+            if (!alreadyExists) {
+              entries.push({
+                storyId: story.id,
+                key: story.id,
+                title: story.title || selectedName,
+                author: story.author || '',
+                genre: story.genre || '',
+                addedAt: new Date().toISOString()
+              });
+              matchedPl.entries = entries;
+              localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+              console.log('[upload] Added story to playlist:', matchedPl.name);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
     // After story is synced to backend with real CUID, upload cover to Storage + DB
     if (published && story && story.id && !String(story.id).startsWith('s_') && state.coverData && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
       // Convert base64 dataUrl to blob, then upload to Storage with story.id
