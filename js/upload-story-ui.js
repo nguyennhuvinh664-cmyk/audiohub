@@ -31,8 +31,9 @@
     }
 
     function fetchAllStories() {
-      // Only playlists from localStorage
       var items = [];
+
+      // 1) Playlists from localStorage
       try {
         var plRaw = localStorage.getItem('audiohub-playlists-v1') || '';
         var playlists = plRaw ? JSON.parse(plRaw) : [];
@@ -45,7 +46,7 @@
               id: pl.id || ('pl_' + pl.name),
               title: pl.name,
               author: 'Admin',
-              genre: 'Playlist',
+              genre: 'Truyện',
               description: entries.length + ' truyện',
               _isPlaylist: true,
               _firstStoryId: firstStoryId,
@@ -54,6 +55,33 @@
           });
         }
       } catch (e) {}
+
+      // 2) Stories from localStorage (via AudioHubStories)
+      try {
+        if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+          var stories = window.AudioHubStories.read();
+          if (Array.isArray(stories)) {
+            stories.forEach(function (s) {
+              if (!s || !s.id || !s.title) return;
+              // Skip if already in list (by title match)
+              var exists = items.some(function (item) {
+                return item.title.toLowerCase() === s.title.toLowerCase();
+              });
+              if (exists) return;
+              items.push({
+                id: s.id,
+                title: s.title,
+                author: s.author || 'Ẩn danh',
+                genre: s.genre || '',
+                description: s.description || '',
+                _isPlaylist: false,
+                _story: s
+              });
+            });
+          }
+        }
+      } catch (e) {}
+
       allStories = items;
       renderList('');
     }
@@ -77,9 +105,9 @@
         var title = escapeHtml(s.title);
         var genre = escapeHtml(s.genre || '');
         var tag = s._isPlaylist ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Truyện</span>' : '';
-        html += '<button type="button" class="story-name-select__item' + (s._isPlaylist ? ' story-name-select__item--playlist' : '') + '" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '" data-is-playlist="' + (s._isPlaylist ? '1' : '0') + '">' +
+        html += '<button type="button" class="story-name-select__item" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '" data-is-playlist="' + (s._isPlaylist ? '1' : '0') + '">' +
           '<span class="story-name-select__item-title">' + title + '</span>' +
-          '<span class="story-name-select__item-meta">' + tag + (genre && !s._isPlaylist ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span>' +
+          '<span class="story-name-select__item-meta">' + tag + (genre ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span>' +
           '</button>';
       });
       if (!filtered.length && !isAddingNew) {
