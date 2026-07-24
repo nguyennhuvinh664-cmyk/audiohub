@@ -29,21 +29,8 @@
     }
 
     function fetchAllStories() {
-      var sources = [];
-      // Local stories
-      if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
-        var local = window.AudioHubStories.read() || [];
-        sources = sources.concat(local);
-      }
-      // API stories
-      if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable && window.AudioHubSupabase.isAvailable()) {
-        sources.push(
-          window.AudioHubSupabase.fetchPublicStories().then(function (rows) {
-            return Array.isArray(rows) ? rows : [];
-          }).catch(function () { return []; })
-        );
-      }
-      // Playlists from localStorage
+      // Only playlists from localStorage
+      var items = [];
       try {
         var plRaw = localStorage.getItem('audiohub-playlists-v1') || '';
         var playlists = plRaw ? JSON.parse(plRaw) : [];
@@ -52,7 +39,7 @@
             if (!pl || !pl.name) return;
             var entries = pl.entries || pl.items || [];
             var firstStoryId = entries[0] ? String(entries[0].storyId || entries[0].key || '') : '';
-            sources.push(Promise.resolve([{
+            items.push({
               id: pl.id || ('pl_' + pl.name),
               title: pl.name,
               author: 'Admin',
@@ -61,23 +48,12 @@
               _isPlaylist: true,
               _firstStoryId: firstStoryId,
               _entries: entries
-            }]));
+            });
           });
         }
       } catch (e) {}
-
-      Promise.all(sources).then(function (results) {
-        var merged = [];
-        var seen = {};
-        results.forEach(function (arr) {
-          (Array.isArray(arr) ? arr : []).forEach(function (s) {
-            var id = String(s && s.id || '');
-            if (id && !seen[id]) { seen[id] = true; merged.push(s); }
-          });
-        });
-        allStories = merged;
-        renderList('');
-      });
+      allStories = items;
+      renderList('');
     }
 
     function renderList(query) {
