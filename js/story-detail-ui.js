@@ -745,10 +745,6 @@
       }).catch(function () {});
     }
 
-    // Fallback to coverKey (IndexedDB/API) — legacy method
-    var coverKey = story && story.coverKey ? String(story.coverKey) : '';
-    if (!coverKey) return;
-
     function applyCoverUrl(url) {
       if (!url) return;
       try {
@@ -788,40 +784,52 @@
       } catch (error) {}
     }
 
-    // Legacy: try IndexedDB then API then Supabase Storage
-    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+    // Fallback: try IndexedDB (coverKey) then Supabase Storage URL
+    var coverKey = story && story.coverKey ? String(story.coverKey) : '';
+
+    /** Fetch cover from Supabase Storage, detect data-URL content */
+    function fetchStorageCover() {
+      if (!storyId || String(storyId).startsWith('s_')) return Promise.resolve(false);
+      var directCoverUrl = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + encodeURIComponent(storyId) + '/cover';
+      return fetch(directCoverUrl).then(function (r) {
+        if (!r.ok) return false;
+        return r.clone().arrayBuffer().then(function (buf) {
+          var ascii = String.fromCharCode.apply(null, new Uint8Array(buf).slice(0, 20));
+          if (ascii.indexOf('data:image/') === 0) {
+            return r.text();
+          } else if (ascii.indexOf('data:video/') === 0) {
+            return false;
+          } else {
+            return r.blob();
+          }
+        });
+      }).then(function (result) {
+        if (!result || result === false) return false;
+        if (typeof result === 'string') {
+          applyCoverUrl(result);
+          return true;
+        } else if (result.size > 0) {
+          applyCoverUrl(URL.createObjectURL(result));
+          return true;
+        }
+        return false;
+      }).catch(function () { return false; });
+    }
+
+    // Try IndexedDB first, then Storage
+    if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
       window.AudioHubStoryCover.get(coverKey)
         .then(function (blob) {
           if (blob) {
             applyCoverUrl(URL.createObjectURL(blob));
           } else {
-            // Fallback: direct Supabase Storage URL (fast CDN, no proxy)
-            // Storage files may contain data-URL text instead of raw image bytes
-            var directCoverUrl = storyId ? ('https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + encodeURIComponent(storyId) + '/cover') : '';
-            fetch(directCoverUrl).then(function (r) {
-              if (!r.ok) throw new Error('not found');
-              // Peek at first bytes to detect data-URL vs raw image
-              return r.clone().arrayBuffer().then(function (buf) {
-                var ascii = String.fromCharCode.apply(null, new Uint8Array(buf).slice(0, 20));
-                if (ascii.indexOf('data:image/') === 0) {
-                  return r.text(); // data-URL text
-                } else if (ascii.indexOf('data:video/') === 0) {
-                  return null; // skip video
-                } else {
-                  return r.blob(); // raw image bytes
-                }
-              });
-            }).then(function (result) {
-              if (!result) return;
-              if (typeof result === 'string') {
-                applyCoverUrl(result); // data-URL string
-              } else if (result.size > 0) {
-                applyCoverUrl(URL.createObjectURL(result)); // blob
-              }
-            }).catch(function () {});
+            fetchStorageCover();
           }
         })
-        .catch(function () {});
+        .catch(function () { fetchStorageCover(); });
+    } else {
+      // No coverKey — go straight to Storage
+      fetchStorageCover();
     }
   }
 
