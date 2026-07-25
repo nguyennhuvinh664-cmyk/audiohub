@@ -86,20 +86,13 @@
     return SUPABASE_STORAGE_DIRECT + encodeURIComponent(storyId) + '/cover';
   }
 
-  /** Apply cover to a thumb node using fetch-blob → objectURL (bypass CORS img issues) */
+  /** Apply cover to a thumb node using fetch-blob → objectURL */
   function applyCoverToThumb(thumb, url) {
     if (!thumb || !url) return;
     try {
-      // Remove existing cover img if any
       var oldImg = thumb.querySelector('.sc__cover-img');
       if (oldImg) oldImg.remove();
-      // Fetch as blob, then create object URL (avoids CORS/CSP img blocking)
-      console.log('[Covers] fetch blob:', url.substring(0, 80));
-      fetch(url).then(function(r) {
-        console.log('[Covers] fetch status:', r.status, r.ok);
-        return r.ok ? r.blob() : null;
-      }).then(function(blob) {
-        console.log('[Covers] blob size:', blob ? blob.size : 'null');
+      fetch(url).then(function(r) { return r.ok ? r.blob() : null; }).then(function(blob) {
         if (!blob) return;
         var objUrl = URL.createObjectURL(blob);
         var img = document.createElement('img');
@@ -110,9 +103,8 @@
         thumb.insertBefore(img, thumb.firstChild);
         var si = thumb.querySelector('.si');
         if (si) si.style.display = 'none';
-        console.log('[Covers] img inserted OK, children:', thumb.children.length);
-      }).catch(function(e) { console.error('[Covers] fetch error:', e.message); });
-    } catch (e) { console.error('[Covers] applyCoverToThumb error:', e.message); }
+      }).catch(function() {});
+    } catch (e) {}
   }
 
   /* ── thumbnail loader ────────────────────────────────── */
@@ -183,7 +175,7 @@
   }
 
   /* ── card builder for playlists (series) ─────────────── */
-  function buildPlaylistCardHtml(pl) {
+  function buildPlaylistCardHtml(pl, coverMap) {
     var entries = pl.entries || pl.items || [];
     var count = entries.length;
     var firstEntry = entries[0] || {};
@@ -197,10 +189,16 @@
     var badgeText = isDone ? 'Full' : 'Mới';
     var color = isDone ? '#10b981' : '#f59e0b';
 
+    // Embed cover directly in HTML if available from DB
+    var coverStyle = '';
+    if (coverMap && coverMap[firstStoryId]) {
+      coverStyle = 'background-image:url(\'' + coverMap[firstStoryId] + '\');background-size:cover;background-position:center;';
+    }
+
     return '<a href="' + href + '" class="sc" data-playlist-id="' + escapeHtml(pl.id) + '">'
-      + '<div class="sc__th" style="--c:' + color + '" data-cover-story-id="' + escapeHtml(firstStoryId) + '">'
+      + '<div class="sc__th" style="--c:' + color + ';' + coverStyle + '">'
       + '<span class="bx ' + (isDone ? 'bf' : 'bn') + '">' + badgeText + '</span>'
-      + '<span class="si">' + escapeHtml(initials) + '</span>'
+      + (coverMap && coverMap[firstStoryId] ? '' : '<span class="si">' + escapeHtml(initials) + '</span>')
       + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
       + '</div>'
       + '<div class="sc__in">'
@@ -262,15 +260,37 @@
     });
   }
 
+  /* ── batch fetch cover_data from Supabase DB ────────── */
+  function fetchCoverDataMap(storyIds) {
+    var unique = [];
+    var seen = {};
+    (storyIds || []).forEach(function (id) {
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      unique.push(id);
+    });
+    if (!unique.length) return Promise.resolve({});
+    var ids = unique.map(encodeURIComponent).join(',');
+    var url = SUPABASE_DIRECT + '/rest/v1/stories?id=in.(' + ids + ')&select=id,cover_data';
+    return fetch(url, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    }).then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        var map = {};
+        (rows || []).forEach(function (row) {
+          if (row.id && row.cover_data) map[row.id] = row.cover_data;
+        });
+        return map;
+      }).catch(function () { return {}; });
+  }
+
   /* ── render playlist list ────────────────────────────── */
-  function renderPlaylistCardList(root, playlists) {
+  function renderPlaylistCardList(root, playlists, coverMap) {
     if (!root) return;
     var list = (playlists || []).filter(function (pl) {
       return pl && pl.id && pl.name;
     });
-    root.innerHTML = list.map(buildPlaylistCardHtml).join('');
-    // Load covers for playlist cards (once after all rendered)
-    loadHomeCovers();
+    root.innerHTML = list.map(function (pl) { return buildPlaylistCardHtml(pl, coverMap); }).join('');
   }
 
   /* ── render trending ─────────────────────────────────── */
@@ -484,17 +504,27 @@
         return parseTime(b.createdAt) - parseTime(a.createdAt);
       });
 
-      // Render playlists in main grid
-      renderPlaylistCardList(document.querySelector('.cgrid'), playlists.slice(0, 12));
+      // Collect all storyIds from playlist entries
+      var storyIds = [];
+      playlists.forEach(function (pl) {
+        (pl.entries || []).forEach(function (e) {
+          storyIds.push(e.storyId || e.key || '');
+        });
+      });
 
-      // Render completed playlists (state=done)
-      var completed = playlists.filter(function (pl) { return pl.state === 'done'; });
-      renderCompletedPlaylistsHome(completed);
+      // Batch-fetch cover_data from Supabase DB, then render with covers
+      return fetchCoverDataMap(storyIds).then(function (coverMap) {
+        // Render playlists in main grid with covers embedded
+        renderPlaylistCardList(document.querySelector('.cgrid'), playlists.slice(0, 12), coverMap);
+
+        // Render completed playlists (state=done)
+        var completed = playlists.filter(function (pl) { return pl.state === 'done'; });
+        renderCompletedPlaylistsHome(completed);
+      });
     });
 
     // Fetch stories from API for trending/popular sections
     loadStoriesForHome().then(function (stories) {
-      console.log('[Covers] API returned', stories.length, 'stories');
       var publicStories = stories.filter(function (story) { return isPublicVisibility(story); });
 
       renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
@@ -516,14 +546,14 @@
     bindHomeGenreDropdown();
   }
 
-  /* ── load covers: direct Supabase Storage URLs (fast, no proxy) ── */
+  /* ── load covers for trending/popular (non-playlist sections) ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
-    console.log('[Covers] loadHomeCovers found', nodes.length, 'nodes');
     nodes.forEach(function (node) {
       if (node.querySelector('.sc__cover-img')) return;
+      if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
       var id = node.getAttribute('data-cover-story-id') || '';
-      if (!id || id.length < 10) { console.log('[Covers] skip node, id=', id); return; }
+      if (!id || id.length < 10) return;
 
       // Local stories (s_ prefix): try IndexedDB
       if (id.indexOf('s_') === 0 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
@@ -536,10 +566,7 @@
       // Cloud stories: apply Storage URL directly
       var url = getCoverUrl(id);
       if (!url) return;
-      console.log('[Covers] apply cover to', id, '→', url);
       applyCoverToThumb(node, url);
-      var coverImg = node.querySelector('.sc__cover-img');
-      console.log('[Covers] img inserted:', !!coverImg, coverImg ? 'src=' + coverImg.src.substring(0, 80) : 'null', 'children:', node.children.length);
     });
   }
 
