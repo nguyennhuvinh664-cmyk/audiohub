@@ -189,22 +189,10 @@
     var badgeText = isDone ? 'Full' : 'Mới';
     var color = isDone ? '#10b981' : '#f59e0b';
 
-    // Embed cover directly in HTML if available from DB, else Storage URL
-    var hasCover = false;
-    var coverStyle = '';
-    if (coverMap && coverMap[firstStoryId]) {
-      hasCover = true;
-      coverStyle = 'background-image:url(\'' + coverMap[firstStoryId] + '\');background-size:cover;background-position:center;';
-    } else if (firstStoryId && firstStoryId.length > 10 && firstStoryId.indexOf('s_') !== 0) {
-      hasCover = true;
-      var storageUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(firstStoryId) + '/cover';
-      coverStyle = 'background:url(\'' + storageUrl + '\') center/cover no-repeat;';
-    }
-
     return '<a href="' + href + '" class="sc" data-playlist-id="' + escapeHtml(pl.id) + '">'
-      + '<div class="sc__th' + (hasCover ? ' has-cover' : '') + '" style="--c:' + color + ';' + coverStyle + '">'
+      + '<div class="sc__th" style="--c:' + color + '" data-cover-story-id="' + escapeHtml(firstStoryId) + '">'
       + '<span class="bx ' + (isDone ? 'bf' : 'bn') + '">' + badgeText + '</span>'
-      + (hasCover ? '' : '<span class="si">' + escapeHtml(initials) + '</span>')
+      + '<span class="si">' + escapeHtml(initials) + '</span>'
       + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
       + '</div>'
       + '<div class="sc__in">'
@@ -298,23 +286,19 @@
     });
     root.innerHTML = list.map(function (pl) { return buildPlaylistCardHtml(pl, coverMap); }).join('');
 
-    // Apply covers via JS after DOM render (overrides CSS gradient reliably)
+    // Apply covers via fetch-blob → <img> (avoids CSS background conflicts)
     root.querySelectorAll('[data-cover-story-id]').forEach(function (node) {
       var id = node.getAttribute('data-cover-story-id') || '';
-      if (!id || id.length < 10) return;
+      if (!id || id.length < 10 || id.indexOf('s_') === 0) return;
       var coverUrl = '';
       if (coverMap && coverMap[id]) {
         coverUrl = coverMap[id];
-      } else if (id.indexOf('s_') !== 0) {
+      } else {
         coverUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(id) + '/cover';
       }
       if (!coverUrl) return;
       node.classList.add('has-cover');
-      node.style.backgroundImage = 'url(\'' + coverUrl + '\')';
-      node.style.backgroundSize = 'cover';
-      node.style.backgroundPosition = 'center';
-      var si = node.querySelector('.si');
-      if (si) si.style.display = 'none';
+      applyCoverToThumb(node, coverUrl);
     });
   }
 
@@ -482,12 +466,6 @@
       var doneCount = entries.filter(function (e) { return (e.status || '') === 'done'; }).length;
       var firstEntry = entries[0] || {};
       var firstStoryId = String(firstEntry.storyId || firstEntry.key || '');
-      var coverKey = String(firstEntry.coverKey || '');
-
-      if (!coverKey && firstStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
-        var story = window.AudioHubStories.getById(firstStoryId);
-        if (story && story.coverKey) coverKey = String(story.coverKey);
-      }
 
       var color = '#10b981';
       var href = firstStoryId
@@ -495,7 +473,7 @@
         : '#';
 
       return '<a href="' + href + '" class="sc">'
-        + '<div class="sc__th" style="--c:' + color + '" data-cover-key="' + escapeHtml(coverKey) + '">'
+        + '<div class="sc__th" style="--c:' + color + '" data-cover-story-id="' + escapeHtml(firstStoryId) + '">'
         + '<span class="bx bf">Full</span>'
         + '<span class="si">' + escapeHtml((pl.name || 'PL').slice(0, 3).toUpperCase()) + '</span>'
         + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
@@ -506,20 +484,13 @@
         + '</div></a>';
     }).join('');
 
-    // Hydrate cover images
-    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-      grid.querySelectorAll('[data-cover-key]').forEach(function (node) {
-        var key = node.getAttribute('data-cover-key');
-        if (!key) return;
-        window.AudioHubStoryCover.get(key).then(function (blob) {
-          if (!blob) return;
-          var url = URL.createObjectURL(blob);
-          node.style.backgroundImage = 'url("' + url + '")';
-          node.style.backgroundSize = 'cover';
-          node.style.backgroundPosition = 'center';
-        }).catch(function () {});
-      });
-    }
+    // Hydrate cover images via Storage URL + <img>
+    grid.querySelectorAll('[data-cover-story-id]').forEach(function (node) {
+      var id = node.getAttribute('data-cover-story-id') || '';
+      if (!id || id.length < 10 || id.indexOf('s_') === 0) return;
+      node.classList.add('has-cover');
+      applyCoverToThumb(node, SUPABASE_STORAGE_DIRECT + encodeURIComponent(id) + '/cover');
+    });
   }
 
   function renderHomeStories() {
