@@ -195,13 +195,14 @@
     } else if (firstStoryId && firstStoryId.length > 10 && firstStoryId.indexOf('s_') !== 0) {
       coverUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(firstStoryId) + '/cover';
     }
+    console.log('[Cover]', title, 'storyId:', firstStoryId, 'url:', coverUrl);
     var coverImg = '';
     if (coverUrl) {
-      coverImg = '<img class="sc__cover-img" src="' + coverUrl + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:1;" onerror="this.style.display=\'none\'" onload="var s=this.parentNode.querySelector(\'.si\');if(s)s.style.display=\'none\'">';
+      coverImg = '<img class="sc__cover-img" src="' + coverUrl + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:1;" onload="this.parentNode.classList.add(\'has-cover\');var s=this.parentNode.querySelector(\'.si\');if(s)s.style.display=\'none\'" onerror="console.warn(\'[Cover] FAILED\',this.src);this.parentNode.classList.remove(\'has-cover\')">';
     }
 
     return '<a href="' + href + '" class="sc" data-playlist-id="' + escapeHtml(pl.id) + '">'
-      + '<div class="sc__th' + (coverUrl ? ' has-cover' : '') + '" style="--c:' + color + '">'
+      + '<div class="sc__th" style="--c:' + color + '">'
       + coverImg
       + '<span class="bx ' + (isDone ? 'bf' : 'bn') + '">' + badgeText + '</span>'
       + (coverUrl ? '' : '<span class="si">' + escapeHtml(initials) + '</span>')
