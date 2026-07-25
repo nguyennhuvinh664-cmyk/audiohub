@@ -296,23 +296,24 @@
     });
     root.innerHTML = list.map(function (pl) { return buildPlaylistCardHtml(pl, coverMap); }).join('');
 
-    // Apply covers via JS probe (img onerror / onload)
+    // Apply covers — try CSS background-image directly, no probe
     root.querySelectorAll('[data-cover-url]').forEach(function (node) {
       var url = node.getAttribute('data-cover-url');
       if (!url) return;
-      var probe = new Image();
-      probe.onload = function () {
-        node.classList.add('has-cover');
-        node.style.backgroundImage = 'url("' + url + '")';
-        node.style.backgroundSize = 'cover';
-        node.style.backgroundPosition = 'center';
-        var si = node.querySelector('.si');
-        if (si) si.style.display = 'none';
-      };
-      probe.onerror = function () {
-        console.warn('[Cover] probe failed:', url);
-      };
-      probe.src = url;
+      console.log('[Cover] trying CSS bg:', url);
+      // Set background-image directly via CSS — browser will load natively
+      node.style.backgroundImage = 'url("' + url + '")';
+      node.style.backgroundSize = 'cover';
+      node.style.backgroundPosition = 'center';
+      node.classList.add('has-cover');
+      var si = node.querySelector('.si');
+      if (si) si.style.display = 'none';
+      // Also fetch to verify reachability
+      fetch(url, { method: 'HEAD' }).then(function (r) {
+        console.log('[Cover] fetch HEAD status:', r.status, url);
+      }).catch(function (e) {
+        console.warn('[Cover] fetch HEAD error:', e.message, url);
+      });
     });
   }
 
