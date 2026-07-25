@@ -796,12 +796,28 @@
             applyCoverUrl(URL.createObjectURL(blob));
           } else {
             // Fallback: direct Supabase Storage URL (fast CDN, no proxy)
+            // Storage files may contain data-URL text instead of raw image bytes
             var directCoverUrl = storyId ? ('https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + encodeURIComponent(storyId) + '/cover') : '';
             fetch(directCoverUrl).then(function (r) {
               if (!r.ok) throw new Error('not found');
-              return r.blob();
-            }).then(function (b) {
-              if (b && b.size > 0) applyCoverUrl(URL.createObjectURL(b));
+              // Peek at first bytes to detect data-URL vs raw image
+              return r.clone().arrayBuffer().then(function (buf) {
+                var ascii = String.fromCharCode.apply(null, new Uint8Array(buf).slice(0, 20));
+                if (ascii.indexOf('data:image/') === 0) {
+                  return r.text(); // data-URL text
+                } else if (ascii.indexOf('data:video/') === 0) {
+                  return null; // skip video
+                } else {
+                  return r.blob(); // raw image bytes
+                }
+              });
+            }).then(function (result) {
+              if (!result) return;
+              if (typeof result === 'string') {
+                applyCoverUrl(result); // data-URL string
+              } else if (result.size > 0) {
+                applyCoverUrl(URL.createObjectURL(result)); // blob
+              }
             }).catch(function () {});
           }
         })
