@@ -253,10 +253,8 @@
       return pl && pl.id && pl.name;
     });
     root.innerHTML = list.map(buildPlaylistCardHtml).join('');
-    // Load covers for playlist cards
-    Array.prototype.slice.call(root.querySelectorAll('[data-cover-story-id]')).forEach(function (node) {
-      loadHomeCovers();
-    });
+    // Load covers for playlist cards (once after all rendered)
+    loadHomeCovers();
   }
 
   /* ── render trending ─────────────────────────────────── */
