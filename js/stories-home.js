@@ -86,14 +86,54 @@
     return SUPABASE_STORAGE_DIRECT + encodeURIComponent(storyId) + '/cover';
   }
 
-  /** Apply cover to a thumb node using direct <img> element */
+  /**
+   * Fetch a Supabase Storage cover URL and apply it as background-image.
+   * Storage files may contain data-URL text instead of raw image bytes,
+   * so we fetch as text first, detect the format, and apply accordingly.
+   */
+  function applyCoverFromStorageUrl(node, url) {
+    if (!node || !url) return;
+    fetch(url).then(function (r) {
+      if (!r.ok) return null;
+      return r.text();
+    }).then(function (txt) {
+      if (!txt) return;
+      // If the file content is a data-URL string, use it directly
+      if (txt.indexOf('data:image/') === 0) {
+        node.style.backgroundImage = 'url("' + txt + '")';
+      } else if (txt.indexOf('data:video/') === 0) {
+        // Skip video data-URLs (wrong file type)
+        return;
+      } else {
+        // Raw image bytes — use the original URL as CSS bg
+        node.style.backgroundImage = 'url("' + url + '")';
+      }
+      node.style.backgroundSize = 'cover';
+      node.style.backgroundPosition = 'center';
+      node.classList.add('has-cover');
+      var si = node.querySelector('.si');
+      if (si) si.style.display = 'none';
+    }).catch(function () {});
+  }
+
+  /** Apply cover to a thumb node — fetch Storage URL, detect data-URL, apply as <img> */
   function applyCoverToThumb(thumb, url) {
     if (!thumb || !url) return;
-    try {
+    fetch(url).then(function (r) {
+      if (!r.ok) return null;
+      return r.text();
+    }).then(function (txt) {
+      if (!txt) return;
+      var imgUrl = url;
+      if (txt.indexOf('data:image/') === 0) {
+        imgUrl = txt; // use data-URL directly
+      } else if (txt.indexOf('data:video/') === 0) {
+        return; // skip video files
+      }
       var oldImg = thumb.querySelector('.sc__cover-img');
       if (oldImg) oldImg.remove();
       var img = document.createElement('img');
-      img.src = url;
+      img.src = imgUrl;
       img.className = 'sc__cover-img';
       img.alt = '';
       img.loading = 'lazy';
@@ -103,7 +143,7 @@
         if (si) si.style.display = 'none';
       };
       thumb.insertBefore(img, thumb.firstChild);
-    } catch (e) {}
+    }).catch(function () {});
   }
 
   /* ── thumbnail loader ────────────────────────────────── */
@@ -296,39 +336,11 @@
     });
     root.innerHTML = list.map(function (pl) { return buildPlaylistCardHtml(pl, coverMap); }).join('');
 
-    // Apply covers — debug: try <img> element with detailed logging
+    // Apply covers — fetch Storage URL, detect data-URL content, apply as bg
     root.querySelectorAll('[data-cover-url]').forEach(function (node) {
       var url = node.getAttribute('data-cover-url');
       if (!url) return;
-      console.log('[Cover] URL:', url);
-      console.log('[Cover] node tag:', node.tagName, 'dims:', node.offsetWidth + 'x' + node.offsetHeight, 'classes:', node.className);
-
-      // Method 1: CSS background-image
-      node.style.backgroundImage = 'url("' + url + '")';
-      node.style.backgroundSize = 'cover';
-      node.style.backgroundPosition = 'center';
-      node.classList.add('has-cover');
-      var si = node.querySelector('.si');
-      if (si) si.style.display = 'none';
-
-      // Method 2: Also try <img> element to see if it loads
-      var testImg = new Image();
-      testImg.onload = function () {
-        console.log('[Cover] ✅ Image LOADED:', url, 'naturalSize:', testImg.naturalWidth + 'x' + testImg.naturalHeight);
-      };
-      testImg.onerror = function (e) {
-        console.error('[Cover] ❌ Image FAILED:', url, 'error event:', e.type);
-        // Try fetch to get actual status
-        fetch(url).then(function (r) {
-          console.log('[Cover] fetch result:', r.status, r.statusText, r.headers.get('content-type'), url);
-          return r.text();
-        }).then(function (txt) {
-          console.log('[Cover] response body (first 200 chars):', txt.substring(0, 200));
-        }).catch(function (err) {
-          console.error('[Cover] fetch also failed:', err.message, url);
-        });
-      };
-      testImg.src = url;
+      applyCoverFromStorageUrl(node, url);
     });
   }
 

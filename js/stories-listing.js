@@ -164,12 +164,31 @@
         return;
       }
 
-      // Cloud stories: insert <img> element directly (avoids CSS background conflicts)
+      // Cloud stories: fetch Storage URL, detect data-URL content, apply as <img>
       var url = LISTING_SUPABASE_DIRECT_STORAGE + encodeURIComponent(storyId) + '/cover';
-      fetch(url).then(function(r) { return r.ok ? r.blob() : null; }).then(function(blob) {
-        if (!blob) return;
-        var objUrl = URL.createObjectURL(blob);
-        insertCoverImg(node, objUrl);
+      fetch(url).then(function(r) {
+        if (!r.ok) return null;
+        // Read first 30 bytes to detect format without corrupting binary
+        return r.clone().arrayBuffer().then(function(buf) {
+          var head = new Uint8Array(buf).slice(0, 30);
+          var ascii = String.fromCharCode.apply(null, head);
+          if (ascii.indexOf('data:image/') === 0) {
+            // Data-URL text — read full body as text
+            return r.text().then(function(txt) { return { type: 'dataurl', data: txt }; });
+          } else if (ascii.indexOf('data:video/') === 0) {
+            return { type: 'skip' };
+          } else {
+            // Raw image bytes — use blob
+            return r.blob().then(function(blob) { return { type: 'blob', data: blob }; });
+          }
+        });
+      }).then(function(result) {
+        if (!result || result.type === 'skip') return;
+        if (result.type === 'dataurl') {
+          insertCoverImg(node, result.data);
+        } else if (result.type === 'blob') {
+          insertCoverImg(node, URL.createObjectURL(result.data));
+        }
       }).catch(function () {});
     });
 
