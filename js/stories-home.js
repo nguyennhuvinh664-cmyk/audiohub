@@ -295,6 +295,22 @@
       return pl && pl.id && pl.name;
     });
     root.innerHTML = list.map(function (pl) { return buildPlaylistCardHtml(pl, coverMap); }).join('');
+
+    // Apply covers via JS after DOM render (overrides CSS gradient reliably)
+    root.querySelectorAll('[data-cover-story-id]').forEach(function (node) {
+      var id = node.getAttribute('data-cover-story-id') || '';
+      if (!id || id.length < 10) return;
+      var coverUrl = '';
+      if (coverMap && coverMap[id]) {
+        coverUrl = coverMap[id];
+      } else if (id.indexOf('s_') !== 0) {
+        coverUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(id) + '/cover';
+      }
+      if (!coverUrl) return;
+      node.style.background = 'url(\'' + coverUrl + '\') center/cover no-repeat';
+      var si = node.querySelector('.si');
+      if (si) si.style.display = 'none';
+    });
   }
 
   /* ── render trending ─────────────────────────────────── */
