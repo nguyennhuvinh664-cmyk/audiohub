@@ -341,7 +341,7 @@
             var pageJS = PAGE_JS[pageName] || [];
             var jsPromises = pageJS.map(function (name) {
               // All JS files are at root /js/ regardless of page location
-              return loadScript('/js/' + name + '.js');
+              return loadScript('/js/' + name + '.js?v=' + Date.now());
             });
             return Promise.all(jsPromises);
           }).then(function () {
@@ -479,7 +479,7 @@
           return Promise.all(cssPromises).then(function () {
             var pageJS = PAGE_JS[pageName] || [];
             var jsPromises = pageJS.map(function (name) {
-              return loadScript('/js/' + name + '.js');
+              return loadScript('/js/' + name + '.js?v=' + Date.now());
             });
             return Promise.all(jsPromises);
           }).then(function () {

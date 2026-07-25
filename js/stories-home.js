@@ -307,7 +307,7 @@
         coverUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(id) + '/cover';
       }
       if (!coverUrl) return;
-      node.style.background = 'url(\'' + coverUrl + '\') center/cover no-repeat';
+      node.style.setProperty('background', 'url(\'' + coverUrl + '\') center/cover no-repeat', 'important');
       var si = node.querySelector('.si');
       if (si) si.style.display = 'none';
     });
