@@ -190,19 +190,21 @@
     var color = isDone ? '#10b981' : '#f59e0b';
 
     // Embed cover directly in HTML if available from DB, else Storage URL
+    var hasCover = false;
     var coverStyle = '';
     if (coverMap && coverMap[firstStoryId]) {
+      hasCover = true;
       coverStyle = 'background-image:url(\'' + coverMap[firstStoryId] + '\');background-size:cover;background-position:center;';
     } else if (firstStoryId && firstStoryId.length > 10 && firstStoryId.indexOf('s_') !== 0) {
-      // Fallback: Supabase Storage URL (use background shorthand to override CSS gradient)
+      hasCover = true;
       var storageUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(firstStoryId) + '/cover';
       coverStyle = 'background:url(\'' + storageUrl + '\') center/cover no-repeat;';
     }
 
     return '<a href="' + href + '" class="sc" data-playlist-id="' + escapeHtml(pl.id) + '">'
-      + '<div class="sc__th" style="--c:' + color + ';' + coverStyle + '">'
+      + '<div class="sc__th' + (hasCover ? ' has-cover' : '') + '" style="--c:' + color + ';' + coverStyle + '">'
       + '<span class="bx ' + (isDone ? 'bf' : 'bn') + '">' + badgeText + '</span>'
-      + (coverMap && coverMap[firstStoryId] ? '' : '<span class="si">' + escapeHtml(initials) + '</span>')
+      + (hasCover ? '' : '<span class="si">' + escapeHtml(initials) + '</span>')
       + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
       + '</div>'
       + '<div class="sc__in">'

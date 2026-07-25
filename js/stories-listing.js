@@ -151,55 +151,40 @@
       if (!storyId || storyId.length < 5) return;
 
       // Skip if cover already applied
-      if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
+      if (node.querySelector('.sc__cover-img')) return;
 
       // Local stories (s_ prefix): try IndexedDB
       if (storyId.indexOf('s_') === 0 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
         window.AudioHubStoryCover.get(storyId).then(function (blob) {
-          if (blob) applyCoverUrl(node, blob);
+          if (blob) {
+            var objUrl = URL.createObjectURL(blob);
+            insertCoverImg(node, objUrl);
+          }
         }).catch(function () {});
         return;
       }
 
-      // Cloud stories: direct Storage URL with self-healing
+      // Cloud stories: insert <img> element directly (avoids CSS background conflicts)
       var url = LISTING_SUPABASE_DIRECT_STORAGE + encodeURIComponent(storyId) + '/cover';
-      node.style.background = '';
-      node.style.backgroundImage = 'url("' + url + '")';
-      node.style.backgroundSize = 'cover';
-      node.style.backgroundPosition = 'center';
-
-      // Probe: if Storage URL 404, fetch from DB + upload to Storage
-      var probe = new Image();
-      probe.onerror = function () {
-        var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-        var SUPABASE_REST = SUPABASE_DIRECT + '/rest/v1';
-        var filePath = encodeURIComponent(storyId) + '/cover';
-        var storageUrl = LISTING_SUPABASE_DIRECT_STORAGE + filePath;
-        var uploadUrl = SUPABASE_DIRECT + '/storage/v1/object/story-covers/' + filePath;
-
-        fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(storyId) + '&select=cover_data', {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-        }).then(function (r) { return r.json(); }).then(function (rows) {
-          var coverData = rows && rows[0] && rows[0].cover_data;
-          if (!coverData) return;
-          fetch(uploadUrl, {
-            method: 'POST',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
-            body: coverData
-          }).then(function (r) {
-            if (r.status === 409) return fetch(uploadUrl, {
-              method: 'PUT',
-              headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'image/jpeg' },
-              body: coverData
-            });
-            return r;
-          }).then(function () {
-            node.style.backgroundImage = 'url("' + storageUrl + '?t=' + Date.now() + '")';
-          }).catch(function () {});
-        }).catch(function () {});
-      };
-      probe.src = url;
+      fetch(url).then(function(r) { return r.ok ? r.blob() : null; }).then(function(blob) {
+        if (!blob) return;
+        var objUrl = URL.createObjectURL(blob);
+        insertCoverImg(node, objUrl);
+      }).catch(function () {});
     });
+
+    function insertCoverImg(thumb, url) {
+      if (!thumb || !url) return;
+      var img = document.createElement('img');
+      img.src = url;
+      img.className = 'sc__cover-img';
+      img.alt = '';
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:0;';
+      thumb.insertBefore(img, thumb.firstChild);
+      // Hide "Demo" text
+      var chapters = thumb.querySelector('.story-chapters');
+      if (chapters) chapters.style.display = 'none';
+    }
   }
 
   function isMember() {
