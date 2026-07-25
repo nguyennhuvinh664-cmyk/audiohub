@@ -2,6 +2,21 @@
   var detailRoot = document.querySelector('.detail-page');
   if (!detailRoot) return;
 
+  /* ── Load playlists from Supabase Storage (shared) → localStorage ── */
+  (function syncPlaylistsFromStorage() {
+    var PLAYLIST_KEY = 'audiohub-playlists-v1';
+    var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+    var url = SUPABASE_DIRECT + '/storage/v1/object/public/story-covers/playlists/index.json';
+    fetch(url + '?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (data) {
+        if (Array.isArray(data) && data.length > 0) {
+          localStorage.setItem(PLAYLIST_KEY, JSON.stringify(data));
+        }
+      })
+      .catch(function () {});
+  })();
+
   function setActive(items, activeValue, attr) {
     items.forEach(function (item) {
       var isActive = item.getAttribute(attr) === activeValue;
