@@ -86,16 +86,23 @@
     return SUPABASE_STORAGE_DIRECT + encodeURIComponent(storyId) + '/cover';
   }
 
-  /** Apply cover to a thumb node instantly */
+  /** Apply cover to a thumb node using an <img> element */
   function applyCoverToThumb(thumb, url) {
     if (!thumb || !url) return;
     try {
-      thumb.style.background = '';
-      thumb.style.backgroundImage = 'url("' + url + '")';
-      thumb.style.backgroundSize = 'cover';
-      thumb.style.backgroundPosition = 'center';
+      // Remove existing cover img if any
+      var oldImg = thumb.querySelector('.sc__cover-img');
+      if (oldImg) oldImg.remove();
+      // Create img element
+      var img = document.createElement('img');
+      img.src = url;
+      img.className = 'sc__cover-img';
+      img.alt = '';
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:0;';
+      thumb.insertBefore(img, thumb.firstChild);
+      // Hide initials text
       var si = thumb.querySelector('.si');
-      if (si) si.textContent = '';
+      if (si) si.style.display = 'none';
     } catch (e) {}
   }
 
@@ -104,7 +111,7 @@
     if (!thumb || !story) return;
 
     // Skip if cover already applied (by loadHomeCovers or previous render)
-    if (thumb.style.backgroundImage && thumb.style.backgroundImage.indexOf('url(') !== -1) return;
+    if (thumb.querySelector('.sc__cover-img')) return;
 
     // 1) Set gradient background based on genre
     var color = genreColor(story.genre);
@@ -505,7 +512,7 @@
     var nodes = document.querySelectorAll('[data-cover-story-id]');
     console.log('[Covers] loadHomeCovers found', nodes.length, 'nodes');
     nodes.forEach(function (node) {
-      if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
+      if (node.querySelector('.sc__cover-img')) return;
       var id = node.getAttribute('data-cover-story-id') || '';
       if (!id || id.length < 10) { console.log('[Covers] skip node, id=', id); return; }
 
