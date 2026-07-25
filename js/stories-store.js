@@ -408,7 +408,12 @@
   }
 
   /* ── Supabase sync with retry ────────────────────────────────────── */
+  var _syncingCloud = {}; // guard against duplicate syncs
   function syncToSupabaseWithRetry(localEntry, maxRetries) {
+    // Skip if already syncing this story
+    if (_syncingCloud[localEntry.id]) return;
+    _syncingCloud[localEntry.id] = true;
+
     var retries = maxRetries || 3;
     var delay = 2000; // 2 seconds between retries
 
@@ -416,6 +421,7 @@
       var userId = window.AudioHubSupabase.getUserId();
       window.AudioHubSupabase.upsertStory(localEntry, userId)
         .then(function (created) {
+          delete _syncingCloud[localEntry.id];
           console.log('[stories] ✅ Supabase sync success:', localEntry.title);
           showToast('✅ Đã đồng bộ lên cloud — có thể xem trên thiết bị khác!', 'success');
           if (created && created.id && String(created.id) !== String(localEntry.id)) {
@@ -493,6 +499,7 @@
           if (attemptNum < retries) {
             setTimeout(function () { attempt(attemptNum + 1); }, delay * attemptNum);
           } else {
+            delete _syncingCloud[localEntry.id];
             console.error('[stories] ❌ Supabase sync FAILED after ' + retries + ' attempts:', localEntry.title);
             showToast('⚠️ Đồng bộ cloud thất bại. Truyện chỉ lưu trên thiết bị này. Kiểm tra kết nối mạng.', 'error');
           }
