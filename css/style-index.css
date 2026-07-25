@@ -286,10 +286,15 @@ body.no-scroll { overflow:hidden; }
 .sc:hover { transform:translateY(-4px); }
 .sc__th {
   position:relative; aspect-ratio:16/9;
-  background:linear-gradient(145deg,var(--c,#333),color-mix(in srgb,var(--c,#333) 55%,#000));
   border-radius:var(--r2); display:flex; align-items:center; justify-content:center;
-  overflow:hidden; margin-bottom:8px;
+  overflow:hidden; margin-bottom:8px; background-color:#1a1a2e;
 }
+.sc__th::before {
+  content:''; position:absolute; inset:0; z-index:0;
+  background:linear-gradient(145deg,var(--c,#333),color-mix(in srgb,var(--c,#333) 55%,#000));
+  pointer-events:none;
+}
+.sc__th.has-cover::before { display:none; }
 .si { font-family:var(--font-d); font-size:clamp(18px,3vw,28px); font-weight:800; color:rgba(255,255,255,.28); }
 .bx {
   position:absolute; top:7px; left:7px;
