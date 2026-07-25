@@ -391,8 +391,14 @@
   }
 
   /* ── Toast helper ─────────────────────────────────────────────────── */
+  var _lastToastTime = 0;
   function showToast(message, type) {
     try {
+      // Cooldown: prevent toast within 5 seconds
+      var now = Date.now();
+      if (now - _lastToastTime < 5000) return;
+      _lastToastTime = now;
+
       var existing = document.querySelector('.audiohub-sync-toast');
       if (existing) existing.remove();
       var toast = document.createElement('div');
