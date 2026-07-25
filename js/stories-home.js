@@ -503,10 +503,11 @@
   /* ── load covers: direct Supabase Storage URLs (fast, no proxy) ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
+    console.log('[Covers] loadHomeCovers found', nodes.length, 'nodes');
     nodes.forEach(function (node) {
       if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
       var id = node.getAttribute('data-cover-story-id') || '';
-      if (!id || id.length < 10) return;
+      if (!id || id.length < 10) { console.log('[Covers] skip node, id=', id); return; }
 
       // Local stories (s_ prefix): try IndexedDB
       if (id.indexOf('s_') === 0 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
@@ -519,6 +520,7 @@
       // Cloud stories: apply Storage URL directly
       var url = getCoverUrl(id);
       if (!url) return;
+      console.log('[Covers] apply cover to', id, '→', url);
       applyCoverToThumb(node, url);
     });
   }
