@@ -188,24 +188,21 @@
     var badgeText = isDone ? 'Full' : 'Mới';
     var color = isDone ? '#10b981' : '#f59e0b';
 
-    // Build cover <img> inline (direct src, no fetch)
+    // Determine cover URL
     var coverUrl = '';
     if (coverMap && coverMap[firstStoryId]) {
       coverUrl = coverMap[firstStoryId];
     } else if (firstStoryId && firstStoryId.length > 10 && firstStoryId.indexOf('s_') !== 0) {
       coverUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(firstStoryId) + '/cover';
     }
-    console.log('[Cover]', title, 'storyId:', firstStoryId, 'url:', coverUrl);
-    var coverImg = '';
-    if (coverUrl) {
-      coverImg = '<img class="sc__cover-img" src="' + coverUrl + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:1;" onload="this.parentNode.classList.add(\'has-cover\');var s=this.parentNode.querySelector(\'.si\');if(s)s.style.display=\'none\'" onerror="console.warn(\'[Cover] FAILED\',this.src);this.parentNode.classList.remove(\'has-cover\')">';
-    }
+
+    // Embed cover as <img> with data attribute for JS fallback
+    var coverAttr = coverUrl ? (' data-cover-url="' + coverUrl + '"') : '';
 
     return '<a href="' + href + '" class="sc" data-playlist-id="' + escapeHtml(pl.id) + '">'
-      + '<div class="sc__th" style="--c:' + color + '">'
-      + coverImg
+      + '<div class="sc__th" style="--c:' + color + '"' + coverAttr + '>'
       + '<span class="bx ' + (isDone ? 'bf' : 'bn') + '">' + badgeText + '</span>'
-      + (coverUrl ? '' : '<span class="si">' + escapeHtml(initials) + '</span>')
+      + '<span class="si">' + escapeHtml(initials) + '</span>'
       + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
       + '</div>'
       + '<div class="sc__in">'
@@ -298,6 +295,25 @@
       return pl && pl.id && pl.name;
     });
     root.innerHTML = list.map(function (pl) { return buildPlaylistCardHtml(pl, coverMap); }).join('');
+
+    // Apply covers via JS probe (img onerror / onload)
+    root.querySelectorAll('[data-cover-url]').forEach(function (node) {
+      var url = node.getAttribute('data-cover-url');
+      if (!url) return;
+      var probe = new Image();
+      probe.onload = function () {
+        node.classList.add('has-cover');
+        node.style.backgroundImage = 'url("' + url + '")';
+        node.style.backgroundSize = 'cover';
+        node.style.backgroundPosition = 'center';
+        var si = node.querySelector('.si');
+        if (si) si.style.display = 'none';
+      };
+      probe.onerror = function () {
+        console.warn('[Cover] probe failed:', url);
+      };
+      probe.src = url;
+    });
   }
 
   /* ── render trending ─────────────────────────────────── */
