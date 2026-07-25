@@ -99,6 +99,8 @@
       img.className = 'sc__cover-img';
       img.alt = '';
       img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:0;';
+      img.onload = function() { console.log('[Covers] img loaded:', url.substring(0, 60)); };
+      img.onerror = function() { console.error('[Covers] img FAILED:', url.substring(0, 60)); };
       thumb.insertBefore(img, thumb.firstChild);
       // Hide initials text
       var si = thumb.querySelector('.si');
@@ -529,8 +531,8 @@
       if (!url) return;
       console.log('[Covers] apply cover to', id, '→', url);
       applyCoverToThumb(node, url);
-      var cs = window.getComputedStyle(node);
-      console.log('[Covers] after apply — bgImage:', cs.backgroundImage.substring(0, 80), 'w:', cs.width, 'h:', cs.height);
+      var coverImg = node.querySelector('.sc__cover-img');
+      console.log('[Covers] img inserted:', !!coverImg, coverImg ? 'src=' + coverImg.src.substring(0, 80) : 'null', 'children:', node.children.length);
     });
   }
 
