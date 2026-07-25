@@ -94,7 +94,12 @@
       var oldImg = thumb.querySelector('.sc__cover-img');
       if (oldImg) oldImg.remove();
       // Fetch as blob, then create object URL (avoids CORS/CSP img blocking)
-      fetch(url).then(function(r) { return r.ok ? r.blob() : null; }).then(function(blob) {
+      console.log('[Covers] fetch blob:', url.substring(0, 80));
+      fetch(url).then(function(r) {
+        console.log('[Covers] fetch status:', r.status, r.ok);
+        return r.ok ? r.blob() : null;
+      }).then(function(blob) {
+        console.log('[Covers] blob size:', blob ? blob.size : 'null');
         if (!blob) return;
         var objUrl = URL.createObjectURL(blob);
         var img = document.createElement('img');
@@ -105,8 +110,9 @@
         thumb.insertBefore(img, thumb.firstChild);
         var si = thumb.querySelector('.si');
         if (si) si.style.display = 'none';
-      }).catch(function() {});
-    } catch (e) {}
+        console.log('[Covers] img inserted OK, children:', thumb.children.length);
+      }).catch(function(e) { console.error('[Covers] fetch error:', e.message); });
+    } catch (e) { console.error('[Covers] applyCoverToThumb error:', e.message); }
   }
 
   /* ── thumbnail loader ────────────────────────────────── */
