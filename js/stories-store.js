@@ -435,6 +435,39 @@
               updatedAt: created.updated_at || new Date().toISOString()
             });
 
+            // Update playlist entries: replace local ID with cloud ID
+            try {
+              var PLAYLIST_KEY = 'audiohub-playlists-v1';
+              var plRaw = localStorage.getItem(PLAYLIST_KEY) || '';
+              var playlists = plRaw ? JSON.parse(plRaw) : [];
+              if (Array.isArray(playlists)) {
+                var plChanged = false;
+                playlists.forEach(function (pl) {
+                  (pl.entries || []).forEach(function (e) {
+                    if (String(e.storyId || e.key || '') === String(localEntry.id)) {
+                      e.storyId = newStoryId;
+                      e.key = newStoryId;
+                      plChanged = true;
+                    }
+                  });
+                });
+                if (plChanged) {
+                  localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+                  // Sync to Storage
+                  try {
+                    var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+                    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+                    fetch(SUPABASE_DIRECT + '/storage/v1/object/story-covers/playlists/index.json', {
+                      method: 'PUT',
+                      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+                      body: JSON.stringify(playlists)
+                    }).catch(function () {});
+                  } catch (e) {}
+                  console.log('[stories] Updated playlist entries with cloud ID:', newStoryId);
+                }
+              }
+            } catch (e) {}
+
             // Re-upload audio under real CUID so other browsers can find it
             if (localEntry.audioKey && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
               window.AudioHubStoryAudio.get(localEntry.audioKey)
