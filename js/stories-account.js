@@ -1024,6 +1024,16 @@
     try {
       window.localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(list));
     } catch (e) {}
+    // Sync to Supabase Storage (shared across all users)
+    try {
+      var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+      var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+      fetch(SUPABASE_DIRECT + '/storage/v1/object/story-covers/playlists/index.json', {
+        method: 'PUT',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(list)
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   function generateId() {
