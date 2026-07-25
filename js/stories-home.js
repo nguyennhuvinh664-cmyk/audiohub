@@ -188,10 +188,23 @@
     var badgeText = isDone ? 'Full' : 'Mới';
     var color = isDone ? '#10b981' : '#f59e0b';
 
+    // Build cover <img> inline (direct src, no fetch)
+    var coverUrl = '';
+    if (coverMap && coverMap[firstStoryId]) {
+      coverUrl = coverMap[firstStoryId];
+    } else if (firstStoryId && firstStoryId.length > 10 && firstStoryId.indexOf('s_') !== 0) {
+      coverUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(firstStoryId) + '/cover';
+    }
+    var coverImg = '';
+    if (coverUrl) {
+      coverImg = '<img class="sc__cover-img" src="' + coverUrl + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:1;" onerror="this.style.display=\'none\'" onload="var s=this.parentNode.querySelector(\'.si\');if(s)s.style.display=\'none\'">';
+    }
+
     return '<a href="' + href + '" class="sc" data-playlist-id="' + escapeHtml(pl.id) + '">'
-      + '<div class="sc__th" style="--c:' + color + '" data-cover-story-id="' + escapeHtml(firstStoryId) + '">'
+      + '<div class="sc__th' + (coverUrl ? ' has-cover' : '') + '" style="--c:' + color + '">'
+      + coverImg
       + '<span class="bx ' + (isDone ? 'bf' : 'bn') + '">' + badgeText + '</span>'
-      + '<span class="si">' + escapeHtml(initials) + '</span>'
+      + (coverUrl ? '' : '<span class="si">' + escapeHtml(initials) + '</span>')
       + '<div class="pov"><i class="fa-solid fa-play"></i></div>'
       + '</div>'
       + '<div class="sc__in">'
@@ -284,21 +297,6 @@
       return pl && pl.id && pl.name;
     });
     root.innerHTML = list.map(function (pl) { return buildPlaylistCardHtml(pl, coverMap); }).join('');
-
-    // Apply covers via fetch-blob → <img> (avoids CSS background conflicts)
-    root.querySelectorAll('[data-cover-story-id]').forEach(function (node) {
-      var id = node.getAttribute('data-cover-story-id') || '';
-      if (!id || id.length < 10 || id.indexOf('s_') === 0) return;
-      var coverUrl = '';
-      if (coverMap && coverMap[id]) {
-        coverUrl = coverMap[id];
-      } else {
-        coverUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(id) + '/cover';
-      }
-      if (!coverUrl) return;
-      node.classList.add('has-cover');
-      applyCoverToThumb(node, coverUrl);
-    });
   }
 
   /* ── render trending ─────────────────────────────────── */
