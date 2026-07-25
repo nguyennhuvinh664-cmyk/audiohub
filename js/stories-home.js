@@ -522,6 +522,8 @@
       if (!url) return;
       console.log('[Covers] apply cover to', id, '→', url);
       applyCoverToThumb(node, url);
+      var cs = window.getComputedStyle(node);
+      console.log('[Covers] after apply — bgImage:', cs.backgroundImage.substring(0, 80), 'w:', cs.width, 'h:', cs.height);
     });
   }
 
