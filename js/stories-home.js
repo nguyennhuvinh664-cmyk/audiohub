@@ -86,25 +86,26 @@
     return SUPABASE_STORAGE_DIRECT + encodeURIComponent(storyId) + '/cover';
   }
 
-  /** Apply cover to a thumb node using an <img> element */
+  /** Apply cover to a thumb node using fetch-blob → objectURL (bypass CORS img issues) */
   function applyCoverToThumb(thumb, url) {
     if (!thumb || !url) return;
     try {
       // Remove existing cover img if any
       var oldImg = thumb.querySelector('.sc__cover-img');
       if (oldImg) oldImg.remove();
-      // Create img element
-      var img = document.createElement('img');
-      img.src = url;
-      img.className = 'sc__cover-img';
-      img.alt = '';
-      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:0;';
-      img.onload = function() { console.log('[Covers] img loaded:', url.substring(0, 60)); };
-      img.onerror = function() { console.error('[Covers] img FAILED:', url.substring(0, 60)); };
-      thumb.insertBefore(img, thumb.firstChild);
-      // Hide initials text
-      var si = thumb.querySelector('.si');
-      if (si) si.style.display = 'none';
+      // Fetch as blob, then create object URL (avoids CORS/CSP img blocking)
+      fetch(url).then(function(r) { return r.ok ? r.blob() : null; }).then(function(blob) {
+        if (!blob) return;
+        var objUrl = URL.createObjectURL(blob);
+        var img = document.createElement('img');
+        img.src = objUrl;
+        img.className = 'sc__cover-img';
+        img.alt = '';
+        img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:0;';
+        thumb.insertBefore(img, thumb.firstChild);
+        var si = thumb.querySelector('.si');
+        if (si) si.style.display = 'none';
+      }).catch(function() {});
     } catch (e) {}
   }
 
