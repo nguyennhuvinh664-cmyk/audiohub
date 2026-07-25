@@ -406,22 +406,11 @@
       .replace(/'/g, '&#39;');
   }
 
-  function renderCompletedPlaylistsHome() {
+  function renderCompletedPlaylistsHome(completed) {
     var grid = document.querySelector('[data-home-completed-grid]');
     if (!grid) return;
 
-    var playlists = [];
-    try {
-      var raw = window.localStorage.getItem('audiohub-playlists-v1');
-      var parsed = raw ? JSON.parse(raw) : [];
-      playlists = Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      playlists = [];
-    }
-
-    var completed = playlists.filter(function (p) {
-      return String(p.state || '').trim() === 'done' && String(p.createdBy || 'admin') === 'admin';
-    });
+    completed = completed || [];
 
     if (!completed.length) {
       grid.innerHTML = '<p style="color:var(--t3);font-size:.9rem;padding:20px 0;text-align:center;grid-column:1/-1;">Chưa có playlist nào hoàn thành. Hãy tạo playlist và đánh dấu hoàn thành trên trang Tài khoản.</p>';
@@ -474,94 +463,43 @@
     }
   }
 
-  function renderHomeStoriesFrom(stories) {
-    if (!stories || !stories.length) {
-      return;
-    }
-
-    var publicStories = stories.filter(function (story) {
-      return isPublicVisibility(story);
-    });
-
-    if (!publicStories.length) {
-      return;
-    }
-
-    var selectedGenre = genreSelect ? String(genreSelect.value || '').trim() : '';
-    var newStoriesBase = publicStories.slice().sort(function (a, b) {
-      return parseTime(b.createdAt) - parseTime(a.createdAt);
-    });
-
-    function normalizeGenre(v) {
-      return String(v || '').trim().toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/đ/g, 'd');
-    }
-    var selNorm = normalizeGenre(selectedGenre);
-    var newStories = selectedGenre
-      ? newStoriesBase.filter(function (story) {
-          return normalizeGenre(story.genre) === selNorm;
-        })
-      : newStoriesBase;
-
-    var completedStories = publicStories.filter(function (story) {
-      return story.isCompleted;
-    });
-
-    // Load playlists (series) from Supabase Storage (shared) or localStorage
+  function renderHomeStories() {
+    // Load playlists from Supabase Storage (shared across all users)
     loadPlaylists().then(function (playlists) {
-      // Sort playlists by createdAt (newest first)
       playlists.sort(function (a, b) {
         return parseTime(b.createdAt) - parseTime(a.createdAt);
       });
 
-      // Filter by genre if selected (match first story's genre)
-      if (selectedGenre) {
-        playlists = playlists.filter(function (pl) {
-          var entries = pl.entries || pl.items || [];
-          if (!entries.length) return false;
-          var firstStoryId = String(entries[0].storyId || entries[0].key || '');
-          if (!firstStoryId) return false;
-          var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
-            ? window.AudioHubStories.getById(firstStoryId) : null;
-          return story && normalizeGenre(story.genre) === selNorm;
-        });
-      }
-
+      // Render playlists in main grid
       renderPlaylistCardList(document.querySelector('.cgrid'), playlists.slice(0, 12));
+
+      // Render completed playlists (state=done)
+      var completed = playlists.filter(function (pl) { return pl.state === 'done'; });
+      renderCompletedPlaylistsHome(completed);
     });
-    renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
-    renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
 
-    // Render completed playlists from localStorage
-    renderCompletedPlaylistsHome();
-  }
-
-  function renderHomeStories() {
-    // Render local stories first (instant)
-    var localStories = window.AudioHubStories.read() || [];
-    var localPublic = localStories.filter(function (story) { return isPublicVisibility(story); });
-    if (localPublic.length) {
-      renderHomeStoriesFrom(localPublic);
-      bindHomeGenreDropdown();
-    }
-
-    // Then fetch from API in background
+    // Fetch stories from API for trending/popular sections
     loadStoriesForHome().then(function (stories) {
-      console.log('[Covers] API returned', stories.length, 'stories, calling loadHomeCovers');
-      renderHomeStoriesFrom(stories);
-      bindHomeGenreDropdown();
+      console.log('[Covers] API returned', stories.length, 'stories');
+      var publicStories = stories.filter(function (story) { return isPublicVisibility(story); });
+
+      renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
+      renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
       loadHomeCovers();
 
+      // Bind search form
       var form = document.querySelector('[data-home-search-form]');
       if (form && !form._bound) {
         form._bound = true;
         form.addEventListener('submit', function (e) {
           e.preventDefault();
-          renderHomeStoriesFrom(stories);
+          renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
+          renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
         });
       }
     });
+
+    bindHomeGenreDropdown();
   }
 
   /* ── load covers: direct Supabase Storage URLs (fast, no proxy) ── */
