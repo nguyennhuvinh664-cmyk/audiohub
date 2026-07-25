@@ -634,6 +634,17 @@
     if (!window.AudioHubStories || typeof window.AudioHubStories.remove !== 'function') return;
     ids.forEach(function (id) {
       window.AudioHubStories.remove(id);
+      // Also delete from Supabase database
+      try {
+        var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+        var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+        fetch(SUPABASE_DIRECT + '/rest/v1/stories?id=eq.' + encodeURIComponent(id), {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        }).then(function (r) {
+          if (r.ok) console.log('[account] Deleted story from DB:', id);
+        }).catch(function (e) { console.warn('[account] DB delete failed:', e); });
+      } catch (e) {}
     });
   }
 
