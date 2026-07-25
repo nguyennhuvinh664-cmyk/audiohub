@@ -189,10 +189,14 @@
     var badgeText = isDone ? 'Full' : 'Mới';
     var color = isDone ? '#10b981' : '#f59e0b';
 
-    // Embed cover directly in HTML if available from DB
+    // Embed cover directly in HTML if available from DB, else Storage URL
     var coverStyle = '';
     if (coverMap && coverMap[firstStoryId]) {
       coverStyle = 'background-image:url(\'' + coverMap[firstStoryId] + '\');background-size:cover;background-position:center;';
+    } else if (firstStoryId && firstStoryId.length > 10 && firstStoryId.indexOf('s_') !== 0) {
+      // Fallback: Supabase Storage URL (use background shorthand to override CSS gradient)
+      var storageUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(firstStoryId) + '/cover';
+      coverStyle = 'background:url(\'' + storageUrl + '\') center/cover no-repeat;';
     }
 
     return '<a href="' + href + '" class="sc" data-playlist-id="' + escapeHtml(pl.id) + '">'
