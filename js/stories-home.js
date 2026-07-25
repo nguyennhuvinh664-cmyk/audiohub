@@ -296,24 +296,39 @@
     });
     root.innerHTML = list.map(function (pl) { return buildPlaylistCardHtml(pl, coverMap); }).join('');
 
-    // Apply covers — try CSS background-image directly, no probe
+    // Apply covers — debug: try <img> element with detailed logging
     root.querySelectorAll('[data-cover-url]').forEach(function (node) {
       var url = node.getAttribute('data-cover-url');
       if (!url) return;
-      console.log('[Cover] trying CSS bg:', url);
-      // Set background-image directly via CSS — browser will load natively
+      console.log('[Cover] URL:', url);
+      console.log('[Cover] node tag:', node.tagName, 'dims:', node.offsetWidth + 'x' + node.offsetHeight, 'classes:', node.className);
+
+      // Method 1: CSS background-image
       node.style.backgroundImage = 'url("' + url + '")';
       node.style.backgroundSize = 'cover';
       node.style.backgroundPosition = 'center';
       node.classList.add('has-cover');
       var si = node.querySelector('.si');
       if (si) si.style.display = 'none';
-      // Also fetch to verify reachability
-      fetch(url, { method: 'HEAD' }).then(function (r) {
-        console.log('[Cover] fetch HEAD status:', r.status, url);
-      }).catch(function (e) {
-        console.warn('[Cover] fetch HEAD error:', e.message, url);
-      });
+
+      // Method 2: Also try <img> element to see if it loads
+      var testImg = new Image();
+      testImg.onload = function () {
+        console.log('[Cover] ✅ Image LOADED:', url, 'naturalSize:', testImg.naturalWidth + 'x' + testImg.naturalHeight);
+      };
+      testImg.onerror = function (e) {
+        console.error('[Cover] ❌ Image FAILED:', url, 'error event:', e.type);
+        // Try fetch to get actual status
+        fetch(url).then(function (r) {
+          console.log('[Cover] fetch result:', r.status, r.statusText, r.headers.get('content-type'), url);
+          return r.text();
+        }).then(function (txt) {
+          console.log('[Cover] response body (first 200 chars):', txt.substring(0, 200));
+        }).catch(function (err) {
+          console.error('[Cover] fetch also failed:', err.message, url);
+        });
+      };
+      testImg.src = url;
     });
   }
 
