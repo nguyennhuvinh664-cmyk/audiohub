@@ -1419,7 +1419,7 @@
       }
 
       function applyCoverToNode(node, src) {
-        if (!src || !node) return;
+        if (!src || !node) { console.log('[CVR] skip:', !!node, !!src); return; }
         node.textContent = '';
         node.style.background = 'none';
         var img = document.createElement('img');
@@ -1427,10 +1427,13 @@
         img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
         node.appendChild(img);
         node.classList.add('is-cover-ready');
+        console.log('[CVR] applied', node.className, src.slice(0, 60));
       }
 
       function fetchCoverFromUrl(node, url) {
+        console.log('[CVR] fetch', url.split('/').pop());
         fetch(url).then(function (r) {
+          console.log('[CVR] status', r.status);
           if (!r.ok) return null;
           // Read as text first — works for both data-URL text and raw bytes (as garbled text)
           return r.text().then(function (txt) {
@@ -1454,8 +1457,9 @@
             });
           });
         }).then(function (src) {
+          console.log('[CVR] result', src ? src.slice(0, 50) : 'NULL');
           applyCoverToNode(node, src);
-        }).catch(function () {});
+        }).catch(function (e) { console.log('[CVR] ERR', e.message); });
       }
 
       // Batch-fetch missing chapter titles from Supabase for entries without chapterTitle
