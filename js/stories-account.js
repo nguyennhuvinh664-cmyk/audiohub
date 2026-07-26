@@ -1378,9 +1378,21 @@
       // hydrate covers
       var detailMount2 = document.querySelector('[data-playlist-detail]');
       if (detailMount2) {
+        // Build a map: title → first non-s_ entry key (for s_ entries to share cover)
+        var titleToCloudKey = {};
+        entries.forEach(function (e) {
+          var t = String(e.title || '').trim().toLowerCase();
+          if (t && !String(e.key || '').startsWith('s_') && !titleToCloudKey[t]) {
+            titleToCloudKey[t] = e.key;
+          }
+        });
+
         detailMount2.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
+          if (node.classList.contains('is-cover-ready')) return;
           var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
-          var entryKey = String(node.getAttribute('data-entry-key') || node.closest('[data-entry-key]')?.getAttribute('data-entry-key') || '').trim();
+          var entryKey = String(node.getAttribute('data-entry-key') || '').trim();
+          var isLocal = String(entryKey).startsWith('s_');
+
           if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
             window.AudioHubStoryCover.get(coverKey).then(function (blob) {
               if (!blob) return;
@@ -1390,26 +1402,47 @@
               node.style.backgroundPosition = 'center';
               node.classList.add('is-cover-ready');
             }).catch(function () {});
-          } else if (entryKey && !String(entryKey).startsWith('s_') && !node.classList.contains('is-cover-ready')) {
-            // Fallback: fetch cover from Supabase Storage
+          } else if (entryKey && !isLocal) {
+            // Cloud story: fetch cover from Supabase Storage
             var storageUrl = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + entryKey + '/cover';
-            fetch(storageUrl).then(function (r) {
-              if (!r.ok) return null;
-              return r.clone().arrayBuffer().then(function (buf) {
-                var ascii = String.fromCharCode.apply(null, new Uint8Array(buf).slice(0, 30));
-                if (ascii.indexOf('data:video/') === 0) return null;
-                if (ascii.indexOf('data:image/') === 0) return r.text();
-                return r.blob().then(function (b) { return URL.createObjectURL(b); });
-              });
-            }).then(function (src) {
-              if (!src) return;
-              node.style.backgroundImage = 'url("' + src + '")';
-              node.style.backgroundSize = 'cover';
-              node.style.backgroundPosition = 'center';
-              node.classList.add('is-cover-ready');
-            }).catch(function () {});
+            fetchCoverFromUrl(node, storageUrl);
+          } else if (isLocal) {
+            // Local story: find cloud key by same title, use its cover
+            var entryTitle = '';
+            var entryNode = node.closest('[data-entry-key]');
+            if (entryNode) {
+              var titleNode = entryNode.querySelector('.playlist-entry-title');
+              if (titleNode) {
+                // Extract title text without "Chương X:" prefix
+                entryTitle = titleNode.textContent.replace(/^Chương \d+:\s*/, '').trim();
+              }
+            }
+            var t2 = String(entryTitle).toLowerCase();
+            var cloudKey = titleToCloudKey[t2];
+            if (cloudKey) {
+              var storageUrl2 = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + cloudKey + '/cover';
+              fetchCoverFromUrl(node, storageUrl2);
+            }
           }
         });
+      }
+
+      function fetchCoverFromUrl(node, url) {
+        fetch(url).then(function (r) {
+          if (!r.ok) return null;
+          return r.clone().arrayBuffer().then(function (buf) {
+            var ascii = String.fromCharCode.apply(null, new Uint8Array(buf).slice(0, 30));
+            if (ascii.indexOf('data:video/') === 0) return null;
+            if (ascii.indexOf('data:image/') === 0) return r.text();
+            return r.blob().then(function (b) { return URL.createObjectURL(b); });
+          });
+        }).then(function (src) {
+          if (!src) return;
+          node.style.backgroundImage = 'url("' + src + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
+          node.classList.add('is-cover-ready');
+        }).catch(function () {});
       }
 
       // Batch-fetch missing chapter titles from Supabase for entries without chapterTitle
