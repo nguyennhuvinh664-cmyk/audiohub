@@ -1390,10 +1390,11 @@
                 var chTitle = '';
                 if (allChapters[chIdx] && allChapters[chIdx].title) {
                   chTitle = allChapters[chIdx].title;
-                } else if (row.chapter_title && chIdx === 0) {
+                } else if (row.chapter_title) {
+                  // chapters array empty — use chapter_title for all entries
                   chTitle = row.chapter_title;
                 } else if (allChapters.length) {
-                  chTitle = allChapters[allChapters.length - 1].title || row.chapter_title || '';
+                  chTitle = allChapters[allChapters.length - 1].title || '';
                 }
                 if (chTitle) {
                   var label = 'Chương ' + (chIdx + 1) + ': ' + chTitle;
