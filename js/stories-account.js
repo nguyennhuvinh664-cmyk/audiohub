@@ -1433,12 +1433,22 @@
         fetch(url).then(function (r) {
           if (!r.ok) return null;
           return r.clone().arrayBuffer().then(function (buf) {
-            var head = new Uint8Array(buf).slice(0, 20);
+            var head = new Uint8Array(buf).slice(0, 30);
             var ascii = String.fromCharCode.apply(null, head);
             if (ascii.indexOf('data:video/') === 0) return null;
             if (ascii.indexOf('data:image/') === 0) {
-              return r.text();
+              // Text file containing data-URL — decode to blob for reliable cross-device display
+              var txt = String.fromCharCode.apply(null, new Uint8Array(buf));
+              var m = txt.match(/^data:image\/(\w+);base64,([\s\S]+)$/);
+              if (m) {
+                var bin = atob(m[2]);
+                var arr = new Uint8Array(bin.length);
+                for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                return URL.createObjectURL(new Blob([arr], { type: 'image/' + m[1] }));
+              }
+              return null;
             }
+            // Raw image bytes — create blob directly
             return r.blob().then(function (b) { return URL.createObjectURL(b); });
           });
         }).then(function (src) {
