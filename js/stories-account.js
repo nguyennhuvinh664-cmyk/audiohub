@@ -1376,8 +1376,9 @@
       }
 
       // hydrate covers
+      try {
       var detailMount2 = document.querySelector('[data-playlist-detail]');
-      console.log('[CVR] hydrate start, detailMount2:', !!detailMount2, 'thumbs:', detailMount2 ? detailMount2.querySelectorAll('[data-playlist-entry-thumb]').length : 0);
+      console.warn('[CVR] hydrate start, detailMount2:', !!detailMount2, 'thumbs:', detailMount2 ? detailMount2.querySelectorAll('[data-playlist-entry-thumb]').length : 0);
       if (detailMount2) {
         // Build a map: title → first non-s_ entry key (for s_ entries to share cover)
         var titleToCloudKey = {};
@@ -1419,6 +1420,7 @@
           }
         });
       }
+      } catch(e) { console.warn('[CVR] HYDRATE ERR', e.message, e.stack); }
 
       function applyCoverToNode(node, src) {
         if (!src || !node) { console.log('[CVR] skip:', !!node, !!src); return; }
