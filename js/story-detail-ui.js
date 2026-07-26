@@ -23,6 +23,19 @@
       item.classList.toggle('is-active', isActive);
       item.classList.toggle('active', isActive);
       if (item.matches('button')) item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      // Update "Đang phát" label
+      var np = item.querySelector('.chapter-now-playing');
+      if (isActive && !np) {
+        var body = item.querySelector('.chapter-item-body');
+        if (body) {
+          var tag = document.createElement('span');
+          tag.className = 'chapter-now-playing';
+          tag.innerHTML = '<i class="fa-solid fa-volume-high"></i> Đang phát';
+          body.appendChild(tag);
+        }
+      } else if (!isActive && np) {
+        np.remove();
+      }
     });
   }
 
