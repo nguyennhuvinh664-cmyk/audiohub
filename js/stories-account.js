@@ -1293,9 +1293,11 @@
         var chapterTitle = entry.chapterTitle || '';
         // Auto-assign chapterIndex for entries without it when same title appears multiple times
         var entryTitleKey = String(entry.title || '').trim().toLowerCase();
-        if (entryTitleKey && titleSeenCount[entryTitleKey] > 1 && !entry.chapterTitle && !entry.chapterIndex) {
+        if (entryTitleKey && titleSeenCount[entryTitleKey] > 1) {
           if (!titleOrderCounter[entryTitleKey]) titleOrderCounter[entryTitleKey] = 0;
-          chapterIndex = titleOrderCounter[entryTitleKey];
+          if (!entry.chapterTitle && !entry.chapterIndex) {
+            chapterIndex = titleOrderCounter[entryTitleKey];
+          }
           titleOrderCounter[entryTitleKey]++;
         }
         // Try local story store first
@@ -1355,14 +1357,16 @@
 
       // Persist auto-assigned chapterIndex for duplicate entries
       var needSaveChapters = false;
-      var dupTitleCounter = {};
+      var dupTitleCounter2 = {};
       entries.forEach(function (e) {
         var t = String(e.title || '').trim().toLowerCase();
-        if (titleSeenCount[t] > 1 && !e.chapterTitle && !e.chapterIndex) {
-          if (!dupTitleCounter[t]) dupTitleCounter[t] = 0;
-          e.chapterIndex = dupTitleCounter[t];
-          dupTitleCounter[t]++;
-          needSaveChapters = true;
+        if (titleSeenCount[t] > 1) {
+          if (!dupTitleCounter2[t]) dupTitleCounter2[t] = 0;
+          if (!e.chapterTitle && !e.chapterIndex) {
+            e.chapterIndex = dupTitleCounter2[t];
+            needSaveChapters = true;
+          }
+          dupTitleCounter2[t]++;
         }
       });
       if (needSaveChapters) {
