@@ -474,6 +474,7 @@
         var entry = {
           key: storyId,
           title: addPlaylistBtn.getAttribute('data-story-title') || '',
+          chapterTitle: addPlaylistBtn.getAttribute('data-story-chapter-title') || '',
           author: addPlaylistBtn.getAttribute('data-story-author') || '',
           genre: addPlaylistBtn.getAttribute('data-story-genre') || '',
           href: addPlaylistBtn.getAttribute('data-story-href') || '',
@@ -851,15 +852,14 @@
     }
 
     html += '<div class="yt-grid">' + paged.map(function (story) {
-      var chapterTitle = escapeHtml(story.chapterTitle || '');
-      var title = chapterTitle ? ('Chương 1: ' + chapterTitle) : escapeHtml(story.title || 'Truyện mới');
+      var title = escapeHtml(story.title || 'Truyện mới');
       var author = escapeHtml(story.author || 'Ẩn danh');
       var genre = escapeHtml(story.genre || 'Truyện audio');
       var updated = formatTime(story.updatedAt || story.createdAt);
       var storyId = String(story.id || '').trim();
       var coverKey = story.coverKey ? String(story.coverKey) : '';
       var thumbStyle = 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
-      var metaLine = escapeHtml(story.title || '') + ' · ' + author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '');
+      var metaLine = author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '');
 
       var editHref = '/html/upload-story.html?id=' + encodeURIComponent(storyId);
       return '' +
@@ -867,7 +867,7 @@
           '<label class="yt-card__checkbox"><input type="checkbox" data-story-checkbox data-story-id="' + escapeHtml(storyId) + '" /></label>' +
           '<div class="yt-card__thumb-wrap">' +
             '<div class="yt-card__thumb" data-story-thumb data-story-id="' + escapeHtml(storyId) + '" data-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
-              '<span>' + escapeHtml((story.chapterTitle || story.title || 'ST').slice(0, 2).toUpperCase()) + '</span>' +
+              '<span>' + escapeHtml((story.title || 'ST').slice(0, 2).toUpperCase()) + '</span>' +
             '</div>' +
           '</div>' +
           '<div class="yt-card__body">' +
@@ -878,7 +878,7 @@
             '<button type="button" class="yt-card__menu-btn" data-story-menu="' + escapeHtml(storyId) + '" aria-label="Tùy chọn" title="Tùy chọn"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
             '<div class="yt-card__menu is-hidden" data-story-menu-panel="' + escapeHtml(storyId) + '">' +
               '<a href="' + escapeHtml(storyHref(story)) + '" class="yt-card__menu-item"><i class="fa-solid fa-eye"></i> Xem truyện</a>' +
-              '<button type="button" class="yt-card__menu-item" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '"><i class="fa-solid fa-list"></i> Thêm vào truyện</button>' +
+              '<button type="button" class="yt-card__menu-item" data-story-add-playlist="' + escapeHtml(storyId) + '" data-story-title="' + escapeHtml(story.title || '') + '" data-story-chapter-title="' + escapeHtml(story.chapterTitle || '') + '" data-story-author="' + escapeHtml(story.author || '') + '" data-story-genre="' + escapeHtml(story.genre || '') + '" data-story-href="' + escapeHtml(storyHref(story)) + '"><i class="fa-solid fa-list"></i> Thêm vào truyện</button>' +
               '<a href="' + escapeHtml(editHref) + '" class="yt-card__menu-item"><i class="fa-solid fa-pen"></i> Chỉnh sửa</a>' +
               '<button type="button" class="yt-card__menu-item yt-card__menu-item--danger" data-story-delete-one="' + escapeHtml(storyId) + '"><i class="fa-solid fa-trash"></i> Xóa truyện</button>' +
             '</div>' +
@@ -1279,9 +1279,13 @@
         var status = entry.status || 'listening';
         var isDone = status === 'done';
         var coverKey = String(entry.coverKey || '');
-        if (!coverKey && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+        var chapterTitle = entry.chapterTitle || '';
+        if ((!coverKey || !chapterTitle) && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
           var story = window.AudioHubStories.getById(entry.key);
-          coverKey = story && story.coverKey ? String(story.coverKey) : '';
+          if (story) {
+            if (!coverKey) coverKey = story.coverKey ? String(story.coverKey) : '';
+            if (!chapterTitle) chapterTitle = story.chapterTitle || '';
+          }
         }
         var thumbStyle = coverKey ? '' : 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
         var genreBadge = entry.genre ? '<span class="genre-badge">' + escapeHtml(entry.genre) + '</span>' : '';
@@ -1293,10 +1297,10 @@
         return '' +
           '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
             '<a class="playlist-entry-thumb" href="' + escapeHtml(entryHref) + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
-              '<span>' + escapeHtml((entry.title || 'AH').slice(0,2).toUpperCase()) + '</span>' +
+              '<span>' + escapeHtml((chapterTitle || entry.title || 'AH').slice(0,2).toUpperCase()) + '</span>' +
             '</a>' +
             '<div class="playlist-entry-main">' +
-              '<a class="playlist-entry-title" href="' + escapeHtml(entryHref) + '">' + escapeHtml(entry.title || 'Truyện audio') + '</a>' +
+              '<a class="playlist-entry-title" href="' + escapeHtml(entryHref) + '">' + escapeHtml(chapterTitle ? ('Chương 1: ' + chapterTitle) : (entry.title || 'Truyện audio')) + '</a>' +
               '<div class="playlist-entry-meta"><span>' + escapeHtml(entry.author || 'Ẩn danh') + '</span>' + genreBadge + '</div>' +
             '</div>' +
             '<div class="playlist-entry-actions">' +
