@@ -1423,17 +1423,22 @@
       }
 
       function fetchCoverFromUrl(node, url) {
+        console.log('[cover] fetching:', url.split('/').slice(-2).join('/'));
         fetch(url).then(function (r) {
+          console.log('[cover] status:', r.status, 'ct:', r.headers.get('content-type'));
           if (!r.ok) return null;
           return r.clone().arrayBuffer().then(function (buf) {
             var head = new Uint8Array(buf).slice(0, 30);
             var ascii = String.fromCharCode.apply(null, head);
+            console.log('[cover] head:', ascii.slice(0, 25));
             if (ascii.indexOf('data:video/') === 0) return null;
             if (ascii.indexOf('data:image/') === 0) {
               // File contains data-URL text — convert to blob URL
               return r.text().then(function (txt) {
+                console.log('[cover] dataurl len:', txt.length, 'starts:', txt.slice(0, 30));
                 var parts = txt.match(/^data:image\/(\w+);base64,(.+)$/);
-                if (!parts) return null;
+                if (!parts) { console.log('[cover] regex FAIL'); return null; }
+                console.log('[cover] match ok, ext:', parts[1], 'b64len:', parts[2].length);
                 var bin = atob(parts[2]);
                 var arr = new Uint8Array(bin.length);
                 for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
@@ -1444,12 +1449,14 @@
             return r.blob().then(function (b) { return URL.createObjectURL(b); });
           });
         }).then(function (src) {
+          console.log('[cover] result:', src ? 'ok ' + src.slice(0, 50) : 'NULL');
           if (!src) return;
           node.style.backgroundImage = 'url("' + src + '")';
           node.style.backgroundSize = 'cover';
           node.style.backgroundPosition = 'center';
           node.classList.add('is-cover-ready');
-        }).catch(function () {});
+          console.log('[cover] applied to node');
+        }).catch(function (e) { console.log('[cover] ERR:', e.message); });
       }
 
       // Batch-fetch missing chapter titles from Supabase for entries without chapterTitle
