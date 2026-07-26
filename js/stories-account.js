@@ -1308,7 +1308,7 @@
         }
         var needsFetch = !chapterTitle && !String(entry.key || '').startsWith('s_');
         return '' +
-          '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '"' + (needsFetch ? ' data-needs-chapter-title="1"' : '') + '>' +
+          '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '" data-chapter-index="' + chapterIndex + '"' + (needsFetch ? ' data-needs-chapter-title="1"' : '') + '>' +
             '<a class="playlist-entry-thumb" href="' + escapeHtml(entryHref) + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
               '<span>' + escapeHtml((chapterLabel || 'AH').slice(0,2).toUpperCase()) + '</span>' +
             '</a>' +
@@ -1356,21 +1356,38 @@
           });
           if (idsToFetch.length) {
             var idsParam = idsToFetch.map(encodeURIComponent).join(',');
-            fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,chapter_title,cover_data', {
+            fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,chapter_title,chapters,cover_data', {
               headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
             }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
               var rowMap = {};
               (rows || []).forEach(function (r) { rowMap[r.id] = r; });
+              var updatedKeys = [];
               nodesNeedingTitle.forEach(function (node) {
                 var k = node.getAttribute('data-entry-key');
+                var chIdx = Number(node.getAttribute('data-chapter-index')) || 0;
                 var row = rowMap[k];
                 if (!row) return;
-                var chTitle = row.chapter_title || '';
+                // Parse chapters array from Supabase
+                var allChapters = [];
+                try { allChapters = typeof row.chapters === 'string' ? JSON.parse(row.chapters) : (row.chapters || []); } catch (e) { allChapters = []; }
+                // Get chapter title: prefer chapters[chIdx].title, fallback to chapter_title
+                var chTitle = '';
+                if (allChapters[chIdx] && allChapters[chIdx].title) {
+                  chTitle = allChapters[chIdx].title;
+                } else if (row.chapter_title && chIdx === 0) {
+                  chTitle = row.chapter_title;
+                } else if (allChapters.length) {
+                  // Fallback: use last available chapter title
+                  chTitle = allChapters[allChapters.length - 1].title || row.chapter_title || '';
+                }
                 if (chTitle) {
+                  var label = 'Chương ' + (chIdx + 1) + ': ' + chTitle;
                   var titleNode = node.querySelector('.playlist-entry-title');
-                  if (titleNode) titleNode.textContent = 'Chương 1: ' + chTitle;
+                  if (titleNode) titleNode.textContent = label;
                   var thumbSpan = node.querySelector('.playlist-entry-thumb span');
                   if (thumbSpan) thumbSpan.textContent = 'CH';
+                  // Save back to entry in localStorage
+                  updatedKeys.push({ key: k, chapterTitle: chTitle, chapterIndex: chIdx });
                 }
                 // Also apply cover if available
                 if (row.cover_data && row.cover_data.indexOf('data:image/') === 0) {
@@ -1383,6 +1400,23 @@
                   }
                 }
               });
+              // Persist fetched chapter titles back to localStorage
+              if (updatedKeys.length) {
+                try {
+                  var allPls = readPlaylists();
+                  allPls.forEach(function (pl) {
+                    (pl.entries || []).forEach(function (e) {
+                      updatedKeys.forEach(function (u) {
+                        if (e.key === u.key) {
+                          e.chapterTitle = u.chapterTitle;
+                          e.chapterIndex = u.chapterIndex;
+                        }
+                      });
+                    });
+                  });
+                  writePlaylists(allPls);
+                } catch (e) {}
+              }
             }).catch(function () {});
           }
         }
