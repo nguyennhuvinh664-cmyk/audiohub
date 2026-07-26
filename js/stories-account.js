@@ -1275,6 +1275,15 @@
         writePlaylists(allPls);
       }
 
+      // Count how many times each title appears (to auto-assign chapterIndex for duplicates)
+      var titleSeenCount = {};
+      entries.forEach(function (e) {
+        var t = String(e.title || '').trim().toLowerCase();
+        if (t) titleSeenCount[t] = (titleSeenCount[t] || 0) + 1;
+      });
+      // Track per-title occurrence during render
+      var titleOrderCounter = {};
+
       playlistDetailMount.innerHTML = paged.map(function (entry) {
         var progress = Number(entry.progress) || 0;
         var status = entry.status || 'listening';
@@ -1282,6 +1291,13 @@
         var coverKey = String(entry.coverKey || '');
         var chapterIndex = Number(entry.chapterIndex) || 0;
         var chapterTitle = entry.chapterTitle || '';
+        // Auto-assign chapterIndex for entries without it when same title appears multiple times
+        var entryTitleKey = String(entry.title || '').trim().toLowerCase();
+        if (entryTitleKey && titleSeenCount[entryTitleKey] > 1 && !entry.chapterTitle && !entry.chapterIndex) {
+          if (!titleOrderCounter[entryTitleKey]) titleOrderCounter[entryTitleKey] = 0;
+          chapterIndex = titleOrderCounter[entryTitleKey];
+          titleOrderCounter[entryTitleKey]++;
+        }
         // Try local story store first
         if (!coverKey || !chapterTitle) {
           var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
@@ -1298,7 +1314,16 @@
             }
           }
         }
-        var chapterLabel = chapterTitle ? ('Chương ' + (chapterIndex + 1) + ': ' + chapterTitle) : (entry.title || 'Truyện audio');
+        // If auto-assigned chapterIndex for duplicates, always show "Chương X" even without title
+        var isDuplicate = entryTitleKey && titleSeenCount[entryTitleKey] > 1;
+        var chapterLabel;
+        if (chapterTitle) {
+          chapterLabel = 'Chương ' + (chapterIndex + 1) + ': ' + chapterTitle;
+        } else if (isDuplicate) {
+          chapterLabel = 'Chương ' + (chapterIndex + 1);
+        } else {
+          chapterLabel = entry.title || 'Truyện audio';
+        }
         var thumbStyle = coverKey ? '' : 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
         var genreBadge = entry.genre ? '<span class="genre-badge">' + escapeHtml(entry.genre) + '</span>' : '';
         // Ensure entry href includes playlistId
@@ -1326,6 +1351,26 @@
       var paginationWrapPlaylist = document.querySelector('[data-pagination-wrap="playlist"]');
       if (paginationWrapPlaylist) {
         paginationWrapPlaylist.innerHTML = totalPages > 1 ? buildPagination(currentPlaylistDetailPage, totalPages, 'playlist', pl.id) : '';
+      }
+
+      // Persist auto-assigned chapterIndex for duplicate entries
+      var needSaveChapters = false;
+      var dupTitleCounter = {};
+      entries.forEach(function (e) {
+        var t = String(e.title || '').trim().toLowerCase();
+        if (titleSeenCount[t] > 1 && !e.chapterTitle && !e.chapterIndex) {
+          if (!dupTitleCounter[t]) dupTitleCounter[t] = 0;
+          e.chapterIndex = dupTitleCounter[t];
+          dupTitleCounter[t]++;
+          needSaveChapters = true;
+        }
+      });
+      if (needSaveChapters) {
+        try {
+          var allPls2 = readPlaylists();
+          allPls2.forEach(function (p) { if (p.id === pl.id) p.entries = entries; });
+          writePlaylists(allPls2);
+        } catch (e) {}
       }
 
       // hydrate covers
