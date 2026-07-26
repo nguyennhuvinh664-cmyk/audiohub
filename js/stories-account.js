@@ -1511,25 +1511,6 @@
                   if (thumbSpan) thumbSpan.textContent = 'CH';
                   updatedKeys.push({ key: k, chapterTitle: chTitle, chapterIndex: chIdx, entryIndex: chIdx });
                 }
-                // Also apply cover if available (convert data-URL to blob URL)
-                if (row.cover_data && row.cover_data.indexOf('data:image/') === 0) {
-                  var thumbNode = node.querySelector('.playlist-entry-thumb');
-                  if (thumbNode && !thumbNode.classList.contains('is-cover-ready')) {
-                    try {
-                      var m = row.cover_data.match(/^data:image\/(\w+);base64,(.+)$/);
-                      if (m) {
-                        var bin = atob(m[2]);
-                        var arr = new Uint8Array(bin.length);
-                        for (var bi = 0; bi < bin.length; bi++) arr[bi] = bin.charCodeAt(bi);
-                        var bUrl = URL.createObjectURL(new Blob([arr], { type: 'image/' + m[1] }));
-                        thumbNode.style.backgroundImage = 'url("' + bUrl + '")';
-                        thumbNode.style.backgroundSize = 'cover';
-                        thumbNode.style.backgroundPosition = 'center';
-                        thumbNode.classList.add('is-cover-ready');
-                      }
-                    } catch (e) {}
-                  }
-                }
               });
               // Persist fetched chapter titles back to localStorage
               if (updatedKeys.length) {
