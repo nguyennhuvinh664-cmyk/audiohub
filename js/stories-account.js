@@ -1513,8 +1513,12 @@
                   var label = 'Chương ' + (chIdx + 1) + ': ' + chTitle;
                   var titleNode = node.querySelector('.playlist-entry-title');
                   if (titleNode) titleNode.textContent = label;
-                  var thumbSpan = node.querySelector('.playlist-entry-thumb span');
-                  if (thumbSpan) thumbSpan.textContent = 'CH';
+                  // Don't touch thumb if cover hydration already added an <img>
+                  var thumbEl = node.querySelector('.playlist-entry-thumb');
+                  if (thumbEl && !thumbEl.querySelector('img') && !thumbEl.classList.contains('is-cover-ready')) {
+                    var thumbSpan = thumbEl.querySelector('span');
+                    if (thumbSpan) thumbSpan.textContent = 'CH';
+                  }
                   updatedKeys.push({ key: k, chapterTitle: chTitle, chapterIndex: chIdx, entryIndex: chIdx });
                 }
               });
