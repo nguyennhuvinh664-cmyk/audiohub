@@ -95,18 +95,24 @@
     if (!node || !url) return;
     fetch(url).then(function (r) {
       if (!r.ok) return null;
-      return r.text();
-    }).then(function (txt) {
-      if (!txt) return;
-      // If the file content is a data-URL string, use it directly
-      if (txt.indexOf('data:image/') === 0) {
-        node.style.backgroundImage = 'url("' + txt + '")';
-      } else if (txt.indexOf('data:video/') === 0) {
-        // Skip video data-URLs (wrong file type)
-        return;
-      } else {
-        // Raw image bytes — use the original URL as CSS bg
-        node.style.backgroundImage = 'url("' + url + '")';
+      // Peek first 30 bytes to detect format without corrupting binary
+      return r.clone().arrayBuffer().then(function (buf) {
+        var head = new Uint8Array(buf).slice(0, 30);
+        var ascii = String.fromCharCode.apply(null, head);
+        if (ascii.indexOf('data:image/') === 0) {
+          return r.text().then(function (txt) { return { type: 'dataurl', data: txt }; });
+        } else if (ascii.indexOf('data:video/') === 0) {
+          return { type: 'skip' };
+        } else {
+          return r.blob().then(function (blob) { return { type: 'blob', data: blob }; });
+        }
+      });
+    }).then(function (result) {
+      if (!result || result.type === 'skip') return;
+      if (result.type === 'dataurl') {
+        node.style.backgroundImage = 'url("' + result.data + '")';
+      } else if (result.type === 'blob') {
+        node.style.backgroundImage = 'url("' + URL.createObjectURL(result.data) + '")';
       }
       node.style.backgroundSize = 'cover';
       node.style.backgroundPosition = 'center';
@@ -121,15 +127,27 @@
     if (!thumb || !url) return;
     fetch(url).then(function (r) {
       if (!r.ok) return null;
-      return r.text();
-    }).then(function (txt) {
-      if (!txt) return;
-      var imgUrl = url;
-      if (txt.indexOf('data:image/') === 0) {
-        imgUrl = txt; // use data-URL directly
-      } else if (txt.indexOf('data:video/') === 0) {
-        return; // skip video files
+      // Peek first 30 bytes to detect format without corrupting binary
+      return r.clone().arrayBuffer().then(function (buf) {
+        var head = new Uint8Array(buf).slice(0, 30);
+        var ascii = String.fromCharCode.apply(null, head);
+        if (ascii.indexOf('data:image/') === 0) {
+          return r.text().then(function (txt) { return { type: 'dataurl', data: txt }; });
+        } else if (ascii.indexOf('data:video/') === 0) {
+          return { type: 'skip' };
+        } else {
+          return r.blob().then(function (blob) { return { type: 'blob', data: blob }; });
+        }
+      });
+    }).then(function (result) {
+      if (!result || result.type === 'skip') return;
+      var imgUrl;
+      if (result.type === 'dataurl') {
+        imgUrl = result.data;
+      } else if (result.type === 'blob') {
+        imgUrl = URL.createObjectURL(result.data);
       }
+      if (!imgUrl) return;
       var oldImg = thumb.querySelector('.sc__cover-img');
       if (oldImg) oldImg.remove();
       var img = document.createElement('img');
