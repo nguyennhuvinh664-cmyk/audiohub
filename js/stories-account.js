@@ -1377,7 +1377,9 @@
 
       // hydrate covers
       var detailMount2 = document.querySelector('[data-playlist-detail]');
+      console.log('[cover] renderContent called, pl.id:', pl.id, 'entries:', entries.length, 'detailMount2:', !!detailMount2);
       if (detailMount2) {
+        console.log('[cover] DOM thumbs found:', detailMount2.querySelectorAll('[data-playlist-entry-thumb]').length);
         // Build a map: title → first non-s_ entry key (for s_ entries to share cover)
         var titleToCloudKey = {};
         entries.forEach(function (e) {
@@ -1386,6 +1388,7 @@
             titleToCloudKey[t] = e.key;
           }
         });
+        console.log('[cover] titleToCloudKey:', JSON.stringify(titleToCloudKey));
 
         detailMount2.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
           if (node.classList.contains('is-cover-ready')) return;
@@ -1395,6 +1398,7 @@
           // Find matching entry object for title lookup
           var matchedEntry = null;
           entries.forEach(function (e) { if (!matchedEntry && String(e.key) === entryKey) matchedEntry = e; });
+          console.log('[cover] processing node:', entryKey.slice(0, 12), 'isLocal:', isLocal, 'coverKey:', coverKey || 'empty', 'match:', matchedEntry ? 'yes' : 'NO');
 
           if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
             window.AudioHubStoryCover.get(coverKey).then(function (blob) {
