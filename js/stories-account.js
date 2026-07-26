@@ -1399,11 +1399,7 @@
           if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
             window.AudioHubStoryCover.get(coverKey).then(function (blob) {
               if (!blob) return;
-              var url = URL.createObjectURL(blob);
-              node.style.backgroundImage = 'url("' + url + '")';
-              node.style.backgroundSize = 'cover';
-              node.style.backgroundPosition = 'center';
-              node.classList.add('is-cover-ready');
+              applyCoverToNode(node, URL.createObjectURL(blob));
             }).catch(function () {});
           } else if (entryKey && !isLocal) {
             // Cloud story: fetch cover from Supabase Storage
@@ -1422,6 +1418,21 @@
         });
       }
 
+      function applyCoverToNode(node, src) {
+        if (!src || !node) return;
+        var img = new Image();
+        img.onload = function () {
+          node.style.background = 'none';
+          node.textContent = '';
+          node.appendChild(img);
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'cover';
+          node.classList.add('is-cover-ready');
+        };
+        img.src = src;
+      }
+
       function fetchCoverFromUrl(node, url) {
         fetch(url).then(function (r) {
           if (!r.ok) return null;
@@ -1430,7 +1441,6 @@
             var ascii = String.fromCharCode.apply(null, head);
             if (ascii.indexOf('data:video/') === 0) return null;
             if (ascii.indexOf('data:image/') === 0) {
-              // File contains data-URL text — convert to blob URL
               return r.text().then(function (txt) {
                 var parts = txt.match(/^data:image\/(\w+);base64,(.+)$/);
                 if (!parts) return null;
@@ -1444,11 +1454,7 @@
             return r.blob().then(function (b) { return URL.createObjectURL(b); });
           });
         }).then(function (src) {
-          if (!src) return;
-          node.style.backgroundImage = 'url("' + src + '")';
-          node.style.backgroundSize = 'cover';
-          node.style.backgroundPosition = 'center';
-          node.classList.add('is-cover-ready');
+          applyCoverToNode(node, src);
         }).catch(function () {});
       }
 
