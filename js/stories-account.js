@@ -1375,96 +1375,8 @@
         } catch (e) {}
       }
 
-      // hydrate covers
-      try {
-      var detailMount2 = document.querySelector('[data-playlist-detail]');
-      console.warn('[CVR] hydrate start, detailMount2:', !!detailMount2, 'thumbs:', detailMount2 ? detailMount2.querySelectorAll('[data-playlist-entry-thumb]').length : 0);
-      if (detailMount2) {
-        // Build a map: title → first non-s_ entry key (for s_ entries to share cover)
-        var titleToCloudKey = {};
-        entries.forEach(function (e) {
-          var t = String(e.title || '').trim().toLowerCase();
-          if (t && !String(e.key || '').startsWith('s_') && !titleToCloudKey[t]) {
-            titleToCloudKey[t] = e.key;
-          }
-        });
-
-        detailMount2.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
-          console.log('[CVR] node:', node.getAttribute('data-entry-key'), 'ready:', node.classList.contains('is-cover-ready'));
-          if (node.classList.contains('is-cover-ready')) return;
-          var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
-          var entryKey = String(node.getAttribute('data-entry-key') || '').trim();
-          var isLocal = String(entryKey).startsWith('s_');
-          // Find matching entry object for title lookup
-          var matchedEntry = null;
-          entries.forEach(function (e) { if (!matchedEntry && String(e.key) === entryKey) matchedEntry = e; });
-
-          if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-            window.AudioHubStoryCover.get(coverKey).then(function (blob) {
-              if (!blob) return;
-              applyCoverToNode(node, URL.createObjectURL(blob));
-            }).catch(function () {});
-          } else if (entryKey && !isLocal) {
-            // Cloud story: fetch cover from Supabase Storage
-            var storageUrl = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + entryKey + '/cover';
-            fetchCoverFromUrl(node, storageUrl);
-          } else if (isLocal) {
-            // Local story: find cloud key by same title, use its cover
-            // matchedEntry.title is the story name (e.g. "Thiên Long Bát Bộ")
-            var t2 = String((matchedEntry && matchedEntry.title) || '').trim().toLowerCase();
-            var cloudKey = titleToCloudKey[t2];
-            if (cloudKey) {
-              var storageUrl2 = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + cloudKey + '/cover';
-              fetchCoverFromUrl(node, storageUrl2);
-            }
-          }
-        });
-      }
-      } catch(e) { console.warn('[CVR] HYDRATE ERR', e.message, e.stack); }
-
-      function applyCoverToNode(node, src) {
-        if (!src || !node) { console.log('[CVR] skip:', !!node, !!src); return; }
-        node.textContent = '';
-        node.style.background = 'none';
-        var img = document.createElement('img');
-        img.src = src;
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
-        node.appendChild(img);
-        node.classList.add('is-cover-ready');
-        console.log('[CVR] applied', node.className, src.slice(0, 60));
-      }
-
-      function fetchCoverFromUrl(node, url) {
-        console.log('[CVR] fetch', url.split('/').pop());
-        fetch(url).then(function (r) {
-          console.log('[CVR] status', r.status);
-          if (!r.ok) return null;
-          // Read as text first — works for both data-URL text and raw bytes (as garbled text)
-          return r.text().then(function (txt) {
-            if (!txt || txt.indexOf('data:video/') === 0) return null;
-            if (txt.indexOf('data:image/') === 0) {
-              // Data-URL text file — decode to blob
-              var m = txt.match(/^data:image\/(\w+);base64,([\s\S]+)$/);
-              if (m) {
-                var bin = atob(m[2]);
-                var arr = new Uint8Array(bin.length);
-                for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                return URL.createObjectURL(new Blob([arr], { type: 'image/' + m[1] }));
-              }
-              return null;
-            }
-            // Raw image bytes (garbled as text) — need to re-fetch as blob
-            return fetch(url).then(function (r2) {
-              return r2.ok ? r2.blob() : null;
-            }).then(function (blob) {
-              return blob ? URL.createObjectURL(blob) : null;
-            });
-          });
-        }).then(function (src) {
-          console.log('[CVR] result', src ? src.slice(0, 50) : 'NULL');
-          applyCoverToNode(node, src);
-        }).catch(function (e) { console.log('[CVR] ERR', e.message); });
-      }
+      // hydrate covers — delegated to IIFE-scope hydratePlaylistCovers() via MutationObserver
+      hydratePlaylistCovers();
 
       // Batch-fetch missing chapter titles from Supabase for entries without chapterTitle
       if (detailMount2) {
@@ -1782,6 +1694,114 @@
     },
     remove: function (playlistId, entryKey) { removeEntryFromPlaylist(playlistId, entryKey); renderPlaylistDetail(); }
   };
+
+  // ── Cover Hydration (IIFE scope) ─────────────────────────────────────────
+  var STORAGE_BASE = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/';
+
+  function applyCoverToNode(node, src) {
+    if (!src || !node) return;
+    if (node.classList && node.classList.contains('is-cover-ready')) return;
+    node.textContent = '';
+    node.style.background = 'none';
+    var img = document.createElement('img');
+    img.src = src;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+    node.appendChild(img);
+    if (node.classList) node.classList.add('is-cover-ready');
+  }
+
+  function fetchCoverFromStorage(node, url) {
+    fetch(url).then(function (r) {
+      if (!r.ok) return null;
+      return r.text().then(function (txt) {
+        if (!txt || txt.indexOf('data:video/') === 0) return null;
+        if (txt.indexOf('data:image/') === 0) {
+          var m = txt.match(/^data:image\/(\w+);base64,([\s\S]+)$/);
+          if (m) {
+            var bin = atob(m[2]);
+            var arr = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+            return URL.createObjectURL(new Blob([arr], { type: 'image/' + m[1] }));
+          }
+          return null;
+        }
+        return fetch(url).then(function (r2) { return r2.ok ? r2.blob() : null; })
+          .then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
+      });
+    }).then(function (src) { applyCoverToNode(node, src); }).catch(function () {});
+  }
+
+  function hydratePlaylistCovers() {
+    var detail = document.querySelector('[data-playlist-detail]');
+    if (!detail) return;
+    // Build title→cloudKey map from current playlist entries
+    var titleToCloudKey = {};
+    try {
+      var list = readPlaylists();
+      var pl = null;
+      list.forEach(function (p) { if (p.id === activePlaylistId) pl = p; });
+      if (pl) {
+        (pl.entries || []).forEach(function (e) {
+          var t = String(e.title || '').trim().toLowerCase();
+          if (t && !String(e.key || '').startsWith('s_') && !titleToCloudKey[t]) titleToCloudKey[t] = e.key;
+        });
+      }
+    } catch (e) {}
+
+    detail.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
+      if (node.classList.contains('is-cover-ready')) return;
+      var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
+      var entryKey = String(node.getAttribute('data-entry-key') || '').trim();
+      var isLocal = String(entryKey).startsWith('s_');
+
+      if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+          if (blob) applyCoverToNode(node, URL.createObjectURL(blob));
+        }).catch(function () {});
+      } else if (!isLocal && entryKey) {
+        fetchCoverFromStorage(node, STORAGE_BASE + entryKey + '/cover');
+      } else if (isLocal) {
+        // Find matching entry's title, then look up cloud key
+        var matchedEntry = null;
+        try {
+          var list2 = readPlaylists();
+          var pl2 = null;
+          list2.forEach(function (p) { if (p.id === activePlaylistId) pl2 = p; });
+          if (pl2) (pl2.entries || []).forEach(function (e) { if (!matchedEntry && String(e.key) === entryKey) matchedEntry = e; });
+        } catch (e) {}
+        var t2 = String((matchedEntry && matchedEntry.title) || '').trim().toLowerCase();
+        var cloudKey = titleToCloudKey[t2];
+        if (cloudKey) fetchCoverFromStorage(node, STORAGE_BASE + cloudKey + '/cover');
+      }
+    });
+  }
+
+  // MutationObserver: auto-hydrate covers whenever playlist detail DOM changes
+  (function () {
+    var observer = new MutationObserver(function () { hydratePlaylistCovers(); });
+    var target = document.querySelector('[data-playlist-detail]');
+    if (target) {
+      observer.observe(target, { childList: true, subtree: true });
+    } else {
+      // Wait for it to appear
+      var obs2 = new MutationObserver(function () {
+        var t = document.querySelector('[data-playlist-detail]');
+        if (t) {
+          obs2.disconnect();
+          observer.observe(t, { childList: true, subtree: true });
+          hydratePlaylistCovers();
+        }
+      });
+      obs2.observe(document.body, { childList: true, subtree: true });
+    }
+  })();
+
+  // Also hydrate on DOMContentLoaded as a fallback
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(hydratePlaylistCovers, 200);
+    setTimeout(hydratePlaylistCovers, 500);
+    setTimeout(hydratePlaylistCovers, 1000);
+  });
 
   // ── End Playlist ──────────────────────────────────────────────────────────
 
