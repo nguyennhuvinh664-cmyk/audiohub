@@ -851,14 +851,15 @@
     }
 
     html += '<div class="yt-grid">' + paged.map(function (story) {
-      var title = escapeHtml(story.title || 'Truyện mới');
+      var chapterTitle = escapeHtml(story.chapterTitle || '');
+      var title = chapterTitle ? ('Chương 1: ' + chapterTitle) : escapeHtml(story.title || 'Truyện mới');
       var author = escapeHtml(story.author || 'Ẩn danh');
       var genre = escapeHtml(story.genre || 'Truyện audio');
       var updated = formatTime(story.updatedAt || story.createdAt);
       var storyId = String(story.id || '').trim();
       var coverKey = story.coverKey ? String(story.coverKey) : '';
       var thumbStyle = 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
-      var metaLine = author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '');
+      var metaLine = escapeHtml(story.title || '') + ' · ' + author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '');
 
       var editHref = '/html/upload-story.html?id=' + encodeURIComponent(storyId);
       return '' +
@@ -866,7 +867,7 @@
           '<label class="yt-card__checkbox"><input type="checkbox" data-story-checkbox data-story-id="' + escapeHtml(storyId) + '" /></label>' +
           '<div class="yt-card__thumb-wrap">' +
             '<div class="yt-card__thumb" data-story-thumb data-story-id="' + escapeHtml(storyId) + '" data-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
-              '<span>' + escapeHtml((story.title || 'ST').slice(0, 2).toUpperCase()) + '</span>' +
+              '<span>' + escapeHtml((story.chapterTitle || story.title || 'ST').slice(0, 2).toUpperCase()) + '</span>' +
             '</div>' +
           '</div>' +
           '<div class="yt-card__body">' +
