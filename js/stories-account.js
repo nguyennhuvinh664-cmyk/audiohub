@@ -1282,13 +1282,13 @@
         var coverKey = String(entry.coverKey || '');
         var chapterIndex = Number(entry.chapterIndex) || 0;
         var chapterTitle = entry.chapterTitle || '';
+        // Try local story store first
         if (!coverKey || !chapterTitle) {
           var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
             ? window.AudioHubStories.getById(entry.key) : null;
           if (story) {
             if (!coverKey) coverKey = story.coverKey ? String(story.coverKey) : '';
             if (!chapterTitle) {
-              // Try to get chapter title from story's chapters array
               var chapters = Array.isArray(story.chapters) ? story.chapters : [];
               if (chapters[chapterIndex] && chapters[chapterIndex].title) {
                 chapterTitle = chapters[chapterIndex].title;
@@ -1306,8 +1306,9 @@
         if (entryHref !== '#' && entryHref.indexOf('playlistId=') === -1) {
           entryHref += (entryHref.indexOf('?') >= 0 ? '&' : '?') + 'playlistId=' + encodeURIComponent(pl.id);
         }
+        var needsFetch = !chapterTitle && !String(entry.key || '').startsWith('s_');
         return '' +
-          '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
+          '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '"' + (needsFetch ? ' data-needs-chapter-title="1"' : '') + '>' +
             '<a class="playlist-entry-thumb" href="' + escapeHtml(entryHref) + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
               '<span>' + escapeHtml((chapterLabel || 'AH').slice(0,2).toUpperCase()) + '</span>' +
             '</a>' +
@@ -1342,6 +1343,49 @@
             node.classList.add('is-cover-ready');
           }).catch(function () {});
         });
+      }
+
+      // Batch-fetch missing chapter titles from Supabase for entries without chapterTitle
+      if (detailMount2) {
+        var nodesNeedingTitle = detailMount2.querySelectorAll('[data-needs-chapter-title]');
+        if (nodesNeedingTitle.length) {
+          var idsToFetch = [];
+          nodesNeedingTitle.forEach(function (n) {
+            var k = n.getAttribute('data-entry-key');
+            if (k && !String(k).startsWith('s_')) idsToFetch.push(k);
+          });
+          if (idsToFetch.length) {
+            var idsParam = idsToFetch.map(encodeURIComponent).join(',');
+            fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,chapter_title,cover_data', {
+              headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
+            }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+              var rowMap = {};
+              (rows || []).forEach(function (r) { rowMap[r.id] = r; });
+              nodesNeedingTitle.forEach(function (node) {
+                var k = node.getAttribute('data-entry-key');
+                var row = rowMap[k];
+                if (!row) return;
+                var chTitle = row.chapter_title || '';
+                if (chTitle) {
+                  var titleNode = node.querySelector('.playlist-entry-title');
+                  if (titleNode) titleNode.textContent = 'Chương 1: ' + chTitle;
+                  var thumbSpan = node.querySelector('.playlist-entry-thumb span');
+                  if (thumbSpan) thumbSpan.textContent = 'CH';
+                }
+                // Also apply cover if available
+                if (row.cover_data && row.cover_data.indexOf('data:image/') === 0) {
+                  var thumbNode = node.querySelector('.playlist-entry-thumb');
+                  if (thumbNode) {
+                    thumbNode.style.backgroundImage = 'url("' + row.cover_data + '")';
+                    thumbNode.style.backgroundSize = 'cover';
+                    thumbNode.style.backgroundPosition = 'center';
+                    thumbNode.classList.add('is-cover-ready');
+                  }
+                }
+              });
+            }).catch(function () {});
+          }
+        }
       }
 
       if (detailMount2) detailMount2.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
