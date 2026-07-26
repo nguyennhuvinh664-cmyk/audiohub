@@ -1701,17 +1701,17 @@
 
   function applyCoverToNode(node, src) {
     if (!src || !node) return;
-    if (node.classList && node.classList.contains('is-cover-ready')) return;
     node.textContent = '';
     node.style.background = 'none';
     var img = document.createElement('img');
     img.src = src;
     img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
     node.appendChild(img);
-    if (node.classList) node.classList.add('is-cover-ready');
+    node.setAttribute('data-cover-state', 'loaded');
   }
 
   function fetchCoverFromStorage(node, url) {
+    node.setAttribute('data-cover-state', 'pending');
     fetch(url).then(function (r) {
       if (!r.ok) return null;
       return r.text().then(function (txt) {
@@ -1729,7 +1729,10 @@
         return fetch(url).then(function (r2) { return r2.ok ? r2.blob() : null; })
           .then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
       });
-    }).then(function (src) { applyCoverToNode(node, src); }).catch(function () {});
+    }).then(function (src) {
+      if (src) { applyCoverToNode(node, src); }
+      else { node.setAttribute('data-cover-state', 'no-cover'); }
+    }).catch(function () { node.setAttribute('data-cover-state', 'no-cover'); });
   }
 
   function hydratePlaylistCovers() {
@@ -1750,15 +1753,18 @@
     } catch (e) {}
 
     detail.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
-      if (node.classList.contains('is-cover-ready')) return;
+      var state = node.getAttribute('data-cover-state');
+      if (state === 'loaded' || state === 'pending') return;
       var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
       var entryKey = String(node.getAttribute('data-entry-key') || '').trim();
       var isLocal = String(entryKey).startsWith('s_');
 
       if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        node.setAttribute('data-cover-state', 'pending');
         window.AudioHubStoryCover.get(coverKey).then(function (blob) {
           if (blob) applyCoverToNode(node, URL.createObjectURL(blob));
-        }).catch(function () {});
+          else node.setAttribute('data-cover-state', 'no-cover');
+        }).catch(function () { node.setAttribute('data-cover-state', 'no-cover'); });
       } else if (!isLocal && entryKey) {
         fetchCoverFromStorage(node, STORAGE_BASE + entryKey + '/cover');
       } else if (isLocal) {
@@ -1773,6 +1779,9 @@
         var t2 = String((matchedEntry && matchedEntry.title) || '').trim().toLowerCase();
         var cloudKey = titleToCloudKey[t2];
         if (cloudKey) fetchCoverFromStorage(node, STORAGE_BASE + cloudKey + '/cover');
+        else node.setAttribute('data-cover-state', 'no-cover');
+      } else {
+        node.setAttribute('data-cover-state', 'no-cover');
       }
     });
   }

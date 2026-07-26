@@ -317,6 +317,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
+/* Cover state: hide while loading, show on success/fallback */
+.playlist-entry-thumb[data-cover-state="pending"] {
+  background: transparent !important;
+}
+.playlist-entry-thumb[data-cover-state="pending"] > * {
+  visibility: hidden;
+}
+.playlist-entry-thumb[data-cover-state="loaded"] img {
+  animation: cvrFadeIn 0.3s ease;
+}
+.playlist-entry-thumb[data-cover-state="no-cover"] {
+  background: linear-gradient(135deg, #1a1040, #2d1b69) !important;
+}
+.playlist-entry-thumb[data-cover-state="no-cover"] > span {
+  visibility: visible;
+}
+@keyframes cvrFadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative;
