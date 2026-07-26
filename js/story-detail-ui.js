@@ -1582,6 +1582,9 @@
         ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>'
         : '<span class="chapter-num">' + chapterNum + '</span>';
 
+      // ── Now-playing indicator ──
+      var nowPlayingTag = isActive ? '<span class="chapter-now-playing"><i class="fa-solid fa-volume-high"></i> Đang phát</span>' : '';
+
       // ── Lock hint ──
       var lockHint = '';
       var lockIcon = '';
@@ -1599,6 +1602,7 @@
         + '<span class="chapter-dot">' + dotContent + '</span>'
         + '<div class="chapter-item-body">'
         + '<span class="chapter-item-text">' + escapeHtml(displayName) + '</span>'
+        + nowPlayingTag
         + lockHint
         + '</div>'
         + lockIcon
