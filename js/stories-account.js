@@ -1381,7 +1381,8 @@
       // Batch-fetch missing chapter titles from Supabase for entries without chapterTitle
       if (playlistDetailMount) {
         var nodesNeedingTitle = playlistDetailMount.querySelectorAll('[data-needs-chapter-title]');
-        if (nodesNeedingTitle.length) {
+        if (nodesNeedingTitle.length && !playlistDetailMount.dataset.titlesFetched) {
+          playlistDetailMount.dataset.titlesFetched = '1';
           // Count ALL entries per key in DOM (including those that already have chapterTitle)
           // to determine correct chapterIndex offset for entries needing titles
           var allEntryNodes = playlistDetailMount.querySelectorAll('[data-entry-key]');
