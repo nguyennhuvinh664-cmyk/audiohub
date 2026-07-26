@@ -1375,18 +1375,38 @@
 
       // hydrate covers
       var detailMount2 = document.querySelector('[data-playlist-detail]');
-      if (detailMount2 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+      if (detailMount2) {
         detailMount2.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
           var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
-          if (!coverKey) return;
-          window.AudioHubStoryCover.get(coverKey).then(function (blob) {
-            if (!blob) return;
-            var url = URL.createObjectURL(blob);
-            node.style.backgroundImage = 'url("' + url + '")';
-            node.style.backgroundSize = 'cover';
-            node.style.backgroundPosition = 'center';
-            node.classList.add('is-cover-ready');
-          }).catch(function () {});
+          var entryKey = String(node.getAttribute('data-entry-key') || node.closest('[data-entry-key]')?.getAttribute('data-entry-key') || '').trim();
+          if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+            window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+              if (!blob) return;
+              var url = URL.createObjectURL(blob);
+              node.style.backgroundImage = 'url("' + url + '")';
+              node.style.backgroundSize = 'cover';
+              node.style.backgroundPosition = 'center';
+              node.classList.add('is-cover-ready');
+            }).catch(function () {});
+          } else if (entryKey && !String(entryKey).startsWith('s_') && !node.classList.contains('is-cover-ready')) {
+            // Fallback: fetch cover from Supabase Storage
+            var storageUrl = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + entryKey + '/cover';
+            fetch(storageUrl).then(function (r) {
+              if (!r.ok) return null;
+              return r.clone().arrayBuffer().then(function (buf) {
+                var ascii = String.fromCharCode.apply(null, new Uint8Array(buf).slice(0, 30));
+                if (ascii.indexOf('data:video/') === 0) return null;
+                if (ascii.indexOf('data:image/') === 0) return r.text();
+                return r.blob().then(function (b) { return URL.createObjectURL(b); });
+              });
+            }).then(function (src) {
+              if (!src) return;
+              node.style.backgroundImage = 'url("' + src + '")';
+              node.style.backgroundSize = 'cover';
+              node.style.backgroundPosition = 'center';
+              node.classList.add('is-cover-ready');
+            }).catch(function () {});
+          }
         });
       }
 
