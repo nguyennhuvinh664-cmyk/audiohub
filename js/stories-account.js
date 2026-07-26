@@ -1334,7 +1334,7 @@
         var needsFetch = !chapterTitle && !String(entry.key || '').startsWith('s_');
         return '' +
           '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '" data-chapter-index="' + chapterIndex + '"' + (needsFetch ? ' data-needs-chapter-title="1"' : '') + '>' +
-            '<a class="playlist-entry-thumb" href="' + escapeHtml(entryHref) + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
+            '<a class="playlist-entry-thumb" href="' + escapeHtml(entryHref) + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" data-entry-key="' + escapeHtml(entry.key) + '" style="' + thumbStyle + '">' +
               '<span>' + escapeHtml((chapterLabel || 'AH').slice(0,2).toUpperCase()) + '</span>' +
             '</a>' +
             '<div class="playlist-entry-main">' +
