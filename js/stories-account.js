@@ -1713,16 +1713,21 @@
   function fetchCoverFromStorage(node, url) {
     node.setAttribute('data-cover-state', 'pending');
     fetch(url).then(function (r) {
+      console.warn('[CVR] fetch', r.status, url.slice(-40));
       if (!r.ok) return null;
       return r.text().then(function (txt) {
+        console.warn('[CVR] txt len:', txt.length, 'starts:', txt.slice(0, 30));
         if (!txt || txt.indexOf('data:video/') === 0) return null;
         if (txt.indexOf('data:image/') === 0) {
           var m = txt.match(/^data:image\/(\w+);base64,([\s\S]+)$/);
+          console.warn('[CVR] dataurl match:', !!m, m ? m[1] : 'none');
           if (m) {
             var bin = atob(m[2]);
             var arr = new Uint8Array(bin.length);
             for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-            return URL.createObjectURL(new Blob([arr], { type: 'image/' + m[1] }));
+            var blobUrl = URL.createObjectURL(new Blob([arr], { type: 'image/' + m[1] }));
+            console.warn('[CVR] blobUrl:', blobUrl.slice(0, 50));
+            return blobUrl;
           }
           return null;
         }
@@ -1730,9 +1735,10 @@
           .then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
       });
     }).then(function (src) {
+      console.warn('[CVR] result:', src ? src.slice(0, 50) : 'null');
       if (src) { applyCoverToNode(node, src); }
       else { node.setAttribute('data-cover-state', 'no-cover'); }
-    }).catch(function () { node.setAttribute('data-cover-state', 'no-cover'); });
+    }).catch(function (e) { console.warn('[CVR] ERR:', e.message); node.setAttribute('data-cover-state', 'no-cover'); });
   }
 
   function hydratePlaylistCovers() {
@@ -1758,6 +1764,7 @@
       var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
       var entryKey = String(node.getAttribute('data-entry-key') || '').trim();
       var isLocal = String(entryKey).startsWith('s_');
+      console.warn('[CVR] hydrate node:', entryKey.slice(0, 20), 'state:', state, 'coverKey:', coverKey.slice(0, 20), 'isLocal:', isLocal);
 
       if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
         node.setAttribute('data-cover-state', 'pending');
