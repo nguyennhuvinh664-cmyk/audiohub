@@ -1349,10 +1349,17 @@
       if (detailMount2) {
         var nodesNeedingTitle = detailMount2.querySelectorAll('[data-needs-chapter-title]');
         if (nodesNeedingTitle.length) {
+          // Count how many nodes share each entry-key (to assign correct chapterIndex for duplicates)
+          var keyCount = {};
+          var keySeen = {};
+          nodesNeedingTitle.forEach(function (n) {
+            var k = n.getAttribute('data-entry-key');
+            keyCount[k] = (keyCount[k] || 0) + 1;
+          });
           var idsToFetch = [];
           nodesNeedingTitle.forEach(function (n) {
             var k = n.getAttribute('data-entry-key');
-            if (k && !String(k).startsWith('s_')) idsToFetch.push(k);
+            if (k && !String(k).startsWith('s_') && idsToFetch.indexOf(k) === -1) idsToFetch.push(k);
           });
           if (idsToFetch.length) {
             var idsParam = idsToFetch.map(encodeURIComponent).join(',');
@@ -1362,11 +1369,16 @@
               var rowMap = {};
               (rows || []).forEach(function (r) { rowMap[r.id] = r; });
               var updatedKeys = [];
+              // Reset per-key counter for sequential chapter assignment
+              var keySeen2 = {};
               nodesNeedingTitle.forEach(function (node) {
                 var k = node.getAttribute('data-entry-key');
-                var chIdx = Number(node.getAttribute('data-chapter-index')) || 0;
                 var row = rowMap[k];
                 if (!row) return;
+                // Track how many times this key has appeared → assign chapterIndex
+                if (!keySeen2[k]) keySeen2[k] = 0;
+                var chIdx = keySeen2[k];
+                keySeen2[k]++;
                 // Parse chapters array from Supabase
                 var allChapters = [];
                 try { allChapters = typeof row.chapters === 'string' ? JSON.parse(row.chapters) : (row.chapters || []); } catch (e) { allChapters = []; }
@@ -1377,7 +1389,6 @@
                 } else if (row.chapter_title && chIdx === 0) {
                   chTitle = row.chapter_title;
                 } else if (allChapters.length) {
-                  // Fallback: use last available chapter title
                   chTitle = allChapters[allChapters.length - 1].title || row.chapter_title || '';
                 }
                 if (chTitle) {
@@ -1386,8 +1397,7 @@
                   if (titleNode) titleNode.textContent = label;
                   var thumbSpan = node.querySelector('.playlist-entry-thumb span');
                   if (thumbSpan) thumbSpan.textContent = 'CH';
-                  // Save back to entry in localStorage
-                  updatedKeys.push({ key: k, chapterTitle: chTitle, chapterIndex: chIdx });
+                  updatedKeys.push({ key: k, chapterTitle: chTitle, chapterIndex: chIdx, entryIndex: chIdx });
                 }
                 // Also apply cover if available
                 if (row.cover_data && row.cover_data.indexOf('data:image/') === 0) {
@@ -1405,13 +1415,24 @@
                 try {
                   var allPls = readPlaylists();
                   allPls.forEach(function (pl) {
+                    // For each unique key in updatedKeys, collect the chapter assignments
+                    var keyUpdates = {};
+                    updatedKeys.forEach(function (u) {
+                      if (!keyUpdates[u.key]) keyUpdates[u.key] = [];
+                      keyUpdates[u.key].push({ chapterTitle: u.chapterTitle, chapterIndex: u.chapterIndex });
+                    });
+                    // Apply to matching entries in order
+                    var plKeyIdx = {};
                     (pl.entries || []).forEach(function (e) {
-                      updatedKeys.forEach(function (u) {
-                        if (e.key === u.key) {
-                          e.chapterTitle = u.chapterTitle;
-                          e.chapterIndex = u.chapterIndex;
+                      if (keyUpdates[e.key]) {
+                        if (!plKeyIdx[e.key]) plKeyIdx[e.key] = 0;
+                        var idx = plKeyIdx[e.key];
+                        if (idx < keyUpdates[e.key].length) {
+                          e.chapterTitle = keyUpdates[e.key][idx].chapterTitle;
+                          e.chapterIndex = keyUpdates[e.key][idx].chapterIndex;
                         }
-                      });
+                        plKeyIdx[e.key]++;
+                      }
                     });
                   });
                   writePlaylists(allPls);
