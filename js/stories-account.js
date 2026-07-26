@@ -1432,13 +1432,11 @@
       function fetchCoverFromUrl(node, url) {
         fetch(url).then(function (r) {
           if (!r.ok) return null;
-          return r.clone().arrayBuffer().then(function (buf) {
-            var head = new Uint8Array(buf).slice(0, 30);
-            var ascii = String.fromCharCode.apply(null, head);
-            if (ascii.indexOf('data:video/') === 0) return null;
-            if (ascii.indexOf('data:image/') === 0) {
-              // Text file containing data-URL — decode to blob for reliable cross-device display
-              var txt = String.fromCharCode.apply(null, new Uint8Array(buf));
+          // Read as text first — works for both data-URL text and raw bytes (as garbled text)
+          return r.text().then(function (txt) {
+            if (!txt || txt.indexOf('data:video/') === 0) return null;
+            if (txt.indexOf('data:image/') === 0) {
+              // Data-URL text file — decode to blob
               var m = txt.match(/^data:image\/(\w+);base64,([\s\S]+)$/);
               if (m) {
                 var bin = atob(m[2]);
@@ -1448,8 +1446,12 @@
               }
               return null;
             }
-            // Raw image bytes — create blob directly
-            return r.blob().then(function (b) { return URL.createObjectURL(b); });
+            // Raw image bytes (garbled as text) — need to re-fetch as blob
+            return fetch(url).then(function (r2) {
+              return r2.ok ? r2.blob() : null;
+            }).then(function (blob) {
+              return blob ? URL.createObjectURL(blob) : null;
+            });
           });
         }).then(function (src) {
           applyCoverToNode(node, src);
