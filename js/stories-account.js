@@ -1379,12 +1379,12 @@
       hydratePlaylistCovers();
 
       // Batch-fetch missing chapter titles from Supabase for entries without chapterTitle
-      if (detailMount2) {
-        var nodesNeedingTitle = detailMount2.querySelectorAll('[data-needs-chapter-title]');
+      if (playlistDetailMount) {
+        var nodesNeedingTitle = playlistDetailMount.querySelectorAll('[data-needs-chapter-title]');
         if (nodesNeedingTitle.length) {
           // Count ALL entries per key in DOM (including those that already have chapterTitle)
           // to determine correct chapterIndex offset for entries needing titles
-          var allEntryNodes = detailMount2.querySelectorAll('[data-entry-key]');
+          var allEntryNodes = playlistDetailMount.querySelectorAll('[data-entry-key]');
           var keyExistingCount = {};
           allEntryNodes.forEach(function (n) {
             var k = n.getAttribute('data-entry-key');
@@ -1475,7 +1475,7 @@
         }
       }
 
-      if (detailMount2) detailMount2.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
+      if (playlistDetailMount) playlistDetailMount.querySelectorAll('.playlist-progress-slider').forEach(function (slider) {
         slider.addEventListener('input', function () {
           var val = slider.value;
           var fill = slider.closest('.playlist-entry').querySelector('.playlist-progress-fill');
