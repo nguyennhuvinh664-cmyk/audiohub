@@ -1349,12 +1349,14 @@
       if (detailMount2) {
         var nodesNeedingTitle = detailMount2.querySelectorAll('[data-needs-chapter-title]');
         if (nodesNeedingTitle.length) {
-          // Count how many nodes share each entry-key (to assign correct chapterIndex for duplicates)
-          var keyCount = {};
-          var keySeen = {};
-          nodesNeedingTitle.forEach(function (n) {
+          // Count ALL entries per key in DOM (including those that already have chapterTitle)
+          // to determine correct chapterIndex offset for entries needing titles
+          var allEntryNodes = detailMount2.querySelectorAll('[data-entry-key]');
+          var keyExistingCount = {};
+          allEntryNodes.forEach(function (n) {
             var k = n.getAttribute('data-entry-key');
-            keyCount[k] = (keyCount[k] || 0) + 1;
+            if (n.hasAttribute('data-needs-chapter-title')) return; // skip needing-ones
+            keyExistingCount[k] = (keyExistingCount[k] || 0) + 1;
           });
           var idsToFetch = [];
           nodesNeedingTitle.forEach(function (n) {
@@ -1369,14 +1371,16 @@
               var rowMap = {};
               (rows || []).forEach(function (r) { rowMap[r.id] = r; });
               var updatedKeys = [];
-              // Reset per-key counter for sequential chapter assignment
+              // Start counter from existing count (entries that already have titles)
               var keySeen2 = {};
+              // Initialize with existing counts
+              for (var ek in keyExistingCount) { keySeen2[ek] = keyExistingCount[ek]; }
               nodesNeedingTitle.forEach(function (node) {
                 var k = node.getAttribute('data-entry-key');
                 var row = rowMap[k];
                 if (!row) return;
-                // Track how many times this key has appeared → assign chapterIndex
-                if (!keySeen2[k]) keySeen2[k] = 0;
+                // Assign chapterIndex starting after existing entries
+                if (keySeen2[k] === undefined) keySeen2[k] = 0;
                 var chIdx = keySeen2[k];
                 keySeen2[k]++;
                 // Parse chapters array from Supabase
