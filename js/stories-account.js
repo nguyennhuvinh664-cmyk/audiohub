@@ -1392,6 +1392,9 @@
           var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
           var entryKey = String(node.getAttribute('data-entry-key') || '').trim();
           var isLocal = String(entryKey).startsWith('s_');
+          // Find matching entry object for title lookup
+          var matchedEntry = null;
+          entries.forEach(function (e) { if (!matchedEntry && String(e.key) === entryKey) matchedEntry = e; });
 
           if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
             window.AudioHubStoryCover.get(coverKey).then(function (blob) {
@@ -1408,16 +1411,8 @@
             fetchCoverFromUrl(node, storageUrl);
           } else if (isLocal) {
             // Local story: find cloud key by same title, use its cover
-            var entryTitle = '';
-            var entryNode = node.closest('[data-entry-key]');
-            if (entryNode) {
-              var titleNode = entryNode.querySelector('.playlist-entry-title');
-              if (titleNode) {
-                // Extract title text without "Chương X:" prefix
-                entryTitle = titleNode.textContent.replace(/^Chương \d+:\s*/, '').trim();
-              }
-            }
-            var t2 = String(entryTitle).toLowerCase();
+            // matchedEntry.title is the story name (e.g. "Thiên Long Bát Bộ")
+            var t2 = String((matchedEntry && matchedEntry.title) || '').trim().toLowerCase();
             var cloudKey = titleToCloudKey[t2];
             if (cloudKey) {
               var storageUrl2 = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + cloudKey + '/cover';
