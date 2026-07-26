@@ -1420,36 +1420,24 @@
 
       function applyCoverToNode(node, src) {
         if (!src || !node) return;
-        var img = new Image();
-        img.onload = function () {
-          node.style.background = 'none';
-          node.textContent = '';
-          node.appendChild(img);
-          img.style.width = '100%';
-          img.style.height = '100%';
-          img.style.objectFit = 'cover';
-          node.classList.add('is-cover-ready');
-        };
+        node.textContent = '';
+        node.style.background = 'none';
+        var img = document.createElement('img');
         img.src = src;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+        node.appendChild(img);
+        node.classList.add('is-cover-ready');
       }
 
       function fetchCoverFromUrl(node, url) {
         fetch(url).then(function (r) {
           if (!r.ok) return null;
           return r.clone().arrayBuffer().then(function (buf) {
-            var head = new Uint8Array(buf).slice(0, 30);
+            var head = new Uint8Array(buf).slice(0, 20);
             var ascii = String.fromCharCode.apply(null, head);
             if (ascii.indexOf('data:video/') === 0) return null;
             if (ascii.indexOf('data:image/') === 0) {
-              return r.text().then(function (txt) {
-                var parts = txt.match(/^data:image\/(\w+);base64,(.+)$/);
-                if (!parts) return null;
-                var bin = atob(parts[2]);
-                var arr = new Uint8Array(bin.length);
-                for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                var blob = new Blob([arr], { type: 'image/' + parts[1] });
-                return URL.createObjectURL(blob);
-              });
+              return r.text();
             }
             return r.blob().then(function (b) { return URL.createObjectURL(b); });
           });
