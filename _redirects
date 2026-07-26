@@ -55,5 +55,11 @@
 
 # Backend proxy is handled by Cloudflare Pages Functions (functions/api, functions/media, functions/auth)
 
+# Static assets — must be before SPA fallback
+/css/*     /css/:splat     200
+/js/*      /js/:splat      200
+/img/*     /img/:splat     200
+/fonts/*   /fonts/:splat   200
+
 # SPA fallback — must be last
 /*  /index.html  200
