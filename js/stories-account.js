@@ -1377,6 +1377,7 @@
 
       // hydrate covers
       var detailMount2 = document.querySelector('[data-playlist-detail]');
+      console.log('[CVR] hydrate start, detailMount2:', !!detailMount2, 'thumbs:', detailMount2 ? detailMount2.querySelectorAll('[data-playlist-entry-thumb]').length : 0);
       if (detailMount2) {
         // Build a map: title → first non-s_ entry key (for s_ entries to share cover)
         var titleToCloudKey = {};
@@ -1388,6 +1389,7 @@
         });
 
         detailMount2.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
+          console.log('[CVR] node:', node.getAttribute('data-entry-key'), 'ready:', node.classList.contains('is-cover-ready'));
           if (node.classList.contains('is-cover-ready')) return;
           var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
           var entryKey = String(node.getAttribute('data-entry-key') || '').trim();
