@@ -1,4 +1,10 @@
 (function () {
+  // Visible indicator that this script version loaded
+  var _dbg = document.createElement('div');
+  _dbg.textContent = '[CVR] v3 loaded ' + new Date().toISOString();
+  _dbg.style.cssText = 'position:fixed;top:0;right:0;z-index:99999;background:red;color:white;padding:4px 8px;font-size:11px;font-weight:bold';
+  document.body.appendChild(_dbg);
+
   var root = document.querySelector('.account-page');
   if (!root) return;
 
@@ -1700,6 +1706,7 @@
   var STORAGE_BASE = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/';
 
   function applyCoverToNode(node, src) {
+    console.warn('[CVR] applyCoverToNode', !!node, !!src, src ? src.slice(0, 50) : 'null');
     if (!src || !node) return;
     if (node.classList && node.classList.contains('is-cover-ready')) return;
     node.textContent = '';
@@ -1709,10 +1716,13 @@
     img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
     node.appendChild(img);
     if (node.classList) node.classList.add('is-cover-ready');
+    console.warn('[CVR] COVER APPLIED');
   }
 
   function fetchCoverFromStorage(node, url) {
+    console.warn('[CVR] fetchCoverFromStorage', url.slice(-60));
     fetch(url).then(function (r) {
+      console.warn('[CVR] fetch status', r.status, url.slice(-30));
       if (!r.ok) return null;
       return r.text().then(function (txt) {
         if (!txt || txt.indexOf('data:video/') === 0) return null;
@@ -1729,11 +1739,12 @@
         return fetch(url).then(function (r2) { return r2.ok ? r2.blob() : null; })
           .then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
       });
-    }).then(function (src) { applyCoverToNode(node, src); }).catch(function () {});
+    }).then(function (src) { console.warn('[CVR] fetch result', src ? src.slice(0, 50) : 'null'); applyCoverToNode(node, src); }).catch(function (e) { console.warn('[CVR] fetch ERR', e.message); });
   }
 
   function hydratePlaylistCovers() {
     var detail = document.querySelector('[data-playlist-detail]');
+    console.warn('[CVR] hydratePlaylistCovers called, detail:', !!detail, 'activePlaylistId:', activePlaylistId);
     if (!detail) return;
     // Build title→cloudKey map from current playlist entries
     var titleToCloudKey = {};
@@ -1749,11 +1760,14 @@
       }
     } catch (e) {}
 
-    detail.querySelectorAll('[data-playlist-entry-thumb]').forEach(function (node) {
+    var thumbs = detail.querySelectorAll('[data-playlist-entry-thumb]');
+    console.warn('[CVR] thumbs found:', thumbs.length);
+    thumbs.forEach(function (node) {
       if (node.classList.contains('is-cover-ready')) return;
       var coverKey = String(node.getAttribute('data-playlist-entry-cover-key') || '').trim();
       var entryKey = String(node.getAttribute('data-entry-key') || '').trim();
       var isLocal = String(entryKey).startsWith('s_');
+      console.warn('[CVR] node entryKey:', entryKey, 'coverKey:', coverKey, 'isLocal:', isLocal);
 
       if (coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
         window.AudioHubStoryCover.get(coverKey).then(function (blob) {
