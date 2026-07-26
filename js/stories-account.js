@@ -475,6 +475,7 @@
           key: storyId,
           title: addPlaylistBtn.getAttribute('data-story-title') || '',
           chapterTitle: addPlaylistBtn.getAttribute('data-story-chapter-title') || '',
+          chapterIndex: 0,
           author: addPlaylistBtn.getAttribute('data-story-author') || '',
           genre: addPlaylistBtn.getAttribute('data-story-genre') || '',
           href: addPlaylistBtn.getAttribute('data-story-href') || '',
@@ -1279,14 +1280,25 @@
         var status = entry.status || 'listening';
         var isDone = status === 'done';
         var coverKey = String(entry.coverKey || '');
+        var chapterIndex = Number(entry.chapterIndex) || 0;
         var chapterTitle = entry.chapterTitle || '';
-        if ((!coverKey || !chapterTitle) && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
-          var story = window.AudioHubStories.getById(entry.key);
+        if (!coverKey || !chapterTitle) {
+          var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
+            ? window.AudioHubStories.getById(entry.key) : null;
           if (story) {
             if (!coverKey) coverKey = story.coverKey ? String(story.coverKey) : '';
-            if (!chapterTitle) chapterTitle = story.chapterTitle || '';
+            if (!chapterTitle) {
+              // Try to get chapter title from story's chapters array
+              var chapters = Array.isArray(story.chapters) ? story.chapters : [];
+              if (chapters[chapterIndex] && chapters[chapterIndex].title) {
+                chapterTitle = chapters[chapterIndex].title;
+              } else {
+                chapterTitle = story.chapterTitle || '';
+              }
+            }
           }
         }
+        var chapterLabel = chapterTitle ? ('Chương ' + (chapterIndex + 1) + ': ' + chapterTitle) : (entry.title || 'Truyện audio');
         var thumbStyle = coverKey ? '' : 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
         var genreBadge = entry.genre ? '<span class="genre-badge">' + escapeHtml(entry.genre) + '</span>' : '';
         // Ensure entry href includes playlistId
@@ -1297,10 +1309,10 @@
         return '' +
           '<div class="playlist-entry' + (isDone ? ' is-done' : '') + '" data-entry-key="' + escapeHtml(entry.key) + '">' +
             '<a class="playlist-entry-thumb" href="' + escapeHtml(entryHref) + '" data-playlist-entry-thumb="true" data-playlist-entry-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
-              '<span>' + escapeHtml((chapterTitle || entry.title || 'AH').slice(0,2).toUpperCase()) + '</span>' +
+              '<span>' + escapeHtml((chapterLabel || 'AH').slice(0,2).toUpperCase()) + '</span>' +
             '</a>' +
             '<div class="playlist-entry-main">' +
-              '<a class="playlist-entry-title" href="' + escapeHtml(entryHref) + '">' + escapeHtml(chapterTitle ? ('Chương 1: ' + chapterTitle) : (entry.title || 'Truyện audio')) + '</a>' +
+              '<a class="playlist-entry-title" href="' + escapeHtml(entryHref) + '">' + escapeHtml(chapterLabel) + '</a>' +
               '<div class="playlist-entry-meta"><span>' + escapeHtml(entry.author || 'Ẩn danh') + '</span>' + genreBadge + '</div>' +
             '</div>' +
             '<div class="playlist-entry-actions">' +
@@ -1536,6 +1548,8 @@
             p.entries.push({
               key: entry.key,
               title: entry.title || '',
+              chapterTitle: entry.chapterTitle || '',
+              chapterIndex: entry.chapterIndex || 0,
               author: entry.author || '',
               genre: entry.genre || '',
               href: entry.href || ''
