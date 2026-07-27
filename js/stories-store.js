@@ -413,6 +413,18 @@
     } catch (e) {}
   }
 
+  /* ── Base64 data URL → Blob helper ─────────────────────────────── */
+  function _dataUrlToBlob(dataUrl) {
+    try {
+      var parts = dataUrl.split(',');
+      var mime = (parts[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+      var raw = atob(parts[1] || '');
+      var arr = new Uint8Array(raw.length);
+      for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return new Blob([arr], { type: mime });
+    } catch (e) { return null; }
+  }
+
   /* ── Supabase sync with retry ────────────────────────────────────── */
   var _syncingCloud = {}; // guard against duplicate syncs
   function syncToSupabaseWithRetry(localEntry, maxRetries) {
@@ -514,6 +526,13 @@
               }).then(function (r) {
                 if (r.ok) console.log('[stories] ✅ cover_data saved to DB for', newStoryId);
               }).catch(function () {});
+              // Also save cover to IndexedDB under real CUID (for self-heal on other pages)
+              if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
+                var _coverBlob = _dataUrlToBlob(localEntry.coverData);
+                if (_coverBlob) {
+                  window.AudioHubStoryCover.put(_coverBlob, newStoryId).catch(function () {});
+                }
+              }
             }
           }
         })
@@ -739,16 +758,24 @@
       }).catch(function () {});
     });
 
-    // Recover covers from IndexedDB for stories that have coverKey but no coverData
+    // Recover covers from IndexedDB for stories that have no coverData
     if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
     stories.forEach(function (story) {
       if (!story || !story.id) return;
       if (String(story.id).startsWith('s_')) return;
       if (story.coverData) return; // already has coverData
-      var key = story.coverKey || '';
-      if (!key || String(key).indexOf('c_') !== 0) return; // only local IndexedDB keys
 
-      window.AudioHubStoryCover.get(key).then(function (blob) {
+      // Try coverKey first, then story ID as fallback
+      var key = story.coverKey || '';
+      var idbPromise;
+      if (key && String(key).indexOf('c_') === 0) {
+        idbPromise = window.AudioHubStoryCover.get(key);
+      } else {
+        // Try story ID directly (cover may have been saved under CUID during sync)
+        idbPromise = window.AudioHubStoryCover.get(story.id);
+      }
+
+      idbPromise.then(function (blob) {
         if (!blob || !blob.size) return;
         var reader = new FileReader();
         reader.onload = function () {

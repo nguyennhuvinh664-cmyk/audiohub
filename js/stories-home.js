@@ -660,7 +660,7 @@
           if (coverMap[id]) {
             applyCoverToThumb(node, coverMap[id]);
           } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-            // Self-heal: copy cover from IndexedDB to DB
+            // Self-heal: copy cover from IndexedDB to DB (try story ID as key)
             window.AudioHubStoryCover.get(id).then(function (blob) {
               if (!blob || blob.size === 0) return;
               var reader = new FileReader();

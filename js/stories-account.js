@@ -993,9 +993,10 @@
 
       var story = window.AudioHubStories.getById(storyId);
       var coverKey = String((story && story.coverKey) || '').trim();
-      if (!coverKey) return;
+      // Try coverKey first, then story ID as fallback
+      var idbKey = coverKey && coverKey.indexOf('c_') === 0 ? coverKey : storyId;
 
-      window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+      window.AudioHubStoryCover.get(idbKey).then(function (blob) {
         if (!blob || blob.size === 0) return;
         var reader = new FileReader();
         reader.onload = function () {
