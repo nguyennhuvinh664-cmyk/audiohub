@@ -1737,9 +1737,11 @@
     fetch(url).then(function (r) {
       console.log('[FETCH-COVER] status:', r.status, 'url:', url);
       if (!r.ok) return null;
-      return r.text().then(function (txt) {
+      // Try to read as text first to detect data-URL strings
+      return r.clone().text().then(function (txt) {
         if (!txt || txt.indexOf('data:video/') === 0) return null;
         if (txt.indexOf('data:image/') === 0) {
+          // Response is a text file containing a data-URL string
           var m = txt.match(/^data:image\/(\w+);base64,([\s\S]+)$/);
           if (m) {
             var bin = atob(m[2]);
@@ -1749,8 +1751,8 @@
           }
           return null;
         }
-        return fetch(url).then(function (r2) { return r2.ok ? r2.blob() : null; })
-          .then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
+        // Response is raw image bytes — read as blob
+        return r.blob().then(function (blob) { return blob.size > 0 ? URL.createObjectURL(blob) : null; });
       });
     }).then(function (src) {
       if (src) { applyCoverToNode(node, src); }
