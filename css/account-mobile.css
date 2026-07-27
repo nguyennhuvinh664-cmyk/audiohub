@@ -193,12 +193,15 @@
   line-height: 1.5 !important;
 }
 
-/* ─── NAV CARDS (Tabs) — Hide on mobile ─── */
+/* ─── NAV CARDS (Tabs) — visible on mobile as tab switcher ─── */
 .account-navcards {
-  display: none !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+  width: 100% !important;
 }
 
-/* ─── MAIN PANELS — Show all panels stacked ─── */
+/* ─── MAIN PANELS — Only show active panel ─── */
 .account-mainpanels {
   display: flex !important;
   flex-direction: column !important;
@@ -206,11 +209,16 @@
 }
 
 .account-mainpanel {
-  display: block !important;
+  display: none !important;
+}
+
+.account-mainpanel.is-active {
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .account-mainpanel[hidden] {
-  display: block !important;
+  display: none !important;
 }
 
 /* ─── ACCOUNT CARD (Panel) ─── */
@@ -237,16 +245,12 @@
   margin-top: 4px !important;
 }
 
-/* ─── STATISTICS GRID — 2x2 ─── */
-/* Stats are injected by JS into account-scroll-list */
-/* We create a visible stats section using existing elements */
-
-/* Use account-navcards area to show stats instead */
-.account-navcards {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 10px !important;
-  width: 100% !important;
+/* ─── NAVCARD ACTIVE STATE (mobile) ─── */
+.account-navcard.is-active {
+  border-color: rgba(245,158,11,.38) !important;
+  background: linear-gradient(135deg, rgba(245,158,11,.12), rgba(6,182,212,.09)) !important;
+  color: var(--m-text, #F1F5F9) !important;
+  box-shadow: 0 10px 28px rgba(245,158,11,.1) !important;
 }
 
 .account-navcard {
