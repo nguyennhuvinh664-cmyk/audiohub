@@ -190,15 +190,9 @@
     // Skip if cover already applied (by loadHomeCovers or previous render)
     if (thumb.querySelector('.sc__cover-img')) return;
 
-    // 1) Default: generated canvas cover (title + genre gradient)
-    var defaultCover = (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function')
-      ? window.AudioHubStoryCover.generateDefault(story.title, story.genre) : '';
-    if (defaultCover) {
-      thumb.style.background = 'url(' + defaultCover + ') center/cover no-repeat, linear-gradient(135deg, #1a1040, #2d1b69)';
-    } else {
-      var color = genreColor(story.genre);
-      thumb.style.background = 'linear-gradient(135deg, ' + color + ' 0%, ' + color + 'cc 100%)';
-    }
+    // 1) Default: genre color gradient
+    var color = genreColor(story.genre);
+    thumb.style.background = 'linear-gradient(135deg, ' + color + ' 0%, ' + color + 'cc 100%)';
 
     // 2) Try coverData (base64) — instant, no network
     if (story.coverData) {

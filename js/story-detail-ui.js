@@ -742,12 +742,6 @@
       return;
     }
 
-    // Instant fallback: generated canvas cover while async lookups run
-    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
-      var _defCover = window.AudioHubStoryCover.generateDefault(story.title, story.genre);
-      if (_defCover) applyCoverUrl(_defCover);
-    }
-
     // Fallback: fetch coverData directly from Supabase if story has an ID
     var storyId = story && story.id ? String(story.id) : '';
     if (storyId && !String(storyId).startsWith('s_') && window.AudioHubSupabase && typeof window.AudioHubSupabase.fetchStoryById === 'function') {
@@ -1120,9 +1114,6 @@
       var coverStyle = '';
       if (coverData) {
         coverStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
-      } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
-        var _dc = window.AudioHubStoryCover.generateDefault(item.title, item.genre);
-        if (_dc) coverStyle = 'background:url(' + _dc + ') center/cover no-repeat;';
       }
       if (!coverStyle) {
         var hash = 0;
@@ -1231,9 +1222,6 @@
       var initials = title.slice(0, 2).toUpperCase();
       if (coverData) {
         bgProp = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
-      } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
-        var _dc2 = window.AudioHubStoryCover.generateDefault(item.title, item.genre);
-        if (_dc2) bgProp = 'background:url(' + _dc2 + ') center/cover no-repeat;';
       }
       if (!bgProp) {
         var hash = 0;

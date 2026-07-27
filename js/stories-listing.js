@@ -40,12 +40,7 @@
     var genre = escapeHtml(story.genre);
     var href = '/story-detail.html?id=' + encodeURIComponent(story.id);
     var color = genreColor(story.genre);
-    // Use generated canvas cover as default
     var _thumbBg = 'background:linear-gradient(135deg,' + color + ',' + color + 'aa)';
-    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
-      var _dc = window.AudioHubStoryCover.generateDefault(story.title, story.genre);
-      if (_dc) _thumbBg = 'background:url(' + _dc + ') center/cover no-repeat,linear-gradient(135deg,' + color + ',' + color + 'aa)';
-    }
 
     var note = story.visibility ? ('Visibility: ' + story.visibility) : 'Truyện demo từ AudioHub Studio.';
 
