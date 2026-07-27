@@ -800,29 +800,17 @@
     // Fallback: try IndexedDB (coverKey) then Supabase Storage URL
     var coverKey = story && story.coverKey ? String(story.coverKey) : '';
 
-    /** Fetch cover from Supabase Storage, detect data-URL content */
+    /** Fetch cover_data from Supabase DB */
     function fetchStorageCover() {
       if (!storyId || String(storyId).startsWith('s_')) return Promise.resolve(false);
-      var directCoverUrl = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/' + encodeURIComponent(storyId) + '/cover';
-      return fetch(directCoverUrl).then(function (r) {
-        if (!r.ok) return false;
-        return r.clone().arrayBuffer().then(function (buf) {
-          var ascii = String.fromCharCode.apply(null, new Uint8Array(buf).slice(0, 20));
-          if (ascii.indexOf('data:image/') === 0) {
-            return r.text();
-          } else if (ascii.indexOf('data:video/') === 0) {
-            return false;
-          } else {
-            return r.blob();
-          }
-        });
-      }).then(function (result) {
-        if (!result || result === false) return false;
-        if (typeof result === 'string') {
-          applyCoverUrl(result);
-          return true;
-        } else if (result.size > 0) {
-          applyCoverUrl(URL.createObjectURL(result));
+      return fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(storyId) + '&select=cover_data', {
+        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
+      }).then(function (r) {
+        return r.ok ? r.json() : [];
+      }).then(function (rows) {
+        var row = rows && rows[0];
+        if (row && row.cover_data) {
+          applyCoverUrl(row.cover_data);
           return true;
         }
         return false;

@@ -131,11 +131,11 @@
 
   function hydrateCovers(container) {
     var nodes = Array.prototype.slice.call(container.querySelectorAll('[data-cover-key]'));
-    var LISTING_SUPABASE_DIRECT_STORAGE = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/';
-    var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+    var cloudIds = [];
+    var cloudNodeMap = {};
 
     nodes.forEach(function (node) {
-      // For playlist cards, try IndexedDB with coverKey (playlist.id won't have a cover in Storage)
+      // For playlist cards, try IndexedDB with coverKey
       var isPlaylist = node.closest('[data-playlist-card]');
       if (isPlaylist) {
         var pk = node.getAttribute('data-cover-key');
@@ -164,33 +164,37 @@
         return;
       }
 
-      // Cloud stories: fetch Storage URL, detect data-URL content, apply as <img>
-      var url = LISTING_SUPABASE_DIRECT_STORAGE + encodeURIComponent(storyId) + '/cover';
-      fetch(url).then(function(r) {
-        if (!r.ok) return null;
-        // Read first 30 bytes to detect format without corrupting binary
-        return r.clone().arrayBuffer().then(function(buf) {
-          var head = new Uint8Array(buf).slice(0, 30);
-          var ascii = String.fromCharCode.apply(null, head);
-          if (ascii.indexOf('data:image/') === 0) {
-            // Data-URL text — read full body as text
-            return r.text().then(function(txt) { return { type: 'dataurl', data: txt }; });
-          } else if (ascii.indexOf('data:video/') === 0) {
-            return { type: 'skip' };
+      // Cloud stories: collect for batch DB fetch
+      if (!cloudNodeMap[storyId]) cloudNodeMap[storyId] = [];
+      cloudNodeMap[storyId].push(node);
+      if (cloudIds.indexOf(storyId) === -1) cloudIds.push(storyId);
+    });
+
+    // Batch-fetch cover_data from Supabase DB for cloud stories
+    if (cloudIds.length) {
+      var idsParam = cloudIds.map(encodeURIComponent).join(',');
+      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
+        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
+      }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+        var coverMap = {};
+        (rows || []).forEach(function (r) { if (r.cover_data) coverMap[r.id] = r.cover_data; });
+        cloudIds.forEach(function (id) {
+          var nodeList = cloudNodeMap[id] || [];
+          if (coverMap[id]) {
+            nodeList.forEach(function (node) { insertCoverImg(node, coverMap[id]); });
           } else {
-            // Raw image bytes — use blob
-            return r.blob().then(function(blob) { return { type: 'blob', data: blob }; });
+            // Fallback: try IndexedDB
+            nodeList.forEach(function (node) {
+              if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+                window.AudioHubStoryCover.get(id).then(function (blob) {
+                  if (blob) insertCoverImg(node, URL.createObjectURL(blob));
+                }).catch(function () {});
+              }
+            });
           }
         });
-      }).then(function(result) {
-        if (!result || result.type === 'skip') return;
-        if (result.type === 'dataurl') {
-          insertCoverImg(node, result.data);
-        } else if (result.type === 'blob') {
-          insertCoverImg(node, URL.createObjectURL(result.data));
-        }
       }).catch(function () {});
-    });
+    }
 
     function insertCoverImg(thumb, url) {
       if (!thumb || !url) return;
