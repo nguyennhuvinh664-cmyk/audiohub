@@ -391,6 +391,7 @@ body.no-scroll { overflow:hidden; }
   background:linear-gradient(135deg,var(--c,#333),color-mix(in srgb,var(--c,#333) 55%,#000));
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-d); font-size:13px; font-weight:800; color:rgba(255,255,255,.35);
+  position:relative; overflow:hidden;
 }
 .tin { flex:1; min-width:0; }
 .tnm { font-size:clamp(15px,1.5vw,18px); font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

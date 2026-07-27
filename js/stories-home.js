@@ -381,7 +381,7 @@
       var rankClass = rank === 1 ? ' gold' : (rank === 2 ? ' silver' : (rank === 3 ? ' bronze' : ''));
       return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
         + '<span class="trk' + rankClass + '">' + rank + '</span>'
-        + '<div class="tth">' + makeInitials(story.title) + '</div>'
+        + '<div class="tth" data-cover-story-id="' + String(story.id || '') + '">' + makeInitials(story.title) + '</div>'
         + '<div class="tin"><p class="tnm">' + String(story.title || 'Truyện mới') + '</p><p class="tmt">' + String(story.genre || 'Khác') + ' • ' + score + ' lượt nghe (2 ngày)</p></div>'
         + '<div class="tbar"><div class="tfill" style="width:' + width + '%"></div></div></a>';
     }).join('');
