@@ -1082,7 +1082,6 @@
   }
 
   function initMainTabs() {
-    if (!mainTabButtons.length) return;
     // Check if URL has hash to switch to mycontent tab
     var hash = window.location.hash;
     var initialMainTab = 'history';
@@ -1090,6 +1089,20 @@
       initialMainTab = 'mycontent';
     }
     setMainTab(initialMainTab);
+
+    // Use event delegation on the navcards container for reliable click handling
+    var navcardsContainer = document.querySelector('.account-navcards');
+    if (navcardsContainer) {
+      navcardsContainer.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-main-tab]');
+        if (btn) {
+          e.preventDefault();
+          setMainTab(btn.getAttribute('data-main-tab'));
+        }
+      });
+    }
+
+    // Also bind directly to buttons as fallback
     mainTabButtons.forEach(function (button) {
       button.addEventListener('click', function () {
         setMainTab(button.getAttribute('data-main-tab'));
