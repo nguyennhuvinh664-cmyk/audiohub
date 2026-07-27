@@ -443,12 +443,40 @@
         var panel = document.querySelector('[data-story-menu-panel="' + sid + '"]');
         if (!panel) return;
         var isOpen = !panel.classList.contains('is-hidden');
-        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
+        // Close all menus first
+        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) {
+          p.classList.add('is-hidden');
+          // Reset fixed positioning
+          p.style.position = '';
+          p.style.top = '';
+          p.style.left = '';
+          p.style.right = '';
+          p.style.zIndex = '';
+        });
         document.querySelectorAll('.account-item-menu-wrap').forEach(function (wrap) { wrap.classList.remove('is-open'); });
         if (!isOpen) {
           panel.classList.remove('is-hidden');
-          var wrap = panel.closest('.account-item-menu-wrap');
-          if (wrap) wrap.classList.add('is-open');
+          // Use position:fixed to escape overflow-y:auto scroll container
+          var rect = menuBtn.getBoundingClientRect();
+          panel.style.position = 'fixed';
+          panel.style.top = (rect.bottom + 4) + 'px';
+          panel.style.left = (rect.right - 180) + 'px';
+          panel.style.right = 'auto';
+          panel.style.zIndex = '10000';
+          // Close on scroll
+          var scrollParent = menuBtn.closest('.account-scroll-list');
+          if (scrollParent) {
+            var onScroll = function() {
+              panel.classList.add('is-hidden');
+              panel.style.position = '';
+              panel.style.top = '';
+              panel.style.left = '';
+              panel.style.right = '';
+              panel.style.zIndex = '';
+              scrollParent.removeEventListener('scroll', onScroll);
+            };
+            scrollParent.addEventListener('scroll', onScroll, { once: true });
+          }
         }
         event.stopPropagation();
         return;
