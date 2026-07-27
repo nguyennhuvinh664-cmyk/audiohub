@@ -785,18 +785,65 @@
       return;
     }
     if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+
+    var nodesToFetch = [];
+
     root.querySelectorAll('[data-library-thumb]').forEach(function (node) {
       var coverKey = String(node.getAttribute('data-library-cover-key') || '').trim();
-      if (!coverKey) return;
-      window.AudioHubStoryCover.get(coverKey).then(function (blob) {
-        if (!blob) return;
-        var url = URL.createObjectURL(blob);
-        node.style.backgroundImage = 'url("' + url + '")';
-        node.style.backgroundSize = 'cover';
-        node.style.backgroundPosition = 'center';
-        node.classList.add('is-cover-ready');
-      }).catch(function () {});
+      var href = String(node.getAttribute('data-library-href') || '').trim();
+
+      // Extract story ID from href (e.g. /story-detail.html?id=xxx)
+      var storyId = '';
+      if (href) {
+        try {
+          var urlObj = new URL(href, window.location.origin);
+          storyId = urlObj.searchParams.get('id') || '';
+        } catch (e) {
+          var m = href.match(/[?&]id=([^&]+)/);
+          if (m) storyId = decodeURIComponent(m[1]);
+        }
+      }
+
+      // Try IndexedDB: coverKey first, then story ID
+      var idbKey = coverKey && coverKey.indexOf('c_') === 0 ? coverKey : (storyId || '');
+      if (!idbKey) return;
+
+      window.AudioHubStoryCover.get(idbKey).then(function (blob) {
+        if (blob) {
+          var url = URL.createObjectURL(blob);
+          node.style.backgroundImage = 'url("' + url + '")';
+          node.style.backgroundSize = 'cover';
+          node.style.backgroundPosition = 'center';
+          node.classList.add('is-cover-ready');
+        } else if (storyId && storyId.indexOf('s_') !== 0) {
+          nodesToFetch.push({ node: node, id: storyId });
+        }
+      }).catch(function () {
+        if (storyId && storyId.indexOf('s_') !== 0) {
+          nodesToFetch.push({ node: node, id: storyId });
+        }
+      });
     });
+
+    // Fallback: batch fetch cover_data from Supabase DB
+    if (nodesToFetch.length) {
+      var ids = nodesToFetch.map(function (n) { return n.id; });
+      var idsParam = ids.map(encodeURIComponent).join(',');
+      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
+        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
+      }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+        var dataMap = {};
+        (rows || []).forEach(function (r) { if (r.cover_data) dataMap[r.id] = r.cover_data; });
+        nodesToFetch.forEach(function (n) {
+          if (dataMap[n.id]) {
+            n.node.style.backgroundImage = 'url("' + dataMap[n.id] + '")';
+            n.node.style.backgroundSize = 'cover';
+            n.node.style.backgroundPosition = 'center';
+            n.node.classList.add('is-cover-ready');
+          }
+        });
+      }).catch(function () {});
+    }
   }
 
   function deriveThumbStyle(item) {
@@ -2034,6 +2081,49 @@
   clearLocalDemoStories();
   refreshAll();
 
+  // ── ROBUST FALLBACK: document-level click delegation for main tabs ──
+  // SPA router loads scripts in parallel — initMainTabs() may run before DOM is ready.
+  // This ensures clicks work even if the IIFE handlers didn't bind.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-main-tab]');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var tabName = btn.getAttribute('data-main-tab');
+    if (!tabName) return;
+    // Update button states
+    document.querySelectorAll('[data-main-tab]').forEach(function (b) {
+      var active = b.getAttribute('data-main-tab') === tabName;
+      b.classList.toggle('is-active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    // Update panels
+    document.querySelectorAll('[data-main-panel]').forEach(function (p) {
+      var active = p.getAttribute('data-main-panel') === tabName;
+      p.classList.toggle('is-active', active);
+      p.hidden = !active;
+    });
+  }, true);
+
+  // ── ROBUST FALLBACK: document-level click delegation for content tabs ──
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-content-tab]');
+    if (!btn) return;
+    e.preventDefault();
+    var tabName = btn.getAttribute('data-content-tab');
+    if (!tabName) return;
+    document.querySelectorAll('[data-content-tab]').forEach(function (b) {
+      var active = b.getAttribute('data-content-tab') === tabName;
+      b.classList.toggle('is-active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-content-panel]').forEach(function (p) {
+      var active = p.getAttribute('data-content-panel') === tabName;
+      p.classList.toggle('is-active', active);
+      p.hidden = !active;
+    });
+  }, true);
+
   window.addEventListener('audiohub:stories-updated', refreshAll);
   window.addEventListener('audiohub:stories-synced', refreshAll);
 
@@ -2070,4 +2160,14 @@
   if (navToggle) navToggle.addEventListener('click', openNav);
   if (navClose) navClose.addEventListener('click', closeNav);
   if (navOverlay) navOverlay.addEventListener('click', closeNav);
+
+  // ── Deferred retry: SPA router loads scripts in parallel ──
+  // AudioHubStoryCover / AudioHubStories may not be available on first run.
+  // Re-hydrate after a short delay to catch late-loading dependencies.
+  setTimeout(function () {
+    try { refreshAll(); } catch (e) {}
+  }, 800);
+  setTimeout(function () {
+    try { refreshAll(); } catch (e) {}
+  }, 2000);
 })();
