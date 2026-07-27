@@ -1180,6 +1180,7 @@
         var ek = String(entries[ci].key || '');
         if (ek && ek.indexOf('s_') !== 0) { coverKeyForCard = ek; break; }
       }
+      console.log('[PL-CARD]', pl.name, 'entries:', entries.length, 'coverKey:', coverKeyForCard, 'allKeys:', entries.map(function(e){ return e.key; }));
 
       return '' +
         '<div class="pl-card' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
@@ -1219,6 +1220,7 @@
       var state = node.getAttribute('data-cover-state');
       if (state === 'loaded' || state === 'pending') return;
       var coverKey = String(node.getAttribute('data-playlist-list-cover') || '').trim();
+      console.log('[PL-LIST-COVER] key:', coverKey, 'url:', coverKey ? (STORAGE_BASE + coverKey + '/cover') : 'EMPTY');
       if (!coverKey) { node.setAttribute('data-cover-state', 'no-cover'); return; }
       fetchCoverFromStorage(node, STORAGE_BASE + coverKey + '/cover');
     });
@@ -1730,8 +1732,10 @@
   }
 
   function fetchCoverFromStorage(node, url) {
+    console.log('[FETCH-COVER] url:', url);
     node.setAttribute('data-cover-state', 'pending');
     fetch(url).then(function (r) {
+      console.log('[FETCH-COVER] status:', r.status, 'url:', url);
       if (!r.ok) return null;
       return r.text().then(function (txt) {
         if (!txt || txt.indexOf('data:video/') === 0) return null;
