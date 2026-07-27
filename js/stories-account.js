@@ -935,6 +935,11 @@
       var storyId = String(story.id || '').trim();
       var coverKey = story.coverKey ? String(story.coverKey) : '';
       var thumbStyle = 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
+      // Use generated canvas cover as default (real cover overrides via hydrateStoryThumbs)
+      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
+        var _defCover = window.AudioHubStoryCover.generateDefault(story.title, story.genre);
+        if (_defCover) thumbStyle = 'background: url(' + _defCover + ') center/cover no-repeat, linear-gradient(135deg, #1a1040, #2d1b69)';
+      }
       var metaLine = author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '');
 
       var editHref = '/html/upload-story.html?id=' + encodeURIComponent(storyId);

@@ -742,6 +742,12 @@
       return;
     }
 
+    // Instant fallback: generated canvas cover while async lookups run
+    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
+      var _defCover = window.AudioHubStoryCover.generateDefault(story.title, story.genre);
+      if (_defCover) applyCoverUrl(_defCover);
+    }
+
     // Fallback: fetch coverData directly from Supabase if story has an ID
     var storyId = story && story.id ? String(story.id) : '';
     if (storyId && !String(storyId).startsWith('s_') && window.AudioHubSupabase && typeof window.AudioHubSupabase.fetchStoryById === 'function') {
@@ -1110,15 +1116,20 @@
       var storyId = escapeHtml(String(item.id || ''));
       var coverData = item.coverData ? escapeHtml(String(item.coverData)) : '';
       var initials = title.slice(0, 2).toUpperCase();
-      // Generate gradient based on title hash
-      var hash = 0;
-      for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
-      var hue1 = Math.abs(hash) % 360;
-      var hue2 = (hue1 + 40) % 360;
-      var gradient = 'linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%))';
-      var coverStyle = 'background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;';
+      // Generate default canvas cover
+      var coverStyle = '';
       if (coverData) {
         coverStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
+      } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
+        var _dc = window.AudioHubStoryCover.generateDefault(item.title, item.genre);
+        if (_dc) coverStyle = 'background:url(' + _dc + ') center/cover no-repeat;';
+      }
+      if (!coverStyle) {
+        var hash = 0;
+        for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
+        var hue1 = Math.abs(hash) % 360;
+        var hue2 = (hue1 + 40) % 360;
+        coverStyle = 'background:linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;';
       }
       return '<a href="' + href + '" class="mini-story">'
         + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="' + coverStyle + '">' + (coverData ? '' : initials) + '</div>'
@@ -1215,16 +1226,22 @@
       var views = Number(item.listenCount || 0);
       var viewsLabel = views ? (views + ' views') : '— views';
       var isCompleted = item.isCompleted ? '<span class="story-badge story-badge--full">FULL</span>' : '';
-      // Gradient fallback based on title hash
-      var hash = 0;
-      for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
-      var hue1 = Math.abs(hash) % 360;
-      var hue2 = (hue1 + 40) % 360;
-      var gradient = 'linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%))';
-      var bgProp = coverData
-        ? 'background-image:url("' + coverData + '");background-size:cover;background-position:center;'
-        : 'background:' + gradient + ';display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;';
+      // Default cover: canvas-generated with title + genre
+      var bgProp = '';
       var initials = title.slice(0, 2).toUpperCase();
+      if (coverData) {
+        bgProp = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
+      } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
+        var _dc2 = window.AudioHubStoryCover.generateDefault(item.title, item.genre);
+        if (_dc2) bgProp = 'background:url(' + _dc2 + ') center/cover no-repeat;';
+      }
+      if (!bgProp) {
+        var hash = 0;
+        for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
+        var hue1 = Math.abs(hash) % 360;
+        var hue2 = (hue1 + 40) % 360;
+        bgProp = 'background:linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;';
+      }
       return '<a href="' + href + '" style="display:block;width:200px;min-width:200px;border-radius:12px;background:#121826;border:1px solid rgba(255,255,255,.08);text-decoration:none;color:#fff;overflow:hidden;flex-shrink:0;" data-cover-story-id="' + storyId + '" data-related-story-id="' + storyId + '" data-related-visibility="' + visibility + '">'
         + '<div style="position:relative;width:100%;height:120px;' + bgProp + '">'
         + (coverData ? '' : '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:700;color:rgba(255,255,255,.7)">' + initials + '</span>')

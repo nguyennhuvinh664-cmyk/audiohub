@@ -40,6 +40,12 @@
     var genre = escapeHtml(story.genre);
     var href = '/story-detail.html?id=' + encodeURIComponent(story.id);
     var color = genreColor(story.genre);
+    // Use generated canvas cover as default
+    var _thumbBg = 'background:linear-gradient(135deg,' + color + ',' + color + 'aa)';
+    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
+      var _dc = window.AudioHubStoryCover.generateDefault(story.title, story.genre);
+      if (_dc) _thumbBg = 'background:url(' + _dc + ') center/cover no-repeat,linear-gradient(135deg,' + color + ',' + color + 'aa)';
+    }
 
     var note = story.visibility ? ('Visibility: ' + story.visibility) : 'Truyện demo từ AudioHub Studio.';
 
@@ -56,7 +62,7 @@
       'data-story-id="' + escapeHtml(story.id) + '" data-title="' + title + '" data-author="' + author + '" data-genre="' + genre + '" data-description="' + description + '" ' +
       'data-progress="Demo" data-note="' + escapeHtml(note) + '">' +
       '<a href="' + href + '" class="story-card__link">' +
-      '<div class="story-card__thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '"' + coverDataAttr + ' style="background:linear-gradient(135deg,' + color + ',' + color + 'aa)">' +
+      '<div class="story-card__thumb" data-cover-key="' + escapeHtml(story.coverKey || '') + '"' + coverDataAttr + ' style="' + _thumbBg + '">' +
       '<span class="story-chapters">Demo</span>' +
       '</div>' +
       '<div class="story-card__body">' +

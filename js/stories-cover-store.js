@@ -243,10 +243,111 @@
     });
   }
 
+  /* ── Default cover generator (canvas) ─────────────────────────────── */
+  var COVER_GRADIENTS = [
+    ['#0ea5e9', '#2563eb'], ['#f97316', '#f59e0b'], ['#a855f7', '#7c3aed'],
+    ['#14b8a6', '#0d9488'], ['#ec4899', '#db2777'], ['#6366f1', '#4f46e5'],
+    ['#f43f5e', '#e11d48'], ['#0891b2', '#0e7490']
+  ];
+
+  function generateDefaultCover(storyOrTitle, genre, size) {
+    var s = size || 400;
+    try {
+      var canvas = document.createElement('canvas');
+      canvas.width = s;
+      canvas.height = s;
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return '';
+
+      var title = String(storyOrTitle && storyOrTitle.title || storyOrTitle || '').trim();
+      var g = String(genre || (storyOrTitle && storyOrTitle.genre) || '').trim();
+
+      // Pick gradient by hashing title
+      var hash = 0;
+      for (var i = 0; i < title.length; i++) hash = ((hash << 5) - hash + title.charCodeAt(i)) | 0;
+      var pair = COVER_GRADIENTS[Math.abs(hash) % COVER_GRADIENTS.length];
+
+      // Draw gradient
+      var grd = ctx.createLinearGradient(0, 0, s, s);
+      grd.addColorStop(0, pair[0]);
+      grd.addColorStop(1, pair[1]);
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, s, s);
+
+      // Subtle pattern overlay
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      for (var py = 0; py < s; py += 12) {
+        ctx.fillRect(0, py, s, 1);
+      }
+
+      // Genre badge
+      if (g) {
+        ctx.font = 'bold ' + Math.round(s * 0.048) + 'px sans-serif';
+        var tw = ctx.measureText(g).width;
+        var bx = 20, by = s - 30;
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.roundRect(bx - 8, by - 16, tw + 16, 24, 6);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillText(g, bx, by);
+      }
+
+      // Title text (2 lines max)
+      if (title) {
+        var maxW = s * 0.7;
+        var words = title.split(/\s+/);
+        var lines = [];
+        var line = '';
+        ctx.font = 'bold ' + Math.round(s * 0.085) + 'px sans-serif';
+        for (var wi = 0; wi < words.length; wi++) {
+          var test = line ? (line + ' ' + words[wi]) : words[wi];
+          if (ctx.measureText(test).width > maxW && line) {
+            lines.push(line);
+            line = words[wi];
+            if (lines.length >= 2) break;
+          } else {
+            line = test;
+          }
+        }
+        if (line && lines.length < 3) lines.push(line);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        var lineH = s * 0.11;
+        var startY = s * 0.42 - ((lines.length - 1) * lineH) / 2;
+        for (var li = 0; li < lines.length; li++) {
+          ctx.fillText(lines[li], s / 2, startY + li * lineH);
+        }
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+      }
+
+      // Headphones icon placeholder (circle with play triangle)
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.beginPath();
+      ctx.arc(s / 2, s * 0.75, s * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.beginPath();
+      ctx.moveTo(s / 2 - s * 0.02, s * 0.75 - s * 0.03);
+      ctx.lineTo(s / 2 + s * 0.03, s * 0.75);
+      ctx.lineTo(s / 2 - s * 0.02, s * 0.75 + s * 0.03);
+      ctx.closePath();
+      ctx.fill();
+
+      return canvas.toDataURL('image/jpeg', 0.82);
+    } catch (e) {
+      return '';
+    }
+  }
+
   window.AudioHubStoryCover = {
     put: putCover,
     get: getCover,
     delete: deleteCover,
-    listKeys: listKeys
+    listKeys: listKeys,
+    generateDefault: generateDefaultCover
   };
 })();
