@@ -1010,7 +1010,6 @@
       }).catch(function () {});
     }
   }
-  }
 
   /* ── Self-heal: copy covers from IndexedDB to Supabase DB ── */
   function selfHealCoversFromIdb(root) {
