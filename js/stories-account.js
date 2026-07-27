@@ -1051,8 +1051,38 @@
   }
 
   function deletePlaylist(id) {
-    var list = readPlaylists().filter(function (p) { return p.id !== id; });
-    writePlaylists(list);
+    // Find the playlist to get story keys before deleting
+    var list = readPlaylists();
+    var pl = null;
+    list.forEach(function (p) { if (p.id === id) pl = p; });
+    if (pl && pl.entries) {
+      // Delete each story from Supabase
+      pl.entries.forEach(function (entry) {
+        var key = String(entry.key || '');
+        if (key && key.indexOf('s_') !== 0) {
+          // Cloud story — delete from Supabase
+          fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(key), {
+            method: 'DELETE',
+            headers: {
+              'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
+              'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
+              'Prefer': 'return=minimal'
+            }
+          }).then(function () {
+            // Also delete cover from storage
+            fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/story-covers/' + encodeURIComponent(key) + '/cover', {
+              method: 'DELETE',
+              headers: {
+                'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
+                'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
+              }
+            }).catch(function () {});
+          }).catch(function () {});
+        }
+      });
+    }
+    var newList = list.filter(function (p) { return p.id !== id; });
+    writePlaylists(newList);
     if (activePlaylistId === id) activePlaylistId = null;
   }
 
