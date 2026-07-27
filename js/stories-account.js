@@ -933,24 +933,12 @@
       var genre = escapeHtml(story.genre || 'Truyện audio');
       var updated = formatTime(story.updatedAt || story.createdAt);
       var storyId = String(story.id || '').trim();
-      var coverKey = story.coverKey ? String(story.coverKey) : '';
-      var thumbStyle = 'background: linear-gradient(135deg, #1a1040, #2d1b69)';
-      // Use generated canvas cover as default (real cover overrides via hydrateStoryThumbs)
-      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.generateDefault === 'function') {
-        var _defCover = window.AudioHubStoryCover.generateDefault(story.title, story.genre);
-        if (_defCover) thumbStyle = 'background: url(' + _defCover + ') center/cover no-repeat, linear-gradient(135deg, #1a1040, #2d1b69)';
-      }
       var metaLine = author + ' · ' + genre + (updated ? (' · Cập nhật ' + escapeHtml(updated)) : '');
 
       var editHref = '/html/upload-story.html?id=' + encodeURIComponent(storyId);
       return '' +
         '<div class="yt-card" data-story-item>' +
           '<label class="yt-card__checkbox"><input type="checkbox" data-story-checkbox data-story-id="' + escapeHtml(storyId) + '" /></label>' +
-          '<div class="yt-card__thumb-wrap">' +
-            '<div class="yt-card__thumb" data-story-thumb data-story-id="' + escapeHtml(storyId) + '" data-cover-key="' + escapeHtml(coverKey) + '" style="' + thumbStyle + '">' +
-              '<span>' + escapeHtml((story.title || 'ST').slice(0, 2).toUpperCase()) + '</span>' +
-            '</div>' +
-          '</div>' +
           '<div class="yt-card__body">' +
             '<h3 class="yt-card__title"><a href="' + escapeHtml(storyHref(story)) + '">' + title + '</a></h3>' +
             '<p class="yt-card__meta">' + metaLine + '</p>' +
@@ -973,130 +961,6 @@
     if (paginationWrap) {
       paginationWrap.innerHTML = totalPages > 1 ? buildPagination(page, totalPages, type) : '';
     }
-
-    hydrateStoryThumbs(mount);
-    selfHealCoversFromIdb(mount);
-  }
-
-  function hydrateStoryThumbs(root) {
-    if (!root || !window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') return;
-
-    var nodesWithoutCover = [];
-
-    root.querySelectorAll('[data-story-thumb]').forEach(function (node) {
-      node.classList.remove('is-cover-ready');
-      var storyId = String(node.getAttribute('data-story-id') || '').trim();
-      var coverKey = String(node.getAttribute('data-cover-key') || '').trim();
-
-      if (!coverKey && storyId) {
-        var story = window.AudioHubStories.getById(storyId);
-        coverKey = story && story.coverKey ? String(story.coverKey) : '';
-        if (coverKey) node.setAttribute('data-cover-key', coverKey);
-      }
-
-      if (!coverKey) {
-        if (storyId && storyId.indexOf('s_') !== 0) nodesWithoutCover.push({ node: node, id: storyId });
-        return;
-      }
-
-      // Try IndexedDB first (if AudioHubStoryCover is available)
-      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-        // Try coverKey first, then story ID as fallback
-        var idbKey = coverKey && coverKey.indexOf('c_') === 0 ? coverKey : storyId;
-        window.AudioHubStoryCover.get(idbKey)
-          .then(function (blob) {
-            if (blob) {
-              var url = URL.createObjectURL(blob);
-              node.style.backgroundImage = 'url("' + url + '")';
-              node.style.backgroundSize = 'cover';
-              node.style.backgroundPosition = 'center';
-              node.classList.add('is-cover-ready');
-            } else if (storyId && storyId.indexOf('s_') !== 0) {
-              nodesWithoutCover.push({ node: node, id: storyId });
-            }
-          })
-          .catch(function () {
-            if (storyId && storyId.indexOf('s_') !== 0) nodesWithoutCover.push({ node: node, id: storyId });
-          });
-      } else if (storyId && storyId.indexOf('s_') !== 0) {
-        nodesWithoutCover.push({ node: node, id: storyId });
-      }
-    });
-
-    // Fallback: batch fetch cover_data from Supabase DB for nodes still without cover
-    if (nodesWithoutCover.length) {
-      var ids = nodesWithoutCover.map(function (n) { return n.id; });
-      var idsParam = ids.map(encodeURIComponent).join(',');
-      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
-        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
-      }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
-        var dataMap = {};
-        (rows || []).forEach(function (r) { if (r.cover_data) dataMap[r.id] = r.cover_data; });
-        nodesWithoutCover.forEach(function (n) {
-          if (dataMap[n.id]) {
-            n.node.style.backgroundImage = 'url("' + dataMap[n.id] + '")';
-            n.node.style.backgroundSize = 'cover';
-            n.node.style.backgroundPosition = 'center';
-            n.node.classList.add('is-cover-ready');
-          }
-        });
-      }).catch(function () {});
-    }
-  }
-
-  /* ── Self-heal: copy covers from IndexedDB to Supabase DB ── */
-  function selfHealCoversFromIdb(root) {
-    if (!root || !window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
-    if (!window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') return;
-
-    var SUPABASE_REST = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1';
-    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-
-    function applyToAllNodes(storyId, dataUrl) {
-      // Apply to story card thumb
-      root.querySelectorAll('[data-story-thumb][data-story-id="' + storyId + '"]').forEach(function (n) {
-        n.style.backgroundImage = 'url("' + dataUrl + '")';
-        n.style.backgroundSize = 'cover';
-        n.style.backgroundPosition = 'center';
-        n.classList.add('is-cover-ready');
-        var si = n.querySelector('.si');
-        if (si) si.style.display = 'none';
-      });
-      // Apply to playlist sidebar cover
-      document.querySelectorAll('[data-playlist-list-cover="' + storyId + '"]').forEach(function (n) {
-        applyCoverToNode(n, dataUrl);
-      });
-    }
-
-    root.querySelectorAll('[data-story-thumb]:not(.is-cover-ready)').forEach(function (node) {
-      var storyId = String(node.getAttribute('data-story-id') || '').trim();
-      if (!storyId || storyId.indexOf('s_') === 0) return;
-
-      var story = window.AudioHubStories.getById(storyId);
-      var coverKey = String((story && story.coverKey) || '').trim();
-      // Try coverKey first, then story ID as fallback
-      var idbKey = coverKey && coverKey.indexOf('c_') === 0 ? coverKey : storyId;
-
-      window.AudioHubStoryCover.get(idbKey).then(function (blob) {
-        if (!blob || blob.size === 0) return;
-        var reader = new FileReader();
-        reader.onload = function () {
-          var dataUrl = reader.result;
-          if (!dataUrl || dataUrl.indexOf('data:image') !== 0) return;
-          fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(storyId), {
-            method: 'PATCH',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cover_data: dataUrl })
-          }).then(function (r) {
-            if (r.ok) {
-              console.log('[self-heal] ✅ cover saved to DB for', storyId);
-              applyToAllNodes(storyId, dataUrl);
-            }
-          }).catch(function () {});
-        };
-        reader.readAsDataURL(blob);
-      }).catch(function () {});
-    });
   }
 
   function renderTrash() {
@@ -1387,17 +1251,8 @@
       var stateIcon = state === 'done' ? 'fa-solid fa-check' : 'fa-solid fa-play';
       var stateClass = state === 'done' ? 'pl-badge--done' : 'pl-badge--ongoing';
 
-      // Find first cloud entry key for cover
-      var coverKeyForCard = '';
-      for (var ci = 0; ci < entries.length; ci++) {
-        var ek = String(entries[ci].key || '');
-        if (ek && ek.indexOf('s_') !== 0) { coverKeyForCard = ek; break; }
-      }
-      console.log('[PL-CARD]', pl.name, 'entries:', entries.length, 'coverKey:', coverKeyForCard, 'allKeys:', entries.map(function(e){ return e.key; }));
-
       return '' +
         '<div class="pl-card' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
-          '<div class="pl-card__cover" data-playlist-list-cover="' + escapeHtml(coverKeyForCard) + '"></div>' +
           '<div class="pl-card__name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Truyện') + '</div>' +
           '<div class="pl-card__meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
           '<div class="pl-card__actions">' +
@@ -1425,53 +1280,6 @@
     playlistListMount.scrollTop = 0;
 
     renderPlaylistDetail();
-    hydratePlaylistListCovers();
-  }
-
-  function hydratePlaylistListCovers() {
-    var nodes = document.querySelectorAll('[data-playlist-list-cover]');
-    var idsToFetch = [];
-    var nodeMap = {};
-    nodes.forEach(function (node) {
-      var state = node.getAttribute('data-cover-state');
-      if (state === 'loaded' || state === 'pending') return;
-      var coverKey = String(node.getAttribute('data-playlist-list-cover') || '').trim();
-      if (!coverKey || coverKey.indexOf('s_') === 0) {
-        node.setAttribute('data-cover-state', 'no-cover');
-        return;
-      }
-      if (idsToFetch.indexOf(coverKey) === -1) idsToFetch.push(coverKey);
-      if (!nodeMap[coverKey]) nodeMap[coverKey] = [];
-      nodeMap[coverKey].push(node);
-    });
-    if (!idsToFetch.length) return;
-    var idsParam = idsToFetch.map(encodeURIComponent).join(',');
-    fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
-      headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
-    }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
-      (rows || []).forEach(function (row) {
-        if (!row.id || !row.cover_data) return;
-        var nodeList = nodeMap[row.id] || [];
-        nodeList.forEach(function (node) {
-          applyCoverToNode(node, row.cover_data);
-        });
-      });
-      // Mark remaining nodes without cover_data
-      idsToFetch.forEach(function (id) {
-        if (!nodeMap[id]) return;
-        nodeMap[id].forEach(function (node) {
-          if (node.getAttribute('data-cover-state') !== 'loaded') {
-            node.setAttribute('data-cover-state', 'no-cover');
-          }
-        });
-      });
-    }).catch(function () {
-      idsToFetch.forEach(function (id) {
-        (nodeMap[id] || []).forEach(function (node) {
-          node.setAttribute('data-cover-state', 'no-cover');
-        });
-      });
-    });
   }
 
   var STATUS_LABELS = {
@@ -2061,7 +1869,7 @@
 
   // MutationObserver: auto-hydrate covers whenever playlist detail DOM changes
   (function () {
-    var observer = new MutationObserver(function () { hydratePlaylistCovers(); hydratePlaylistListCovers(); });
+    var observer = new MutationObserver(function () { hydratePlaylistCovers(); });
     var target = document.querySelector('[data-playlist-detail]');
     if (target) {
       observer.observe(target, { childList: true, subtree: true });
@@ -2073,24 +1881,17 @@
           obs2.disconnect();
           observer.observe(t, { childList: true, subtree: true });
           hydratePlaylistCovers();
-          hydratePlaylistListCovers();
         }
       });
       obs2.observe(document.body, { childList: true, subtree: true });
-    }
-    // Also observe playlist list for sidebar cover hydration
-    var listEl = document.querySelector('[data-playlist-list]');
-    if (listEl) {
-      var listObs = new MutationObserver(function () { hydratePlaylistListCovers(); });
-      listObs.observe(listEl, { childList: true, subtree: true });
     }
   })();
 
   // Also hydrate on DOMContentLoaded as a fallback
   document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () { hydratePlaylistCovers(); hydratePlaylistListCovers(); }, 200);
-    setTimeout(function () { hydratePlaylistCovers(); hydratePlaylistListCovers(); }, 500);
-    setTimeout(function () { hydratePlaylistCovers(); hydratePlaylistListCovers(); }, 1000);
+    setTimeout(function () { hydratePlaylistCovers(); }, 200);
+    setTimeout(function () { hydratePlaylistCovers(); }, 500);
+    setTimeout(function () { hydratePlaylistCovers(); }, 1000);
   });
 
   // ── End Playlist ──────────────────────────────────────────────────────────
