@@ -1330,33 +1330,8 @@
       } catch (e) {}
     }
 
-    // After story is synced to backend with real CUID, upload cover to Storage + DB
-    if (published && story && story.id && !String(story.id).startsWith('s_') && state.coverData && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
-      // Convert base64 dataUrl to blob, then upload to Storage with story.id
-      try {
-        var coverBlob = dataUrlToBlob(state.coverData);
-        if (coverBlob) {
-          window.AudioHubStoryCover.put(coverBlob, story.id).then(function () {
-            console.log('[upload] Cover uploaded to Storage for', story.id);
-          }).catch(function (err) {
-            console.warn('[upload] Cover upload failed:', err);
-          });
-        }
-      } catch (e) {}
-
-      // Also PATCH cover_data to DB directly (for self-heal on other devices)
-      try {
-        var SUPABASE_REST_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1';
-        var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-        fetch(SUPABASE_REST_DIRECT + '/stories?id=eq.' + encodeURIComponent(story.id), {
-          method: 'PATCH',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cover_data: state.coverData })
-        }).then(function (r) {
-          if (r.ok) console.log('[upload] cover_data saved to DB for', story.id);
-        }).catch(function () {});
-      } catch (e) {}
-    }
+    // Cover upload is now handled in stories-store.js syncToSupabaseWithRetry callback
+    // (runs after Supabase sync provides the real CUID, so cover_data is saved correctly)
 
     // After story is synced to backend with real CUID, re-upload audio if needed
     var audioUploadedToBackend = Promise.resolve();

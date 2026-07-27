@@ -899,7 +899,8 @@
 
   function hydrateStoryThumbs(root) {
     if (!root || !window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') return;
-    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+
+    var nodesWithoutCover = [];
 
     root.querySelectorAll('[data-story-thumb]').forEach(function (node) {
       node.classList.remove('is-cover-ready');
@@ -912,21 +913,53 @@
         if (coverKey) node.setAttribute('data-cover-key', coverKey);
       }
 
-      if (!coverKey) return;
+      if (!coverKey) {
+        if (storyId && storyId.indexOf('s_') !== 0) nodesWithoutCover.push({ node: node, id: storyId });
+        return;
+      }
 
-      window.AudioHubStoryCover.get(coverKey)
-        .then(function (blob) {
-          if (!blob) return;
-          var url = URL.createObjectURL(blob);
-          node.style.backgroundImage = 'url("' + url + '")';
-          node.style.backgroundSize = 'cover';
-          node.style.backgroundPosition = 'center';
-          node.classList.add('is-cover-ready');
-        })
-        .catch(function (err) {
-          console.warn('Failed to load cover:', coverKey, err);
-        });
+      // Try IndexedDB first (if AudioHubStoryCover is available)
+      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        window.AudioHubStoryCover.get(coverKey)
+          .then(function (blob) {
+            if (blob) {
+              var url = URL.createObjectURL(blob);
+              node.style.backgroundImage = 'url("' + url + '")';
+              node.style.backgroundSize = 'cover';
+              node.style.backgroundPosition = 'center';
+              node.classList.add('is-cover-ready');
+            } else if (storyId && storyId.indexOf('s_') !== 0) {
+              nodesWithoutCover.push({ node: node, id: storyId });
+            }
+          })
+          .catch(function () {
+            if (storyId && storyId.indexOf('s_') !== 0) nodesWithoutCover.push({ node: node, id: storyId });
+          });
+      } else if (storyId && storyId.indexOf('s_') !== 0) {
+        nodesWithoutCover.push({ node: node, id: storyId });
+      }
     });
+
+    // Fallback: batch fetch cover_data from Supabase DB for nodes still without cover
+    if (nodesWithoutCover.length) {
+      var ids = nodesWithoutCover.map(function (n) { return n.id; });
+      var idsParam = ids.map(encodeURIComponent).join(',');
+      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
+        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
+      }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+        var dataMap = {};
+        (rows || []).forEach(function (r) { if (r.cover_data) dataMap[r.id] = r.cover_data; });
+        nodesWithoutCover.forEach(function (n) {
+          if (dataMap[n.id]) {
+            n.node.style.backgroundImage = 'url("' + dataMap[n.id] + '")';
+            n.node.style.backgroundSize = 'cover';
+            n.node.style.backgroundPosition = 'center';
+            n.node.classList.add('is-cover-ready');
+          }
+        });
+      }).catch(function () {});
+    }
+  }
   }
 
   function renderTrash() {
@@ -1246,13 +1279,48 @@
   }
 
   function hydratePlaylistListCovers() {
-    document.querySelectorAll('[data-playlist-list-cover]').forEach(function (node) {
+    var nodes = document.querySelectorAll('[data-playlist-list-cover]');
+    var idsToFetch = [];
+    var nodeMap = {};
+    nodes.forEach(function (node) {
       var state = node.getAttribute('data-cover-state');
       if (state === 'loaded' || state === 'pending') return;
       var coverKey = String(node.getAttribute('data-playlist-list-cover') || '').trim();
-      console.log('[PL-LIST-COVER] key:', coverKey, 'url:', coverKey ? (STORAGE_BASE + coverKey + '/cover') : 'EMPTY');
-      if (!coverKey) { node.setAttribute('data-cover-state', 'no-cover'); return; }
-      fetchCoverFromStorage(node, STORAGE_BASE + coverKey + '/cover');
+      if (!coverKey || coverKey.indexOf('s_') === 0) {
+        node.setAttribute('data-cover-state', 'no-cover');
+        return;
+      }
+      if (idsToFetch.indexOf(coverKey) === -1) idsToFetch.push(coverKey);
+      if (!nodeMap[coverKey]) nodeMap[coverKey] = [];
+      nodeMap[coverKey].push(node);
+    });
+    if (!idsToFetch.length) return;
+    var idsParam = idsToFetch.map(encodeURIComponent).join(',');
+    fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
+      headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
+    }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+      (rows || []).forEach(function (row) {
+        if (!row.id || !row.cover_data) return;
+        var nodeList = nodeMap[row.id] || [];
+        nodeList.forEach(function (node) {
+          applyCoverToNode(node, row.cover_data);
+        });
+      });
+      // Mark remaining nodes without cover_data
+      idsToFetch.forEach(function (id) {
+        if (!nodeMap[id]) return;
+        nodeMap[id].forEach(function (node) {
+          if (node.getAttribute('data-cover-state') !== 'loaded') {
+            node.setAttribute('data-cover-state', 'no-cover');
+          }
+        });
+      });
+    }).catch(function () {
+      idsToFetch.forEach(function (id) {
+        (nodeMap[id] || []).forEach(function (node) {
+          node.setAttribute('data-cover-state', 'no-cover');
+        });
+      });
     });
   }
 

@@ -497,6 +497,24 @@
                 })
                 .catch(function () {});
             }
+
+            // Upload cover to DB under real CUID (cover upload was skipped earlier
+            // because upsertStory returns local s_ ID before async Supabase sync)
+            if (localEntry.coverData) {
+              var _coverSUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+              var _coverSUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+              fetch(_coverSUPABASE_DIRECT + '/rest/v1/stories?id=eq.' + encodeURIComponent(newStoryId), {
+                method: 'PATCH',
+                headers: {
+                  'apikey': _coverSUPABASE_KEY,
+                  'Authorization': 'Bearer ' + _coverSUPABASE_KEY,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ cover_data: localEntry.coverData })
+              }).then(function (r) {
+                if (r.ok) console.log('[stories] ✅ cover_data saved to DB for', newStoryId);
+              }).catch(function () {});
+            }
           }
         })
         .catch(function (e) {

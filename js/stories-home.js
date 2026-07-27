@@ -125,6 +125,25 @@
   /** Apply cover to a thumb node — fetch Storage URL, detect data-URL, apply as <img> */
   function applyCoverToThumb(thumb, url) {
     if (!thumb || !url) return;
+
+    // If URL is a data:image, apply directly (no fetch needed)
+    if (url.indexOf('data:image') === 0) {
+      var oldImg = thumb.querySelector('.sc__cover-img');
+      if (oldImg) oldImg.remove();
+      var directImg = document.createElement('img');
+      directImg.src = url;
+      directImg.className = 'sc__cover-img';
+      directImg.alt = '';
+      directImg.loading = 'lazy';
+      directImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:1;';
+      directImg.onload = function () {
+        var si = thumb.querySelector('.si');
+        if (si) si.style.display = 'none';
+      };
+      thumb.insertBefore(directImg, thumb.firstChild);
+      return;
+    }
+
     fetch(url).then(function (r) {
       if (!r.ok) return null;
       // Peek first 30 bytes to detect format without corrupting binary
@@ -605,6 +624,9 @@
   /* ── load covers for trending/popular (non-playlist sections) ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
+    var localNodes = [];
+    var cloudIds = [];
+
     nodes.forEach(function (node) {
       if (node.querySelector('.sc__cover-img')) return;
       if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
@@ -612,18 +634,35 @@
       if (!id || id.length < 10) return;
 
       // Local stories (s_ prefix): try IndexedDB
-      if (id.indexOf('s_') === 0 && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-        window.AudioHubStoryCover.get(id).then(function (blob) {
-          if (blob) applyCoverToThumb(node, URL.createObjectURL(blob));
-        }).catch(function () {});
+      if (id.indexOf('s_') === 0) {
+        localNodes.push({ node: node, id: id });
         return;
       }
-
-      // Cloud stories: apply Storage URL directly
-      var url = getCoverUrl(id);
-      if (!url) return;
-      applyCoverToThumb(node, url);
+      cloudIds.push(id);
     });
+
+    // Try IndexedDB for local stories
+    localNodes.forEach(function (n) {
+      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        window.AudioHubStoryCover.get(n.id).then(function (blob) {
+          if (blob) applyCoverToThumb(n.node, URL.createObjectURL(blob));
+        }).catch(function () {});
+      }
+    });
+
+    // Batch-fetch cover_data from Supabase DB for cloud stories
+    if (cloudIds.length) {
+      fetchCoverDataMap(cloudIds).then(function (coverMap) {
+        cloudIds.forEach(function (id) {
+          var node = document.querySelector('[data-cover-story-id="' + id + '"]');
+          if (!node || node.querySelector('.sc__cover-img')) return;
+          if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
+          if (coverMap[id]) {
+            applyCoverToThumb(node, coverMap[id]);
+          }
+        });
+      }).catch(function () {});
+    }
   }
 
 
