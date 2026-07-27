@@ -895,6 +895,7 @@
     }
 
     hydrateStoryThumbs(mount);
+    selfHealCoversFromIdb(mount);
   }
 
   function hydrateStoryThumbs(root) {
@@ -960,6 +961,60 @@
       }).catch(function () {});
     }
   }
+  }
+
+  /* ── Self-heal: copy covers from IndexedDB to Supabase DB ── */
+  function selfHealCoversFromIdb(root) {
+    if (!root || !window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+    if (!window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') return;
+
+    var SUPABASE_REST = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1';
+    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+
+    function applyToAllNodes(storyId, dataUrl) {
+      // Apply to story card thumb
+      root.querySelectorAll('[data-story-thumb][data-story-id="' + storyId + '"]').forEach(function (n) {
+        n.style.backgroundImage = 'url("' + dataUrl + '")';
+        n.style.backgroundSize = 'cover';
+        n.style.backgroundPosition = 'center';
+        n.classList.add('is-cover-ready');
+        var si = n.querySelector('.si');
+        if (si) si.style.display = 'none';
+      });
+      // Apply to playlist sidebar cover
+      document.querySelectorAll('[data-playlist-list-cover="' + storyId + '"]').forEach(function (n) {
+        applyCoverToNode(n, dataUrl);
+      });
+    }
+
+    root.querySelectorAll('[data-story-thumb]:not(.is-cover-ready)').forEach(function (node) {
+      var storyId = String(node.getAttribute('data-story-id') || '').trim();
+      if (!storyId || storyId.indexOf('s_') === 0) return;
+
+      var story = window.AudioHubStories.getById(storyId);
+      var coverKey = String((story && story.coverKey) || '').trim();
+      if (!coverKey) return;
+
+      window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+        if (!blob || blob.size === 0) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var dataUrl = reader.result;
+          if (!dataUrl || dataUrl.indexOf('data:image') !== 0) return;
+          fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(storyId), {
+            method: 'PATCH',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cover_data: dataUrl })
+          }).then(function (r) {
+            if (r.ok) {
+              console.log('[self-heal] ✅ cover saved to DB for', storyId);
+              applyToAllNodes(storyId, dataUrl);
+            }
+          }).catch(function () {});
+        };
+        reader.readAsDataURL(blob);
+      }).catch(function () {});
+    });
   }
 
   function renderTrash() {
