@@ -1174,8 +1174,16 @@
       var stateIcon = state === 'done' ? 'fa-solid fa-check' : 'fa-solid fa-play';
       var stateClass = state === 'done' ? 'pl-badge--done' : 'pl-badge--ongoing';
 
+      // Find first cloud entry key for cover
+      var coverKeyForCard = '';
+      for (var ci = 0; ci < entries.length; ci++) {
+        var ek = String(entries[ci].key || '');
+        if (ek && ek.indexOf('s_') !== 0) { coverKeyForCard = ek; break; }
+      }
+
       return '' +
         '<div class="pl-card' + (isActive ? ' is-active' : '') + '" data-playlist-id="' + escapeHtml(pl.id) + '">' +
+          '<div class="pl-card__cover" data-playlist-list-cover="' + escapeHtml(coverKeyForCard) + '"></div>' +
           '<div class="pl-card__name" data-playlist-name-display="' + escapeHtml(pl.id) + '">' + escapeHtml(pl.name || 'Truyện') + '</div>' +
           '<div class="pl-card__meta">' + count + ' truyện' + (statusLabel ? (' · ' + statusLabel) : '') + '</div>' +
           '<div class="pl-card__actions">' +
@@ -1203,6 +1211,17 @@
     playlistListMount.scrollTop = 0;
 
     renderPlaylistDetail();
+    hydratePlaylistListCovers();
+  }
+
+  function hydratePlaylistListCovers() {
+    document.querySelectorAll('[data-playlist-list-cover]').forEach(function (node) {
+      var state = node.getAttribute('data-cover-state');
+      if (state === 'loaded' || state === 'pending') return;
+      var coverKey = String(node.getAttribute('data-playlist-list-cover') || '').trim();
+      if (!coverKey) { node.setAttribute('data-cover-state', 'no-cover'); return; }
+      fetchCoverFromStorage(node, STORAGE_BASE + coverKey + '/cover');
+    });
   }
 
   var STATUS_LABELS = {
@@ -1788,7 +1807,7 @@
 
   // MutationObserver: auto-hydrate covers whenever playlist detail DOM changes
   (function () {
-    var observer = new MutationObserver(function () { hydratePlaylistCovers(); });
+    var observer = new MutationObserver(function () { hydratePlaylistCovers(); hydratePlaylistListCovers(); });
     var target = document.querySelector('[data-playlist-detail]');
     if (target) {
       observer.observe(target, { childList: true, subtree: true });
@@ -1800,17 +1819,24 @@
           obs2.disconnect();
           observer.observe(t, { childList: true, subtree: true });
           hydratePlaylistCovers();
+          hydratePlaylistListCovers();
         }
       });
       obs2.observe(document.body, { childList: true, subtree: true });
+    }
+    // Also observe playlist list for sidebar cover hydration
+    var listEl = document.querySelector('[data-playlist-list]');
+    if (listEl) {
+      var listObs = new MutationObserver(function () { hydratePlaylistListCovers(); });
+      listObs.observe(listEl, { childList: true, subtree: true });
     }
   })();
 
   // Also hydrate on DOMContentLoaded as a fallback
   document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(hydratePlaylistCovers, 200);
-    setTimeout(hydratePlaylistCovers, 500);
-    setTimeout(hydratePlaylistCovers, 1000);
+    setTimeout(function () { hydratePlaylistCovers(); hydratePlaylistListCovers(); }, 200);
+    setTimeout(function () { hydratePlaylistCovers(); hydratePlaylistListCovers(); }, 500);
+    setTimeout(function () { hydratePlaylistCovers(); hydratePlaylistListCovers(); }, 1000);
   });
 
   // ── End Playlist ──────────────────────────────────────────────────────────
