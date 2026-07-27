@@ -215,13 +215,16 @@
     // 4) Cloud story: let loadHomeCovers() handle Storage URL with probe + self-heal
     //    (don't apply Storage URL here — it would skip the probe in loadHomeCovers)
 
-    // 5) Legacy: coverKey → IndexedDB
-    if (story.coverKey && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-      window.AudioHubStoryCover.get(story.coverKey)
-        .then(function (blob) {
-          if (blob) applyCoverToThumb(thumb, URL.createObjectURL(blob));
-        })
-        .catch(function () {});
+    // 5) Legacy: coverKey → IndexedDB (fallback: try story ID as key)
+    if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+      var idbKey5 = story.coverKey && String(story.coverKey).indexOf('c_') === 0 ? story.coverKey : (story.id || '');
+      if (idbKey5) {
+        window.AudioHubStoryCover.get(idbKey5)
+          .then(function (blob) {
+            if (blob) applyCoverToThumb(thumb, URL.createObjectURL(blob));
+          })
+          .catch(function () {});
+      }
     }
   }
 

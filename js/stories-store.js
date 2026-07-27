@@ -432,6 +432,17 @@
     if (_syncingCloud[localEntry.id]) return;
     _syncingCloud[localEntry.id] = true;
 
+    // ── Save cover to IndexedDB IMMEDIATELY (before async Supabase upsert) ──
+    // This ensures the cover is available locally even if the network fails.
+    if (localEntry.coverData && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
+      var _idbBlob = _dataUrlToBlob(localEntry.coverData);
+      if (_idbBlob) {
+        window.AudioHubStoryCover.put(_idbBlob, localEntry.id).then(function () {
+          console.log('[stories] ✅ cover saved to IndexedDB (immediate) for', localEntry.id);
+        }).catch(function () {});
+      }
+    }
+
     var retries = maxRetries || 3;
     var delay = 2000; // 2 seconds between retries
 
@@ -442,6 +453,27 @@
           delete _syncingCloud[localEntry.id];
           console.log('[stories] ✅ Supabase sync success:', localEntry.title);
           showToast('✅ Đã đồng bộ lên cloud — có thể xem trên thiết bị khác!', 'success');
+
+          // ── Guarantee: PATCH cover_data to DB (initial upsert may have been too large) ──
+          var _cloudId = (created && created.id) ? String(created.id) : String(localEntry.id);
+          if (localEntry.coverData && _cloudId && _cloudId.indexOf('s_') !== 0) {
+            var _syncDirect = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+            var _syncKey = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+            fetch(_syncDirect + '/rest/v1/stories?id=eq.' + encodeURIComponent(_cloudId), {
+              method: 'PATCH',
+              headers: {
+                'apikey': _syncKey,
+                'Authorization': 'Bearer ' + _syncKey,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ cover_data: localEntry.coverData })
+            }).then(function (r) {
+              if (r.ok) console.log('[stories] ✅ cover_data PATCH to DB OK for', _cloudId);
+              else console.warn('[stories] cover_data PATCH failed:', r.status);
+            }).catch(function (e) {
+              console.warn('[stories] cover_data PATCH error:', e);
+            });
+          }
           if (created && created.id && String(created.id) !== String(localEntry.id)) {
             var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
             var newStoryId = String(created.id);

@@ -709,9 +709,11 @@
 
   // Self-heal: recover cover from IndexedDB and persist to Supabase
   function selfHealCoverFromIndexedDB(storyId, coverKey) {
-    if (!coverKey || !window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
+    if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
     if (!storyId || String(storyId).startsWith('s_')) return;
-    window.AudioHubStoryCover.get(coverKey).then(function (blob) {
+    // Try coverKey first, then story ID as fallback
+    var idbKey = coverKey && String(coverKey).indexOf('c_') === 0 ? coverKey : storyId;
+    window.AudioHubStoryCover.get(idbKey).then(function (blob) {
       if (!blob || !blob.size) return;
       var reader = new FileReader();
       reader.onload = function () {
@@ -751,9 +753,9 @@
           if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
             window.AudioHubStories.upsert(Object.assign({}, story, { coverData: fresh.coverData }));
           }
-        } else if (fresh && fresh.coverKey && !fresh.coverData) {
-          // Self-heal: recover from IndexedDB and update Supabase
-          selfHealCoverFromIndexedDB(storyId, fresh.coverKey);
+        } else if (fresh && !fresh.coverData) {
+          // Self-heal: recover from IndexedDB (try coverKey, then story ID) and update Supabase
+          selfHealCoverFromIndexedDB(storyId, fresh.coverKey || '');
         }
       }).catch(function () {});
     }

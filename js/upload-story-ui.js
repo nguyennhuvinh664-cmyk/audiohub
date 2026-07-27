@@ -1294,6 +1294,25 @@
       return;
     }
 
+    // ── Save cover to IndexedDB immediately (critical for display on other pages) ──
+    if (story && story.id && state.coverData && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
+      try {
+        var _coverParts = String(state.coverData).split(',');
+        var _coverMime = (_coverParts[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+        var _coverRaw = atob(_coverParts[1] || '');
+        var _coverArr = new Uint8Array(_coverRaw.length);
+        for (var ci = 0; ci < _coverRaw.length; ci++) _coverArr[ci] = _coverRaw.charCodeAt(ci);
+        var _coverBlob = new Blob([_coverArr], { type: _coverMime });
+        window.AudioHubStoryCover.put(_coverBlob, story.id).then(function () {
+          console.log('[upload] ✅ cover saved to IndexedDB for', story.id);
+        }).catch(function (e) {
+          console.warn('[upload] cover IndexedDB save failed:', e);
+        });
+      } catch (e) {
+        console.warn('[upload] cover IndexedDB save error:', e);
+      }
+    }
+
     // After publish: add story to playlist if a playlist name was selected
     if (published && story && story.id && titleInput && titleInput.value.trim()) {
       var selectedName = titleInput.value.trim();

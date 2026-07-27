@@ -921,7 +921,9 @@
 
       // Try IndexedDB first (if AudioHubStoryCover is available)
       if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-        window.AudioHubStoryCover.get(coverKey)
+        // Try coverKey first, then story ID as fallback
+        var idbKey = coverKey && coverKey.indexOf('c_') === 0 ? coverKey : storyId;
+        window.AudioHubStoryCover.get(idbKey)
           .then(function (blob) {
             if (blob) {
               var url = URL.createObjectURL(blob);
