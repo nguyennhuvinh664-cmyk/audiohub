@@ -183,11 +183,25 @@
           if (coverMap[id]) {
             nodeList.forEach(function (node) { insertCoverImg(node, coverMap[id]); });
           } else {
-            // Fallback: try IndexedDB
+            // Self-heal: try IndexedDB, save to DB, apply to node
             nodeList.forEach(function (node) {
               if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
                 window.AudioHubStoryCover.get(id).then(function (blob) {
-                  if (blob) insertCoverImg(node, URL.createObjectURL(blob));
+                  if (!blob || blob.size === 0) return;
+                  insertCoverImg(node, URL.createObjectURL(blob));
+                  // Save to DB for other devices
+                  var reader = new FileReader();
+                  reader.onload = function () {
+                    var dataUrl = reader.result;
+                    if (dataUrl && dataUrl.indexOf('data:image') === 0) {
+                      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(id), {
+                        method: 'PATCH',
+                        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cover_data: dataUrl })
+                      }).catch(function () {});
+                    }
+                  };
+                  reader.readAsDataURL(blob);
                 }).catch(function () {});
               }
             });

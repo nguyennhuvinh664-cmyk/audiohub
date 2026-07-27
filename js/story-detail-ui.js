@@ -882,6 +882,9 @@
             } catch (e) {}
           } else if (row.cover_key && !row.cover_data) {
             missingCovers.push(row);
+          } else if (!row.cover_data && !row.cover_key) {
+            // Both cover_data and cover_key are NULL — try story ID in IndexedDB
+            missingCovers.push({ id: row.id, cover_key: row.id });
           }
         });
         // Self-heal from IndexedDB

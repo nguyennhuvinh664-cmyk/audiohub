@@ -659,6 +659,25 @@
           if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
           if (coverMap[id]) {
             applyCoverToThumb(node, coverMap[id]);
+          } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+            // Self-heal: copy cover from IndexedDB to DB
+            window.AudioHubStoryCover.get(id).then(function (blob) {
+              if (!blob || blob.size === 0) return;
+              var reader = new FileReader();
+              reader.onload = function () {
+                var dataUrl = reader.result;
+                if (!dataUrl || dataUrl.indexOf('data:image') !== 0) return;
+                fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(id), {
+                  method: 'PATCH',
+                  headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ cover_data: dataUrl })
+                }).then(function (r) {
+                  if (r.ok) console.log('[self-heal] ✅ cover saved to DB for', id);
+                }).catch(function () {});
+                applyCoverToThumb(node, dataUrl);
+              };
+              reader.readAsDataURL(blob);
+            }).catch(function () {});
           }
         });
       }).catch(function () {});
