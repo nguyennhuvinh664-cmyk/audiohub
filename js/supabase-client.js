@@ -200,7 +200,7 @@
       status: story.status || '',
       is_completed: story.isCompleted || false,
       cover_key: story.coverKey || null,
-      cover_data: story.coverData || story.coverDataUrl || null,
+      // cover_data intentionally omitted — too large for initial upsert, PATCH separately
       audio_key: story.audioKey || null,
       youtube_url: story.youtubeUrl || '',
       youtube_id: story.youtubeId || '',

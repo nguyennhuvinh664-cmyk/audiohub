@@ -663,8 +663,23 @@
           if (coverMap[id]) {
             applyCoverToThumb(node, coverMap[id]);
           } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-            // Self-heal: copy cover from IndexedDB to DB (try story ID as key)
+            // Self-heal: try cloud ID, then local s_ ID, copy from IndexedDB to DB
             window.AudioHubStoryCover.get(id).then(function (blob) {
+              if (blob && blob.size > 0) return blob;
+              // Try local s_ ID — match by title+author since cloud ID differs from local s_ ID
+              var localStories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
+              var cloudStory = (localStories || []).find(function (s) { return s.id === id; });
+              if (!cloudStory) {
+                var nodeTitle = node.getAttribute('data-title') || '';
+                cloudStory = (localStories || []).find(function (s) {
+                  return String(s.title || '').trim().toLowerCase() === nodeTitle.trim().toLowerCase();
+                });
+              }
+              if (cloudStory && cloudStory.id && cloudStory.id !== id && String(cloudStory.id).indexOf('s_') === 0) {
+                return window.AudioHubStoryCover.get(cloudStory.id);
+              }
+              return null;
+            }).then(function (blob) {
               if (!blob || blob.size === 0) return;
               var reader = new FileReader();
               reader.onload = function () {

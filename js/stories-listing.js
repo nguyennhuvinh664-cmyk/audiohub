@@ -184,10 +184,29 @@
           if (coverMap[id]) {
             nodeList.forEach(function (node) { insertCoverImg(node, coverMap[id]); });
           } else {
-            // Self-heal: try IndexedDB, save to DB, apply to node
+            // Self-heal: try IndexedDB with cloud ID, then local s_ ID, save to DB
             nodeList.forEach(function (node) {
               if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+                // Try cloud ID first, then local s_ ID from localStorage
                 window.AudioHubStoryCover.get(id).then(function (blob) {
+                  if (blob && blob.size > 0) return blob;
+                  // Try local s_ ID — match by title+author since cloud ID differs from local s_ ID
+                  var localStories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
+                  var cloudStory = (localStories || []).find(function (s) { return s.id === id; });
+                  if (!cloudStory) {
+                    // Find local s_ story by matching node's data attributes
+                    var nodeTitle = (node.closest('[data-story-card]') || node).getAttribute('data-title') || '';
+                    var nodeAuthor = (node.closest('[data-story-card]') || node).getAttribute('data-author') || '';
+                    cloudStory = (localStories || []).find(function (s) {
+                      return String(s.title || '').trim().toLowerCase() === nodeTitle.trim().toLowerCase()
+                        && String(s.author || '').trim().toLowerCase() === nodeAuthor.trim().toLowerCase();
+                    });
+                  }
+                  if (cloudStory && cloudStory.id && cloudStory.id !== id && String(cloudStory.id).indexOf('s_') === 0) {
+                    return window.AudioHubStoryCover.get(cloudStory.id);
+                  }
+                  return null;
+                }).then(function (blob) {
                   if (!blob || blob.size === 0) return;
                   insertCoverImg(node, URL.createObjectURL(blob));
                   // Save to DB for other devices
