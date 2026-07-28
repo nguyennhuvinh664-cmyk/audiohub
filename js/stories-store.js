@@ -477,6 +477,32 @@
           if (created && created.id && String(created.id) !== String(localEntry.id)) {
             var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
             var newStoryId = String(created.id);
+
+            // ── Migrate cover from local s_ ID to cloud UUID ──
+            if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function' && typeof window.AudioHubStoryCover.put === 'function') {
+              window.AudioHubStoryCover.get(localEntry.id).then(function (blob) {
+                if (blob && blob.size > 0) {
+                  // Save to IndexedDB with cloud UUID
+                  window.AudioHubStoryCover.put(blob, newStoryId).catch(function () {});
+                  // PATCH cover_data to Supabase DB
+                  var reader = new FileReader();
+                  reader.onload = function () {
+                    var dataUrl = reader.result;
+                    if (dataUrl && dataUrl.indexOf('data:image') === 0) {
+                      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(newStoryId), {
+                        method: 'PATCH',
+                        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cover_data: dataUrl })
+                      }).then(function (r) {
+                        if (r.ok) console.log('[stories] ✅ cover migrated to cloud:', newStoryId);
+                      }).catch(function () {});
+                    }
+                  };
+                  reader.readAsDataURL(blob);
+                }
+              }).catch(function () {});
+            }
+
             removeLocalStory(localEntry.id);
             upsertLocalStory({
               id: newStoryId, title: localEntry.title, author: localEntry.author,

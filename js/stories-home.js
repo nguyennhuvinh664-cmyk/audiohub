@@ -624,6 +624,47 @@
     bindHomeGenreDropdown();
   }
 
+  /* Scan IndexedDB storyCover store to find a cover by trying all keys */
+  function scanIndexedDbForCover(storyId) {
+    return new Promise(function (resolve) {
+      try {
+        var req = indexedDB.open('audiohub-media');
+        req.onerror = function () { resolve(null); };
+        req.onsuccess = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains('storyCover')) { resolve(null); return; }
+          var tx = db.transaction('storyCover', 'readonly');
+          var store = tx.objectStore('storyCover');
+          var getAllKeysReq = store.getAllKeys ? store.getAllKeys() : null;
+          if (!getAllKeysReq) { resolve(null); return; }
+          getAllKeysReq.onsuccess = function () {
+            var keys = getAllKeysReq.result || [];
+            if (!keys.length) { resolve(null); return; }
+            var idx = 0;
+            function tryNext() {
+              if (idx >= keys.length) { resolve(null); return; }
+              var key = keys[idx++];
+              var getReq = store.get(key);
+              getReq.onsuccess = function () {
+                var blob = getReq.result;
+                if (blob && blob.size > 100) {
+                  // Save under cloud ID for next time
+                  try { store.put(blob, storyId).catch(function () {}); } catch (e) {}
+                  resolve(blob);
+                } else {
+                  tryNext();
+                }
+              };
+              getReq.onerror = function () { tryNext(); };
+            };
+            tryNext();
+          };
+          getAllKeysReq.onerror = function () { resolve(null); };
+        };
+      } catch (e) { resolve(null); }
+    });
+  }
+
   /* ── load covers for trending/popular (non-playlist sections) ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
@@ -663,22 +704,11 @@
           if (coverMap[id]) {
             applyCoverToThumb(node, coverMap[id]);
           } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-            // Self-heal: try cloud ID, then local s_ ID, copy from IndexedDB to DB
+            // Self-heal: try cloud ID, then scan all IDB keys
             window.AudioHubStoryCover.get(id).then(function (blob) {
               if (blob && blob.size > 0) return blob;
-              // Try local s_ ID — match by title+author since cloud ID differs from local s_ ID
-              var localStories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
-              var cloudStory = (localStories || []).find(function (s) { return s.id === id; });
-              if (!cloudStory) {
-                var nodeTitle = node.getAttribute('data-title') || '';
-                cloudStory = (localStories || []).find(function (s) {
-                  return String(s.title || '').trim().toLowerCase() === nodeTitle.trim().toLowerCase();
-                });
-              }
-              if (cloudStory && cloudStory.id && cloudStory.id !== id && String(cloudStory.id).indexOf('s_') === 0) {
-                return window.AudioHubStoryCover.get(cloudStory.id);
-              }
-              return null;
+              // Scan all keys in storyCover store
+              return scanIndexedDbForCover(id);
             }).then(function (blob) {
               if (!blob || blob.size === 0) return;
               var reader = new FileReader();
