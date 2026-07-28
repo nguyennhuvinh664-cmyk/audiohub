@@ -453,6 +453,11 @@
       document.querySelectorAll('.account-item-menu-wrap').forEach(function (wrap) { wrap.classList.remove('is-open'); });
     }
 
+    // Close menus on SPA navigation (popstate, hashchange, spa:navigated)
+    window.addEventListener('popstate', closeAllMenus);
+    window.addEventListener('hashchange', closeAllMenus);
+    document.addEventListener('spa:navigated', closeAllMenus);
+
     document.addEventListener('click', function (event) {
       // close all menus if clicking outside
       if (!event.target.closest('[data-story-menu-panel]') && !event.target.closest('[data-story-menu]')) {
