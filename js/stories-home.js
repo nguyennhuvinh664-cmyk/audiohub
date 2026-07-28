@@ -668,6 +668,7 @@
   /* ── load covers for trending/popular (non-playlist sections) ── */
   function loadHomeCovers() {
     var nodes = document.querySelectorAll('[data-cover-story-id]');
+    console.log('[home-covers] found', nodes.length, 'cover nodes');
     var localNodes = [];
     var cloudIds = [];
 
@@ -696,18 +697,23 @@
 
     // Batch-fetch cover_data from Supabase DB for cloud stories
     if (cloudIds.length) {
+      console.log('[home-covers] cloud IDs:', cloudIds);
       fetchCoverDataMap(cloudIds).then(function (coverMap) {
+        console.log('[home-covers] coverMap keys:', Object.keys(coverMap));
         cloudIds.forEach(function (id) {
-          var node = document.querySelector('[data-cover-story-id="' + id + '"]');
-          if (!node || node.querySelector('.sc__cover-img')) return;
-          if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
-          if (coverMap[id]) {
-            applyCoverToThumb(node, coverMap[id]);
-          } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-            // Self-heal: try cloud ID, then scan all IDB keys
+          var nodes = document.querySelectorAll('[data-cover-story-id="' + id + '"]');
+          if (!nodes.length) return;
+          Array.prototype.forEach.call(nodes, function (node) {
+            if (node.querySelector('.sc__cover-img')) return;
+            if (node.style.backgroundImage && node.style.backgroundImage.indexOf('url(') !== -1) return;
+            if (coverMap[id]) {
+              applyCoverToThumb(node, coverMap[id]);
+            }
+          });
+          // Self-heal for nodes still without cover
+          if (!coverMap[id] && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
             window.AudioHubStoryCover.get(id).then(function (blob) {
               if (blob && blob.size > 0) return blob;
-              // Scan all keys in storyCover store
               return scanIndexedDbForCover(id);
             }).then(function (blob) {
               if (!blob || blob.size === 0) return;
@@ -722,7 +728,9 @@
                 }).then(function (r) {
                   if (r.ok) console.log('[self-heal] ✅ cover saved to DB for', id);
                 }).catch(function () {});
-                applyCoverToThumb(node, dataUrl);
+                Array.prototype.forEach.call(nodes, function (n) {
+                  if (!n.querySelector('.sc__cover-img')) applyCoverToThumb(n, dataUrl);
+                });
               };
               reader.readAsDataURL(blob);
             }).catch(function () {});
