@@ -267,6 +267,7 @@
       img.className = 'sc__cover-img';
       img.alt = '';
       img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;z-index:0;';
+      img.onerror = function () { img.remove(); }; // Remove broken image
       thumb.insertBefore(img, thumb.firstChild);
       // Hide "Demo" text
       var chapters = thumb.querySelector('.story-chapters');

@@ -1352,6 +1352,32 @@
     // Cover upload is now handled in stories-store.js syncToSupabaseWithRetry callback
     // (runs after Supabase sync provides the real CUID, so cover_data is saved correctly)
 
+    // ── DIRECT COVER UPLOAD: save cover_data to Supabase immediately ──
+    // This ensures cover is available on all devices, even if sync callback fails
+    if (published && story && state.coverData && story.id) {
+      // Poll for cloud ID — syncToSupabaseWithRetry will replace s_ ID with real UUID
+      var _coverAttempts = 0;
+      var _coverPoll = setInterval(function () {
+        _coverAttempts++;
+        if (_coverAttempts > 20) { clearInterval(_coverPoll); return; } // 10s timeout
+        // Check if story has been synced to cloud (ID changed from s_ to UUID)
+        var _stories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
+        var _current = (_stories || []).find(function (s) { return s.title === story.title && s.author === story.author; });
+        if (_current && _current.id && String(_current.id).indexOf('s_') !== 0) {
+          clearInterval(_coverPoll);
+          // Cloud ID available — PATCH cover_data
+          fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(_current.id), {
+            method: 'PATCH',
+            headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cover_data: state.coverData })
+          }).then(function (r) {
+            if (r.ok) console.log('[upload] ✅ cover_data DIRECT upload to DB OK for', _current.id);
+            else console.warn('[upload] cover_data DIRECT upload failed:', r.status);
+          }).catch(function (e) { console.warn('[upload] cover_data DIRECT upload error:', e); });
+        }
+      }, 500);
+    }
+
     // After story is synced to backend with real CUID, re-upload audio if needed
     var audioUploadedToBackend = Promise.resolve();
     if (published && story && state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
