@@ -430,10 +430,33 @@
       }
     });
 
+    function closeAllMenus() {
+      document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) {
+        p.classList.add('is-hidden');
+        p.style.position = '';
+        p.style.top = '';
+        p.style.left = '';
+        p.style.right = '';
+        p.style.zIndex = '';
+        // Move back to original parent if it was moved to body
+        try {
+          if (p.parentElement === document.body) {
+            var storyId = p.getAttribute('data-story-menu-panel');
+            var btn = document.querySelector('[data-story-menu="' + storyId + '"]');
+            if (btn) {
+              var wrap = btn.closest('.yt-card__menu-wrap');
+              if (wrap) wrap.appendChild(p);
+            }
+          }
+        } catch (e) {}
+      });
+      document.querySelectorAll('.account-item-menu-wrap').forEach(function (wrap) { wrap.classList.remove('is-open'); });
+    }
+
     document.addEventListener('click', function (event) {
       // close all menus if clicking outside
       if (!event.target.closest('[data-story-menu-panel]') && !event.target.closest('[data-story-menu]')) {
-        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
+        closeAllMenus();
       }
 
       // toggle 3-dot menu
@@ -444,35 +467,22 @@
         if (!panel) return;
         var isOpen = !panel.classList.contains('is-hidden');
         // Close all menus first
-        document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) {
-          p.classList.add('is-hidden');
-          // Reset fixed positioning
-          p.style.position = '';
-          p.style.top = '';
-          p.style.left = '';
-          p.style.right = '';
-          p.style.zIndex = '';
-        });
-        document.querySelectorAll('.account-item-menu-wrap').forEach(function (wrap) { wrap.classList.remove('is-open'); });
+        closeAllMenus();
         if (!isOpen) {
           panel.classList.remove('is-hidden');
-          // Use position:fixed to escape overflow-y:auto scroll container
+          // Move panel to body to escape scroll container overflow
           var rect = menuBtn.getBoundingClientRect();
           panel.style.position = 'fixed';
           panel.style.top = (rect.bottom + 4) + 'px';
           panel.style.left = (rect.right - 180) + 'px';
           panel.style.right = 'auto';
           panel.style.zIndex = '10000';
+          document.body.appendChild(panel);
           // Close on scroll
           var scrollParent = menuBtn.closest('.account-scroll-list');
           if (scrollParent) {
             var onScroll = function() {
-              panel.classList.add('is-hidden');
-              panel.style.position = '';
-              panel.style.top = '';
-              panel.style.left = '';
-              panel.style.right = '';
-              panel.style.zIndex = '';
+              closeAllMenus();
               scrollParent.removeEventListener('scroll', onScroll);
             };
             scrollParent.addEventListener('scroll', onScroll, { once: true });

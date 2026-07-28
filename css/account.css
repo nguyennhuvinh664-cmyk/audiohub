@@ -1173,7 +1173,7 @@
 
 .yt-card {
   display: grid;
-  grid-template-columns: auto 72px 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 14px;
   padding: 12px 14px;
@@ -1337,7 +1337,7 @@
 /* Responsive list */
 @media (max-width: 768px) {
   .yt-card {
-    grid-template-columns: auto 56px 1fr auto;
+    grid-template-columns: auto 1fr auto;
     gap: 10px;
     padding: 10px;
     min-height: 80px;
@@ -1356,7 +1356,7 @@
 
 @media (max-width: 480px) {
   .yt-card {
-    grid-template-columns: auto 48px 1fr auto;
+    grid-template-columns: auto 1fr auto;
     gap: 8px;
     padding: 8px;
     min-height: 72px;
