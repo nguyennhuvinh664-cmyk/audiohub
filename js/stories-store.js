@@ -104,20 +104,35 @@
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
     } catch (e) {
-      // localStorage full — strip large base64 fields and retry
+      // localStorage full — progressively strip large fields, readingText LAST
       var slimmed = stories.map(function (s) {
         var copy = Object.assign({}, s);
         delete copy.coverData;
         delete copy.coverDataUrl;
         delete copy.coverLegacyDataUrl;
-        delete copy.readingText;
+        delete copy.listenHistory;
         return copy;
       });
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(slimmed));
       } catch (e2) {
-        // Still full — keep only the 10 most recent stories
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(slimmed.slice(0, 10)));
+        // Still full — strip chapters (can be re-fetched from API)
+        var evenSlimmer = slimmed.map(function (s) {
+          var copy = Object.assign({}, s);
+          delete copy.chapters;
+          return copy;
+        });
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(evenSlimmer));
+        } catch (e3) {
+          // Still full — strip readingText as absolute last resort
+          var minimal = evenSlimmer.map(function (s) {
+            var copy = Object.assign({}, s);
+            delete copy.readingText;
+            return copy;
+          });
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal.slice(0, 10)));
+        }
       }
     }
   }
@@ -1267,11 +1282,12 @@
     migrateAnonymousAuthors();
   });
 
-  // Sync local drafts to Render backend in background (non-blocking, needs token)
+  // Sync local drafts to Render backend in background (non-blocking, needs token + audio store)
   function trySyncLocal(attempt) {
     var hasToken = !!(window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function' && window.AudioHubApi.getToken());
-    if (!hasToken && attempt < 3) {
-      setTimeout(function () { trySyncLocal(attempt + 1); }, 800);
+    var hasAudioStore = !!(window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function');
+    if ((!hasToken || !hasAudioStore) && attempt < 5) {
+      setTimeout(function () { trySyncLocal(attempt + 1); }, 1000);
       return;
     }
     syncLocalStoriesToApi();

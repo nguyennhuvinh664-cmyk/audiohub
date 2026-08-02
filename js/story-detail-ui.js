@@ -2359,6 +2359,25 @@
       // that may have been stripped from localStorage or never saved
       var needsApiFetch = !story.readingText || !story.audioKey;
       if (needsApiFetch) {
+        // Helper: merge API data into local story and re-render
+        function mergeAndRender(apiStory) {
+          if (!apiStory || !apiStory.id) return;
+          var merged = Object.assign({}, story);
+          var apiReadingText = apiStory.readingText || apiStory.reading_text || '';
+          var apiAudioKey = apiStory.audioKey || apiStory.audio_key || '';
+          var apiChapters = apiStory.chapters || [];
+          var apiChapterCount = apiStory.chapterCount || apiStory.chapter_count || 0;
+          if (apiReadingText) merged.readingText = apiReadingText;
+          if (apiAudioKey) merged.audioKey = apiAudioKey;
+          if (apiChapters && apiChapters.length) merged.chapters = apiChapters;
+          if (apiChapterCount) merged.chapterCount = apiChapterCount;
+          bindStoryData(merged);
+          // Also update localStorage so next load is instant
+          if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+            window.AudioHubStories.upsert(merged);
+          }
+        }
+
         // Try 1: Find CUID in localStorage
         var apiId = '';
         if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
@@ -2372,23 +2391,17 @@
 
         if (apiId) {
           // Found CUID in localStorage — fetch directly
-          fetchStoryFromApi(apiId).then(function (apiStory) {
-            if (apiStory && apiStory.id) {
-              var merged = Object.assign({}, story);
-              var apiReadingText = apiStory.readingText || apiStory.reading_text || '';
-              var apiAudioKey = apiStory.audioKey || apiStory.audio_key || '';
-              var apiChapters = apiStory.chapters || [];
-              var apiChapterCount = apiStory.chapterCount || apiStory.chapter_count || 0;
-              if (apiReadingText) merged.readingText = apiReadingText;
-              if (apiAudioKey) merged.audioKey = apiAudioKey;
-              if (apiChapters && apiChapters.length) merged.chapters = apiChapters;
-              if (apiChapterCount) merged.chapterCount = apiChapterCount;
-              bindStoryData(merged);
-            }
-          }).catch(function () {});
-        } else if (window.AudioHubCloudflare && typeof window.AudioHubCloudflare.fetchPublicStories === 'function') {
-          // Try 2: No CUID in localStorage — fetch all public stories from API to find by title
-          window.AudioHubCloudflare.fetchPublicStories({ limit: 50 }).then(function (stories) {
+          fetchStoryFromApi(apiId).then(mergeAndRender).catch(function () {});
+        }
+
+        // Try 2: Fetch all public stories from API to find by title (always try, even if Try 1 found a CUID — for robustness)
+        if (!apiId || !story.readingText) {
+          var fetchPublic = (window.AudioHubCloudflare && typeof window.AudioHubCloudflare.fetchPublicStories === 'function')
+            ? window.AudioHubCloudflare.fetchPublicStories({ limit: 50 })
+            : (window.AudioHubApi && typeof window.AudioHubApi.request === 'function'
+              ? window.AudioHubApi.request('/stories/public', { method: 'GET' })
+              : Promise.resolve([]));
+          fetchPublic.then(function (stories) {
             if (!stories || !stories.length) return;
             var needle = normalizeLookup(story.title);
             var match = stories.find(function (s) {
@@ -2400,16 +2413,7 @@
             return null;
           }).then(function (apiStory) {
             if (apiStory && apiStory.id) {
-              var merged = Object.assign({}, story);
-              var apiReadingText = apiStory.readingText || apiStory.reading_text || '';
-              var apiAudioKey = apiStory.audioKey || apiStory.audio_key || '';
-              var apiChapters = apiStory.chapters || [];
-              var apiChapterCount = apiStory.chapterCount || apiStory.chapter_count || 0;
-              if (apiReadingText) merged.readingText = apiReadingText;
-              if (apiAudioKey) merged.audioKey = apiAudioKey;
-              if (apiChapters && apiChapters.length) merged.chapters = apiChapters;
-              if (apiChapterCount) merged.chapterCount = apiChapterCount;
-              bindStoryData(merged);
+              mergeAndRender(apiStory);
             }
           }).catch(function () {});
         }
