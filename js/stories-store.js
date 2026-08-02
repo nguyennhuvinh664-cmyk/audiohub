@@ -75,6 +75,12 @@
     var raw = window.localStorage.getItem(STORAGE_KEY);
     var parsed = safeParse(raw, []);
     var next = dedupeStories(Array.isArray(parsed) ? parsed : []).map(function (story) {
+      // Migration: fix default visibility from old 'Riêng tư' to 'Công khai'
+      // Stories uploaded via UI should be public by default
+      var vis = String(story && story.visibility || '').trim().toLowerCase();
+      if (!vis || vis === 'riêng tư' || vis === 'private' || vis === 'draft') {
+        story.visibility = 'Công khai';
+      }
       var metrics = computeListenMetrics(story);
       story.listenHistory = metrics.history;
       story.listenCount = metrics.listenCount;
@@ -207,45 +213,70 @@
   }
 
   function normalizeStory(story) {
-    var cleanedAuthor = sanitizeAuthor(story && story.author);
-    var youtubeUrl = normalizeYoutubeUrl(story && story.youtubeUrl);
-    var youtubeId = normalizeYoutubeId(story && story.youtubeId, youtubeUrl);
+    var cleanedAuthor = sanitizeAuthor(story && (story.author || story.author_name));
+    var youtubeUrl = normalizeYoutubeUrl(story && (story.youtubeUrl || story.youtube_url));
+    var youtubeId = normalizeYoutubeId(story && (story.youtubeId || story.youtube_id), youtubeUrl);
+    // Read snake_case (from D1 API) with camelCase fallback (from localStorage)
+    var readingText = (story && (story.readingText || story.reading_text)) || '';
+    var hashtags = story && (story.hashtags || story.hashtag_list);
+    if (typeof hashtags === 'string') {
+      try { hashtags = JSON.parse(hashtags); } catch (e) { hashtags = hashtags.split(/[,\s]+/); }
+    }
+    var chapters = story && (story.chapters || story.chapter_list);
+    if (typeof chapters === 'string') {
+      try { chapters = JSON.parse(chapters); } catch (e) { chapters = []; }
+    }
+    var audioKey = (story && (story.audioKey || story.audio_key)) || '';
+    var audioStatus = (story && (story.audioStatus || story.audio_status)) || (audioKey ? 'Sẵn sàng' : 'Chưa có');
+    var coverData = (story && (story.coverData || story.cover_data)) || '';
+    var coverKey = (story && (story.coverKey || story.cover_key)) || '';
+    var coverDataUrl = (story && (story.coverDataUrl || story.cover_data_url)) || '';
+    var chapterTitle = (story && (story.chapterTitle || story.chapter_title)) || '';
+    var chapterCount = normalizeNumber(story && (story.chapterCount || story.chapter_count));
+    var listenCount = normalizeNumber(story && (story.listenCount || story.listen_count));
+    var listenCount2d = normalizeNumber(story && (story.listenCount2d || story.listen_count2d));
+    var listenCount7d = normalizeNumber(story && (story.listenCount7d || story.listen_count7d));
+    var visibility = (story && story.visibility) || 'Công khai';
+    var status = (story && story.status) || '';
+    var createdAt = (story && (story.createdAt || story.created_at)) || new Date().toISOString();
+    var updatedAt = (story && (story.updatedAt || story.updated_at)) || new Date().toISOString();
+    var listenHistory = pruneListenHistory(story && story.listenHistory);
     return {
       id: story && story.id ? String(story.id) : makeId(),
       title: normalize(story && story.title, 'Truyện mới'),
       author: normalize(cleanedAuthor, resolveAuthorFallback()),
       genre: normalize(story && story.genre, 'Truyện audio'),
       description: normalize(story && story.description, ''),
-      readingText: normalize(story && story.readingText, ''),
-      hashtags: normalizeHashtags(story && story.hashtags),
-      chapterTitle: normalize(story && story.chapterTitle, 'Chương 1'),
-      visibility: normalize(story && story.visibility, 'Công khai'),
-      audioStatus: normalize(story && story.audioStatus, story && story.audioKey ? 'Sẵn sàng' : 'Chưa có'),
-      coverDataUrl: story && story.coverDataUrl ? String(story.coverDataUrl) : '',
-      coverData: story && story.coverData ? String(story.coverData) : '',
-      coverKey: story && story.coverKey ? String(story.coverKey) : '',
-      audioKey: story && story.audioKey ? String(story.audioKey) : '',
+      readingText: normalize(readingText, ''),
+      hashtags: normalizeHashtags(hashtags),
+      chapterTitle: normalize(chapterTitle, 'Chương 1'),
+      visibility: normalize(visibility, 'Công khai'),
+      audioStatus: normalize(audioStatus, audioKey ? 'Sẵn sàng' : 'Chưa có'),
+      coverDataUrl: coverDataUrl ? String(coverDataUrl) : '',
+      coverData: coverData ? String(coverData) : '',
+      coverKey: coverKey ? String(coverKey) : '',
+      audioKey: audioKey ? String(audioKey) : '',
       youtubeUrl: youtubeUrl,
       youtubeId: youtubeId,
-      listenCount: normalizeNumber(story && story.listenCount),
-      listenCount2d: normalizeNumber(story && story.listenCount2d),
-      listenCount7d: normalizeNumber(story && story.listenCount7d),
-      chapters: Array.isArray(story && story.chapters) ? story.chapters : (function () {
+      listenCount: listenCount,
+      listenCount2d: listenCount2d,
+      listenCount7d: listenCount7d,
+      chapters: Array.isArray(chapters) ? chapters : (function () {
         var sid = story && story.id ? String(story.id) : '';
         var stored = sid ? getChaptersForStory(sid) : [];
         return stored.length ? stored : [];
       })(),
-      chapterCount: normalizeNumber(story && story.chapterCount) || (function () {
+      chapterCount: chapterCount || (function () {
         var sid = story && story.id ? String(story.id) : '';
         var stored = sid ? getChaptersForStory(sid) : [];
         return stored.length ? stored.length : 0;
       })(),
-      status: normalize(story && story.status, ''),
+      status: normalize(status, ''),
       isCompleted: normalizeCompleted(story),
-      listenHistory: pruneListenHistory(story && story.listenHistory),
-      coverLegacyDataUrl: story && story.coverDataUrl ? String(story.coverDataUrl).slice(0, 30) : '',
-      createdAt: story && story.createdAt ? story.createdAt : new Date().toISOString(),
-      updatedAt: story && story.updatedAt ? story.updatedAt : new Date().toISOString()
+      listenHistory: listenHistory,
+      coverLegacyDataUrl: coverDataUrl ? String(coverDataUrl).slice(0, 30) : '',
+      createdAt: createdAt,
+      updatedAt: updatedAt
     };
   }
 
@@ -369,24 +400,26 @@
   function mapStoryPayload(story) {
     var chapters = Array.isArray(story && story.chapters) ? story.chapters : [];
     return {
+      id: story && story.id ? String(story.id) : null,
       title: normalize(story && story.title, 'Truyện mới'),
       author: normalize(sanitizeAuthor(story && story.author), resolveAuthorFallback()),
       genre: normalize(story && story.genre, 'Truyện audio'),
       description: normalize(story && story.description, ''),
-      readingText: normalize(story && story.readingText, ''),
+      reading_text: normalize(story && story.readingText, ''),
       hashtags: normalizeHashtags(story && story.hashtags),
-      chapterTitle: normalize(story && story.chapterTitle, 'Chương 1'),
+      chapter_title: normalize(story && story.chapterTitle, 'Chương 1'),
       chapters: JSON.stringify(chapters),
-      chapterCount: chapters.length || Number(story && story.chapterCount) || 0,
+      chapter_count: chapters.length || Number(story && story.chapterCount) || 0,
       visibility: normalize(story && story.visibility, 'Công khai'),
-      audioStatus: normalize(story && story.audioStatus, story && story.audioKey ? 'Sẵn sàng' : 'Chưa có'),
+      audio_status: normalize(story && story.audioStatus, story && story.audioKey ? 'Sẵn sàng' : 'Chưa có'),
       status: normalize(story && story.status, ''),
-      isCompleted: normalizeCompleted(story),
-      coverKey: story && story.coverKey ? String(story.coverKey) : null,
-      coverData: story && story.coverData ? String(story.coverData) : null,
-      audioKey: story && story.audioKey ? String(story.audioKey) : null,
-      youtubeUrl: story && story.youtubeUrl ? normalizeYoutubeUrl(story.youtubeUrl) : null,
-      youtubeId: story && story.youtubeId ? normalizeYoutubeId(story.youtubeId, story && story.youtubeUrl) : normalizeYoutubeId('', story && story.youtubeUrl)
+      is_completed: normalizeCompleted(story) ? 1 : 0,
+      cover_key: story && story.coverKey ? String(story.coverKey) : null,
+      cover_data: story && story.coverData ? String(story.coverData) : null,
+      audio_key: story && story.audioKey ? String(story.audioKey) : null,
+      youtube_url: story && story.youtubeUrl ? normalizeYoutubeUrl(story.youtubeUrl) : null,
+      youtube_id: story && story.youtubeId ? normalizeYoutubeId(story.youtubeId, story && story.youtubeUrl) : normalizeYoutubeId('', story && story.youtubeUrl),
+      user_id: story && story.userId ? String(story.userId) : null
     };
   }
 
@@ -454,24 +487,18 @@
           console.log('[stories] ✅ Supabase sync success:', localEntry.title);
           showToast('✅ Đã đồng bộ lên cloud — có thể xem trên thiết bị khác!', 'success');
 
-          // ── Guarantee: PATCH cover_data to DB (initial upsert may have been too large) ──
+          // ── Guarantee: PATCH cover_data to D1 (initial upsert may have been too large) ──
           var _cloudId = (created && created.id) ? String(created.id) : String(localEntry.id);
           if (localEntry.coverData && _cloudId && _cloudId.indexOf('s_') !== 0) {
-            var _syncDirect = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-            var _syncKey = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-            fetch(_syncDirect + '/rest/v1/stories?id=eq.' + encodeURIComponent(_cloudId), {
-              method: 'PATCH',
-              headers: {
-                'apikey': _syncKey,
-                'Authorization': 'Bearer ' + _syncKey,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ cover_data: localEntry.coverData })
+            fetch('/api/stories/' + encodeURIComponent(_cloudId), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: _cloudId, cover_data: localEntry.coverData })
             }).then(function (r) {
-              if (r.ok) console.log('[stories] ✅ cover_data PATCH to DB OK for', _cloudId);
-              else console.warn('[stories] cover_data PATCH failed:', r.status);
+              if (r.ok) console.log('[stories] ✅ cover_data saved to D1 for', _cloudId);
+              else console.warn('[stories] cover_data save failed:', r.status);
             }).catch(function (e) {
-              console.warn('[stories] cover_data PATCH error:', e);
+              console.warn('[stories] cover_data save error:', e);
             });
           }
           if (created && created.id && String(created.id) !== String(localEntry.id)) {
@@ -489,16 +516,35 @@
                   reader.onload = function () {
                     var dataUrl = reader.result;
                     if (dataUrl && dataUrl.indexOf('data:image') === 0) {
-                      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(newStoryId), {
-                        method: 'PATCH',
-                        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cover_data: dataUrl })
+                      fetch('/api/stories/' + encodeURIComponent(newStoryId), {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: newStoryId, cover_data: dataUrl })
                       }).then(function (r) {
-                        if (r.ok) console.log('[stories] ✅ cover migrated to cloud:', newStoryId);
+                        if (r.ok) console.log('[stories] ✅ cover migrated to D1:', newStoryId);
                       }).catch(function () {});
                     }
                   };
                   reader.readAsDataURL(blob);
+                }
+              }).catch(function () {});
+            }
+
+            // ── Migrate audio from local s_ ID to cloud UUID ──
+            if (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function' && typeof window.AudioHubStoryAudio.put === 'function') {
+              // Try to find audio by old s_ ID
+              var oldAudioKey = localEntry.audioKey || localEntry.id;
+              window.AudioHubStoryAudio.get(oldAudioKey).then(function (audioBlob) {
+                if (audioBlob && audioBlob.size > 0) {
+                  // Re-upload to R2 with new cloud UUID
+                  var r2Url = '/api/audio/' + encodeURIComponent(newStoryId);
+                  fetch(r2Url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': audioBlob.type || 'audio/mpeg' },
+                    body: audioBlob
+                  }).then(function (r) {
+                    if (r.ok) console.log('[stories] ✅ audio migrated to R2:', newStoryId);
+                  }).catch(function () {});
                 }
               }).catch(function () {});
             }
@@ -535,15 +581,15 @@
                 });
                 if (plChanged) {
                   localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
-                  // Sync to Storage
+                  // Sync to D1 playlists
                   try {
-                    var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-                    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-                    fetch(SUPABASE_DIRECT + '/storage/v1/object/story-covers/playlists/index.json', {
-                      method: 'PUT',
-                      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-                      body: JSON.stringify(playlists)
-                    }).catch(function () {});
+                    playlists.forEach(function (pl) {
+                      fetch('/api/playlists', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries || []) })
+                      }).catch(function () {});
+                    });
                   } catch (e) {}
                   console.log('[stories] Updated playlist entries with cloud ID:', newStoryId);
                 }
@@ -568,21 +614,15 @@
                 .catch(function () {});
             }
 
-            // Upload cover to DB under real CUID (cover upload was skipped earlier
-            // because upsertStory returns local s_ ID before async Supabase sync)
+            // Upload cover to D1 under real CUID (cover upload was skipped earlier
+            // because upsertStory returns local s_ ID before async D1 sync)
             if (localEntry.coverData) {
-              var _coverSUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-              var _coverSUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-              fetch(_coverSUPABASE_DIRECT + '/rest/v1/stories?id=eq.' + encodeURIComponent(newStoryId), {
-                method: 'PATCH',
-                headers: {
-                  'apikey': _coverSUPABASE_KEY,
-                  'Authorization': 'Bearer ' + _coverSUPABASE_KEY,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ cover_data: localEntry.coverData })
+              fetch('/api/stories/' + encodeURIComponent(newStoryId), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: newStoryId, cover_data: localEntry.coverData })
               }).then(function (r) {
-                if (r.ok) console.log('[stories] ✅ cover_data saved to DB for', newStoryId);
+                if (r.ok) console.log('[stories] ✅ cover_data saved to D1 for', newStoryId);
               }).catch(function () {});
               // Also save cover to IndexedDB under real CUID (for self-heal on other pages)
               if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
@@ -613,13 +653,7 @@
   function upsertStory(story) {
     var localEntry = upsertLocalStory(story);
 
-    // Sync to Supabase directly (bypasses Render)
-    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
-      syncToSupabaseWithRetry(localEntry, 3);
-      return localEntry;
-    }
-
-    // Fallback: sync to Render backend
+    // Sync to D1 via Cloudflare Pages Functions (Supabase deprecated)
     var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
     if (hasApi) {
       var payload = mapStoryPayload(localEntry);
@@ -764,7 +798,8 @@
       return null;
     }
 
-    var remoteUpdated = parseTime(remoteEntry && remoteEntry.updatedAt);
+    // Support both snake_case (from D1 API) and camelCase (from localStorage)
+    var remoteUpdated = parseTime(remoteEntry && (remoteEntry.updatedAt || remoteEntry.updated_at));
     var localUpdated = parseTime(localEntry && localEntry.updatedAt);
 
     if (localUpdated > remoteUpdated) {
@@ -793,26 +828,19 @@
     return merged;
   }
 
-  /* Self-heal: upload coverData from local stories to Supabase so other devices can use it */
-  function uploadCoversToSupabase(stories) {
-    if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.isAvailable !== 'function') return;
-    if (!window.AudioHubSupabase.isAvailable()) return;
-
-    var SUPABASE_REST = 'https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1';
-    var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-
+  /* Self-heal: upload coverData from local stories to D1 so other devices can use it */
+  function uploadCoversToD1(stories) {
     stories.forEach(function (story) {
       if (!story || !story.id) return;
-      if (String(story.id).startsWith('s_')) return; // skip drafts
       if (!story.coverData) return; // need coverData to upload
 
-      // Upload coverData to Supabase (direct, bypass broken proxy)
-      fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(story.id), {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cover_data: story.coverData })
+      // Upload coverData to D1
+      fetch('/api/stories/' + encodeURIComponent(story.id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: story.id, cover_data: story.coverData })
       }).then(function (r) {
-        if (r.ok) console.log('[stories] Uploaded cover for', story.id);
+        if (r.ok) console.log('[stories] Uploaded cover to D1 for', story.id);
       }).catch(function () {});
     });
 
@@ -820,7 +848,6 @@
     if (!window.AudioHubStoryCover || typeof window.AudioHubStoryCover.get !== 'function') return;
     stories.forEach(function (story) {
       if (!story || !story.id) return;
-      if (String(story.id).startsWith('s_')) return;
       if (story.coverData) return; // already has coverData
 
       // Try coverKey first, then story ID as fallback
@@ -829,7 +856,6 @@
       if (key && String(key).indexOf('c_') === 0) {
         idbPromise = window.AudioHubStoryCover.get(key);
       } else {
-        // Try story ID directly (cover may have been saved under CUID during sync)
         idbPromise = window.AudioHubStoryCover.get(story.id);
       }
 
@@ -838,13 +864,13 @@
         var reader = new FileReader();
         reader.onload = function () {
           var dataUrl = reader.result;
-          // Save to Supabase
-          fetch(SUPABASE_REST + '/stories?id=eq.' + encodeURIComponent(story.id), {
-            method: 'PATCH',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cover_data: dataUrl })
+          // Save to D1
+          fetch('/api/stories/' + encodeURIComponent(story.id), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: story.id, cover_data: dataUrl })
           }).then(function (r) {
-            if (r.ok) console.log('[stories] Recovered+uploaded cover for', story.id);
+            if (r.ok) console.log('[stories] Recovered+uploaded cover to D1 for', story.id);
           }).catch(function () {});
           // Update local story with coverData
           story.coverData = dataUrl;
@@ -858,82 +884,7 @@
   }
 
   function syncFromApi() {
-    // Try Supabase first (direct, no Render dependency)
-    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
-      var userId = window.AudioHubSupabase.getUserId();
-      // Fetch public stories + user's own stories in parallel
-      var fetches = [window.AudioHubSupabase.fetchPublicStories()];
-      if (userId) {
-        fetches.push(window.AudioHubSupabase.fetchUserStories(userId));
-      }
-      return Promise.all(fetches)
-        .then(function (results) {
-          var publicStories = results[0] || [];
-          var userStories = results[1] || [];
-          var localStories = readLocalStories();
-
-          // Merge public + user stories (user stories may include non-PUBLIC)
-          var allRemote = publicStories.concat(userStories);
-          if (!Array.isArray(allRemote) || !allRemote.length) {
-            notifyStoriesSynced();
-            return localStories;
-          }
-          var localById = {};
-          localStories.forEach(function (item) {
-            if (item && item.id) localById[String(item.id)] = item;
-          });
-          var normalized = allRemote.map(function (story) {
-            var entry = normalizeStory(story);
-            // Preserve local coverData/coverKey when remote has none
-            var local = localById[String(entry.id)];
-            if (local) {
-              if (!entry.coverData && local.coverData) entry.coverData = String(local.coverData);
-              if (!entry.coverKey && local.coverKey) entry.coverKey = String(local.coverKey);
-            }
-            return entry;
-          }).filter(Boolean);
-          // Filter out locally deleted stories (prevent sync from bringing them back)
-          var deletedIds = getDeletedIds();
-          if (deletedIds.length) {
-            normalized = normalized.filter(function (s) { return deletedIds.indexOf(String(s.id)) === -1; });
-          }
-          // Dedup: remove local stories that already exist on Supabase (by ID or fingerprint)
-          var apiIds = {};
-          var apiFingerprints = {};
-          normalized.forEach(function (s) {
-            apiIds[String(s.id)] = true;
-            var fp = [
-              String(s.title || '').trim().toLowerCase(),
-              String(s.author || '').trim().toLowerCase()
-            ].join('::');
-            if (fp !== '::') apiFingerprints[fp] = true;
-          });
-          var localOnly = localStories.filter(function (item) {
-            if (!item || !item.id) return false;
-            if (apiIds[String(item.id)]) return false;
-            // Also skip local s_ drafts that match a remote story by title+author
-            if (String(item.id).startsWith('s_')) {
-              var fp = [
-                String(item.title || '').trim().toLowerCase(),
-                String(item.author || '').trim().toLowerCase()
-              ].join('::');
-              if (fp !== '::' && apiFingerprints[fp]) return false;
-            }
-            return true;
-          });
-          var merged = normalized.concat(localOnly).slice(0, 50);
-          writeLocalStories(merged);
-          notifyStoriesUpdated();
-          notifyStoriesSynced();
-          // Self-heal: upload coverData to Supabase for stories that have it locally
-          uploadCoversToSupabase(merged);
-          return merged;
-        })
-        .catch(function (e) {
-          console.warn('[stories] Supabase fetch failed, falling back to API:', e);
-          return syncFromApiFallback();
-        });
-    }
+    // Fetch from D1 via Cloudflare Pages Functions (Supabase deprecated)
     return syncFromApiFallback();
   }
 

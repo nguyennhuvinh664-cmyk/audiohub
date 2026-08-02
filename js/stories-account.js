@@ -679,16 +679,14 @@
     if (!window.AudioHubStories || typeof window.AudioHubStories.remove !== 'function') return;
     ids.forEach(function (id) {
       window.AudioHubStories.remove(id);
-      // Also delete from Supabase database
+      // Delete from Cloudflare D1
       try {
-        var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-        var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-        fetch(SUPABASE_DIRECT + '/rest/v1/stories?id=eq.' + encodeURIComponent(id), {
+        fetch('/api/stories/' + encodeURIComponent(id), {
           method: 'DELETE',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+          headers: { 'Content-Type': 'application/json' }
         }).then(function (r) {
-          if (r.ok) console.log('[account] Deleted story from DB:', id);
-        }).catch(function (e) { console.warn('[account] DB delete failed:', e); });
+          if (r.ok) console.log('[account] Deleted story from D1:', id);
+        }).catch(function (e) { console.warn('[account] D1 delete failed:', e); });
       } catch (e) {}
     });
   }
@@ -868,24 +866,24 @@
       });
     });
 
-    // Fallback: batch fetch cover_data from Supabase DB
+    // Fallback: batch fetch cover_data from D1
     if (nodesToFetch.length) {
       var ids = nodesToFetch.map(function (n) { return n.id; });
       var idsParam = ids.map(encodeURIComponent).join(',');
-      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
-        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
-      }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
-        var dataMap = {};
-        (rows || []).forEach(function (r) { if (r.cover_data) dataMap[r.id] = r.cover_data; });
-        nodesToFetch.forEach(function (n) {
-          if (dataMap[n.id]) {
-            n.node.style.backgroundImage = 'url("' + dataMap[n.id] + '")';
-            n.node.style.backgroundSize = 'cover';
-            n.node.style.backgroundPosition = 'center';
-            n.node.classList.add('is-cover-ready');
-          }
-        });
-      }).catch(function () {});
+      fetch('/api/stories/batch?ids=' + idsParam + '&fields=id,cover_data')
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (rows) {
+          var dataMap = {};
+          (rows || []).forEach(function (r) { if (r.cover_data) dataMap[r.id] = r.cover_data; });
+          nodesToFetch.forEach(function (n) {
+            if (dataMap[n.id]) {
+              n.node.style.backgroundImage = 'url("' + dataMap[n.id] + '")';
+              n.node.style.backgroundSize = 'cover';
+              n.node.style.backgroundPosition = 'center';
+              n.node.classList.add('is-cover-ready');
+            }
+          });
+        }).catch(function () {});
     }
   }
 
@@ -1078,25 +1076,91 @@
     try {
       var raw = window.localStorage.getItem(PLAYLIST_STORAGE_KEY);
       var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      // Migration: fix playlists with empty names (deep clone to detect changes)
+      var original = JSON.parse(JSON.stringify(parsed));
+      var migrated = parsed.map(function (pl) {
+        if (pl && !pl.name) {
+          pl.name = 'Truyện mới';
+        }
+        return pl;
+      });
+      // Write back if any names were fixed
+      var changed = migrated.some(function (pl, i) { return pl.name !== original[i].name; });
+      if (changed) {
+        window.localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(migrated));
+      }
+      return migrated;
     } catch (e) {
       return [];
     }
+  }
+
+  /** Fetch playlists from D1 and merge with localStorage */
+  function syncPlaylistsFromD1() {
+    return fetch('/api/playlists')
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (d1Playlists) {
+        if (!Array.isArray(d1Playlists) || !d1Playlists.length) return readPlaylists();
+
+        var local = readPlaylists();
+        var localMap = {};
+        local.forEach(function (pl) { localMap[pl.id] = pl; });
+
+        // Merge: D1 playlists + local playlists (dedupe by ID)
+        var merged = [];
+        var seenIds = {};
+
+        // Add D1 playlists first
+        d1Playlists.forEach(function (pl) {
+          if (!pl || !pl.id || seenIds[pl.id]) return;
+          seenIds[pl.id] = true;
+          // Parse items if string
+          var entries = pl.items || pl.entries || [];
+          if (typeof entries === 'string') {
+            try { entries = JSON.parse(entries); } catch (e) { entries = []; }
+          }
+          merged.push({
+            id: pl.id,
+            name: pl.name || 'Truyện mới',
+            entries: Array.isArray(entries) ? entries : [],
+            createdBy: pl.created_by || pl.createdBy || 'admin',
+            state: pl.state || 'ongoing',
+            createdAt: pl.created_at || pl.createdAt || '',
+            updatedAt: pl.updated_at || pl.updatedAt || ''
+          });
+        });
+
+        // Add local playlists not in D1
+        local.forEach(function (pl) {
+          if (!pl || !pl.id || seenIds[pl.id]) return;
+          seenIds[pl.id] = true;
+          merged.push(pl);
+        });
+
+        // Save merged to localStorage
+        try { localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
+
+        return merged;
+      })
+      .catch(function () {
+        return readPlaylists();
+      });
   }
 
   function writePlaylists(list) {
     try {
       window.localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(list));
     } catch (e) {}
-    // Sync to Supabase Storage (shared across all users)
+    // Sync each playlist to D1
     try {
-      var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-      var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-      fetch(SUPABASE_DIRECT + '/storage/v1/object/story-covers/playlists/index.json', {
-        method: 'PUT',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify(list)
-      }).catch(function () {});
+      (list || []).forEach(function (pl) {
+        fetch('/api/playlists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pl)
+        }).catch(function () {});
+      });
     } catch (e) {}
   }
 
@@ -1106,7 +1170,8 @@
 
   function createPlaylist(name) {
     var list = readPlaylists();
-    var playlist = { id: generateId(), name: String(name || '').trim(), entries: [], createdBy: 'admin', createdAt: new Date().toISOString() };
+    var playlistName = String(name || '').trim() || 'Truyện mới';
+    var playlist = { id: generateId(), name: playlistName, entries: [], createdBy: 'admin', createdAt: new Date().toISOString() };
     list.push(playlist);
     writePlaylists(list);
     return playlist;
@@ -1118,34 +1183,32 @@
     var pl = null;
     list.forEach(function (p) { if (p.id === id) pl = p; });
     if (pl && pl.entries) {
-      // Delete each story from Supabase
+      // Delete each story from D1
       pl.entries.forEach(function (entry) {
         var key = String(entry.key || '');
         if (key && key.indexOf('s_') !== 0) {
-          // Cloud story — delete from Supabase
-          fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(key), {
+          // Cloud story — delete from D1
+          fetch('/api/stories/' + encodeURIComponent(key), {
             method: 'DELETE',
-            headers: {
-              'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
-              'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
-              'Prefer': 'return=minimal'
-            }
+            headers: { 'Content-Type': 'application/json' }
           }).then(function () {
-            // Also delete cover from storage
-            fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/story-covers/' + encodeURIComponent(key) + '/cover', {
-              method: 'DELETE',
-              headers: {
-                'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie',
-                'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie'
-              }
+            // Also delete cover from R2 (if available)
+            fetch('/api/covers/' + encodeURIComponent(key), {
+              method: 'DELETE'
             }).catch(function () {});
           }).catch(function () {});
         }
       });
     }
+    // Delete playlist from D1 and wait for completion
+    var deletePromise = fetch('/api/playlists/' + encodeURIComponent(id), {
+      method: 'DELETE'
+    }).catch(function () {});
+    // Remove from localStorage
     var newList = list.filter(function (p) { return p.id !== id; });
     writePlaylists(newList);
     if (activePlaylistId === id) activePlaylistId = null;
+    return deletePromise;
   }
 
   function renamePlaylist(id, newName) {
@@ -1228,17 +1291,23 @@
     var playlistListMount = document.querySelector('[data-playlist-list]');
     var playlistDetailMount = document.querySelector('[data-playlist-detail]');
     if (!playlistListMount) return;
-    var list = readPlaylists().filter(function (p) {
-      return String(p.createdBy || 'admin') === 'admin';
-    });
 
     if (playlistNote) playlistNote.classList.toggle('is-hidden', true);
 
-    if (!list.length) {
-      playlistListMount.innerHTML = '<p class="playlist-empty">Chưa có truyện nào. Tạo truyện đầu tiên của bạn.</p>';
-      if (playlistDetailMount) playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một truyện để xem chi tiết.</p>';
-      return;
-    }
+    // Show loading state
+    playlistListMount.innerHTML = '<p class="playlist-empty">Đang tải...</p>';
+
+    // Fetch from D1 and merge with localStorage
+    syncPlaylistsFromD1().then(function (allPlaylists) {
+      var list = allPlaylists.filter(function (p) {
+        return String(p.createdBy || 'admin') === 'admin';
+      });
+
+      if (!list.length) {
+        playlistListMount.innerHTML = '<p class="playlist-empty">Chưa có truyện nào. Tạo truyện đầu tiên của bạn.</p>';
+        if (playlistDetailMount) playlistDetailMount.innerHTML = '<p class="playlist-empty">Chọn một truyện để xem chi tiết.</p>';
+        return;
+      }
 
     var listStart = (currentPlaylistListPage - 1) * PLAYLIST_LIST_ITEMS_PER_PAGE;
     var listEnd = listStart + PLAYLIST_LIST_ITEMS_PER_PAGE;
@@ -1286,15 +1355,18 @@
         '</div>';
     }).join('');
 
-    var paginationWrapLeft = document.querySelector('[data-pagination-wrap="playlist-list"]');
-    if (paginationWrapLeft) {
-      paginationWrapLeft.innerHTML = totalListPages > 1 ? buildPagination(currentPlaylistListPage, totalListPages, 'playlist-list') : '';
-    }
+      var paginationWrapLeft = document.querySelector('[data-pagination-wrap="playlist-list"]');
+      if (paginationWrapLeft) {
+        paginationWrapLeft.innerHTML = totalListPages > 1 ? buildPagination(currentPlaylistListPage, totalListPages, 'playlist-list') : '';
+      }
 
-    // Scroll playlist list to top on page change
-    playlistListMount.scrollTop = 0;
+      // Scroll playlist list to top on page change
+      playlistListMount.scrollTop = 0;
 
-    renderPlaylistDetail();
+      renderPlaylistDetail();
+    }).catch(function () {
+      playlistListMount.innerHTML = '<p class="playlist-empty">Lỗi tải dữ liệu. Thử lại sau.</p>';
+    });
   }
 
   var STATUS_LABELS = {
@@ -1491,9 +1563,9 @@
           });
           if (idsToFetch.length) {
             var idsParam = idsToFetch.map(encodeURIComponent).join(',');
-            fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,chapter_title,chapters,cover_data', {
-              headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
-            }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+            fetch('/api/stories/batch?ids=' + idsParam + '&fields=id,chapter_title,chapters,cover_data')
+              .then(function (r) { return r.ok ? r.json() : []; })
+              .then(function (rows) {
               var rowMap = {};
               (rows || []).forEach(function (r) { rowMap[r.id] = r; });
               var updatedKeys = [];
@@ -1653,8 +1725,13 @@
       if (deleteBtn) {
         var plId = deleteBtn.getAttribute('data-playlist-delete');
         if (plId && window.confirm('Xóa truyện này?')) {
-          deletePlaylist(plId);
-          renderPlaylist();
+          deleteBtn.disabled = true;
+          deleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+          deletePlaylist(plId).then(function () {
+            renderPlaylist();
+          }).catch(function () {
+            renderPlaylist();
+          });
         }
         return;
       }
@@ -1789,7 +1866,7 @@
   };
 
   // ── Cover Hydration (IIFE scope) ─────────────────────────────────────────
-  var STORAGE_BASE = 'https://oatwyxkzonhjfdzapjyb.supabase.co/storage/v1/object/public/story-covers/';
+  var STORAGE_BASE = '/api/covers/'; // maps to R2 covers endpoint
 
   function applyCoverToNode(node, src) {
     if (!src || !node) return;
@@ -1862,7 +1939,7 @@
           else node.setAttribute('data-cover-state', 'no-cover');
         }).catch(function () { node.setAttribute('data-cover-state', 'no-cover'); });
       } else if (!isLocal && entryKey) {
-        fetchCoverFromStorage(node, STORAGE_BASE + entryKey + '/cover');
+        fetchCoverFromStorage(node, STORAGE_BASE + entryKey);
       } else if (isLocal) {
         // Find matching entry's title, then look up cloud key
         var matchedEntry = null;
@@ -1874,7 +1951,7 @@
         } catch (e) {}
         var t2 = String((matchedEntry && matchedEntry.title) || '').trim().toLowerCase();
         var cloudKey = titleToCloudKey[t2];
-        if (cloudKey) fetchCoverFromStorage(node, STORAGE_BASE + cloudKey + '/cover');
+        if (cloudKey) fetchCoverFromStorage(node, STORAGE_BASE + cloudKey);
         else node.setAttribute('data-cover-state', 'no-cover');
       } else {
         node.setAttribute('data-cover-state', 'no-cover');

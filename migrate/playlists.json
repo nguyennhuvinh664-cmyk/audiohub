@@ -1,0 +1,38 @@
+[
+  {
+    "id": "pl-thuy-hu",
+    "name": "Thủy Hử",
+    "state": "done",
+    "createdBy": "admin",
+    "created_at": "2026-07-15T00:00:00Z",
+    "updated_at": "2026-07-31T00:00:00Z",
+    "entries": [
+      {
+        "storyId": "s_thuy_hu",
+        "title": "Thủy Hử",
+        "author": "Admin",
+        "genre": "Cổ Đại",
+        "listenCount": 10,
+        "listenCount2d": 2
+      }
+    ]
+  },
+  {
+    "id": "pl-tam-quoc",
+    "name": "Tam Quốc",
+    "state": "ongoing",
+    "createdBy": "admin",
+    "created_at": "2026-07-20T00:00:00Z",
+    "updated_at": "2026-07-30T00:00:00Z",
+    "entries": [
+      {
+        "storyId": "s_tam_quoc",
+        "title": "Tam Quốc",
+        "author": "Admin",
+        "genre": "Cổ Đại",
+        "listenCount": 5,
+        "listenCount2d": 1
+      }
+    ]
+  }
+]

@@ -65,7 +65,21 @@
     try {
       var raw = localStorage.getItem('audiohub-playlists-v1');
       var list = raw ? JSON.parse(raw) : [];
-      return Array.isArray(list) ? list : [];
+      if (!Array.isArray(list)) return [];
+      // Migration: fix playlists with empty names (deep clone to detect changes)
+      var original = JSON.parse(JSON.stringify(list));
+      var migrated = list.map(function (pl) {
+        if (pl && !pl.name) {
+          pl.name = 'Truyện mới';
+        }
+        return pl;
+      });
+      // Write back if any names were fixed
+      var changed = migrated.some(function (pl, i) { return pl.name !== original[i].name; });
+      if (changed) {
+        localStorage.setItem('audiohub-playlists-v1', JSON.stringify(migrated));
+      }
+      return migrated;
     } catch(e) { return []; }
   }
 
@@ -776,5 +790,25 @@
   var lastTab = 'profile';
   try { lastTab = localStorage.getItem('ua-active-tab-v1') || 'profile'; } catch(e) {}
   switchTab(lastTab);
+
+  /* ── Store story context in sessionStorage for detail page fallback ── */
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href*="story-detail.html"]');
+    if (!link) return;
+    try {
+      var url = new URL(link.href, window.location.origin);
+      var storyId = url.searchParams.get('id');
+      if (!storyId) return;
+      var titleEl = link.querySelector('.ua-list-title, .sc__nm');
+      var title = titleEl ? titleEl.textContent.trim() : '';
+      sessionStorage.setItem('audiohub-home-detail-context', JSON.stringify({
+        source: 'home',
+        storyId: storyId,
+        title: title,
+        author: '',
+        savedAt: Date.now()
+      }));
+    } catch (e) {}
+  });
 
 })();

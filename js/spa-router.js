@@ -70,7 +70,7 @@
    * Shared JS is loaded once and never removed.
    */
   var SHARED_JS = [
-    'api-client', 'auth-state', 'supabase-client', 'stories-store'
+    'api-client', 'auth-state', 'cloudflare-client', 'stories-store'
   ];
 
   var PAGE_JS = {

@@ -71,39 +71,23 @@
   }
 
   function putCover(blob, storyId) {
-    // Upload to Supabase Storage (cross-device accessible, no CORS issues)
+    // Upload cover_data to D1 (cross-device accessible)
     if (storyId && !String(storyId).startsWith('s_') && blob) {
-      var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-      var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-      var filePath = storyId + '/cover';
-      var uploadUrl = SUPABASE_URL + '/storage/v1/object/story-covers/' + encodeURIComponent(filePath);
-
-      function tryUpload(method) {
-        return fetch(uploadUrl, {
-          method: method,
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_KEY,
-            'Content-Type': 'image/jpeg'
-          },
-          body: blob
-        });
-      }
-
-      tryUpload('POST').then(function (r) {
-        if (r.ok) return r;
-        // If 409 (already exists), try PUT to overwrite
-        if (r.status === 409) return tryUpload('PUT');
-        // Retry once on failure
-        return new Promise(function (resolve) {
-          setTimeout(function () { tryUpload('POST').then(resolve).catch(function () { resolve(null); }); }, 2000);
-        });
-      }).catch(function () {
-        // Retry once on network error
-        return new Promise(function (resolve) {
-          setTimeout(function () { tryUpload('POST').then(resolve).catch(function () { resolve(null); }); }, 2000);
-        });
-      }).catch(function () {});
+      // Convert blob to base64 data URL, then save to D1
+      var reader = new FileReader();
+      reader.onload = function () {
+        var dataUrl = reader.result;
+        if (dataUrl && dataUrl.indexOf('data:image') === 0) {
+          fetch('/api/stories/' + encodeURIComponent(storyId), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: storyId, cover_data: dataUrl })
+          }).then(function (r) {
+            if (r.ok) console.log('[cover-store] ✅ cover saved to D1 for', storyId);
+          }).catch(function () {});
+        }
+      };
+      reader.readAsDataURL(blob);
     }
 
     // API path: upload to Render backend AND save locally
@@ -159,32 +143,24 @@
     });
   }
 
-  // Try fetching cover from Supabase Storage (direct URL, fast CDN)
+  // Try fetching cover from D1 (cover_data field)
   function tryFetchCover(key, cacheFn) {
-    var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-    var SUPABASE_STORAGE = SUPABASE_DIRECT + '/storage/v1/object/public/story-covers/';
-
-    function fetchWithTimeout(url, timeoutMs) {
-      var controller = new AbortController();
-      var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
-      return fetch(url, { signal: controller.signal }).then(function (res) {
-        clearTimeout(timer);
-        if (!res.ok) throw new Error('Failed');
-        return res.blob();
-      }).catch(function (err) {
-        clearTimeout(timer);
-        throw err;
-      });
-    }
-
-    // Single source: Supabase Storage direct (fast CDN, no proxy)
-    return fetchWithTimeout(SUPABASE_STORAGE + encodeURIComponent(key), 5000)
-      .then(function (blob) {
-        if (blob && blob.size > 0) {
-          if (cacheFn) cacheFn(key, blob).catch(function () {});
-          return blob;
-        }
-        return null;
+    // key could be a story ID or cover key. Try fetching story from D1 to get cover_data.
+    if (!key || String(key).startsWith('c_')) return Promise.resolve(null);
+    return fetch('/api/stories/' + encodeURIComponent(key))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (story) {
+        if (!story || !story.cover_data) return null;
+        // Convert data URL to blob
+        var dataUrl = story.cover_data;
+        var parts = dataUrl.split(',');
+        var mime = (parts[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+        var raw = atob(parts[1] || '');
+        var arr = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        var blob = new Blob([arr], { type: mime });
+        if (blob.size > 0 && cacheFn) cacheFn(key, blob).catch(function () {});
+        return blob;
       })
       .catch(function () { return null; });
   }

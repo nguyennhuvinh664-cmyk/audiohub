@@ -124,6 +124,18 @@
     });
   }
 
+  function uploadToR2(blob, storyId) {
+    var url = '/api/audio/' + encodeURIComponent(storyId);
+    return fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': blob.type || 'audio/mpeg' },
+      body: blob
+    }).then(function (res) {
+      if (!res.ok) throw new Error('R2 upload failed: ' + res.status);
+      return storyId;
+    });
+  }
+
   function putAudio(blob, storyId) {
     if (!blob) return Promise.resolve('');
 
@@ -131,14 +143,18 @@
     if (storyId) {
       var path = storyId + '.mp3';
       return uploadToSupabaseStorage(blob, path).then(function (uploadedPath) {
-        // Also try Render backend in parallel (best-effort, for cross-browser)
+        // Also try Render backend + R2 in parallel (best-effort, for cross-browser)
         uploadToRenderBackend(blob, storyId).catch(function () {});
+        uploadToR2(blob, storyId).catch(function () {});
         return uploadedPath || path;
       }).catch(function () {
         // Supabase failed — try Render backend (public, works in incognito)
         return uploadToRenderBackend(blob, storyId).catch(function () {
-          // Both failed — store in local IndexedDB (current browser only)
-          return putAudioLocal(blob);
+          // Try R2 as last cloud option
+          return uploadToR2(blob, storyId).catch(function () {
+            // All failed — store in local IndexedDB (current browser only)
+            return putAudioLocal(blob);
+          });
         });
       });
     }
@@ -629,11 +645,40 @@
     });
   }
 
+  function getAll() {
+    return openDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var entries = [];
+        var tx = db.transaction(STORE_NAME, 'readonly');
+        var store = tx.objectStore(STORE_NAME);
+        var request = store.openCursor();
+        request.onsuccess = function () {
+          var cursor = request.result;
+          if (!cursor) {
+            try { db.close(); } catch (error) {}
+            resolve(entries);
+            return;
+          }
+          var val = cursor.value;
+          if (val && val.blob) {
+            entries.push({ key: String(cursor.key), blob: val.blob, createdAt: val.createdAt || '' });
+          }
+          cursor.continue();
+        };
+        request.onerror = function () {
+          try { db.close(); } catch (error) {}
+          reject(request.error || new Error('Failed to list audio entries'));
+        };
+      });
+    });
+  }
+
   window.AudioHubStoryAudio = {
     put: putAudio,
     get: getAudio,
     delete: deleteAudio,
     listKeys: listKeys,
+    getAll: getAll,
     moveToTrash: moveToTrash,
     listTrash: listTrash,
     getTrash: getTrash,

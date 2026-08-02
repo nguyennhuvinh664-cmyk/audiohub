@@ -12,36 +12,33 @@
   var youtubeInput = document.querySelector('[data-upload-youtube-url]');
   var visibilitySelect = document.querySelector('[data-upload-visibility]');
 
-  /* ── Playlist sync to Supabase Storage ── */
-  var SUPABASE_DIRECT = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-  var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-  var PLAYLISTS_STORAGE_URL = SUPABASE_DIRECT + '/storage/v1/object/story-covers/playlists/index.json';
+  /* ── Playlist sync to D1 ── */
   var PLAYLIST_KEY = 'audiohub-playlists-v1';
 
-  /** Sync playlists from localStorage to Supabase Storage */
+  /** Sync playlists from localStorage to D1 */
   function syncPlaylistsToStorage() {
     try {
       var raw = localStorage.getItem(PLAYLIST_KEY) || '';
       var playlists = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(playlists)) return;
 
-      fetch(PLAYLISTS_STORAGE_URL, {
-        method: 'PUT',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(playlists)
-      }).then(function (r) {
-        if (r.ok) console.log('[upload] Playlists synced to Storage');
-      }).catch(function (e) {
-        console.warn('[upload] Playlist sync failed:', e);
+      playlists.forEach(function (pl) {
+        fetch('/api/playlists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries || []) })
+        }).then(function (r) {
+          if (r.ok) console.log('[upload] Playlist synced to D1:', pl.name);
+        }).catch(function (e) {
+          console.warn('[upload] Playlist sync failed:', e);
+        });
       });
     } catch (e) {}
   }
 
   /* ── Story name select dropdown ── */
+  var selectedPlaylistId = null;  // Track selected playlist ID for adding stories
+
   (function initStoryNameSelect() {
     var selectRoot = document.querySelector('[data-story-name-select]');
     var trigger = document.querySelector('[data-story-name-trigger]');
@@ -60,7 +57,10 @@
     }
 
     function fetchAllStories() {
-      var items = [];
+      var plMap = {};   // playlist by lowercase title
+      var storyMap = {}; // real story by lowercase title
+      var plOrder = [];  // playlist titles in order
+      var storyOrder = []; // story titles in order
 
       // 1) Playlists from localStorage
       try {
@@ -69,50 +69,95 @@
         if (Array.isArray(playlists)) {
           playlists.forEach(function (pl) {
             if (!pl || !pl.name) return;
+            var key = pl.name.toLowerCase();
+            if (plMap[key]) return;
             var entries = pl.entries || pl.items || [];
-            var firstStoryId = entries[0] ? String(entries[0].storyId || entries[0].key || '') : '';
-            items.push({
+            plMap[key] = {
               id: pl.id || ('pl_' + pl.name),
               title: pl.name,
-              author: 'Admin',
-              genre: 'Truyện',
-              description: entries.length + ' truyện',
-              _isPlaylist: true,
-              _firstStoryId: firstStoryId,
-              _entries: entries
-            });
+              entries: entries,
+              _playlistObj: pl
+            };
+            plOrder.push(key);
           });
         }
       } catch (e) {}
 
-      // 2) Stories from localStorage (via AudioHubStories)
+      // Helper: merge plMap + storyMap → allStories
+      function mergeAndRender() {
+        var items = [];
+        var seen = {};
+        // First: playlists (with merged story data if available)
+        plOrder.forEach(function (key) {
+          var pl = plMap[key];
+          var st = storyMap[key];
+          var entry = {
+            id: pl.id,
+            title: pl.title,
+            _isPlaylist: true,
+            _entries: pl.entries,
+            // Auto-fill data from real story (if exists)
+            genre: st ? (st.genre || '') : '',
+            description: st ? (st.description || '') : '',
+            author: st ? (st.author || 'Ẩn danh') : 'Admin',
+            _storyData: st || null
+          };
+          items.push(entry);
+          seen[key] = true;
+        });
+        // Then: stories without playlist
+        storyOrder.forEach(function (key) {
+          if (seen[key]) return;
+          var st = storyMap[key];
+          items.push({
+            id: st.id,
+            title: st.title,
+            author: st.author || 'Ẩn danh',
+            genre: st.genre || '',
+            description: st.description || '',
+            hashtags: st.hashtags || '',
+            coverKey: st.cover_key || st.coverKey || '',
+            _isPlaylist: false,
+            _story: st
+          });
+        });
+        allStories = items;
+        renderList(searchInput ? searchInput.value : '');
+      }
+
+      // 2) Stories from D1 API
+      fetch('/api/stories')
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (d1Stories) {
+          if (!Array.isArray(d1Stories)) return;
+          d1Stories.forEach(function (s) {
+            if (!s || !s.id || !s.title) return;
+            var key = s.title.toLowerCase();
+            if (storyMap[key]) return;
+            storyMap[key] = s;
+            storyOrder.push(key);
+          });
+          mergeAndRender();
+        })
+        .catch(function () { mergeAndRender(); });
+
+      // 3) Stories from localStorage (via AudioHubStories)
       try {
         if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
           var stories = window.AudioHubStories.read();
           if (Array.isArray(stories)) {
             stories.forEach(function (s) {
               if (!s || !s.id || !s.title) return;
-              // Skip if already in list (by title match)
-              var exists = items.some(function (item) {
-                return item.title.toLowerCase() === s.title.toLowerCase();
-              });
-              if (exists) return;
-              items.push({
-                id: s.id,
-                title: s.title,
-                author: s.author || 'Ẩn danh',
-                genre: s.genre || '',
-                description: s.description || '',
-                _isPlaylist: false,
-                _story: s
-              });
+              var key = s.title.toLowerCase();
+              if (storyMap[key]) return;
+              storyMap[key] = s;
+              storyOrder.push(key);
             });
           }
         }
       } catch (e) {}
 
-      allStories = items;
-      renderList('');
+      mergeAndRender();
     }
 
     function renderList(query) {
@@ -133,7 +178,7 @@
       filtered.forEach(function (s) {
         var title = escapeHtml(s.title);
         var genre = escapeHtml(s.genre || '');
-        var tag = s._isPlaylist ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Truyện</span>' : '';
+        var tag = (s._isPlaylist && !s._storyData) ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Truyện</span>' : '';
         html += '<button type="button" class="story-name-select__item" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '" data-is-playlist="' + (s._isPlaylist ? '1' : '0') + '">' +
           '<span class="story-name-select__item-title">' + title + '</span>' +
           '<span class="story-name-select__item-meta">' + tag + (genre ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span>' +
@@ -148,12 +193,102 @@
     function selectStory(story) {
       if (!story) return;
       isAddingNew = false;
-      // Set hidden input value
+      // Track selected playlist ID
+      selectedPlaylistId = story._isPlaylist ? story.id : null;
+      console.log('[upload] Selected:', story.title, '| isPlaylist:', story._isPlaylist);
+      // Set hidden input value (Tên truyện)
       if (titleInput) titleInput.value = story.title || '';
-      // Auto-fill form
-      if (genreSelect && story.genre) genreSelect.value = story.genre;
-      if (descriptionInput && story.description) descriptionInput.value = story.description;
-      if (chapterInput && story.chapterTitle) chapterInput.value = story.chapterTitle;
+
+      // Query cover elements (outside IIFE scope)
+      var coverZoneEl = document.querySelector('[data-upload-cover]');
+      var coverLabelEl = document.querySelector('[data-upload-cover-label]');
+      var coverHintEl = document.querySelector('[data-upload-cover-hint]');
+      var coverPreviewEl = document.querySelector('[data-upload-cover-preview]');
+
+      // Helper: auto-fill form + cover + hashtag from story data
+      function autoFillFromStoryData(storyData) {
+        if (!storyData) return;
+        // Thể loại + Mô tả
+        if (genreSelect && storyData.genre) genreSelect.value = storyData.genre;
+        if (descriptionInput && storyData.description) descriptionInput.value = storyData.description;
+        // Hashtag
+        var hashtagEl = document.querySelector('[data-upload-hashtags]');
+        if (hashtagEl) {
+          var tags = storyData.hashtags || storyData.tags || '';
+          if (Array.isArray(tags)) {
+            hashtagEl.value = tags.join(', ');
+          } else {
+            hashtagEl.value = tags || '';
+          }
+        }
+        // Tên chương → xóa
+        if (chapterInput) chapterInput.value = '';
+        console.log('[upload] Auto-filled:', storyData.title, '| genre:', storyData.genre, '| hashtag:', storyData.hashtags);
+        // Ảnh bìa → dùng AudioHubStoryCover (IndexedDB + D1 fallback)
+        var storyId = storyData.id;
+        if (storyId && coverZoneEl && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+          // Try with and without s_ prefix
+          var tryKeys = [storyId];
+          if (!String(storyId).startsWith('s_')) tryKeys.unshift('s_' + storyId);
+          else tryKeys.push(String(storyId).substring(2));
+
+          function tryLoadCover(idx) {
+            if (idx >= tryKeys.length) return;
+            window.AudioHubStoryCover.get(tryKeys[idx]).then(function (blob) {
+              if (!blob) { tryLoadCover(idx + 1); return; }
+              var url = URL.createObjectURL(blob);
+              // Show in preview container
+              if (coverPreviewEl) {
+                coverPreviewEl.innerHTML = '<img src="' + url + '" alt="Ảnh bìa" />';
+              }
+              coverZoneEl.classList.add('is-ready');
+              if (coverLabelEl) coverLabelEl.textContent = 'Đã có ảnh bìa';
+              if (coverHintEl) coverHintEl.textContent = 'Chọn file khác để thay đổi';
+              state.coverReady = true;
+              state.coverName = 'cover-' + storyId + '.jpg';
+              // Convert blob to data URL for publish validation
+              var reader = new FileReader();
+              reader.onload = function () {
+                state.coverData = reader.result;
+                console.log('[upload] ✅ coverData set from auto-fill blob');
+              };
+              reader.readAsDataURL(blob);
+            }).catch(function () { tryLoadCover(idx + 1); });
+          }
+          tryLoadCover(0);
+        }
+      }
+
+      function clearFormFields() {
+        if (genreSelect) genreSelect.value = '';
+        if (descriptionInput) descriptionInput.value = '';
+        if (chapterInput) chapterInput.value = '';
+        if (coverZoneEl) {
+          coverZoneEl.classList.remove('is-ready');
+          if (coverLabelEl) coverLabelEl.textContent = 'Thêm ảnh bìa';
+          if (coverHintEl) coverHintEl.textContent = 'PNG/JPG • Tối đa 5MB';
+        }
+        if (coverPreviewEl) {
+          coverPreviewEl.innerHTML = '<i class="fa-regular fa-image upload-cover-zone__placeholder-icon"></i>';
+        }
+        state.coverReady = false;
+        state.coverName = '';
+      }
+
+      if (!story._isPlaylist) {
+        // Real story selected → auto-fill directly
+        autoFillFromStoryData(story);
+      } else {
+        // Playlist selected → auto-fill from merged _storyData (if available)
+        if (story._storyData) {
+          console.log('[upload] Auto-fill from story data:', story._storyData.title, '| genre:', story._storyData.genre);
+          autoFillFromStoryData(story._storyData);
+        } else {
+          console.log('[upload] Playlist has no matching story:', story.title);
+          clearFormFields();
+        }
+      }
+
       // Update trigger text
       trigger.innerHTML = escapeHtml(story.title) + ' <i class="fa-solid fa-chevron-down"></i>';
       trigger.classList.add('is-selected');
@@ -165,6 +300,7 @@
 
     function startAddNew() {
       isAddingNew = true;
+      selectedPlaylistId = null;  // Reset playlist selection when adding new
       // Hide trigger, show text input
       trigger.classList.add('is-hidden');
       if (nameInput) {
@@ -182,12 +318,14 @@
 
       // Create playlist in localStorage
       var PLAYLIST_KEY = 'audiohub-playlists-v1';
+      var newPlaylistId = null;
       try {
         var raw = localStorage.getItem(PLAYLIST_KEY) || '';
         var playlists = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(playlists)) playlists = [];
+        newPlaylistId = 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now();
         var newPlaylist = {
-          id: 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now(),
+          id: newPlaylistId,
           name: val,
           entries: [],
           createdBy: 'admin',
@@ -197,6 +335,10 @@
         localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
         syncPlaylistsToStorage();
       } catch (e) {}
+
+      // Track selected playlist ID
+      selectedPlaylistId = newPlaylistId;
+      console.log('[upload] Created and selected playlist:', val, newPlaylistId);
 
       // Set hidden input value
       if (titleInput) titleInput.value = val;
@@ -680,6 +822,11 @@
       previewCover.style.backgroundImage = defaultCoverBackground;
       previewCover.classList.remove('has-uploaded-image');
     }
+    // Reset upload cover zone preview
+    var coverPreviewEl = document.querySelector('[data-upload-cover-preview]');
+    if (coverPreviewEl) {
+      coverPreviewEl.innerHTML = '<i class="fa-regular fa-image upload-cover-zone__placeholder-icon"></i>';
+    }
   }
 
   function markDone(title, hintNode, fileName) {
@@ -912,7 +1059,7 @@
   }
 
   function setCoverPreview(file) {
-    if (!file || !coverZone || !previewCover) {
+    if (!file || !coverZone) {
       return;
     }
 
@@ -931,13 +1078,21 @@
     clearObjectUrl(coverObjectUrl);
     coverObjectUrl = URL.createObjectURL(file);
 
+    // Show in upload cover zone preview
+    var coverPreviewEl = document.querySelector('[data-upload-cover-preview]');
+    if (coverPreviewEl) {
+      coverPreviewEl.innerHTML = '<img src="' + coverObjectUrl + '" alt="Ảnh bìa" />';
+    }
+
     // Compress image before saving (max 800px, JPEG quality 0.7)
     compressImage(file, 800, 0.7).then(function (compressedDataUrl) {
       state.coverData = compressedDataUrl; // compressed base64
       state.coverReady = true;
       setCoverProcessing(false);
-      previewCover.style.backgroundImage = 'url("' + coverObjectUrl + '")';
-      previewCover.classList.add('has-uploaded-image');
+      if (previewCover) {
+        previewCover.style.backgroundImage = 'url("' + coverObjectUrl + '")';
+        previewCover.classList.add('has-uploaded-image');
+      }
       if (coverLabel) {
         coverLabel.textContent = 'Ảnh bìa đã chọn';
       }
@@ -980,6 +1135,14 @@
         state.audioKey = audioKey;
         if (audioLabel) {
           audioLabel.textContent = 'Audio đã chọn';
+        }
+        // Update story's audioKey in localStorage so detail page can find it
+        if (editStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+          var currentStory = window.AudioHubStories.getById(editStoryId);
+          if (currentStory && !currentStory.audioKey) {
+            currentStory.audioKey = audioKey;
+            window.AudioHubStories.upsert(currentStory);
+          }
         }
         render();
       })
@@ -1036,7 +1199,7 @@
 
   visibilityButtons.forEach(function (button) {
     button.addEventListener('click', function () {
-      var selected = button.getAttribute('data-upload-visibility-option') || 'Riêng tư';
+      var selected = button.getAttribute('data-upload-visibility-option') || 'Công khai';
       state.visibility = selected;
       if (visibilitySelect) {
         visibilitySelect.value = selected;
@@ -1050,7 +1213,7 @@
       return button.classList.contains('is-active');
     }) || visibilityButtons[0];
     if (defaultButton) {
-      state.visibility = defaultButton.getAttribute('data-upload-visibility-option') || 'Riêng tư';
+      state.visibility = defaultButton.getAttribute('data-upload-visibility-option') || 'Công khai';
     }
   } else if (visibilitySelect && !visibilitySelect.value) {
     visibilitySelect.value = state.visibility;
@@ -1193,7 +1356,7 @@
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
         youtubeUrl: youtubePayload.url,
         youtubeId: youtubePayload.id,
-        visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Riêng tư')),
+        visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Công khai')),
         coverKey: state.coverKey || '',
         coverData: state.coverData || '',
         audioKey: state.audioKey || '',
@@ -1313,16 +1476,15 @@
       }
     }
 
-    // After publish: add story to playlist if a playlist name was selected
-    if (published && story && story.id && titleInput && titleInput.value.trim()) {
-      var selectedName = titleInput.value.trim();
+    // After publish: add story to playlist if a playlist was selected
+    if (published && story && story.id && selectedPlaylistId) {
       var PLAYLIST_KEY = 'audiohub-playlists-v1';
       try {
         var plRaw = localStorage.getItem(PLAYLIST_KEY) || '';
         var playlists = plRaw ? JSON.parse(plRaw) : [];
         if (Array.isArray(playlists)) {
           var matchedPl = playlists.find(function (pl) {
-            return pl && pl.name && pl.name.toLowerCase() === selectedName.toLowerCase();
+            return pl && pl.id === selectedPlaylistId;
           });
           if (matchedPl) {
             // Add story to playlist entries if not already there
@@ -1334,7 +1496,7 @@
               entries.push({
                 storyId: story.id,
                 key: story.id,
-                title: story.title || selectedName,
+                title: story.title || '',
                 author: story.author || '',
                 genre: story.genre || '',
                 addedAt: new Date().toISOString()
@@ -1342,38 +1504,38 @@
               matchedPl.entries = entries;
               localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
               syncPlaylistsToStorage();
-              console.log('[upload] Added story to playlist:', matchedPl.name);
+              console.log('[upload] ✅ Added story to playlist:', matchedPl.name, '(' + entries.length + ' entries)');
             }
           }
         }
-      } catch (e) {}
+      } catch (e) { console.warn('[upload] Add to playlist failed:', e); }
     }
 
     // Cover upload is now handled in stories-store.js syncToSupabaseWithRetry callback
     // (runs after Supabase sync provides the real CUID, so cover_data is saved correctly)
 
-    // ── DIRECT COVER UPLOAD: save cover_data to Supabase immediately ──
+    // ── DIRECT COVER UPLOAD: save cover_data to D1 immediately ──
     // This ensures cover is available on all devices, even if sync callback fails
     if (published && story && state.coverData && story.id) {
-      // Poll for cloud ID — syncToSupabaseWithRetry will replace s_ ID with real UUID
+      // Poll for cloud ID — syncToD1 will replace s_ ID with real ID
       var _coverAttempts = 0;
       var _coverPoll = setInterval(function () {
         _coverAttempts++;
         if (_coverAttempts > 20) { clearInterval(_coverPoll); return; } // 10s timeout
-        // Check if story has been synced to cloud (ID changed from s_ to UUID)
+        // Check if story has been synced to cloud (ID changed from s_ to real ID)
         var _stories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
         var _current = (_stories || []).find(function (s) { return s.title === story.title && s.author === story.author; });
         if (_current && _current.id && String(_current.id).indexOf('s_') !== 0) {
           clearInterval(_coverPoll);
-          // Cloud ID available — PATCH cover_data
-          fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(_current.id), {
-            method: 'PATCH',
-            headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cover_data: state.coverData })
+          // Cloud ID available — PUT cover_data to D1
+          fetch('/api/stories/' + encodeURIComponent(_current.id), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: _current.id, cover_data: state.coverData })
           }).then(function (r) {
-            if (r.ok) console.log('[upload] ✅ cover_data DIRECT upload to DB OK for', _current.id);
-            else console.warn('[upload] cover_data DIRECT upload failed:', r.status);
-          }).catch(function (e) { console.warn('[upload] cover_data DIRECT upload error:', e); });
+            if (r.ok) console.log('[upload] ✅ cover_data saved to D1 for', _current.id);
+            else console.warn('[upload] cover_data save failed:', r.status);
+          }).catch(function (e) { console.warn('[upload] cover_data save error:', e); });
         }
       }, 500);
     }

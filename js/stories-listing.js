@@ -216,12 +216,11 @@
       if (cloudIds.indexOf(storyId) === -1) cloudIds.push(storyId);
     });
 
-    // Batch-fetch cover_data from Supabase DB for cloud stories
+    // Batch-fetch cover_data from D1 for cloud stories
     if (cloudIds.length) {
       var idsParam = cloudIds.map(encodeURIComponent).join(',');
-      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=in.(' + idsParam + ')&select=id,cover_data', {
-        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie' }
-      }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+      fetch('/api/stories/batch?ids=' + idsParam + '&fields=id,cover_data')
+      .then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
         var coverMap = {};
         (rows || []).forEach(function (r) { if (r.cover_data) coverMap[r.id] = r.cover_data; });
         cloudIds.forEach(function (id) {
@@ -239,15 +238,15 @@
                 }).then(function (blob) {
                   if (!blob || blob.size === 0) return;
                   insertCoverImg(node, URL.createObjectURL(blob));
-                  // Save to DB for other devices
+                  // Save to D1 for other devices
                   var reader = new FileReader();
                   reader.onload = function () {
                     var dataUrl = reader.result;
                     if (dataUrl && dataUrl.indexOf('data:image') === 0) {
-                      fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(id), {
-                        method: 'PATCH',
-                        headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cover_data: dataUrl })
+                      fetch('/api/stories/' + encodeURIComponent(id), {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: id, cover_data: dataUrl })
                       }).catch(function () {});
                     }
                   };
@@ -706,4 +705,25 @@
       if (hasQuery) applyFilter();
     });
   })();
+
+  /* ── Store story context in sessionStorage for detail page fallback ── */
+  document.addEventListener('click', function (e) {
+    var card = e.target.closest('.sc[data-story-id]');
+    if (!card) return;
+    var storyId = card.getAttribute('data-story-id');
+    if (!storyId) return;
+    var titleEl = card.querySelector('.sc__nm');
+    var authorEl = card.querySelector('.sc__author');
+    var title = titleEl ? titleEl.textContent.trim() : '';
+    var author = authorEl ? authorEl.textContent.replace(/^\s*/, '').trim() : '';
+    try {
+      sessionStorage.setItem('audiohub-home-detail-context', JSON.stringify({
+        source: 'home',
+        storyId: storyId,
+        title: title,
+        author: author,
+        savedAt: Date.now()
+      }));
+    } catch (e) {}
+  });
 })();

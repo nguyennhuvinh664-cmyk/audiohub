@@ -20,12 +20,14 @@
     'dam my': '#ec4899', 'hệ thống': '#0f766e', 'he thong': '#0f766e',
     'mạt thế': '#dc2626', 'mat the': '#dc2626', 'linh dị': '#7e22ce',
     'linh di': '#7e22ce', 'ngọt sủng': '#e11d48', 'nữ cường': '#9333ea',
-    'nu cuong': '#9333ea', 'sát thủ': '#991b1b', 'thú nhân': '#065f46'
+    'nu cuong': '#9333ea', 'sát thủ': '#991b1b', 'thú nhân': '#065f46',
+    'khác': '#6366f1'
   };
 
   function genreColor(genre) {
     var key = String(genre || '').trim().toLowerCase();
-    return genreColors[key] || '#334155';
+    if (!key) key = 'khác';
+    return genreColors[key] || '#6366f1';
   }
 
   function makeInitials(title) {
@@ -48,11 +50,15 @@
   var PLAYLISTS_STORAGE_URL = SUPABASE_STORAGE_DIRECT + 'playlists/index.json';
   var PLAYLISTS_LOCAL_KEY = 'audiohub-playlists-v1';
 
-  /** Fetch playlists from Supabase Storage (shared across all users) */
+  /** Fetch playlists from D1 (shared across all users) */
   function fetchPlaylistsFromStorage() {
-    return fetch(PLAYLISTS_STORAGE_URL + '?t=' + Date.now())
+    return fetch('/api/playlists')
       .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (data) { return Array.isArray(data) ? data : []; })
+      .then(function (data) {
+        return (Array.isArray(data) ? data : []).map(function (p) {
+          return { id: p.id, name: p.name, entries: p.items || [], state: p.state || 'ongoing' };
+        });
+      })
       .catch(function () { return []; });
   }
 
@@ -193,10 +199,13 @@
     // 1) Default: genre color gradient
     var color = genreColor(story.genre);
     thumb.style.background = 'linear-gradient(135deg, ' + color + ' 0%, ' + color + 'cc 100%)';
+    thumb.classList.add('has-cover');
 
     // 2) Try coverData (base64) — instant, no network
-    if (story.coverData) {
-      var imgUrl = String(story.coverData);
+    //    Also check cover_data (snake_case from D1 API)
+    var coverRaw = story.coverData || story.cover_data || '';
+    if (coverRaw) {
+      var imgUrl = String(coverRaw);
       if (imgUrl.indexOf('data:image') === 0 || imgUrl.indexOf('http') === 0) {
         applyCoverToThumb(thumb, imgUrl);
       }
@@ -272,8 +281,6 @@
     var coverUrl = '';
     if (coverMap && coverMap[firstStoryId]) {
       coverUrl = coverMap[firstStoryId];
-    } else if (firstStoryId && firstStoryId.length > 10 && firstStoryId.indexOf('s_') !== 0) {
-      coverUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(firstStoryId) + '/cover';
     }
 
     // Embed cover as <img> with data attribute for JS fallback
@@ -354,11 +361,10 @@
       unique.push(id);
     });
     if (!unique.length) return Promise.resolve({});
-    var ids = unique.map(encodeURIComponent).join(',');
-    var url = SUPABASE_DIRECT + '/rest/v1/stories?id=in.(' + ids + ')&select=id,cover_data';
-    return fetch(url, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-    }).then(function (r) { return r.ok ? r.json() : []; })
+    var idsParam = unique.map(encodeURIComponent).join(',');
+    var url = '/api/stories/batch?ids=' + idsParam + '&fields=id,cover_data';
+    return fetch(url)
+      .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         var map = {};
         (rows || []).forEach(function (row) {
@@ -401,9 +407,10 @@
       var score = Number(story.listenCount2d || 0);
       var width = maxScore > 0 ? Math.max(10, Math.round(score * 100 / maxScore)) : 10;
       var rankClass = rank === 1 ? ' gold' : (rank === 2 ? ' silver' : (rank === 3 ? ' bronze' : ''));
+      var color = genreColor(story.genre);
       return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
         + '<span class="trk' + rankClass + '">' + rank + '</span>'
-        + '<div class="tth" data-cover-story-id="' + String(story.id || '') + '">' + makeInitials(story.title) + '</div>'
+        + '<div class="tth" style="background:linear-gradient(135deg,' + color + ',' + color + 'cc)" data-cover-story-id="' + String(story.id || '') + '">' + makeInitials(story.title) + '</div>'
         + '<div class="tin"><p class="tnm">' + String(story.title || 'Truyện mới') + '</p><p class="tmt">' + String(story.genre || 'Khác') + ' • ' + score + ' lượt nghe (2 ngày)</p></div>'
         + '<div class="tbar"><div class="tfill" style="width:' + width + '%"></div></div></a>';
     }).join('');
@@ -509,7 +516,18 @@
         if (key !== '::' && apiKeys[key]) return false;
         return true;
       });
-      return (apiStories || []).concat(localOnly);
+      var merged = (apiStories || []).concat(localOnly);
+      // Dedup by title+author (keep first occurrence = newest from API)
+      var deduped = [];
+      var seenKeys = {};
+      merged.forEach(function (s) {
+        var key = (s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase();
+        if (key === '::') { deduped.push(s); return; }
+        if (seenKeys[key]) return;
+        seenKeys[key] = true;
+        deduped.push(s);
+      });
+      return deduped;
     }).catch(function () {
       return localPublic.length ? localPublic : localStories;
     });
@@ -566,47 +584,40 @@
         + '</div></a>';
     }).join('');
 
-    // Hydrate cover images via Storage URL + <img>
+    // Hydrate cover images via IndexedDB (Supabase Storage no longer used)
     grid.querySelectorAll('[data-cover-story-id]').forEach(function (node) {
       var id = node.getAttribute('data-cover-story-id') || '';
-      if (!id || id.length < 10 || id.indexOf('s_') === 0) return;
+      if (!id || id.length < 10) return;
       node.classList.add('has-cover');
-      applyCoverToThumb(node, SUPABASE_STORAGE_DIRECT + encodeURIComponent(id) + '/cover');
+      // Try IndexedDB for cover
+      if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        window.AudioHubStoryCover.get(id).then(function (blob) {
+          if (blob && blob.size > 0) applyCoverToThumb(node, URL.createObjectURL(blob));
+        }).catch(function () {});
+      }
     });
   }
 
   function renderHomeStories() {
-    // Load playlists from Supabase Storage (shared across all users)
-    loadPlaylists().then(function (playlists) {
-      playlists.sort(function (a, b) {
-        return parseTime(b.createdAt) - parseTime(a.createdAt);
-      });
-
-      // Collect all storyIds from playlist entries
-      var storyIds = [];
-      playlists.forEach(function (pl) {
-        (pl.entries || []).forEach(function (e) {
-          storyIds.push(e.storyId || e.key || '');
-        });
-      });
-
-      // Batch-fetch cover_data from Supabase DB, then render with covers
-      return fetchCoverDataMap(storyIds).then(function (coverMap) {
-        // Render playlists in main grid with covers embedded
-        renderPlaylistCardList(document.querySelector('.cgrid'), playlists.slice(0, 12), coverMap);
-
-        // Render completed playlists (state=done)
-        var completed = playlists.filter(function (pl) { return pl.state === 'done'; });
-        renderCompletedPlaylistsHome(completed);
-      });
-    });
-
-    // Fetch stories from API for trending/popular sections
+    // Fetch stories from API for all sections
     loadStoriesForHome().then(function (stories) {
       var publicStories = stories.filter(function (story) { return isPublicVisibility(story); });
 
+      // Sort newest first for "Truyện Mới Đăng" section
+      var newestStories = publicStories.slice().sort(function (a, b) {
+        return parseTime(b.createdAt || b.updatedAt) - parseTime(a.createdAt || a.updatedAt);
+      });
+
+      // Render newest stories in main grid (Truyện Mới Đăng)
+      renderCardList(document.querySelector('.cgrid'), newestStories.slice(0, 8));
+
+      // Render trending (top by listen count)
       renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
+
+      // Render popular (top by listen count)
       renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
+
+      // Load covers for all cards
       loadHomeCovers();
 
       // Bind search form
@@ -619,6 +630,12 @@
           renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
         });
       }
+    });
+
+    // Load completed playlists separately
+    loadPlaylists().then(function (playlists) {
+      var completed = playlists.filter(function (pl) { return pl.state === 'done'; });
+      renderCompletedPlaylistsHome(completed);
     });
 
     bindHomeGenreDropdown();
@@ -721,12 +738,12 @@
               reader.onload = function () {
                 var dataUrl = reader.result;
                 if (!dataUrl || dataUrl.indexOf('data:image') !== 0) return;
-                fetch('https://oatwyxkzonhjfdzapjyb.supabase.co/rest/v1/stories?id=eq.' + encodeURIComponent(id), {
-                  method: 'PATCH',
-                  headers: { 'apikey': 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Authorization': 'Bearer sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie', 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ cover_data: dataUrl })
+                fetch('/api/stories/' + encodeURIComponent(id), {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: id, cover_data: dataUrl })
                 }).then(function (r) {
-                  if (r.ok) console.log('[self-heal] ✅ cover saved to DB for', id);
+                  if (r.ok) console.log('[self-heal] ✅ cover saved to D1 for', id);
                 }).catch(function () {});
                 Array.prototype.forEach.call(nodes, function (n) {
                   if (!n.querySelector('.sc__cover-img')) applyCoverToThumb(n, dataUrl);
@@ -740,6 +757,27 @@
     }
   }
 
+
+  /* ── Store story context in sessionStorage for detail page fallback ── */
+  document.addEventListener('click', function (e) {
+    var card = e.target.closest('.sc[data-story-id]');
+    if (!card) return;
+    var storyId = card.getAttribute('data-story-id');
+    if (!storyId) return;
+    var titleEl = card.querySelector('.sc__nm');
+    var authorEl = card.querySelector('.sc__author');
+    var title = titleEl ? titleEl.textContent.trim() : '';
+    var author = authorEl ? authorEl.textContent.replace(/^\s*/, '').trim() : '';
+    try {
+      sessionStorage.setItem('audiohub-home-detail-context', JSON.stringify({
+        source: 'home',
+        storyId: storyId,
+        title: title,
+        author: author,
+        savedAt: Date.now()
+      }));
+    } catch (e) {}
+  });
 
   renderHomeStories();
 })();

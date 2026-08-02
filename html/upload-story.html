@@ -76,32 +76,51 @@
                   <h3 class="upload-card__title">Media</h3>
                 </div>
               </div>
-              <div class="upload-media-grid">
-                <label class="upload-dropzone" data-upload-cover>
+              <div class="upload-media-layout">
+                <!-- Ảnh bìa: thumbnail nhỏ bên trái -->
+                <label class="upload-cover-zone" data-upload-cover>
                   <input class="upload-dropzone__input" type="file" accept="image/*" data-upload-cover-input />
-                  <div class="upload-dropzone__icon"><i class="fa-regular fa-image"></i></div>
-                  <strong data-upload-cover-label>Thêm ảnh bìa</strong>
-                  <small data-upload-cover-hint>PNG/JPG • Tối đa 5MB</small>
+                  <div class="upload-cover-zone__preview" data-upload-cover-preview>
+                    <i class="fa-regular fa-image upload-cover-zone__placeholder-icon"></i>
+                  </div>
+                  <div class="upload-cover-zone__info">
+                    <strong data-upload-cover-label>Thêm ảnh bìa</strong>
+                    <small data-upload-cover-hint>PNG/JPG • Tối đa 5MB</small>
+                  </div>
                 </label>
-                <label class="upload-dropzone upload-dropzone--audio" data-upload-audio>
-                  <input class="upload-dropzone__input" type="file" accept="audio/*" data-upload-audio-input />
-                  <div class="upload-dropzone__icon"><i class="fa-solid fa-wave-square"></i></div>
-                  <strong data-upload-audio-label>Thêm file audio demo</strong>
-                  <small data-upload-audio-hint>MP3/WAV • Tối đa 50MB</small>
-                </label>
-                <label class="upload-dropzone" data-upload-reading>
-                  <input class="upload-dropzone__input" type="file" accept=".txt,text/plain,.md,text/markdown" data-upload-reading-input />
-                  <div class="upload-dropzone__icon"><i class="fa-regular fa-file-lines"></i></div>
-                  <strong data-upload-reading-label>Thêm file truyện chữ</strong>
-                  <small data-upload-reading-hint>TXT/MD • Tối đa 2MB</small>
-                </label>
+
+                <!-- Audio + Truyện chữ: bên phải -->
+                <div class="upload-files-stack">
+                  <label class="upload-file-row" data-upload-audio>
+                    <input class="upload-dropzone__input" type="file" accept="audio/*" data-upload-audio-input />
+                    <div class="upload-file-row__icon upload-file-row__icon--audio">
+                      <i class="fa-solid fa-headphones"></i>
+                    </div>
+                    <div class="upload-file-row__info">
+                      <strong data-upload-audio-label>File audio demo</strong>
+                      <small data-upload-audio-hint>MP3/WAV • Tối đa 50MB</small>
+                    </div>
+                    <i class="fa-solid fa-cloud-arrow-up upload-file-row__upload-icon"></i>
+                  </label>
+
+                  <label class="upload-file-row" data-upload-reading>
+                    <input class="upload-dropzone__input" type="file" accept=".txt,text/plain,.md,text/markdown" data-upload-reading-input />
+                    <div class="upload-file-row__icon upload-file-row__icon--reading">
+                      <i class="fa-regular fa-file-lines"></i>
+                    </div>
+                    <div class="upload-file-row__info">
+                      <strong data-upload-reading-label>Truyện chữ</strong>
+                      <small data-upload-reading-hint>TXT/MD • Tối đa 2MB</small>
+                    </div>
+                    <i class="fa-solid fa-cloud-arrow-up upload-file-row__upload-icon"></i>
+                  </label>
+                </div>
               </div>
               <p class="upload-media-note" data-upload-media-note>Chưa có file nào được tải lên.</p>
               <div class="upload-audio-preview is-disabled" data-upload-audio-preview>
                 <div class="upload-audio-preview__head"><span><i class="fa-solid fa-headphones"></i> <span data-upload-audio-preview-name>Chưa chọn file audio</span></span><small data-upload-audio-length>00:00</small></div>
                 <audio class="upload-audio-preview__player" controls preload="metadata" data-upload-audio-player></audio>
               </div>
-              <div class="upload-processing is-hidden" data-upload-processing><span>Đang xử lý...</span><div class="upload-processing__bar"><div class="upload-processing__fill" data-upload-processing-fill></div></div></div>
             </article>
 
             <article class="upload-card">
@@ -132,8 +151,8 @@
           <section class="upload-card upload-sideinfo">
             <h3 class="upload-card__title">Quyền hiển thị</h3>
             <div class="upload-visibility-list">
-              <button type="button" class="upload-visibility" data-upload-visibility-option="Công khai"><strong>Công khai</strong><small>Hiển thị trên trang chủ và danh mục.</small></button>
-              <button type="button" class="upload-visibility is-active" data-upload-visibility-option="Riêng tư"><strong>Riêng tư</strong><small>Chỉ mình bạn nhìn thấy bản nháp này.</small></button>
+              <button type="button" class="upload-visibility is-active" data-upload-visibility-option="Công khai"><strong>Công khai</strong><small>Hiển thị trên trang chủ và danh mục.</small></button>
+              <button type="button" class="upload-visibility" data-upload-visibility-option="Riêng tư"><strong>Riêng tư</strong><small>Chỉ mình bạn nhìn thấy bản nháp này.</small></button>
               <button type="button" class="upload-visibility" data-upload-visibility-option="Không công khai"><strong>Không công khai</strong><small>Đặc quyền hội viên: chỉ hội viên mới xem được.</small></button>
             </div>
             <p>AudioHub Studio sẽ lưu trạng thái để bạn chỉnh sửa tiếp ở lần sau.</p>

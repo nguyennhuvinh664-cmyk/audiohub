@@ -7,8 +7,8 @@
     if (configured) {
       return configured;
     }
-    // Use relative URL to go through Cloudflare Pages proxy (avoids CORS)
-    return '/api/v1';
+    // Cloudflare Pages Functions are at /api/ (not /api/v1)
+    return '/api';
   }
 
   function setBaseUrl(baseUrl) {
@@ -93,7 +93,8 @@
           var message = (json && json.message) ? json.message : ('Request failed: ' + res.status);
           throw new Error(message);
         }
-        return json.data;
+        // Support both wrapped {data: [...]} and direct array/object responses
+        return (json && typeof json === 'object' && !Array.isArray(json) && 'data' in json) ? json.data : json;
       });
     }).catch(function (error) {
       if (error && error.message === 'Failed to fetch') {
