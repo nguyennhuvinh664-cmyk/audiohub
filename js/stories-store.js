@@ -1094,8 +1094,8 @@
             visibility: story.visibility, audioStatus: story.audioStatus,
             coverData: story.coverData, coverKey: story.coverKey, audioKey: story.audioKey,
             youtubeUrl: story.youtubeUrl, youtubeId: story.youtubeId,
-            createdAt: created.createdAt || story.createdAt,
-            updatedAt: created.updatedAt || new Date().toISOString()
+            createdAt: created.createdAt || created.created_at || story.createdAt,
+            updatedAt: created.updatedAt || created.updated_at || new Date().toISOString()
           });
           return { oldId: story.id, newId: created.id, title: story.title, ok: true };
         }
@@ -1250,8 +1250,8 @@
             audioKey: story.audioKey,
             youtubeUrl: story.youtubeUrl,
             youtubeId: story.youtubeId,
-            createdAt: created.createdAt || story.createdAt,
-            updatedAt: created.updatedAt || new Date().toISOString()
+            createdAt: created.createdAt || created.created_at || story.createdAt,
+            updatedAt: created.updatedAt || created.updated_at || new Date().toISOString()
           });
         }).catch(function () {
           delete _syncingStories[story.id];
