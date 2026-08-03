@@ -2332,6 +2332,25 @@
 
     function renderReadingText() {
       var chapterCopy = document.querySelector('[data-chapter-copy]');
+      // Debug: check what's actually in the DOM
+      if (!chapterCopy) {
+        var _pc2 = document.getElementById('page-content');
+        var _allDC = document.querySelectorAll('[data-chapter-copy]');
+        var _allCC = document.querySelectorAll('.chapter-copy');
+        console.log('[story-detail] renderReadingText DEBUG: pageContent:', !!_pc2, 'innerHTML:', _pc2 ? _pc2.innerHTML.length : 0, 'all[data-chapter-copy]:', _allDC.length, 'all.chapter-copy:', _allCC.length);
+        if (_pc2) {
+          // Find the reading section
+          var _readingSection = _pc2.querySelector('.chapter-reading');
+          console.log('[story-detail] renderReadingText DEBUG: .chapter-reading:', !!_readingSection, 'innerHTML:', _readingSection ? _readingSection.innerHTML.substring(0, 200) : 'NONE');
+        }
+        // Also try alternative selectors
+        var _alt = document.querySelector('#page-content [data-chapter-copy]');
+        console.log('[story-detail] renderReadingText DEBUG: #page-content [data-chapter-copy]:', !!_alt);
+        var _alt2 = document.querySelector('.chapter-reading [data-chapter-copy]');
+        console.log('[story-detail] renderReadingText DEBUG: .chapter-reading [data-chapter-copy]:', !!_alt2);
+        var _alt3 = document.querySelector('article[data-detail-story] [data-chapter-copy]');
+        console.log('[story-detail] renderReadingText DEBUG: article[data-detail-story] [data-chapter-copy]:', !!_alt3);
+      }
       if (chapterCopy && readingContent) {
         var cleanedText = cleanReadingText(readingContent);
         var blocks = String(cleanedText).split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
