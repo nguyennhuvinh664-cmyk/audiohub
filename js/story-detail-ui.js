@@ -130,7 +130,10 @@
       : '';
 
     var body = String(story && story.description || '').replace(/#[\p{L}\p{N}_-]+/gu, '').replace(/\n{3,}/g, '\n\n').trim();
-    return '<h2>Giới thiệu truyện</h2>' + hashtagsBlock + '<p>' + body.replace(/\n/g, '</p><p>') + '</p>';
+    // Don't render body if it's just the placeholder text "Giới thiệu truyện"
+    var isPlaceholder = /^gi[ỉi] thi[ệe]u truy[ệe]n$/i.test(body);
+    var bodyHtml = body && !isPlaceholder ? '<p>' + body.replace(/\n/g, '</p><p>') + '</p>' : '';
+    return '<h2>Giới thiệu truyện</h2>' + hashtagsBlock + bodyHtml;
   }
 
   function getQueryParam(name) {
@@ -713,20 +716,25 @@
 
     var chapterCopy = document.querySelector('.chapter-copy');
     var readingContent = story.readingText || story.description || '';
-    if (chapterCopy && readingContent) {
-      var cleanedText = cleanReadingText(readingContent);
-      var blocks = String(cleanedText).split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
-      chapterCopy.innerHTML = blocks.length
-        ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
-        : '';
-    } else if (readingContent) {
-      // DOM not ready yet — retry after paint
+    function renderReadingText() {
+      var cc = document.querySelector('.chapter-copy');
+      if (cc && readingContent) {
+        var ct = cleanReadingText(readingContent);
+        var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+        cc.innerHTML = bl.length ? bl.map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('') : '';
+        return true;
+      }
+      return false;
+    }
+    if (!renderReadingText()) {
+      // DOM not ready — retry with increasing delays
       requestAnimationFrame(function () {
-        var cc = document.querySelector('.chapter-copy');
-        if (cc && readingContent) {
-          var ct = cleanReadingText(readingContent);
-          var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
-          cc.innerHTML = bl.length ? bl.map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('') : '';
+        if (!renderReadingText()) {
+          setTimeout(function () {
+            if (!renderReadingText()) {
+              setTimeout(renderReadingText, 300);
+            }
+          }, 100);
         }
       });
     }
@@ -2478,29 +2486,53 @@
           }).catch(function () {});
         }
       }
-    } else if (storyId && !isSyntheticStoryId(storyId)) {
-      // Cache miss — try Supabase first (faster), then fall back to Render API
-      if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
-        fetchStoryFromSupabase(storyId).then(function (apiStory) {
-          if (apiStory && apiStory.id) {
-            bindStoryData(apiStory);
-          } else {
-            // Supabase miss — try Render API
-            fetchStoryFromApi(storyId).then(function (fallbackStory) {
-              if (fallbackStory && fallbackStory.id) {
-                bindStoryData(fallbackStory);
-              }
-            });
-          }
-        });
-      } else {
-        // No Supabase — use Render API directly
-        fetchStoryFromApi(storyId).then(function (apiStory) {
-          if (apiStory && apiStory.id) {
-            bindStoryData(apiStory);
-          }
-        });
+    } else if (storyId) {
+      // Cache miss — fetch from API (works for both s_* and CUID stories)
+      function handleCacheMissStory(apiStory) {
+        if (!apiStory || !apiStory.id) return;
+        bindStoryData(apiStory);
       }
+
+      if (!isSyntheticStoryId(storyId)) {
+        // CUID — try Supabase first (faster), then fall back to Cloudflare API
+        if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+          fetchStoryFromSupabase(storyId).then(function (apiStory) {
+            if (apiStory && apiStory.id) {
+              handleCacheMissStory(apiStory);
+            } else {
+              fetchStoryFromApi(storyId).then(handleCacheMissStory).catch(function () {});
+            }
+          });
+          return;
+        }
+      }
+
+      // s_* stories or Supabase miss — fetch from Cloudflare API
+      // For s_* IDs, also try title-matching from public stories list
+      fetchStoryFromApi(storyId).then(function (apiStory) {
+        if (apiStory && apiStory.id) {
+          handleCacheMissStory(apiStory);
+        } else if (isSyntheticStoryId(storyId)) {
+          // s_* story not found by ID in D1 — try finding by title from public stories
+          var fetchPublic = (window.AudioHubApi && typeof window.AudioHubApi.request === 'function')
+            ? window.AudioHubApi.request('/stories/public', { method: 'GET' })
+            : Promise.resolve([]);
+          fetchPublic.then(function (stories) {
+            if (!stories || !stories.length) return null;
+            var storyTitle = getQueryParam('title') || '';
+            // Also try DOM title
+            var titleNode = document.querySelector('.detail-title');
+            if (!storyTitle && titleNode) storyTitle = titleNode.textContent || '';
+            if (!storyTitle) return null;
+            var needle = normalizeLookup(storyTitle);
+            var match = stories.find(function (s) { return s && s.id && normalizeLookup(s.title) === needle; });
+            if (match && match.id) return fetchStoryFromApi(String(match.id));
+            return null;
+          }).then(function (apiStory) {
+            if (apiStory && apiStory.id) handleCacheMissStory(apiStory);
+          }).catch(function () {});
+        }
+      }).catch(function () {});
     }
 
     // STEP 2.5: If audioKey is IndexedDB key (a_*), re-upload to Supabase Storage + Render backend
