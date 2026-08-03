@@ -2717,6 +2717,7 @@
       if (readingAutoscrollButton) readingAutoscrollButton.classList.remove('is-active');
     }
 
+    var _autoScrollRemainder = 0;
     function runReadingAutoScroll(timestamp) {
       if (!readingAutoScrollActive || !chapterCopyNode) {
         readingAutoScrollRaf = 0;
@@ -2726,9 +2727,14 @@
       var delta = (timestamp - readingAutoScrollLastTime) / 1000;
       readingAutoScrollLastTime = timestamp;
       var speed = readingAutoScrollPxPerSecond * readingAutoScrollSpeed;
-      var distance = speed * Math.max(0, delta);
-      chapterCopyNode.scrollTop += Math.max(0.9, distance);
+      var distance = speed * delta + _autoScrollRemainder;
+      var px = Math.floor(distance);
+      _autoScrollRemainder = distance - px;
+      if (px >= 1) {
+        chapterCopyNode.scrollBy({ top: px, behavior: 'smooth' });
+      }
       if (chapterCopyNode.scrollTop + chapterCopyNode.clientHeight >= chapterCopyNode.scrollHeight - 1) {
+        _autoScrollRemainder = 0;
         stopReadingAutoScroll();
         return;
       }
@@ -2739,6 +2745,7 @@
       if (!chapterCopyNode || readingAutoScrollActive) return;
       readingAutoScrollActive = true;
       readingAutoScrollLastTime = 0;
+      _autoScrollRemainder = 0;
       if (readingAutoscrollButton) readingAutoscrollButton.classList.add('is-active');
       readingAutoScrollRaf = window.requestAnimationFrame(runReadingAutoScroll);
     }
@@ -2806,6 +2813,7 @@
       var speed = Number(multiplier);
       if (isNaN(speed) || speed < 1) speed = 1;
       readingAutoScrollSpeed = speed;
+      _autoScrollRemainder = 0;
       readingAutoscrollSpeedButtons.forEach(function (button) {
         button.classList.toggle('is-active', Number(button.getAttribute('data-reading-autoscroll-speed')) === speed);
       });
