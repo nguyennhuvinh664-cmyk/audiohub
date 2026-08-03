@@ -3597,6 +3597,45 @@
   if (window.AudioHubStories && typeof window.AudioHubStories.sync === 'function') {
     window.AudioHubStories.sync();
   }
+
+  // ── Reading text toggle: use MutationObserver to catch [data-chapter-copy] ──
+  // querySelector('.chapter-copy') and querySelector('[data-chapter-copy]) both
+  // intermittently return null in SPA context. Observer is bulletproof.
+  function trySetupReadingToggle() {
+    var cc = document.querySelector('[data-chapter-copy]');
+    if (cc && !cc.querySelector('.chapter-copy__toggle') && cc.textContent.length > 800) {
+      setupReadingTextToggle(cc);
+    }
+  }
+
+  // Observer: watch for [data-chapter-copy] being added to DOM
+  var _readingObserver = new MutationObserver(function (mutations) {
+    for (var i = 0; i < mutations.length; i++) {
+      var added = mutations[i].addedNodes;
+      for (var j = 0; j < added.length; j++) {
+        var node = added[j];
+        if (node.nodeType !== 1) continue;
+        if (node.matches && node.matches('[data-chapter-copy]')) {
+          trySetupReadingToggle();
+          return;
+        }
+        if (node.querySelector && node.querySelector('[data-chapter-copy]')) {
+          trySetupReadingToggle();
+          return;
+        }
+      }
+    }
+  });
+  _readingObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Also try on spa:navigated event
+  document.addEventListener('spa:navigated', function () {
+    setTimeout(trySetupReadingToggle, 100);
+    setTimeout(trySetupReadingToggle, 300);
+  });
+
+  // Initial try (for hard reload)
+  trySetupReadingToggle();
 })();
 
 
