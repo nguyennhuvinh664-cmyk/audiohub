@@ -716,18 +716,22 @@
 
     var chapterCopy = document.querySelector('.chapter-copy');
     var readingContent = story.readingText || story.description || '';
+    console.log('[story-detail] reading render: chapterCopy:', !!chapterCopy, 'readingContent:', readingContent ? readingContent.length + ' chars' : 'EMPTY');
     function renderReadingText() {
       var cc = document.querySelector('.chapter-copy');
       if (cc && readingContent) {
         var ct = cleanReadingText(readingContent);
         var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
         cc.innerHTML = bl.length ? bl.map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('') : '';
+        console.log('[story-detail] reading render: OK, paragraphs:', bl.length);
         return true;
       }
+      console.log('[story-detail] reading render: FAIL, cc:', !!cc, 'content:', readingContent ? readingContent.length : 0);
       return false;
     }
     if (!renderReadingText()) {
       // DOM not ready — retry with increasing delays
+      console.log('[story-detail] reading render: retrying...');
       requestAnimationFrame(function () {
         if (!renderReadingText()) {
           setTimeout(function () {
