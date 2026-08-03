@@ -3599,11 +3599,11 @@
   }
 
   // ── Reading text toggle: use MutationObserver to catch [data-chapter-copy] ──
-  // querySelector('.chapter-copy') and querySelector('[data-chapter-copy]) both
-  // intermittently return null in SPA context. Observer is bulletproof.
   function trySetupReadingToggle() {
     var cc = document.querySelector('[data-chapter-copy]');
+    console.log('[story-detail] trySetupReadingToggle: cc:', !!cc, 'textContent.length:', cc ? cc.textContent.length : 0, 'hasToggle:', cc ? !!cc.querySelector('.chapter-copy__toggle') : false);
     if (cc && !cc.querySelector('.chapter-copy__toggle') && cc.textContent.length > 800) {
+      console.log('[story-detail] trySetupReadingToggle: CALLING setupReadingTextToggle');
       setupReadingTextToggle(cc);
     }
   }
@@ -3615,11 +3615,11 @@
       for (var j = 0; j < added.length; j++) {
         var node = added[j];
         if (node.nodeType !== 1) continue;
-        if (node.matches && node.matches('[data-chapter-copy]')) {
-          trySetupReadingToggle();
-          return;
-        }
-        if (node.querySelector && node.querySelector('[data-chapter-copy]')) {
+        var found = false;
+        if (node.matches && node.matches('[data-chapter-copy]')) found = true;
+        if (!found && node.querySelector && node.querySelector('[data-chapter-copy]')) found = true;
+        if (found) {
+          console.log('[story-detail] MutationObserver: found [data-chapter-copy] in added node');
           trySetupReadingToggle();
           return;
         }
@@ -3627,14 +3627,17 @@
     }
   });
   _readingObserver.observe(document.body, { childList: true, subtree: true });
+  console.log('[story-detail] MutationObserver installed on document.body');
 
   // Also try on spa:navigated event
   document.addEventListener('spa:navigated', function () {
+    console.log('[story-detail] spa:navigated event fired');
     setTimeout(trySetupReadingToggle, 100);
     setTimeout(trySetupReadingToggle, 300);
   });
 
   // Initial try (for hard reload)
+  console.log('[story-detail] Initial trySetupReadingToggle');
   trySetupReadingToggle();
 })();
 
