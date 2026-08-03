@@ -1248,7 +1248,8 @@
           }
 
           var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
-          removeLocalStory(story.id); // Remove old s_ entry
+          var oldStoryId = story.id;
+          removeLocalStory(oldStoryId); // Remove old s_ entry
           upsertLocalStory({
             id: created.id,
             title: story.title,
@@ -1270,6 +1271,32 @@
             createdAt: created.createdAt || created.created_at || story.createdAt,
             updatedAt: created.updatedAt || created.updated_at || new Date().toISOString()
           });
+
+          // ── Update playlist entries: replace old s_ ID with real CUID ──
+          try {
+            var _plKey = 'audiohub-playlists-v1';
+            var _plRaw = localStorage.getItem(_plKey) || '';
+            var _playlists = _plRaw ? JSON.parse(_plRaw) : [];
+            if (Array.isArray(_playlists)) {
+              var _plChanged = false;
+              _playlists.forEach(function (pl) {
+                if (!pl || !Array.isArray(pl.entries)) return;
+                pl.entries.forEach(function (entry) {
+                  if (String(entry.key || '') === String(oldStoryId)) {
+                    entry.key = created.id;
+                    if (entry.href) {
+                      entry.href = entry.href.replace('id=' + encodeURIComponent(oldStoryId), 'id=' + encodeURIComponent(created.id));
+                    }
+                    _plChanged = true;
+                  }
+                });
+              });
+              if (_plChanged) {
+                localStorage.setItem(_plKey, JSON.stringify(_playlists));
+                console.log('[sync] ✅ playlist entries updated:', oldStoryId, '→', created.id);
+              }
+            }
+          } catch (e) { console.warn('[sync] playlist entry update failed:', e); }
         }).catch(function () {
           delete _syncingStories[story.id];
         });
