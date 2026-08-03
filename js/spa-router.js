@@ -76,7 +76,7 @@
   var PAGE_JS = {
     'index.html':           ['story-filters', 'stories-home'],
     'account.html':         ['stories-cover-store', 'stories-audio-store', 'library-state', 'stories-account', 'content-search'],
-    'story-detail.html':    ['library-state', 'stories-cover-store', 'stories-audio-store', 'story-detail-ui'],
+    'story-detail.html':    ['stories-store', 'library-state', 'stories-cover-store', 'stories-audio-store', 'story-detail-ui'],
     'categories.html':      ['categories'],
     'new-posts.html':       ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],
     'popular.html':         ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],

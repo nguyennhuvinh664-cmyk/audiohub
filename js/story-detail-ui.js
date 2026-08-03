@@ -2488,9 +2488,32 @@
       }
     } else if (storyId) {
       // Cache miss — fetch from API (works for both s_* and CUID stories)
+      console.log('[story-detail] Cache miss for storyId:', storyId);
       function handleCacheMissStory(apiStory) {
         if (!apiStory || !apiStory.id) return;
+        console.log('[story-detail] Cache miss: bindStoryData', apiStory.id, 'desc:', apiStory.description ? apiStory.description.length + ' chars' : 'NONE', 'reading:', apiStory.readingText || apiStory.reading_text ? 'YES' : 'NO');
         bindStoryData(apiStory);
+      }
+
+      // Try to resolve story title from multiple sources for title-matching
+      function getStoryTitle() {
+        var title = getQueryParam('title') || '';
+        if (title) return title;
+        // Try DOM
+        var titleNode = document.querySelector('.detail-title');
+        if (titleNode && titleNode.textContent.trim()) return titleNode.textContent.trim();
+        // Try sessionStorage home context
+        try {
+          var ctx = JSON.parse(window.sessionStorage.getItem('audiohub-home-detail-context') || 'null');
+          if (ctx && ctx.title) return ctx.title;
+        } catch (e) {}
+        // Try localStorage stories — find by s_ ID
+        if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+          var allStories = window.AudioHubStories.read() || [];
+          var match = allStories.find(function (s) { return s && s.id === storyId; });
+          if (match && match.title) return match.title;
+        }
+        return '';
       }
 
       if (!isSyntheticStoryId(storyId)) {
@@ -2514,18 +2537,18 @@
           handleCacheMissStory(apiStory);
         } else if (isSyntheticStoryId(storyId)) {
           // s_* story not found by ID in D1 — try finding by title from public stories
+          console.log('[story-detail] Cache miss: s_* not found by ID, trying title match');
           var fetchPublic = (window.AudioHubApi && typeof window.AudioHubApi.request === 'function')
             ? window.AudioHubApi.request('/stories/public', { method: 'GET' })
             : Promise.resolve([]);
           fetchPublic.then(function (stories) {
             if (!stories || !stories.length) return null;
-            var storyTitle = getQueryParam('title') || '';
-            // Also try DOM title
-            var titleNode = document.querySelector('.detail-title');
-            if (!storyTitle && titleNode) storyTitle = titleNode.textContent || '';
+            var storyTitle = getStoryTitle();
+            console.log('[story-detail] Cache miss: title for matching:', storyTitle || '(empty)');
             if (!storyTitle) return null;
             var needle = normalizeLookup(storyTitle);
             var match = stories.find(function (s) { return s && s.id && normalizeLookup(s.title) === needle; });
+            console.log('[story-detail] Cache miss: title match:', match ? match.id : 'NONE');
             if (match && match.id) return fetchStoryFromApi(String(match.id));
             return null;
           }).then(function (apiStory) {
