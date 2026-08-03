@@ -3096,7 +3096,12 @@
         }
         stateNode.classList.toggle('is-paused', !playerState.playing);
       }
-      if (playIcon) playIcon.className = playerState.playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+      // Query fresh each time — playIcon ref may be stale after DOM swap
+      var livePlayIcon = (playButton || document.querySelector('[data-player-toggle]'));
+      if (livePlayIcon) {
+        var iconEl = livePlayIcon.querySelector('i');
+        if (iconEl) iconEl.className = playerState.playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+      }
       if (progressFill) progressFill.style.width = playerState.progress + '%';
       if (progressThumb) progressThumb.style.left = playerState.progress + '%';
       if (progressText) progressText.textContent = 'Tiếp tục từ ' + playerState.progress + '%';
