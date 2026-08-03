@@ -574,6 +574,31 @@
     copy.appendChild(toggle);
   }
 
+  function setupReadingTextToggle(chapterCopy) {
+    if (!chapterCopy || chapterCopy.querySelector('.chapter-copy__toggle')) return;
+    // Only add toggle if content is long enough to warrant collapsing
+    if (chapterCopy.textContent.length < 800) return;
+
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'chapter-copy__toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.textContent = 'Xem thêm';
+    toggle.addEventListener('click', function () {
+      var expanded = chapterCopy.classList.toggle('is-expanded');
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      toggle.textContent = expanded ? 'Thu gọn' : 'Xem thêm';
+      if (expanded) {
+        chapterCopy.style.maxHeight = 'none';
+        chapterCopy.style.overflow = 'visible';
+      } else {
+        chapterCopy.style.maxHeight = '';
+        chapterCopy.style.overflow = '';
+      }
+    });
+    chapterCopy.parentNode.insertBefore(toggle, chapterCopy.nextSibling);
+  }
+
   function initStoryDetailFromStore(storyId) {
     var storyNode = document.querySelector('[data-detail-story]');
     if (!storyNode) return null;

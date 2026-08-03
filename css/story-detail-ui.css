@@ -692,7 +692,12 @@
 .reading-group--actions .is-active { background: rgba(6,182,212,.1); color: var(--sd-accent); }
 
 /* ═══ CHAPTER ═══ */
-.chapter-copy { font-size: 16px; line-height: 1.9; color: #d1d5db; background: var(--sd-surface); max-height: 400px; overflow-y: auto; padding: 20px; border-radius: var(--sd-r); border: 1px solid var(--sd-border); }
+.chapter-copy { font-size: 16px; line-height: 1.9; color: #d1d5db; background: var(--sd-surface); padding: 20px; border-radius: var(--sd-r); border: 1px solid var(--sd-border); position: relative; }
+.chapter-copy:not(.is-expanded):not(.reading-fullscreen) { max-height: 400px; overflow: hidden; }
+.chapter-copy:not(.is-expanded):not(.reading-fullscreen)::after { content: ''; position: absolute; inset: auto 0 0 0; height: 60px; background: linear-gradient(180deg, rgba(18, 24, 37, 0), rgba(28, 35, 50, 1)); pointer-events: none; }
+.chapter-copy.is-expanded { max-height: none; }
+.chapter-copy__toggle { display: inline-flex; align-items: center; justify-content: center; margin-top: 8px; padding: 9px 14px; border: 0; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+.chapter-copy__toggle:hover { background: rgba(245, 158, 11, 0.2); }
 .chapter-copy::-webkit-scrollbar { width: 4px; }
 .chapter-copy::-webkit-scrollbar-track { background: transparent; }
 .chapter-copy::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
@@ -981,7 +986,7 @@
   /* Popover stays anchored to gear icon on desktop */
   .reading-toolbar__row { display: grid; grid-template-columns: repeat(2, 1fr); }
   .reading-toolbar__row.is-open { display: grid; }
-  .chapter-copy { max-height: 520px; }
+  .chapter-copy:not(.is-expanded):not(.reading-fullscreen) { max-height: 520px; }
   .detail-copy { max-height: 420px; }
   .auth-required-modal { align-items: center; padding: 16px; }
   .auth-required-modal__panel { width: min(480px, 100%); border-radius: 24px; padding: 28px 24px; }
