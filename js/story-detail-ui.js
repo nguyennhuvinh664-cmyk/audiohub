@@ -719,6 +719,16 @@
       chapterCopy.innerHTML = blocks.length
         ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
         : '';
+    } else if (readingContent) {
+      // DOM not ready yet — retry after paint
+      requestAnimationFrame(function () {
+        var cc = document.querySelector('.chapter-copy');
+        if (cc && readingContent) {
+          var ct = cleanReadingText(readingContent);
+          var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+          cc.innerHTML = bl.length ? bl.map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('') : '';
+        }
+      });
     }
 
     var chapterTitle = story.chapterTitle || 'Chương 1';
@@ -2301,18 +2311,28 @@
     if (mobileListens) mobileListens.textContent = story.listenCount || 0;
 
     // Reading text — render to chapter-copy div (needed when story comes from API via mergeAndRender or cache miss)
-    var chapterCopy = document.querySelector('.chapter-copy');
     var readingContent = story.readingText || story.reading_text || story.description || '';
-    console.log('[story-detail] bindStoryData readingText:', readingContent ? readingContent.length + ' chars' : 'EMPTY', 'story.readingText:', !!story.readingText, 'story.reading_text:', !!story.reading_text, 'story.description:', !!story.description);
-    if (chapterCopy && readingContent) {
-      var cleanedText = cleanReadingText(readingContent);
-      var blocks = String(cleanedText).split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
-      console.log('[story-detail] cleanedText blocks:', blocks.length);
-      chapterCopy.innerHTML = blocks.length
-        ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
-        : '';
-    } else {
-      console.log('[story-detail] chapterCopy:', !!chapterCopy, 'readingContent:', readingContent ? 'has content' : 'EMPTY');
+
+    function renderReadingText() {
+      var chapterCopy = document.querySelector('.chapter-copy');
+      if (chapterCopy && readingContent) {
+        var cleanedText = cleanReadingText(readingContent);
+        var blocks = String(cleanedText).split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+        chapterCopy.innerHTML = blocks.length
+          ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
+          : '';
+        return true;
+      }
+      return false;
+    }
+
+    // Try immediately, retry after DOM settles (SPA timing)
+    if (!renderReadingText()) {
+      requestAnimationFrame(function () {
+        if (!renderReadingText()) {
+          setTimeout(renderReadingText, 100);
+        }
+      });
     }
 
     renderStoryMeta(detailStoryNode, story);
