@@ -579,22 +579,19 @@
     // Only add toggle if content is long enough to warrant collapsing
     if (chapterCopy.textContent.length < 800) return;
 
+    // Start collapsed
+    chapterCopy.classList.add('collapsed');
+
     var toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'chapter-copy__toggle';
     toggle.setAttribute('aria-expanded', 'false');
     toggle.textContent = 'Xem thêm';
     toggle.addEventListener('click', function () {
-      var expanded = chapterCopy.classList.toggle('is-expanded');
-      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-      toggle.textContent = expanded ? 'Thu gọn' : 'Xem thêm';
-      if (expanded) {
-        chapterCopy.style.maxHeight = 'none';
-        chapterCopy.style.overflow = 'visible';
-      } else {
-        chapterCopy.style.maxHeight = '';
-        chapterCopy.style.overflow = '';
-      }
+      chapterCopy.classList.toggle('collapsed');
+      var isCollapsed = chapterCopy.classList.contains('collapsed');
+      toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+      toggle.textContent = isCollapsed ? 'Xem thêm' : 'Thu gọn';
     });
     chapterCopy.parentNode.insertBefore(toggle, chapterCopy.nextSibling);
   }
@@ -771,6 +768,12 @@
           }, 100);
         }
       });
+    }
+
+    // Setup collapse toggle for long reading text
+    var _ccForToggle = document.querySelector('[data-chapter-copy]');
+    if (_ccForToggle && readingContent && readingContent.length > 800) {
+      setupReadingTextToggle(_ccForToggle);
     }
 
     var chapterTitle = story.chapterTitle || 'Chương 1';
@@ -2394,6 +2397,12 @@
           setTimeout(renderReadingText, 100);
         }
       });
+    }
+
+    // Setup collapse toggle for long reading text (in bindStoryData for cache-miss/API path)
+    var _ccForToggle2 = document.querySelector('[data-chapter-copy]');
+    if (_ccForToggle2 && readingContent && readingContent.length > 800) {
+      setupReadingTextToggle(_ccForToggle2);
     }
 
     renderStoryMeta(detailStoryNode, story);

@@ -243,24 +243,20 @@
     font-size: 0.82rem;
   }
 
-  /* Reading text collapse/expand toggle */
-  .chapter-copy:not(.is-expanded) {
+  /* Reading text collapse/expand toggle — mobile */
+  .chapter-copy.collapsed {
     max-height: 260px;
     overflow: hidden;
     position: relative;
   }
 
-  .chapter-copy:not(.is-expanded)::after {
+  .chapter-copy.collapsed::after {
     content: '';
     position: absolute;
     inset: auto 0 0 0;
     height: 60px;
     background: linear-gradient(180deg, rgba(18, 24, 37, 0), rgba(18, 24, 37, 1));
     pointer-events: none;
-  }
-
-  .chapter-copy.is-expanded {
-    max-height: none;
   }
 
   .chapter-copy__toggle {
