@@ -1644,7 +1644,7 @@
       var chapterMatches = String(currentStory.readingText).match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter)\s+\d+/gim);
       if (chapterMatches) total = chapterMatches.length;
     }
-    if (!total) total = 4; // Minimum for demo
+    // No demo fallback — show empty if no chapters data
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
     var chapterTitleFallback = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
 
