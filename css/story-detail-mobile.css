@@ -243,35 +243,8 @@
     font-size: 0.82rem;
   }
 
-  /* Reading text collapse/expand toggle — mobile */
-  .chapter-copy.collapsed {
-    max-height: 260px;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .chapter-copy.collapsed::after {
-    content: '';
-    position: absolute;
-    inset: auto 0 0 0;
-    height: 60px;
-    background: linear-gradient(180deg, rgba(18, 24, 37, 0), rgba(18, 24, 37, 1));
-    pointer-events: none;
-  }
-
-  .chapter-copy__toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 6px;
-    padding: 9px 12px;
-    border: 0;
-    border-radius: 999px;
-    background: rgba(245, 158, 11, 0.12);
-    color: #fbbf24;
-    font-weight: 700;
-    font-size: 0.82rem;
-  }
+  /* Reading text — mobile: scrollable with max-height */
+  .chapter-copy { max-height: 60vh; overflow-y: auto; }
 
   .sd-player {
     display: flex;

@@ -574,28 +574,6 @@
     copy.appendChild(toggle);
   }
 
-  function setupReadingTextToggle(chapterCopy) {
-    if (!chapterCopy || chapterCopy.querySelector('.chapter-copy__toggle')) return;
-    // Only add toggle if content is long enough to warrant collapsing
-    if (chapterCopy.textContent.length < 800) return;
-
-    // Start collapsed
-    chapterCopy.classList.add('collapsed');
-
-    var toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'chapter-copy__toggle';
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.textContent = 'Xem thêm';
-    toggle.addEventListener('click', function () {
-      chapterCopy.classList.toggle('collapsed');
-      var isCollapsed = chapterCopy.classList.contains('collapsed');
-      toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-      toggle.textContent = isCollapsed ? 'Xem thêm' : 'Thu gọn';
-    });
-    chapterCopy.parentNode.insertBefore(toggle, chapterCopy.nextSibling);
-  }
-
   function initStoryDetailFromStore(storyId) {
     var storyNode = document.querySelector('[data-detail-story]');
     if (!storyNode) return null;
@@ -768,12 +746,6 @@
           }, 100);
         }
       });
-    }
-
-    // Setup collapse toggle for long reading text
-    var _ccForToggle = document.querySelector('[data-chapter-copy]');
-    if (_ccForToggle && readingContent && readingContent.length > 800) {
-      setupReadingTextToggle(_ccForToggle);
     }
 
     var chapterTitle = story.chapterTitle || 'Chương 1';
@@ -2399,12 +2371,6 @@
       });
     }
 
-    // Setup collapse toggle for long reading text (in bindStoryData for cache-miss/API path)
-    var _ccForToggle2 = document.querySelector('[data-chapter-copy]');
-    if (_ccForToggle2 && readingContent && readingContent.length > 800) {
-      setupReadingTextToggle(_ccForToggle2);
-    }
-
     renderStoryMeta(detailStoryNode, story);
     bindStoryCover(story);
     bindStoryAudio(story);
@@ -3598,47 +3564,6 @@
     window.AudioHubStories.sync();
   }
 
-  // ── Reading text toggle: use MutationObserver to catch [data-chapter-copy] ──
-  function trySetupReadingToggle() {
-    var cc = document.querySelector('[data-chapter-copy]');
-    console.log('[story-detail] trySetupReadingToggle: cc:', !!cc, 'textContent.length:', cc ? cc.textContent.length : 0, 'hasToggle:', cc ? !!cc.querySelector('.chapter-copy__toggle') : false);
-    if (cc && !cc.querySelector('.chapter-copy__toggle') && cc.textContent.length > 800) {
-      console.log('[story-detail] trySetupReadingToggle: CALLING setupReadingTextToggle');
-      setupReadingTextToggle(cc);
-    }
-  }
-
-  // Observer: watch for [data-chapter-copy] being added to DOM
-  var _readingObserver = new MutationObserver(function (mutations) {
-    for (var i = 0; i < mutations.length; i++) {
-      var added = mutations[i].addedNodes;
-      for (var j = 0; j < added.length; j++) {
-        var node = added[j];
-        if (node.nodeType !== 1) continue;
-        var found = false;
-        if (node.matches && node.matches('[data-chapter-copy]')) found = true;
-        if (!found && node.querySelector && node.querySelector('[data-chapter-copy]')) found = true;
-        if (found) {
-          console.log('[story-detail] MutationObserver: found [data-chapter-copy] in added node');
-          trySetupReadingToggle();
-          return;
-        }
-      }
-    }
-  });
-  _readingObserver.observe(document.body, { childList: true, subtree: true });
-  console.log('[story-detail] MutationObserver installed on document.body');
-
-  // Also try on spa:navigated event
-  document.addEventListener('spa:navigated', function () {
-    console.log('[story-detail] spa:navigated event fired');
-    setTimeout(trySetupReadingToggle, 100);
-    setTimeout(trySetupReadingToggle, 300);
-  });
-
-  // Initial try (for hard reload)
-  console.log('[story-detail] Initial trySetupReadingToggle');
-  trySetupReadingToggle();
 })();
 
 
