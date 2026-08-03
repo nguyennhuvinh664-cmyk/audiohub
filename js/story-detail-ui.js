@@ -2379,9 +2379,15 @@
 
   function initPlayer() {
     var storyId = resolveStoryId();
+    console.log('[player-debug] initPlayer storyId:', storyId);
 
     // STEP 1: Try localStorage (instant)
     var story = initStoryDetailFromStore(storyId);
+    console.log('[player-debug] localStorage story:', story ? {
+      id: story.id, title: story.title,
+      readingText_len: (story.readingText || '').length,
+      audioKey: story.audioKey || 'EMPTY'
+    } : 'NOT FOUND');
 
     if (story && story.id) {
       // Cache hit — render immediately
@@ -2390,10 +2396,16 @@
       // Always fetch from API in background to get full data (readingText, audioKey, etc.)
       // that may have been stripped from localStorage or never saved
       var needsApiFetch = !story.readingText || !story.audioKey;
+      console.log('[player-debug] needsApiFetch:', needsApiFetch, 'reason:', !story.readingText ? 'no readingText' : 'no audioKey');
       if (needsApiFetch) {
         // Helper: merge API data into local story and re-render
         function mergeAndRender(apiStory) {
           if (!apiStory || !apiStory.id) return;
+          console.log('[player-debug] mergeAndRender API data:', {
+            id: apiStory.id,
+            readingText_len: (apiStory.readingText || apiStory.reading_text || '').length,
+            audioKey: apiStory.audioKey || apiStory.audio_key || 'EMPTY'
+          });
           var merged = Object.assign({}, story);
           var apiReadingText = apiStory.readingText || apiStory.reading_text || '';
           var apiAudioKey = apiStory.audioKey || apiStory.audio_key || '';

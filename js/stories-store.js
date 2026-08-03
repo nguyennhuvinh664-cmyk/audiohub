@@ -1227,6 +1227,15 @@
       audioPromise.then(function (audioInfo) {
         var payload = mapStoryPayload(story);
 
+        console.log('[sync-debug] POST /stories payload:', {
+          id: payload.id, title: payload.title,
+          reading_text_len: (payload.reading_text || '').length,
+          audio_key: payload.audio_key, audio_key_type: typeof payload.audio_key,
+          cover_data_len: (payload.cover_data || '').length,
+          source_readingText: story.readingText ? story.readingText.length + ' chars' : 'EMPTY',
+          source_audioKey: story.audioKey || 'EMPTY'
+        });
+
         window.AudioHubApi.request('/stories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
