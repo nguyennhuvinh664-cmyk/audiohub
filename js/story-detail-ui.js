@@ -1788,15 +1788,15 @@
       if (activeItem) activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }, 100);
 
-    // ── No playlist → hide chapter list entirely ──
+    // ── Always show chapter list (no longer hidden without playlist) ──
     if (!context) {
-      // Hide mobile chapter section
+      // Show mobile chapter section
       var _mobileCh = document.querySelector('.mobile-chapter-list');
-      if (_mobileCh) _mobileCh.style.display = 'none';
-      // Hide desktop: hide ALL parent sections of .chapter-list
+      if (_mobileCh) _mobileCh.style.display = '';
+      // Show desktop chapter sections
       document.querySelectorAll('.chapter-list').forEach(function(cl) {
-        var parent = cl.closest('section') || cl.parentElement;
-        if (parent) parent.style.display = 'none';
+        var parent = cl.closest('section') || cl.closest('.sidebar-panel') || cl.parentElement;
+        if (parent) parent.style.display = '';
       });
       return null;
     }
@@ -2477,6 +2477,11 @@
           if (apiChapters && apiChapters.length) merged.chapters = apiChapters;
           if (apiChapterCount) merged.chapterCount = apiChapterCount;
           bindStoryData(merged);
+          // Re-render chapter list with fresh data
+          try {
+            var _ctx = resolvePlaylistContext(merged.id || '');
+            overrideChapterList(_ctx, merged);
+          } catch (e) {}
           // Also update localStorage so next load is instant
           if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
             window.AudioHubStories.upsert(merged);
@@ -3013,15 +3018,6 @@
 
     var context = resolvePlaylistContext(storyId || '');
     var overrideState = overrideChapterList(context, story);
-    // SAFETY: if no playlist context, ensure chapter list is hidden
-    if (!context) {
-      document.querySelectorAll('.chapter-list').forEach(function(cl) {
-        var sec = cl.closest('section') || cl.parentElement;
-        if (sec) sec.style.display = 'none';
-      });
-      var mobCh = document.querySelector('.mobile-chapter-list');
-      if (mobCh) mobCh.style.display = 'none';
-    }
     // Only use VISIBLE chapter nodes (mobile OR desktop, not both)
     var allChapterNodes = document.querySelectorAll('[data-player-chapter]');
     var chapterNodes = [];
