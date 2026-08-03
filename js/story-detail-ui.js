@@ -7,19 +7,59 @@
   var _cc = document.querySelector('[data-chapter-copy]');
   console.log('[story-detail] DOM check: page-content:', !!_pc, 'innerHTML:', _pc ? _pc.innerHTML.length : 0, 'chapter-copy:', !!_cc, 'body-class:', document.body.className);
 
-  /* ── Load playlists from D1 → localStorage ── */
+  /* ── Load playlists from D1 → localStorage (MERGE, not overwrite) ── */
   (function syncPlaylistsFromStorage() {
     var PLAYLIST_KEY = 'audiohub-playlists-v1';
     fetch('/api/playlists')
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (data) {
-        if (Array.isArray(data) && data.length > 0) {
-          // Convert D1 playlist format to localStorage format
-          var converted = data.map(function (p) {
-            return { id: p.id, name: p.name, entries: p.items || [], state: p.state || 'ongoing' };
+        if (!Array.isArray(data) || !data.length) return;
+        // Convert D1 format
+        var d1Pls = data.map(function (p) {
+          return { id: p.id, name: p.name, entries: p.items || [], state: p.state || 'ongoing' };
+        });
+        // Read existing localStorage
+        var localRaw = localStorage.getItem(PLAYLIST_KEY) || '';
+        var localPls = [];
+        try { localPls = localRaw ? JSON.parse(localRaw) : []; } catch (e) { localPls = []; }
+        if (!Array.isArray(localPls)) localPls = [];
+
+        // Merge: for each D1 playlist, add local entries not yet in D1
+        d1Pls.forEach(function (d1Pl) {
+          var localPl = localPls.find(function (lp) { return lp && lp.id === d1Pl.id; });
+          if (!localPl || !Array.isArray(localPl.entries) || !localPl.entries.length) return;
+          // Build set of existing keys from D1 (check both key and storyId)
+          var d1Keys = {};
+          (d1Pl.entries || []).forEach(function (e) {
+            var k = e && (e.key || e.storyId);
+            if (k) d1Keys[k] = true;
           });
-          localStorage.setItem(PLAYLIST_KEY, JSON.stringify(converted));
-        }
+          // Add local entries missing from D1
+          localPl.entries.forEach(function (e) {
+            var k = e && (e.key || e.storyId);
+            if (k && !d1Keys[k]) {
+              d1Pl.entries.push(e);
+            }
+          });
+        });
+
+        // Also keep local playlists that don't exist in D1 yet
+        d1Pls.forEach(function (d1Pl) {
+          if (!localPls.find(function (lp) { return lp && lp.id === d1Pl.id; })) {
+            localPls.push(d1Pl);
+          }
+        });
+
+        // Use merged result (D1 playlists + any local-only entries)
+        var merged = d1Pls;
+        localPls.forEach(function (lp) {
+          if (!lp || !lp.id) return;
+          if (!merged.find(function (m) { return m.id === lp.id; })) {
+            merged.push(lp);
+          }
+        });
+
+        localStorage.setItem(PLAYLIST_KEY, JSON.stringify(merged));
       })
       .catch(function () {});
   })();
