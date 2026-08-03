@@ -152,8 +152,9 @@
         return uploadToRenderBackend(blob, storyId).catch(function () {
           // Try R2 as last cloud option
           return uploadToR2(blob, storyId).catch(function () {
-            // All failed — store in local IndexedDB (current browser only)
-            return putAudioLocal(blob);
+            // All failed — store in local IndexedDB with storyId as key
+            // (so D1 audio_key matches IndexedDB key)
+            return putAudioLocal(blob, storyId);
           });
         });
       });
@@ -163,10 +164,10 @@
     return putAudioLocal(blob);
   }
 
-  function putAudioLocal(blob) {
+  function putAudioLocal(blob, optionalKey) {
     return openDb().then(function (db) {
       return new Promise(function (resolve, reject) {
-        var key = makeKey();
+        var key = optionalKey || makeKey();
         var tx = db.transaction(STORE_NAME, 'readwrite');
         var store = tx.objectStore(STORE_NAME);
         store.put({
