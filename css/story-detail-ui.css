@@ -692,15 +692,15 @@
 .reading-group--actions .is-active { background: rgba(6,182,212,.1); color: var(--sd-accent); }
 
 /* ═══ CHAPTER ═══ */
-.chapter-reading { max-height: 70vh; overflow-y: auto; }
-.chapter-reading::-webkit-scrollbar { width: 6px; }
-.chapter-reading::-webkit-scrollbar-track { background: rgba(255,255,255,.03); border-radius: 3px; }
-.chapter-reading::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
-.chapter-reading::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.35); }
-.chapter-copy { font-size: 16px; line-height: 1.9; color: #d1d5db; background: var(--sd-surface); padding: 20px; border-radius: var(--sd-r); border: 1px solid var(--sd-border); }
+.chapter-copy { font-size: 16px; line-height: 1.9; color: #d1d5db; background: var(--sd-surface); max-height: 60vh; overflow-y: auto; padding: 20px; border-radius: var(--sd-r); border: 1px solid var(--sd-border); }
+.chapter-copy::-webkit-scrollbar { width: 6px; }
+.chapter-copy::-webkit-scrollbar-track { background: rgba(255,255,255,.03); border-radius: 3px; }
+.chapter-copy::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+.chapter-copy::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.35); }
 .chapter-copy p { margin: 0 0 14px; }
 .chapter-copy p:last-child { margin-bottom: 0; }
-.chapter-reading.is-fullscreen-reading { position: fixed; inset: 0; z-index: 1200; margin: 0; max-width: none; max-height: none; padding: env(safe-area-inset-top, 16px) 16px; padding-bottom: env(safe-area-inset-bottom, 16px); }
+.chapter-reading.is-fullscreen-reading { position: fixed; inset: 0; z-index: 1200; margin: 0; max-width: none; padding: env(safe-area-in-top, 16px) 16px; padding-bottom: env(safe-area-inset-bottom, 16px); }
+.chapter-reading.is-fullscreen-reading .chapter-copy { max-height: calc(100vh - 200px); }
 
 /* ═══ COMMENTS ═══ */
 .comment-entry { padding: 16px; border-radius: var(--sd-r-sm); border: 1px solid var(--sd-border); background: var(--sd-surface); margin-bottom: 24px; }
@@ -982,7 +982,7 @@
   /* Popover stays anchored to gear icon on desktop */
   .reading-toolbar__row { display: grid; grid-template-columns: repeat(2, 1fr); }
   .reading-toolbar__row.is-open { display: grid; }
-  .chapter-reading:not(.is-fullscreen-reading) { max-height: 80vh; }
+  .chapter-copy:not(.reading-fullscreen) { max-height: 70vh; }
   .detail-copy { max-height: 420px; }
   .auth-required-modal { align-items: center; padding: 16px; }
   .auth-required-modal__panel { width: min(480px, 100%); border-radius: 24px; padding: 28px 24px; }

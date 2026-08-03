@@ -243,8 +243,8 @@
     font-size: 0.82rem;
   }
 
-  /* Reading text — mobile: scrollable */
-  .chapter-reading { max-height: 65vh; overflow-y: auto; }
+  /* Reading text — mobile: scrollable, toolbar stays fixed */
+  .chapter-copy { max-height: 55vh; overflow-y: auto; }
 
   .sd-player {
     display: flex;
