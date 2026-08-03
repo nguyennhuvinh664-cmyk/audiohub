@@ -2,6 +2,12 @@
   var detailRoot = document.querySelector('.detail-page');
   if (!detailRoot) return;
 
+  // DEBUG: check DOM state at script start
+  var _pc = document.getElementById('page-content');
+  var _cc = document.querySelector('.chapter-copy');
+  var _dcc = document.querySelector('[data-chapter-copy]');
+  console.log('[story-detail] DOM check: page-content:', !!_pc, 'innerHTML:', _pc ? _pc.innerHTML.length : 0, 'chapter-copy:', !!_cc, 'data-chapter-copy:', !!_dcc, 'body-class:', document.body.className);
+
   /* ── Load playlists from D1 → localStorage ── */
   (function syncPlaylistsFromStorage() {
     var PLAYLIST_KEY = 'audiohub-playlists-v1';
