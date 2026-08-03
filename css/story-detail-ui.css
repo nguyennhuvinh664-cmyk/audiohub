@@ -681,8 +681,7 @@
 .reading-toolbar__title i { color: var(--sd-accent); font-size: 13px; }
 .reading-toolbar__title::after { content: '\f107'; font-family: 'Font Awesome 6 Free'; font-weight: 900; margin-left: auto; font-size: 11px; color: var(--sd-text-3); transition: transform .25s; }
 .reading-toolbar.is-open .reading-toolbar__title::after { transform: rotate(180deg); }
-.reading-toolbar__row { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.06); }
-.reading-toolbar__row.is-open { display: flex; align-items: flex-start; gap: 20px; flex-wrap: nowrap; }
+.reading-toolbar__row { display: flex; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.06); align-items: flex-start; gap: 20px; flex-wrap: nowrap; }
 .reading-group { flex-shrink: 0; }
 .reading-group span { display: block; font-size: .62rem; color: var(--sd-text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; opacity: .7; }
 .reading-theme-list { display: flex; gap: 6px; align-items: center; }
@@ -994,7 +993,7 @@
   .sd-cover__img { width: 240px; height: 240px; }
   .sd-play { width: 80px; height: 80px; font-size: 30px; }
   /* Popover stays anchored to gear icon on desktop */
-  .reading-toolbar__row.is-open { display: flex; align-items: flex-start; gap: 20px; }
+  .reading-toolbar__row { display: flex; align-items: flex-start; gap: 20px; }
   .chapter-copy:not(.reading-fullscreen) { max-height: 70vh; }
   .detail-copy { max-height: 420px; }
   .auth-required-modal { align-items: center; padding: 16px; }
@@ -1005,7 +1004,7 @@
 /* ═══ DESKTOP ═══ */
 @media (min-width: 1080px) {
   .sd-cover__img { width: 260px; height: 260px; }
-  .reading-toolbar__row.is-open { display: flex; align-items: flex-start; gap: 24px; }
+  .reading-toolbar__row { display: flex; align-items: flex-start; gap: 24px; }
 }
 
 /* ═══ PULSE PLAY BUTTON (auto-play blocked) ═══ */
