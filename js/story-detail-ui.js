@@ -4,9 +4,8 @@
 
   // DEBUG: check DOM state at script start
   var _pc = document.getElementById('page-content');
-  var _cc = document.querySelector('.chapter-copy');
-  var _dcc = document.querySelector('[data-chapter-copy]');
-  console.log('[story-detail] DOM check: page-content:', !!_pc, 'innerHTML:', _pc ? _pc.innerHTML.length : 0, 'chapter-copy:', !!_cc, 'data-chapter-copy:', !!_dcc, 'body-class:', document.body.className);
+  var _cc = document.querySelector('[data-chapter-copy]');
+  console.log('[story-detail] DOM check: page-content:', !!_pc, 'innerHTML:', _pc ? _pc.innerHTML.length : 0, 'chapter-copy:', !!_cc, 'body-class:', document.body.className);
 
   /* ── Load playlists from D1 → localStorage ── */
   (function syncPlaylistsFromStorage() {
@@ -523,7 +522,7 @@
   function renderAccessDenied(storyNode, story) {
     if (!storyNode) return;
     storyNode.innerHTML = '<div class="detail-copy"><h2>Không đủ quyền truy cập</h2><p>Truyện này ở chế độ Không công khai và là đặc quyền dành cho hội viên.</p><p>Vui lòng đăng nhập hội viên để mở nội dung này.</p></div>';
-    var chapterCopy = document.querySelector('.chapter-copy');
+    var chapterCopy = document.querySelector('[data-chapter-copy]');
     if (chapterCopy) {
       chapterCopy.innerHTML = '<p>Nội dung truyện chữ bị khóa theo quyền truy cập.</p>';
     }
@@ -720,11 +719,11 @@
       setupMobileDescriptionToggle(copy);
     }
 
-    var chapterCopy = document.querySelector('.chapter-copy');
+    var chapterCopy = document.querySelector('[data-chapter-copy]');
     var readingContent = story.readingText || story.description || '';
     console.log('[story-detail] reading render: chapterCopy:', !!chapterCopy, 'readingContent:', readingContent ? readingContent.length + ' chars' : 'EMPTY');
     function renderReadingText() {
-      var cc = document.querySelector('.chapter-copy');
+      var cc = document.querySelector('[data-chapter-copy]');
       if (cc && readingContent) {
         var ct = cleanReadingText(readingContent);
         var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
@@ -1064,7 +1063,7 @@
     }
     renderStoryMeta(detailStoryNode, story);
 
-    var chapterCopy = document.querySelector('.chapter-copy');
+    var chapterCopy = document.querySelector('[data-chapter-copy]');
     if (chapterCopy) {
       var readingContent = story.readingText || story.description || '';
       var cleanedText = cleanReadingText(readingContent);
@@ -2332,7 +2331,7 @@
     var readingContent = story.readingText || story.reading_text || story.description || '';
 
     function renderReadingText() {
-      var chapterCopy = document.querySelector('.chapter-copy');
+      var chapterCopy = document.querySelector('[data-chapter-copy]');
       if (chapterCopy && readingContent) {
         var cleanedText = cleanReadingText(readingContent);
         var blocks = String(cleanedText).split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
