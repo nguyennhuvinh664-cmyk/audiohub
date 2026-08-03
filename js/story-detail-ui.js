@@ -1329,7 +1329,7 @@
       noteNode.classList.add('is-hidden');
     }
 
-    var audioKey = story && story.audioKey ? String(story.audioKey) : '';
+    var audioKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
     var storyId = story && story.id ? String(story.id) : '';
     console.log('[audio-debug] story:', { id: storyId, audioKey: audioKey, title: story && story.title });
     if (!audioKey && !storyId) {
@@ -2300,6 +2300,17 @@
     var mobileListens = document.querySelector('[data-mobile-listens] strong');
     if (mobileListens) mobileListens.textContent = story.listenCount || 0;
 
+    // Reading text — render to chapter-copy div (needed when story comes from API via mergeAndRender or cache miss)
+    var chapterCopy = document.querySelector('.chapter-copy');
+    var readingContent = story.readingText || story.reading_text || story.description || '';
+    if (chapterCopy && readingContent) {
+      var cleanedText = cleanReadingText(readingContent);
+      var blocks = String(cleanedText).split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+      chapterCopy.innerHTML = blocks.length
+        ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
+        : '';
+    }
+
     renderStoryMeta(detailStoryNode, story);
     bindStoryCover(story);
     bindStoryAudio(story);
@@ -2319,11 +2330,21 @@
     return window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
       .then(function (apiStory) {
         if (!apiStory || !apiStory.id) return null;
+        // Normalize snake_case (D1) to camelCase so downstream code always works
+        var normalized = Object.assign({}, apiStory);
+        if (normalized.reading_text && !normalized.readingText) normalized.readingText = normalized.reading_text;
+        if (normalized.audio_key && !normalized.audioKey) normalized.audioKey = normalized.audio_key;
+        if (normalized.chapter_title && !normalized.chapterTitle) normalized.chapterTitle = normalized.chapter_title;
+        if (normalized.chapter_count != null && normalized.chapterCount == null) normalized.chapterCount = normalized.chapter_count;
+        if (normalized.cover_key && !normalized.coverKey) normalized.coverKey = normalized.cover_key;
+        if (normalized.cover_data && !normalized.coverData) normalized.coverData = normalized.cover_data;
+        if (normalized.is_completed != null && normalized.isCompleted == null) normalized.isCompleted = normalized.is_completed;
+        if (normalized.listen_count != null && normalized.listenCount == null) normalized.listenCount = normalized.listen_count;
         // Cache in localStorage (additive — never overwrites)
         if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-          window.AudioHubStories.upsert(apiStory);
+          window.AudioHubStories.upsert(normalized);
         }
-        return apiStory;
+        return normalized;
       })
       .catch(function () { return null; });
   }
@@ -2337,10 +2358,21 @@
     }
     return window.AudioHubSupabase.fetchStoryById(storyId)
       .then(function (story) {
-        if (story && story.id && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-          window.AudioHubStories.upsert(story);
+        if (!story || !story.id) return null;
+        // Normalize snake_case to camelCase
+        var normalized = Object.assign({}, story);
+        if (normalized.reading_text && !normalized.readingText) normalized.readingText = normalized.reading_text;
+        if (normalized.audio_key && !normalized.audioKey) normalized.audioKey = normalized.audio_key;
+        if (normalized.chapter_title && !normalized.chapterTitle) normalized.chapterTitle = normalized.chapter_title;
+        if (normalized.chapter_count != null && normalized.chapterCount == null) normalized.chapterCount = normalized.chapter_count;
+        if (normalized.cover_key && !normalized.coverKey) normalized.coverKey = normalized.cover_key;
+        if (normalized.cover_data && !normalized.coverData) normalized.coverData = normalized.cover_data;
+        if (normalized.is_completed != null && normalized.isCompleted == null) normalized.isCompleted = normalized.is_completed;
+        if (normalized.listen_count != null && normalized.listenCount == null) normalized.listenCount = normalized.listen_count;
+        if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+          window.AudioHubStories.upsert(normalized);
         }
-        return story;
+        return normalized;
       })
       .catch(function () { return null; });
   }

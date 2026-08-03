@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS stories (
   status TEXT, -- Hoan thanh, Dang viet, etc.
   is_completed INTEGER DEFAULT 0,
   cover_key TEXT,
+  cover_data TEXT,
   audio_key TEXT,
   youtube_url TEXT,
   youtube_id TEXT,
