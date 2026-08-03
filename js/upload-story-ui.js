@@ -1433,6 +1433,11 @@
       return;
     }
 
+    if (published && !state.readingText) {
+      showBanner('Chưa có nội dung truyện chữ. Hãy tải file .txt hoặc .md trước khi đăng.', false);
+      return;
+    }
+
     setSubmitting(true);
     window.setTimeout(function () {
       setSubmitting(false);
