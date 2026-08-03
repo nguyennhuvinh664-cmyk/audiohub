@@ -244,7 +244,7 @@
   }
 
   /* Reading text — mobile: scrollable, toolbar stays fixed */
-  .chapter-copy { max-height: 55vh; overflow-y: auto; }
+  .chapter-copy { max-height: 55vh !important; overflow-y: auto !important; }
 
   .sd-player {
     display: flex;

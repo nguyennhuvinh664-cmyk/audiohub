@@ -692,7 +692,7 @@
 .reading-group--actions .is-active { background: rgba(6,182,212,.1); color: var(--sd-accent); }
 
 /* ═══ CHAPTER ═══ */
-.chapter-copy { font-size: 16px; line-height: 1.9; color: #d1d5db; background: var(--sd-surface); max-height: 60vh; overflow-y: auto; padding: 20px; border-radius: var(--sd-r); border: 1px solid var(--sd-border); }
+.chapter-copy { font-size: 16px; line-height: 1.9; color: #d1d5db; background: var(--sd-surface); max-height: 60vh !important; overflow-y: auto !important; padding: 20px; border-radius: var(--sd-r); border: 1px solid var(--sd-border); }
 .chapter-copy::-webkit-scrollbar { width: 6px; }
 .chapter-copy::-webkit-scrollbar-track { background: rgba(255,255,255,.03); border-radius: 3px; }
 .chapter-copy::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
