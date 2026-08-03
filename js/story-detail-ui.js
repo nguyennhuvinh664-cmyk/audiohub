@@ -3022,6 +3022,24 @@
 
     var context = resolvePlaylistContext(storyId || '');
     var overrideState = overrideChapterList(context, story);
+    // Retry chapter list if empty (SPA timing issue)
+    if (!overrideState || !overrideState.chapters || !overrideState.chapters.length) {
+      var _retryStory = story || (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(storyId) : null);
+      if (_retryStory) {
+        setTimeout(function () {
+          var chList = document.querySelector('.chapter-list');
+          if (chList && !chList.querySelector('.chapter-item')) {
+            overrideChapterList(context, _retryStory);
+          }
+        }, 500);
+        setTimeout(function () {
+          var chList = document.querySelector('.chapter-list');
+          if (chList && !chList.querySelector('.chapter-item')) {
+            overrideChapterList(context, _retryStory);
+          }
+        }, 1500);
+      }
+    }
     // Only use VISIBLE chapter nodes (mobile OR desktop, not both)
     var allChapterNodes = document.querySelectorAll('[data-player-chapter]');
     var chapterNodes = [];
