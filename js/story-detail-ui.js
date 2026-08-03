@@ -728,6 +728,10 @@
         var ct = cleanReadingText(readingContent);
         var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
         cc.innerHTML = bl.length ? bl.map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('') : '';
+        // Force scrollable via inline style (CSS may not apply due to selector issues)
+        cc.style.maxHeight = '60vh';
+        cc.style.overflowY = 'auto';
+        cc.style.scrollBehavior = 'smooth';
         console.log('[story-detail] reading render: OK, paragraphs:', bl.length);
         return true;
       }
@@ -1071,6 +1075,10 @@
       chapterCopy.innerHTML = blocks.length
         ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
         : '<p>Chưa có nội dung truyện chữ cho chương này.</p>';
+      // Force scrollable via inline style
+      chapterCopy.style.maxHeight = '60vh';
+      chapterCopy.style.overflowY = 'auto';
+      chapterCopy.style.scrollBehavior = 'smooth';
     }
 
     var chapterLabel = document.querySelector('[data-player-current-chapter]');
@@ -2357,6 +2365,10 @@
         chapterCopy.innerHTML = blocks.length
           ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
           : '';
+        // Force scrollable via inline style (CSS may not apply due to selector issues)
+        chapterCopy.style.maxHeight = '60vh';
+        chapterCopy.style.overflowY = 'auto';
+        chapterCopy.style.scrollBehavior = 'smooth';
         return true;
       }
       return false;
