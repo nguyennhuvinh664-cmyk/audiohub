@@ -1226,6 +1226,8 @@
 
       audioPromise.then(function (audioInfo) {
         var payload = mapStoryPayload(story);
+        // Force D1 to generate a real CUID — don't send s_ synthetic IDs
+        payload.id = null;
 
         window.AudioHubApi.request('/stories', {
           method: 'POST',

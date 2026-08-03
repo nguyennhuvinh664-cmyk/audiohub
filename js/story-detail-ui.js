@@ -2324,9 +2324,7 @@
     if (!window.AudioHubApi || typeof window.AudioHubApi.request !== 'function') {
       return Promise.resolve(null);
     }
-    if (String(storyId).startsWith('s_')) {
-      return Promise.resolve(null);
-    }
+    // s_ stories may exist in D1 (synced before the id:null fix) — fetch them too
     return window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
       .then(function (apiStory) {
         if (!apiStory || !apiStory.id) return null;
