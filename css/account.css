@@ -1572,6 +1572,23 @@
   flex-shrink: 0;
 }
 
+/* Chapter picker within playlist picker */
+.pl-picker__chapters { padding: 0; }
+.pl-picker__ch-header { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.pl-picker__ch-header span { font-weight: 600; font-size: .9rem; }
+.pl-picker__back { background: none; border: none; color: var(--t2); cursor: pointer; font-size: 1rem; padding: 4px; }
+.pl-picker__back:hover { color: var(--t1); }
+.pl-picker__select-all { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,.06); font-size: .85rem; color: var(--t2); cursor: pointer; }
+.pl-picker__select-all input { accent-color: var(--accent, #06b6d4); }
+.pl-picker__ch-list { list-style: none; margin: 0; padding: 8px 0; max-height: 280px; overflow-y: auto; }
+.pl-picker__ch-list::-webkit-scrollbar { width: 4px; }
+.pl-picker__ch-list::-webkit-scrollbar-track { background: transparent; }
+.pl-picker__ch-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+.pl-picker__ch-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: .85rem; color: var(--t2); cursor: pointer; transition: background .15s; }
+.pl-picker__ch-item:hover { background: rgba(255,255,255,.04); }
+.pl-picker__ch-item input { accent-color: var(--accent, #06b6d4); }
+.pl-picker__ch-actions { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.06); text-align: right; }
+
 /* ═══ Toast ═══ */
 .account-toast {
   position: fixed;

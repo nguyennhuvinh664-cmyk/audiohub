@@ -497,52 +497,76 @@
         return;
       }
 
-      // add to playlist
+      // add to playlist (bộ truyện) — show chapter picker
       var addPlaylistBtn = event.target.closest('[data-story-add-playlist]');
       if (addPlaylistBtn) {
         var storyId = addPlaylistBtn.getAttribute('data-story-add-playlist');
+        var storyTitle = addPlaylistBtn.getAttribute('data-story-title') || '';
+        var storyAuthor = addPlaylistBtn.getAttribute('data-story-author') || '';
+        var storyGenre = addPlaylistBtn.getAttribute('data-story-genre') || '';
+        var storyHref = addPlaylistBtn.getAttribute('data-story-href') || '';
         var playlists = readPlaylists();
         document.querySelectorAll('[data-story-menu-panel]').forEach(function (p) { p.classList.add('is-hidden'); });
 
-        // remove existing modal
         var existing = document.getElementById('playlist-picker-modal');
         if (existing) existing.remove();
 
         if (!playlists.length) {
-          // show mini toast
-          showToast('Bạn chưa có truyện nào. Hãy tạo trong tab "Truyện đã lưu".');
+          showToast('Bạn chưa có bộ truyện nào. Hãy tạo trong tab "Truyện đã lưu".');
           return;
         }
 
-        var entry = {
-          key: storyId,
-          title: addPlaylistBtn.getAttribute('data-story-title') || '',
-          chapterTitle: addPlaylistBtn.getAttribute('data-story-chapter-title') || '',
-          chapterIndex: 0,
-          author: addPlaylistBtn.getAttribute('data-story-author') || '',
-          genre: addPlaylistBtn.getAttribute('data-story-genre') || '',
-          href: addPlaylistBtn.getAttribute('data-story-href') || '',
-          status: 'listening',
-          progress: 0
-        };
+        // Get story chapters from localStorage
+        var storyObj = null;
+        if (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
+          storyObj = window.AudioHubStories.getById(storyId);
+        }
+        var chapters = (storyObj && Array.isArray(storyObj.chapters) && storyObj.chapters.length)
+          ? storyObj.chapters
+          : [];
+        // Fallback: parse readingText for chapter headers
+        if (!chapters.length && storyObj && storyObj.readingText) {
+          var lines = String(storyObj.readingText).split(/\r?\n/);
+          lines.forEach(function (line) {
+            var m = line.trim().match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter)\s+(\d+)\s*[:\-–—:]\s*(.*)/i);
+            if (m) chapters.push({ chapterNumber: Number(m[1]), title: m[2].trim() || '' });
+          });
+        }
+        // If still no chapters, create a single "chapter 1"
+        if (!chapters.length) {
+          chapters.push({ chapterNumber: 1, title: storyObj && storyObj.chapterTitle ? storyObj.chapterTitle : '' });
+        }
+
+        // Find which chapters are already in each playlist
+        function _chaptersInPlaylist(pl) {
+          var entries = pl.entries || [];
+          var keys = {};
+          entries.forEach(function (e) {
+            if (e.key === storyId && typeof e.chapterIndex === 'number') keys[e.chapterIndex] = true;
+          });
+          return keys;
+        }
 
         var modal = document.createElement('div');
         modal.id = 'playlist-picker-modal';
         modal.className = 'pl-picker-backdrop';
+
+        // Step 1: Pick playlist
         modal.innerHTML = '' +
           '<div class="pl-picker">' +
             '<div class="pl-picker__header">' +
-              '<span>Lưu vào truyện</span>' +
+              '<span>Thêm "' + escapeHtml(storyTitle) + '" vào bộ truyện</span>' +
               '<button type="button" class="pl-picker__close" id="pl-picker-close"><i class="fa-solid fa-xmark"></i></button>' +
             '</div>' +
             '<ul class="pl-picker__list">' +
               playlists.map(function (pl) {
-                var inList = (pl.entries || []).some(function (e) { return e.key === storyId; });
+                var added = _chaptersInPlaylist(pl);
+                var addedCount = Object.keys(added).length;
                 return '<li>' +
-                  '<button type="button" class="pl-picker__item' + (inList ? ' is-added' : '') + '" data-pick-pl="' + escapeHtml(pl.id) + '">' +
+                  '<button type="button" class="pl-picker__item" data-pick-pl="' + escapeHtml(pl.id) + '">' +
                     '<span class="pl-picker__check"><i class="fa-solid fa-check"></i></span>' +
                     '<span class="pl-picker__name">' + escapeHtml(pl.name) + '</span>' +
-                    '<span class="pl-picker__count">' + (pl.entries || []).length + ' truyện</span>' +
+                    '<span class="pl-picker__count">' + addedCount + '/' + chapters.length + ' chương</span>' +
                   '</button>' +
                 '</li>';
               }).join('') +
@@ -563,27 +587,89 @@
           var target = null;
           lists.forEach(function (p) { if (p.id === plId) target = p; });
           if (!target) return;
-          var alreadyIn = (target.entries || []).some(function (e) { return e.key === storyId; });
-          if (alreadyIn) {
-            // remove from playlist
-            target.entries = target.entries.filter(function (e) { return e.key !== storyId; });
-            writePlaylists(lists);
-            pickBtn.classList.remove('is-added');
-            showToast('Đã xóa khỏi "' + target.name + '".');
-          } else {
-            target.entries = target.entries || [];
-            // Ensure href includes playlistId
-            var baseHref = entry.href || '';
-            if (baseHref && baseHref.indexOf('playlistId=') === -1) {
-              baseHref += (baseHref.indexOf('?') >= 0 ? '&' : '?') + 'playlistId=' + encodeURIComponent(plId);
+
+          // Step 2: Show chapter picker for this playlist
+          var added = _chaptersInPlaylist(target);
+          var allAdded = chapters.length === Object.keys(added).length;
+
+          var chapterHtml = '<div class="pl-picker__chapters">' +
+            '<div class="pl-picker__ch-header">' +
+              '<button type="button" class="pl-picker__back" id="pl-picker-back"><i class="fa-solid fa-arrow-left"></i></button>' +
+              '<span>Chọn chương — ' + escapeHtml(target.name) + '</span>' +
+            '</div>' +
+            '<label class="pl-picker__select-all"><input type="checkbox" id="pl-select-all"' + (allAdded ? ' checked' : '') + ' /> Chọn tất cả (' + chapters.length + ' chương)</label>' +
+            '<ul class="pl-picker__ch-list">' +
+              chapters.map(function (ch, i) {
+                var chTitle = ch.title || ('Chương ' + (i + 1));
+                var isChecked = !!added[i];
+                return '<li><label class="pl-picker__ch-item"><input type="checkbox" data-ch-idx="' + i + '"' + (isChecked ? ' checked' : '') + ' /><span>Chương ' + (i + 1) + ': ' + escapeHtml(chTitle) + '</span></label></li>';
+              }).join('') +
+            '</ul>' +
+            '<div class="pl-picker__ch-actions"><button type="button" class="btn btn--primary" id="pl-save-chapters">Lưu</button></div>' +
+          '</div>';
+
+          // Replace modal content
+          var pickerEl = modal.querySelector('.pl-picker');
+          if (pickerEl) pickerEl.innerHTML = chapterHtml;
+
+          // Back button
+          var backBtn = modal.querySelector('#pl-picker-back');
+          if (backBtn) backBtn.addEventListener('click', function () { modal.remove(); });
+
+          // Select all checkbox
+          var selectAllCb = modal.querySelector('#pl-select-all');
+          if (selectAllCb) selectAllCb.addEventListener('change', function () {
+            var checked = this.checked;
+            modal.querySelectorAll('[data-ch-idx]').forEach(function (cb) { cb.checked = checked; });
+          });
+
+          // Save button
+          var saveBtn = modal.querySelector('#pl-save-chapters');
+          if (saveBtn) saveBtn.addEventListener('click', function () {
+            var lists2 = readPlaylists();
+            var target2 = null;
+            lists2.forEach(function (p) { if (p.id === plId) target2 = p; });
+            if (!target2) return;
+            target2.entries = target2.entries || [];
+
+            // Remove existing entries for this story
+            target2.entries = target2.entries.filter(function (e) { return e.key !== storyId; });
+
+            // Add selected chapters
+            var addedCount = 0;
+            modal.querySelectorAll('[data-ch-idx]').forEach(function (cb) {
+              if (!cb.checked) return;
+              var idx = Number(cb.getAttribute('data-ch-idx'));
+              var ch = chapters[idx] || {};
+              var chNum = idx + 1;
+              var chTitle = ch.title || ('Chương ' + chNum);
+              var baseHref = storyHref || ('story-detail.html?id=' + encodeURIComponent(storyId));
+              if (baseHref.indexOf('playlistId=') === -1) {
+                baseHref += (baseHref.indexOf('?') >= 0 ? '&' : '?') + 'playlistId=' + encodeURIComponent(plId);
+              }
+              target2.entries.push({
+                key: storyId,
+                title: storyTitle,
+                chapterTitle: chTitle,
+                chapterIndex: idx,
+                author: storyAuthor,
+                genre: storyGenre,
+                href: baseHref,
+                status: 'listening',
+                progress: 0
+              });
+              addedCount++;
+            });
+
+            writePlaylists(lists2);
+            modal.remove();
+            renderPlaylist();
+            if (addedCount) {
+              showToast('Đã thêm ' + addedCount + ' chương vào "' + target2.name + '".');
+            } else {
+              showToast('Đã xóa tất cả chương khỏi "' + target2.name + '".');
             }
-            entry.href = baseHref;
-            target.entries.push(entry);
-            writePlaylists(lists);
-            pickBtn.classList.add('is-added');
-            showToast('Đã thêm vào "' + target.name + '".');
-          }
-          renderPlaylist();
+          });
         });
         return;
       }

@@ -1707,6 +1707,10 @@
       if (!chapterTitle && chapterTitlesFromText[i]) {
         chapterTitle = chapterTitlesFromText[i];
       }
+      // In playlist mode, also check playlist entry's chapterTitle
+      if (!chapterTitle && playlistItemsForDisplay && playlistItemsForDisplay[i]) {
+        chapterTitle = playlistItemsForDisplay[i].chapterTitle || playlistItemsForDisplay[i].storyTitle || '';
+      }
 
       if (playlistItemsForDisplay) {
         // Playlist mode: "Chương X: chapterTitle" (use story's chapter data)
