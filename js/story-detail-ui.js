@@ -2303,12 +2303,16 @@
     // Reading text — render to chapter-copy div (needed when story comes from API via mergeAndRender or cache miss)
     var chapterCopy = document.querySelector('.chapter-copy');
     var readingContent = story.readingText || story.reading_text || story.description || '';
+    console.log('[story-detail] bindStoryData readingText:', readingContent ? readingContent.length + ' chars' : 'EMPTY', 'story.readingText:', !!story.readingText, 'story.reading_text:', !!story.reading_text, 'story.description:', !!story.description);
     if (chapterCopy && readingContent) {
       var cleanedText = cleanReadingText(readingContent);
       var blocks = String(cleanedText).split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+      console.log('[story-detail] cleanedText blocks:', blocks.length);
       chapterCopy.innerHTML = blocks.length
         ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
         : '';
+    } else {
+      console.log('[story-detail] chapterCopy:', !!chapterCopy, 'readingContent:', readingContent ? 'has content' : 'EMPTY');
     }
 
     renderStoryMeta(detailStoryNode, story);
@@ -2327,6 +2331,7 @@
     // s_ stories may exist in D1 (synced before the id:null fix) — fetch them too
     return window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
       .then(function (apiStory) {
+        console.log('[story-detail] fetchStoryFromApi response:', apiStory ? apiStory.id : 'null', 'reading_text:', apiStory && apiStory.reading_text ? apiStory.reading_text.length + ' chars' : 'EMPTY');
         if (!apiStory || !apiStory.id) return null;
         // Normalize snake_case (D1) to camelCase so downstream code always works
         var normalized = Object.assign({}, apiStory);
@@ -2380,6 +2385,7 @@
 
     // STEP 1: Try localStorage (instant)
     var story = initStoryDetailFromStore(storyId);
+    console.log('[story-detail] initStoryDetailFromStore:', story ? story.id : 'null', 'readingText:', story && story.readingText ? story.readingText.length + ' chars' : 'NONE', 'audioKey:', story && story.audioKey ? 'YES' : 'NONE');
 
     if (story && story.id) {
       // Cache hit — render immediately
@@ -2397,6 +2403,7 @@
           var apiAudioKey = apiStory.audioKey || apiStory.audio_key || '';
           var apiChapters = apiStory.chapters || [];
           var apiChapterCount = apiStory.chapterCount || apiStory.chapter_count || 0;
+          console.log('[story-detail] mergeAndRender apiStory:', apiStory.id, 'readingText:', apiReadingText ? apiReadingText.length + ' chars' : 'EMPTY', 'audioKey:', apiAudioKey || 'EMPTY');
           if (apiReadingText) merged.readingText = apiReadingText;
           if (apiAudioKey) merged.audioKey = apiAudioKey;
           if (apiChapters && apiChapters.length) merged.chapters = apiChapters;
@@ -2426,6 +2433,7 @@
 
         // Try 2: Fetch all public stories from API to find by title (always try, even if Try 1 found a CUID — for robustness)
         if (!apiId || !story.readingText) {
+          console.log('[story-detail] Try 2: fetching public stories, apiId:', apiId, 'story.readingText:', !!story.readingText);
           var fetchPublic = (window.AudioHubCloudflare && typeof window.AudioHubCloudflare.fetchPublicStories === 'function')
             ? window.AudioHubCloudflare.fetchPublicStories({ limit: 50 })
             : (window.AudioHubApi && typeof window.AudioHubApi.request === 'function'
@@ -2434,9 +2442,11 @@
           fetchPublic.then(function (stories) {
             if (!stories || !stories.length) return;
             var needle = normalizeLookup(story.title);
+            console.log('[story-detail] Try 2: found', stories.length, 'stories, needle:', needle);
             var match = stories.find(function (s) {
               return s && s.id && normalizeLookup(s.title) === needle;
             });
+            console.log('[story-detail] Try 2: match:', match ? match.id : 'NONE');
             if (match && match.id) {
               return fetchStoryFromApi(String(match.id));
             }
