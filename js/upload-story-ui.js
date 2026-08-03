@@ -1481,7 +1481,7 @@
       }
     }
 
-    // After publish: add story to playlist if a playlist was selected
+    // After publish: add chapter entry to playlist if a playlist was selected
     if (published && story && story.id && selectedPlaylistId) {
       var PLAYLIST_KEY = 'audiohub-playlists-v1';
       try {
@@ -1492,25 +1492,28 @@
             return pl && pl.id === selectedPlaylistId;
           });
           if (matchedPl) {
-            // Add story to playlist entries if not already there
             var entries = matchedPl.entries || [];
-            var alreadyExists = entries.some(function (e) {
-              return String(e.storyId || e.key || '') === String(story.id);
+            var chapterTitle = (chapterInput ? chapterInput.value.trim() : '') || '';
+            var chapterIndex = entries.length; // auto-increment: next index after last entry
+            // Build href for story-detail with playlistId
+            var entryHref = '/html/story-detail.html?id=' + encodeURIComponent(story.id) + '&playlistId=' + encodeURIComponent(matchedPl.id);
+            // Add chapter entry to playlist
+            entries.push({
+              key: story.id,
+              title: story.title || '',
+              chapterTitle: chapterTitle,
+              chapterIndex: chapterIndex,
+              author: story.author || '',
+              genre: story.genre || '',
+              href: entryHref,
+              status: 'listening',
+              progress: 0,
+              addedAt: new Date().toISOString()
             });
-            if (!alreadyExists) {
-              entries.push({
-                storyId: story.id,
-                key: story.id,
-                title: story.title || '',
-                author: story.author || '',
-                genre: story.genre || '',
-                addedAt: new Date().toISOString()
-              });
-              matchedPl.entries = entries;
-              localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
-              syncPlaylistsToStorage();
-              console.log('[upload] ✅ Added story to playlist:', matchedPl.name, '(' + entries.length + ' entries)');
-            }
+            matchedPl.entries = entries;
+            localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+            syncPlaylistsToStorage();
+            console.log('[upload] ✅ Added chapter to playlist:', matchedPl.name, '| chapter:', chapterTitle, '(' + entries.length + ' entries)');
           }
         }
       } catch (e) { console.warn('[upload] Add to playlist failed:', e); }

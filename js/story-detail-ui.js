@@ -3602,6 +3602,241 @@
     window.AudioHubStories.sync();
   }
 
+  /* ── Add Chapter Modal (Đăng chương mới vào bộ truyện) ── */
+  (function initAddChapterModal() {
+    var addBtn = document.querySelector('[data-add-chapter-btn]');
+    var mobileAddBtn = document.querySelector('[data-mobile-add-chapter-btn]');
+    var modal = document.querySelector('[data-add-chapter-modal]');
+    if (!modal) return;
+
+    var seriesNameEl = modal.querySelector('[data-add-chapter-series-name]');
+    var nameInput = modal.querySelector('[data-add-chapter-name]');
+    var audioInput = modal.querySelector('[data-add-chapter-audio]');
+    var readingInput = modal.querySelector('[data-add-chapter-reading]');
+    var descInput = modal.querySelector('[data-add-chapter-desc]');
+    var submitBtn = modal.querySelector('[data-add-chapter-submit]');
+    var statusEl = modal.querySelector('[data-add-chapter-status]');
+    var closeBtns = modal.querySelectorAll('[data-add-chapter-close]');
+
+    // Get current playlist context from URL or localStorage
+    function getPlaylistContext() {
+      var storyId = getQueryParam('id') || '';
+      var playlistId = getQueryParam('playlistId') || '';
+      // Also check localStorage
+      try {
+        var stored = JSON.parse(localStorage.getItem('audiohub-playlist-context-v1') || '{}');
+        if (stored.playlistId && stored.storyId === storyId) {
+          playlistId = stored.playlistId;
+        }
+      } catch (e) {}
+      // Find playlist name
+      var playlistName = '';
+      if (playlistId) {
+        try {
+          var playlists = JSON.parse(localStorage.getItem('audiohub-playlists-v1') || '[]');
+          if (Array.isArray(playlists)) {
+            var pl = playlists.find(function (p) { return p.id === playlistId; });
+            if (pl) playlistName = pl.name || '';
+          }
+        } catch (e) {}
+      }
+      return { storyId: storyId, playlistId: playlistId, playlistName: playlistName };
+    }
+
+    function openModal() {
+      var ctx = getPlaylistContext();
+      if (!ctx.playlistId) return; // no playlist context = no add chapter
+      // Check if user is admin
+      try {
+        var auth = JSON.parse(localStorage.getItem('audiohub-auth-profile') || '{}');
+        if (!auth.isAdmin) return;
+      } catch (e) { return; }
+
+      modal.classList.remove('is-hidden');
+      if (seriesNameEl) seriesNameEl.textContent = 'Bộ truyện: ' + ctx.playlistName;
+      if (nameInput) { nameInput.value = ''; nameInput.focus(); }
+      if (audioInput) audioInput.value = '';
+      if (readingInput) readingInput.value = '';
+      if (descInput) descInput.value = '';
+      if (statusEl) statusEl.classList.add('is-hidden');
+    }
+
+    function closeModal() {
+      modal.classList.add('is-hidden');
+    }
+
+    // Show button only when playlist context + admin
+    function checkShowButton() {
+      var ctx = getPlaylistContext();
+      var isAdmin = false;
+      try {
+        var auth = JSON.parse(localStorage.getItem('audiohub-auth-profile') || '{}');
+        isAdmin = !!auth.isAdmin;
+      } catch (e) {}
+      var show = ctx.playlistId && isAdmin;
+      if (addBtn) addBtn.classList.toggle('is-hidden', !show);
+      if (mobileAddBtn) mobileAddBtn.classList.toggle('is-hidden', !show);
+    }
+    checkShowButton();
+    // Re-check on URL change (SPA navigation)
+    window.addEventListener('popstate', checkShowButton);
+    window.addEventListener('audiohub:navigated', checkShowButton);
+
+    // Open modal
+    if (addBtn) addBtn.addEventListener('click', openModal);
+    if (mobileAddBtn) mobileAddBtn.addEventListener('click', openModal);
+
+    // Close modal
+    closeBtns.forEach(function (btn) {
+      btn.addEventListener('click', closeModal);
+    });
+
+    // Submit: create story + add to playlist
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function () {
+        var ctx = getPlaylistContext();
+        if (!ctx.playlistId || !ctx.storyId) return;
+
+        var chapterName = nameInput ? nameInput.value.trim() : '';
+        var audioFile = audioInput && audioInput.files ? audioInput.files[0] : null;
+        var readingFile = readingInput && readingInput.files ? readingInput.files[0] : null;
+        var description = descInput ? descInput.value.trim() : '';
+
+        if (!chapterName) {
+          statusEl.textContent = 'Vui lòng nhập tên chương.';
+          statusEl.className = 'add-chapter-modal__status is-error';
+          return;
+        }
+
+        // Get existing story data to inherit metadata
+        var existingStory = null;
+        try {
+          existingStory = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
+            ? window.AudioHubStories.getById(ctx.storyId) : null;
+        } catch (e) {}
+
+        var storyTitle = existingStory ? (existingStory.title || '') : '';
+        var storyAuthor = existingStory ? (existingStory.author || '') : '';
+        var storyGenre = existingStory ? (existingStory.genre || '') : '';
+
+        // Create new story entry for this chapter
+        var newStoryPayload = {
+          title: storyTitle,
+          description: description || (existingStory ? existingStory.description : ''),
+          author: storyAuthor,
+          genre: storyGenre,
+          chapterTitle: chapterName,
+          visibility: 'Công khai'
+        };
+
+        statusEl.textContent = 'Đang đăng chương...';
+        statusEl.className = 'add-chapter-modal__status';
+        statusEl.classList.remove('is-hidden');
+        submitBtn.disabled = true;
+
+        // Save story to localStorage via AudioHubStories
+        var newStory = null;
+        try {
+          newStory = window.AudioHubStories.upsert(newStoryPayload);
+        } catch (e) {
+          statusEl.textContent = 'Lỗi lưu truyện: ' + (e.message || e);
+          statusEl.className = 'add-chapter-modal__status is-error';
+          submitBtn.disabled = false;
+          return;
+        }
+
+        if (!newStory || !newStory.id) {
+          statusEl.textContent = 'Không thể tạo chương mới.';
+          statusEl.className = 'add-chapter-modal__status is-error';
+          submitBtn.disabled = false;
+          return;
+        }
+
+        // Upload audio to IndexedDB if provided
+        var audioPromise = Promise.resolve('');
+        if (audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
+          audioPromise = window.AudioHubStoryAudio.put(audioFile, newStory.id).catch(function () { return ''; });
+        }
+
+        // Upload reading text if provided
+        var readingPromise = Promise.resolve('');
+        if (readingFile) {
+          readingPromise = new Promise(function (resolve) {
+            var reader = new FileReader();
+            reader.onload = function () { resolve(typeof reader.result === 'string' ? reader.result : ''); };
+            reader.onerror = function () { resolve(''); };
+            reader.readAsText(readingFile, 'utf-8');
+          });
+        }
+
+        Promise.all([audioPromise, readingPromise]).then(function (results) {
+          var audioKey = results[0] || '';
+          var readingText = results[1] || '';
+
+          // Update story with audioKey and readingText
+          if (audioKey || readingText) {
+            if (audioKey) newStory.audioKey = audioKey;
+            if (readingText) newStory.readingText = readingText;
+            try { window.AudioHubStories.upsert(newStory); } catch (e) {}
+          }
+
+          // Add chapter entry to playlist
+          var PLAYLIST_KEY = 'audiohub-playlists-v1';
+          try {
+            var plRaw = localStorage.getItem(PLAYLIST_KEY) || '[]';
+            var playlists = JSON.parse(plRaw);
+            if (!Array.isArray(playlists)) playlists = [];
+            var matchedPl = playlists.find(function (p) { return p.id === ctx.playlistId; });
+            if (matchedPl) {
+              var entries = matchedPl.entries || [];
+              var entryHref = '/html/story-detail.html?id=' + encodeURIComponent(newStory.id) + '&playlistId=' + encodeURIComponent(ctx.playlistId);
+              entries.push({
+                key: newStory.id,
+                title: storyTitle,
+                chapterTitle: chapterName,
+                chapterIndex: entries.length,
+                author: storyAuthor,
+                genre: storyGenre,
+                href: entryHref,
+                status: 'listening',
+                progress: 0,
+                addedAt: new Date().toISOString()
+              });
+              matchedPl.entries = entries;
+              localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+              // Sync to D1
+              fetch('/api/playlists', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: matchedPl.id, name: matchedPl.name, items: JSON.stringify(entries) })
+              }).catch(function () {});
+            }
+          } catch (e) {}
+
+          // Sync to cloud
+          try {
+            if (typeof window.AudioHubStories.sync === 'function') window.AudioHubStories.sync();
+          } catch (e) {}
+
+          statusEl.textContent = '✅ Đã đăng chương "' + chapterName + '" vào bộ truyện!';
+          statusEl.className = 'add-chapter-modal__status';
+          submitBtn.disabled = false;
+
+          // Close modal + reload after short delay
+          setTimeout(function () {
+            closeModal();
+            window.location.reload();
+          }, 1500);
+
+        }).catch(function (err) {
+          statusEl.textContent = 'Lỗi: ' + (err.message || err);
+          statusEl.className = 'add-chapter-modal__status is-error';
+          submitBtn.disabled = false;
+        });
+      });
+    }
+  })();
+
 })();
 
 
