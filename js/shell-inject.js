@@ -209,7 +209,7 @@
   // Load SPA router so navigation between standalone pages is smooth (SPA)
   if (!document.querySelector('script[src*="spa-router"]')) {
     var routerScript = document.createElement('script');
-    routerScript.src = p + 'js/spa-router.js';
+    routerScript.src = p + 'js/spa-router.js?v=20260804-1';
     document.body.appendChild(routerScript);
   }
 
