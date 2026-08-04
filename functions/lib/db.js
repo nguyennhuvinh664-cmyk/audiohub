@@ -54,7 +54,7 @@ export async function getStoriesByUser(db, userId, options = {}) {
 export async function upsertStory(db, story) {
   const id = story.id || null;
   if (!id) {
-    throw new Error('Story ID is required');
+    throw new Error('Story ID is required — generate one before calling upsertStory');
   }
 
   // Use COALESCE: only overwrite fields that are actually provided (non-null/non-empty)

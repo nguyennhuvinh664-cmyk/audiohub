@@ -76,9 +76,9 @@ export async function onRequest(context) {
     if (method === 'POST' && !storyId) {
       const story = await request.json();
 
-      // Validate required fields
+      // Generate CUID if client sends null (syncLocalStoriesToApi sends id=null to let D1 gen)
       if (!story.id) {
-        return Response.json({ error: 'Story ID is required' }, { status: 400, headers: corsHeaders });
+        story.id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
       }
 
       // Set timestamps
