@@ -656,7 +656,8 @@
                 genre: storyGenre,
                 href: baseHref,
                 status: 'listening',
-                progress: 0
+                progress: 0,
+                addedAt: new Date().toISOString()
               });
               addedCount++;
             });
@@ -1939,7 +1940,8 @@
               chapterIndex: entry.chapterIndex || 0,
               author: entry.author || '',
               genre: entry.genre || '',
-              href: entry.href || ''
+              href: entry.href || '',
+              addedAt: new Date().toISOString()
             });
           }
           found = true;

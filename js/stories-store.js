@@ -1287,6 +1287,7 @@
                 pl.entries.forEach(function (entry) {
                   if (String(entry.key || '') === String(oldStoryId)) {
                     entry.key = created.id;
+                    entry.storyId = created.id;
                     if (entry.href) {
                       entry.href = entry.href.replace('id=' + encodeURIComponent(oldStoryId), 'id=' + encodeURIComponent(created.id));
                     }
