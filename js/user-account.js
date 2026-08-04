@@ -246,7 +246,7 @@
       var chapter = h.chapter || h.chapterIdx || 0;
       var time = h.timestamp ? fmtTimeAgo(h.timestamp) : '';
 
-      html += '<a href="story-detail.html?id=' + encodeURIComponent(sid) + '" class="ua-list-item">'
+      html += '<a href="story-detail?id=' + encodeURIComponent(sid) + '" class="ua-list-item">'
         + '<div class="ua-list-thumb"><i class="fa-solid fa-headphones"></i></div>'
         + '<div class="ua-list-info">'
         + '<div class="ua-list-title">' + esc(title) + '</div>'
@@ -298,7 +298,7 @@
       var author = story.author || 'Ẩn danh';
       var views = story.listenCount || story.views || 0;
 
-      html += '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ua-list-item">'
+      html += '<a href="story-detail?id=' + encodeURIComponent(story.id) + '" class="ua-list-item">'
         + '<div class="ua-list-thumb"><i class="fa-solid fa-heart"></i></div>'
         + '<div class="ua-list-info">'
         + '<div class="ua-list-title">' + esc(title) + '</div>'
@@ -330,7 +330,7 @@
       var badgeText = state === 'done' ? 'Bản Full' : count + ' truyện';
       var firstEntry = (pl.entries || [])[0] || {};
       var storyId = firstEntry.storyId || firstEntry.key || '';
-      var href = storyId ? ('story-detail.html?id=' + encodeURIComponent(storyId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
+      var href = storyId ? ('story-detail?id=' + encodeURIComponent(storyId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
 
       html += '<a href="' + href + '" class="ua-pl-card">'
         + '<div class="ua-pl-card__thumb">'
@@ -793,7 +793,7 @@
 
   /* ── Store story context in sessionStorage for detail page fallback ── */
   document.addEventListener('click', function (e) {
-    var link = e.target.closest('a[href*="story-detail.html"]');
+    var link = e.target.closest('a[href*="story-detail"]');
     if (!link) return;
     try {
       var url = new URL(link.href, window.location.origin);

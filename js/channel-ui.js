@@ -137,7 +137,7 @@
   // ── Build card ──
   function buildCard(story) {
     var storyId = String(story && story.id || '').trim();
-    var href = storyId ? ('story-detail.html?id=' + encodeURIComponent(storyId)) : '#';
+    var href = storyId ? ('story-detail?id=' + encodeURIComponent(storyId)) : '#';
     var title = String(story.title || 'Truyện mới');
     var genre = String(story.genre || 'Khác');
     var author = String(story.author || 'Ẩn danh');
@@ -263,7 +263,7 @@
       var firstEntry = (pl.entries || [])[0] || {};
       var firstStoryId = String(firstEntry.key || firstEntry.storyId || '');
       var coverKey = firstStoryId ? (storyCoverMap[firstStoryId] || '') : '';
-      var href = firstStoryId ? ('story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
+      var href = firstStoryId ? ('story-detail?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)) : '#';
       var state = String(pl.state || '').trim();
       var badgeText = state === 'done' ? 'Bản Full' : (count + ' truyện');
       var thumbStyle = coverKey ? '' : 'background:linear-gradient(135deg,#1a1040,#2d1b69)';

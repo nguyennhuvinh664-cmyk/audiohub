@@ -38,7 +38,7 @@
     var title = escapeHtml(story.title);
     var author = escapeHtml(story.author);
     var genre = escapeHtml(story.genre);
-    var href = '/story-detail.html?id=' + encodeURIComponent(story.id);
+    var href = '/story-detail?id=' + encodeURIComponent(story.id);
     var color = genreColor(story.genre);
     var _thumbBg = 'background:linear-gradient(135deg,' + color + ',' + color + 'aa)';
 
@@ -88,7 +88,7 @@
     }
 
     var href = firstStoryId
-      ? '/story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(playlist.id)
+      ? '/story-detail?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(playlist.id)
       : '#';
 
     return (
@@ -563,7 +563,7 @@
           title: card.querySelector('.story-title') ? card.querySelector('.story-title').textContent : '',
           author: card.querySelector('.story-footer span') ? card.querySelector('.story-footer span').textContent.trim() : '',
           genre: card.querySelector('.story-meta span') ? card.querySelector('.story-meta span').textContent : '',
-          href: '/story-detail.html?id=' + encodeURIComponent(sid),
+          href: '/story-detail?id=' + encodeURIComponent(sid),
           coverKey: card.querySelector('[data-cover-key]') ? card.querySelector('[data-cover-key]').getAttribute('data-cover-key') : ''
         };
         var isFav = window.AudioHubLibrary.toggleFavorite(storyData);

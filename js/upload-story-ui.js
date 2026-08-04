@@ -1498,7 +1498,7 @@
             var chapterTitle = (chapterInput ? chapterInput.value.trim() : '') || '';
             var chapterIndex = entries.length; // auto-increment: next index after last entry
             // Build href for story-detail with playlistId
-            var entryHref = '/html/story-detail.html?id=' + encodeURIComponent(story.id) + '&playlistId=' + encodeURIComponent(matchedPl.id);
+            var entryHref = '/story-detail?id=' + encodeURIComponent(story.id) + '&playlistId=' + encodeURIComponent(matchedPl.id);
             // Add chapter entry to playlist
             entries.push({
               key: story.id,
@@ -1571,7 +1571,7 @@
     showBanner(statusLabel + ' Đã lưu vào danh sách demo.', published);
 
     if (published && story && story.id) {
-      var detailUrl = '/html/story-detail.html?id=' + encodeURIComponent(story.id);
+      var detailUrl = '/story-detail?id=' + encodeURIComponent(story.id);
       if (window.AudioHubRouter) { window.AudioHubRouter.navigate(detailUrl); } else { window.location.href = detailUrl; }
     }
   }

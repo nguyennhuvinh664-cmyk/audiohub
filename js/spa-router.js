@@ -18,6 +18,7 @@
     'hall-of-fame.html', 'hall-of-hearts.html', 'login.html',
     'new-posts.html', 'popular.html', 'privacy.html', 'register.html',
     'story-detail.html',
+    'story-detail',
     'terms.html', 'trending.html',
     'upload-story.html', 'user-account.html'
   ];
@@ -42,6 +43,7 @@
     'index.html':           ['home-mobile'],
     'account.html':         ['account', 'account-mobile', 'playlist-clean', 'content-search', 'library-state'],
     'story-detail.html':    ['library-state', 'story-detail-ui', 'story-detail-mobile'],
+    'story-detail':         ['library-state', 'story-detail-ui', 'story-detail-mobile'],
     'categories.html':      ['categories-mobile'],
     'new-posts.html':       ['story-filters', 'library-state'],
     'popular.html':         ['story-filters', 'library-state'],
@@ -78,6 +80,7 @@
     'index.html':           ['story-filters', 'stories-home'],
     'account.html':         ['stories-cover-store', 'stories-audio-store', 'library-state', 'stories-account', 'content-search'],
     'story-detail.html':    ['stories-store', 'library-state', 'stories-cover-store', 'stories-audio-store', 'story-detail-ui'],
+    'story-detail':         ['stories-store', 'library-state', 'stories-cover-store', 'stories-audio-store', 'story-detail-ui'],
     'categories.html':      ['categories'],
     'new-posts.html':       ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],
     'popular.html':         ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],

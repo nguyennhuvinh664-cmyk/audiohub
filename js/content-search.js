@@ -162,7 +162,7 @@ var ContentSearch = class ContentSearch {
         </div>
       `;
     } else {
-      var storyHref = '/story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
+      var storyHref = '/story-detail?id=' + encodeURIComponent(String(item.id || ''));
       var editHref = '/html/upload-story.html?edit=' + encodeURIComponent(String(item.id || ''));
       div.className = 'account-list-item';
       div.innerHTML = `

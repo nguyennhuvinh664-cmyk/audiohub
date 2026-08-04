@@ -242,7 +242,7 @@
   }
 
   function storyHref(story) {
-    return '/story-detail.html?id=' + encodeURIComponent(String(story && story.id || ''));
+    return '/story-detail?id=' + encodeURIComponent(String(story && story.id || ''));
   }
 
   function renderSimpleList(rootNode, items, emptyText, kind) {
@@ -643,7 +643,7 @@
               var ch = chapters[idx] || {};
               var chNum = idx + 1;
               var chTitle = ch.title || ('Chương ' + chNum);
-              var baseHref = storyHref || ('story-detail.html?id=' + encodeURIComponent(storyId));
+              var baseHref = storyHref || ('story-detail?id=' + encodeURIComponent(storyId));
               if (baseHref.indexOf('playlistId=') === -1) {
                 baseHref += (baseHref.indexOf('?') >= 0 ? '&' : '?') + 'playlistId=' + encodeURIComponent(plId);
               }
@@ -920,7 +920,7 @@
       var coverKey = String(node.getAttribute('data-library-cover-key') || '').trim();
       var href = String(node.getAttribute('data-library-href') || '').trim();
 
-      // Extract story ID from href (e.g. /story-detail.html?id=xxx)
+      // Extract story ID from href (e.g. /story-detail?id=xxx)
       var storyId = '';
       if (href) {
         try {

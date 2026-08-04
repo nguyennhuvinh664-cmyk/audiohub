@@ -240,7 +240,7 @@
   /* ── card builder ────────────────────────────────────── */
   function buildHomeCardHtml(story) {
     var storyId = String(story && story.id || '').trim();
-    var href = storyId ? ('/story-detail.html?id=' + encodeURIComponent(storyId)) : '#';
+    var href = storyId ? ('/story-detail?id=' + encodeURIComponent(storyId)) : '#';
     var title = String(story.title || 'Truyện mới');
     var genre = String(story.genre || 'Khác');
     var author = String(story.author || 'Ẩn danh');
@@ -269,7 +269,7 @@
     var firstEntry = entries[0] || {};
     var firstStoryId = String(firstEntry.storyId || firstEntry.key || '');
     var href = firstStoryId
-      ? '/story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)
+      ? '/story-detail?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)
       : '#';
     var title = String(pl.name || 'Truyện mới');
     var initials = makeInitials(title);
@@ -303,7 +303,7 @@
   function setCard(card, story) {
     if (!card || !story) return;
 
-    card.href = '/story-detail.html?id=' + encodeURIComponent(story.id);
+    card.href = '/story-detail?id=' + encodeURIComponent(story.id);
     card.setAttribute('data-story-id', String(story.id || ''));
     card.setAttribute('data-story-visibility', String(story.visibility || ''));
 
@@ -408,7 +408,7 @@
       var width = maxScore > 0 ? Math.max(10, Math.round(score * 100 / maxScore)) : 10;
       var rankClass = rank === 1 ? ' gold' : (rank === 2 ? ' silver' : (rank === 3 ? ' bronze' : ''));
       var color = genreColor(story.genre);
-      return '<a href="story-detail.html?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
+      return '<a href="story-detail?id=' + encodeURIComponent(story.id) + '" class="ti" data-story-id="' + String(story.id || '') + '" data-story-visibility="' + String(story.visibility || '') + '">'
         + '<span class="trk' + rankClass + '">' + rank + '</span>'
         + '<div class="tth" style="background:linear-gradient(135deg,' + color + ',' + color + 'cc)" data-cover-story-id="' + String(story.id || '') + '">' + makeInitials(story.title) + '</div>'
         + '<div class="tin"><p class="tnm">' + String(story.title || 'Truyện mới') + '</p><p class="tmt">' + String(story.genre || 'Khác') + ' • ' + score + ' lượt nghe (2 ngày)</p></div>'
@@ -569,7 +569,7 @@
 
       var color = '#10b981';
       var href = firstStoryId
-        ? 'story-detail.html?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)
+        ? 'story-detail?id=' + encodeURIComponent(firstStoryId) + '&playlistId=' + encodeURIComponent(pl.id)
         : '#';
 
       return '<a href="' + href + '" class="sc">'

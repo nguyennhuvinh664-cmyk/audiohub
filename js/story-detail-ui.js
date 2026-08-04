@@ -731,7 +731,7 @@
     storyNode.setAttribute('data-cover-key', String(story.coverKey || ''));
     storyNode.setAttribute('data-youtube-url', String(story.youtubeUrl || ''));
     storyNode.setAttribute('data-youtube-id', String(story.youtubeId || ''));
-    storyNode.setAttribute('href', '/story-detail.html?id=' + encodeURIComponent(String(story.id || '')));
+    storyNode.setAttribute('href', '/story-detail?id=' + encodeURIComponent(String(story.id || '')));
 
     var titleNode = storyNode.querySelector('.detail-title');
     if (titleNode && story.title) titleNode.textContent = story.title;
@@ -1223,7 +1223,7 @@
     list.innerHTML = stories.map(function (item) {
       var title = escapeHtml(String(item.title || 'Truyện'));
       var views2d = Number(item.listenCount2d || 0);
-      var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id || ''));
+      var href = '/story-detail?id=' + encodeURIComponent(String(item.id || ''));
       var storyId = escapeHtml(String(item.id || ''));
       var coverData = item.coverData ? escapeHtml(String(item.coverData)) : '';
       var initials = title.slice(0, 2).toUpperCase();
@@ -1325,7 +1325,7 @@
       var title = escapeHtml(String(item.title || 'Truyện đề xuất'));
       var genre = escapeHtml(String(item.genre || 'Khác'));
       var author = escapeHtml(String(item.author || 'Ẩn danh'));
-      var href = '/story-detail.html?id=' + encodeURIComponent(String(item.id));
+      var href = '/story-detail?id=' + encodeURIComponent(String(item.id));
       var coverData = item.coverData ? escapeHtml(String(item.coverData)) : '';
       var visibility = escapeHtml(String(item.visibility || ''));
       var storyId = escapeHtml(String(item.id || ''));
@@ -3361,7 +3361,7 @@
       if (playlistItem) {
         applyStoryOverviewFromPlaylistItem(playlistItem);
         // Update URL without reload
-        var newUrl = 'story-detail.html?id=' + encodeURIComponent(playlistItem.storyId || '');
+        var newUrl = 'story-detail?id=' + encodeURIComponent(playlistItem.storyId || '');
         if (overrideState && overrideState.chapters && overrideState.chapters[0]) {
           var playlistId = getQueryParam('playlistId') || '';
           if (playlistId) newUrl += '&playlistId=' + encodeURIComponent(playlistId);
@@ -3851,7 +3851,7 @@
             var matchedPl = playlists.find(function (p) { return p.id === ctx.playlistId; });
             if (matchedPl) {
               var entries = matchedPl.entries || [];
-              var entryHref = '/html/story-detail.html?id=' + encodeURIComponent(newStory.id) + '&playlistId=' + encodeURIComponent(ctx.playlistId);
+              var entryHref = '/html/story-detail?id=' + encodeURIComponent(newStory.id) + '&playlistId=' + encodeURIComponent(ctx.playlistId);
               entries.push({
                 key: newStory.id,
                 title: storyTitle,

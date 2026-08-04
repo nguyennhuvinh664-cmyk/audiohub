@@ -33,7 +33,7 @@
   }
 
   function storyHref(story) {
-    return '/story-detail.html?id=' + encodeURIComponent(String(story.id || ''));
+    return '/story-detail?id=' + encodeURIComponent(String(story.id || ''));
   }
 
   function badgeLabel(story) {

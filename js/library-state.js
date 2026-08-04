@@ -57,7 +57,7 @@
           id = '';
         }
       }
-      href = id ? ('/story-detail.html?id=' + encodeURIComponent(String(id))) : 'story-detail';
+      href = id ? ('/story-detail?id=' + encodeURIComponent(String(id))) : 'story-detail';
     }
 
     var storyId = String(source.dataset.storyId || '').trim();
@@ -170,7 +170,7 @@
       try { id = new URLSearchParams(window.location.search).get('id') || ''; } catch (error) {}
     }
     if (id && !detail.getAttribute('data-story-id')) detail.setAttribute('data-story-id', String(id));
-    if ((!href || href === 'story-detail' || href === 'story-detail.html' || href === 'story-detail.html') && id) detail.setAttribute('href', '/story-detail.html?id=' + encodeURIComponent(String(id)));
+    if ((!href || href === 'story-detail' || href.indexOf('story-detail') === 0) && id) detail.setAttribute('href', '/story-detail?id=' + encodeURIComponent(String(id)));
   }
 
   function syncDetailActionsDeferred() {
@@ -371,7 +371,7 @@
           genre: String(story.genre || 'Truyện audio'),
           progress: 'Đã nghe',
           note: 'Tự động từ lịch sử phát',
-          href: '/story-detail.html?id=' + encodeURIComponent(id),
+          href: '/story-detail?id=' + encodeURIComponent(id),
           coverKey: story && story.coverKey ? String(story.coverKey) : '',
           savedAt: new Date(time).toISOString(),
           listenAt: time
@@ -452,7 +452,7 @@
               genre: String(item.genre || 'Truyện audio'),
               progress: 'Đã nghe',
               note: 'Từ lịch sử nghe',
-              href: '/story-detail.html?id=' + encodeURIComponent(item.storyId),
+              href: '/story-detail?id=' + encodeURIComponent(item.storyId),
               coverKey: String(item.coverKey || ''),
               coverData: item.coverData || '',
               savedAt: new Date(item.listenedAt).toISOString()
