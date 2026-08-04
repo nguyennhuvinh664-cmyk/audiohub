@@ -3760,8 +3760,10 @@
         var storyGenre = existingStory ? (existingStory.genre || '') : '';
 
         // Create new story entry for this chapter
+        // Use unique title to avoid dedupeStories() collision with existing series story
+        var chapterStoryTitle = storyTitle + (chapterName ? ' - ' + chapterName : '');
         var newStoryPayload = {
-          title: storyTitle,
+          title: chapterStoryTitle,
           description: description || (existingStory ? existingStory.description : ''),
           author: storyAuthor,
           genre: storyGenre,
