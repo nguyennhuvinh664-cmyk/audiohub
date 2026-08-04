@@ -17,7 +17,7 @@
     'completed.html', 'contact.html', 'drafts.html', 'edit-profile.html',
     'hall-of-fame.html', 'hall-of-hearts.html', 'login.html',
     'new-posts.html', 'popular.html', 'privacy.html', 'register.html',
-    // story-detail excluded — force full reload to avoid stale CDN cache
+    'story-detail.html',
     'terms.html', 'trending.html',
     'upload-story.html', 'user-account.html'
   ];
