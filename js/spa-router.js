@@ -154,6 +154,9 @@
     var targetPath = url.pathname;
     if (targetPath === currentPath && url.hash) return false;
 
+    // Skip story-detail pages — force full reload to avoid stale cache
+    if (targetPath.indexOf('story-detail') !== -1) return false;
+
     // Check if target is a known route
     var route = normalizePath(targetPath);
     return isKnownRoute(route);
@@ -282,7 +285,7 @@
     // Fetch the target page
     var fetchUrl = getRouteUrl(route) + search;
 
-    fetch(fetchUrl + (fetchUrl.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now())
+    fetch(fetchUrl + (fetchUrl.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now(), { cache: 'no-store' })
       .then(function (res) {
         if (!res.ok) throw new Error('Navigation failed: ' + res.status);
         return res.text();
@@ -449,7 +452,7 @@
     // If this is a subpage (not root index.html), load its content into the shell
     if (isKnownRoute(route) && pageName !== 'index.html') {
       var fetchUrl = getRouteUrl(route);
-      fetch(fetchUrl + (fetchUrl.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now())
+      fetch(fetchUrl + (fetchUrl.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now(), { cache: 'no-store' })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to load page');
           return res.text();
