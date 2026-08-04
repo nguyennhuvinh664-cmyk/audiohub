@@ -14,9 +14,14 @@
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (data) {
         if (!Array.isArray(data) || !data.length) return;
-        // Convert D1 format
+        // Convert D1 format — items may be JSON string from upload
         var d1Pls = data.map(function (p) {
-          return { id: p.id, name: p.name, entries: p.items || [], state: p.state || 'ongoing' };
+          var items = p.items || [];
+          if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch (e) { items = []; }
+          }
+          if (!Array.isArray(items)) items = [];
+          return { id: p.id, name: p.name, entries: items, state: p.state || 'ongoing' };
         });
         // Read existing localStorage
         var localRaw = localStorage.getItem(PLAYLIST_KEY) || '';
@@ -60,6 +65,8 @@
         });
 
         localStorage.setItem(PLAYLIST_KEY, JSON.stringify(merged));
+        // Notify page that playlists were synced — re-render chapter list
+        try { window.dispatchEvent(new Event('audiohub-playlists-synced')); } catch (e) {}
       })
       .catch(function () {});
   })();
@@ -3087,6 +3094,12 @@
         }, 1500);
       }
     }
+    // Re-render chapter list when D1 sync completes (may have new entries)
+    window.addEventListener('audiohub-playlists-synced', function () {
+      var _freshCtx = resolvePlaylistContext(storyId || '');
+      var _freshStory = story || (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(storyId) : null);
+      if (_freshStory) overrideChapterList(_freshCtx, _freshStory);
+    });
     // Only use VISIBLE chapter nodes (mobile OR desktop, not both)
     var allChapterNodes = document.querySelectorAll('[data-player-chapter]');
     var chapterNodes = [];

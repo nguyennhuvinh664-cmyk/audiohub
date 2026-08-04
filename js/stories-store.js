@@ -590,6 +590,9 @@
                     if (String(e.storyId || e.key || '') === String(localEntry.id)) {
                       e.storyId = newStoryId;
                       e.key = newStoryId;
+                      if (e.href) {
+                        e.href = e.href.replace('id=' + encodeURIComponent(localEntry.id), 'id=' + encodeURIComponent(newStoryId));
+                      }
                       plChanged = true;
                     }
                   });
