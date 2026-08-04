@@ -17,7 +17,8 @@
     'completed.html', 'contact.html', 'drafts.html', 'edit-profile.html',
     'hall-of-fame.html', 'hall-of-hearts.html', 'login.html',
     'new-posts.html', 'popular.html', 'privacy.html', 'register.html',
-    'story-detail.html', 'terms.html', 'trending.html',
+    // story-detail excluded — force full reload to avoid stale CDN cache
+    'terms.html', 'trending.html',
     'upload-story.html', 'user-account.html'
   ];
 
@@ -421,15 +422,6 @@
     var anchor = event.target.closest('a');
     if (!anchor) return;
     if (!shouldIntercept(anchor)) return;
-
-    // Force full reload for story-detail to avoid stale CDN cache
-    var targetPath = '';
-    try { targetPath = new URL(anchor.href).pathname; } catch (e) {}
-    if (targetPath.indexOf('story-detail') !== -1) {
-      event.preventDefault();
-      window.location.href = anchor.href;
-      return;
-    }
 
     event.preventDefault();
     navigateTo(anchor.href);
