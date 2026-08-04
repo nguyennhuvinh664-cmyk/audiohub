@@ -213,7 +213,9 @@
   function loadScript(src) {
     return new Promise(function (resolve) {
       var script = document.createElement('script');
-      script.src = src;
+      // Add cache-busting timestamp to force fresh load on SPA navigation
+      var cacheBust = '_t=' + Date.now();
+      script.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + cacheBust;
       script.setAttribute('data-page-script', '');
       script.onload = resolve;
       script.onerror = resolve;
