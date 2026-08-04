@@ -16,13 +16,15 @@
   var PLAYLIST_KEY = 'audiohub-playlists-v1';
 
   /** Sync playlists from localStorage to D1 */
-  function syncPlaylistsToStorage() {
+  function syncPlaylistsToStorage(specificPlaylistId) {
     try {
       var raw = localStorage.getItem(PLAYLIST_KEY) || '';
       var playlists = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(playlists)) return;
 
       playlists.forEach(function (pl) {
+        // If specificPlaylistId provided, only sync that one
+        if (specificPlaylistId && pl.id !== specificPlaylistId) return;
         fetch('/api/playlists', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1512,7 +1514,7 @@
             });
             matchedPl.entries = entries;
             localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
-            syncPlaylistsToStorage();
+            syncPlaylistsToStorage(matchedPl.id);
             console.log('[upload] ✅ Added chapter to playlist:', matchedPl.name, '| chapter:', chapterTitle, '(' + entries.length + ' entries)');
           }
         }
