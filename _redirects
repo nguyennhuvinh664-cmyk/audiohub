@@ -54,6 +54,9 @@
 
 # Backend proxy is handled by Cloudflare Pages Functions (functions/api, functions/media, functions/auth)
 
+# Root-level story-detail — self-rewrite (must be before SPA catch-all)
+/story-detail.html  /story-detail.html  200
+
 # Static assets — must be before SPA fallback
 /css/*     /css/:splat     200
 /js/*      /js/:splat      200
