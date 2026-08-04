@@ -424,7 +424,8 @@
             storyId: String(entry.key || entry.storyId || ''),
             storyTitle: String(entry.title || entry.storyTitle || ''),
             storyAuthor: String(entry.author || entry.storyAuthor || ''),
-            chapterLabel: entry.title || entry.storyTitle || ('Chương ' + (i + 1)),
+            chapterTitle: String(entry.chapterTitle || ''),
+            chapterLabel: String(entry.chapterTitle || entry.title || entry.storyTitle || ('Chương ' + (i + 1))),
             chapterIndex: i
           };
         });
@@ -1594,7 +1595,13 @@
             if (Array.isArray(pl.items) && pl.items.length) return;
             if (Array.isArray(pl.entries) && pl.entries.length) {
               pl.items = pl.entries.map(function (e, i) {
-                return { storyId: String(e.key || e.storyId || ''), storyTitle: String(e.title || e.storyTitle || ''), label: 'Chương ' + (i + 1), index: i };
+                return {
+                  storyId: String(e.key || e.storyId || ''),
+                  storyTitle: String(e.title || e.storyTitle || ''),
+                  chapterTitle: String(e.chapterTitle || ''),
+                  label: String(e.chapterTitle || ('Chương ' + (i + 1))),
+                  index: i
+                };
               });
             }
           }
