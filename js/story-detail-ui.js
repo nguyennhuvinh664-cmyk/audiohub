@@ -2,10 +2,18 @@
   var detailRoot = document.querySelector('.detail-page');
   if (!detailRoot) return;
 
-  // DEBUG: check DOM state at script start
-  var _pc = document.getElementById('page-content');
-  var _cc = document.querySelector('[data-chapter-copy]');
-  console.log('[story-detail] DOM check: page-content:', !!_pc, 'innerHTML:', _pc ? _pc.innerHTML.length : 0, 'chapter-copy:', !!_cc, 'body-class:', document.body.className);
+  // AbortController for cleanup on SPA navigation (frees document/window listeners)
+  var _ac = new AbortController();
+  var _signal = _ac.signal;
+  window.__pageCleanup = function () {
+    try { stopReadingAutoScroll(); } catch (e) {}
+    try { clearSleepTimer(); } catch (e) {}
+    try {
+      var audio = document.querySelector('[data-story-audio]');
+      if (audio && !audio.paused) { audio.pause(); audio.currentTime = 0; }
+    } catch (e) {}
+    _ac.abort();
+  };
 
   /* ── Load playlists from D1 → localStorage (MERGE, not overwrite) ── */
   (function syncPlaylistsFromStorage() {
@@ -381,12 +389,12 @@
 
   window.addEventListener('audiohub:stories-updated', function () {
     ensureStoryContext();
-  });
+  }, { signal: _signal });
 
   window.addEventListener('audiohub:stories-synced', function () {
     if (tryResolvePendingStoryAfterSync()) return;
     ensureStoryContext();
-  });
+  }, { signal: _signal });
 
   function formatStoryDate(value) {
     var time = Date.parse(String(value || ''));
@@ -459,18 +467,11 @@
       if (!pl) return false;
       var idx = findStoryInPl(pl, storyId);
       if (idx >= 0) { chosen = pl; chosenIndex = idx; return true; }
-      // Do NOT fallback to a playlist that doesn't contain this story
       return false;
     });
 
-    if (!chosen) {
-      playlists.some(function (pl) {
-        var idx = findStoryInPl(pl, storyId);
-        if (idx >= 0) { chosen = pl; chosenIndex = idx; return true; }
-        return false;
-      });
-    }
-
+    // Do not auto-select a playlist solely because the story exists in it.
+    // Only use explicit playlist context from URL or stored navigation state.
     if (!chosen) return null;
     if (!Array.isArray(chosen.items) || !chosen.items.length) return null;
     if (chosenIndex < 0 || !chosen.items[chosenIndex]) {
@@ -768,7 +769,14 @@
     }
 
     var chapterCopy = document.querySelector('[data-chapter-copy]');
-    var readingContent = story.readingText || story.description || '';
+    // Read readingText from first chapter if available (per-chapter storage)
+    var chapterReadingText0 = '';
+    try {
+      var _cs0 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+      var _ch0 = Array.isArray(_cs0[String(story.id)]) ? _cs0[String(story.id)] : [];
+      if (_ch0[0] && _ch0[0].readingText) chapterReadingText0 = _ch0[0].readingText;
+    } catch (e) {}
+    var readingContent = chapterReadingText0 || story.readingText || story.description || '';
     console.log('[story-detail] reading render: chapterCopy:', !!chapterCopy, 'readingContent:', readingContent ? readingContent.length + ' chars' : 'EMPTY');
     function renderReadingText() {
       var cc = document.querySelector('[data-chapter-copy]');
@@ -800,9 +808,16 @@
       });
     }
 
-    var chapterTitle = story.chapterTitle || 'Chương 1';
+    // Read chapter title from chapters store (not top-level story.chapterTitle which gets overwritten by latest upload)
+    var chapterTitleForPlayer = 'Chương 1';
+    try {
+      var _csP = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+      var _chP = Array.isArray(_csP[String(story.id)]) ? _csP[String(story.id)] : [];
+      if (_chP[0] && _chP[0].title) chapterTitleForPlayer = 'Chương 1: ' + _chP[0].title;
+    } catch (e) {}
+    if (chapterTitleForPlayer === 'Chương 1' && story.chapterTitle) chapterTitleForPlayer = story.chapterTitle;
     var chapterLabel = document.querySelector('[data-player-current-chapter]');
-    if (chapterLabel) chapterLabel.textContent = chapterTitle;
+    if (chapterLabel) chapterLabel.textContent = chapterTitleForPlayer;
 
     var playerSubtitle = document.querySelector('.audio-headings p');
     if (playerSubtitle) playerSubtitle.textContent = story.title || '';
@@ -1117,20 +1132,38 @@
 
     var chapterCopy = document.querySelector('[data-chapter-copy]');
     if (chapterCopy) {
-      var readingContent = story.readingText || story.description || '';
+      // Read readingText from the SPECIFIC CHAPTER, not story level
+      var chapterReadingText = '';
+      try {
+        var chapIdx = typeof item.chapterIndex === 'number' ? item.chapterIndex : 0;
+        var chapStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        var storyChapters = Array.isArray(chapStore[String(item.storyId)]) ? chapStore[String(item.storyId)] : [];
+        if (storyChapters[chapIdx] && storyChapters[chapIdx].readingText) {
+          chapterReadingText = storyChapters[chapIdx].readingText;
+        }
+      } catch (e) {}
+      // Fallback: story-level readingText, then description
+      var readingContent = chapterReadingText || story.readingText || story.description || '';
       var cleanedText = cleanReadingText(readingContent);
       var blocks = String(cleanedText).split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
       chapterCopy.innerHTML = blocks.length
         ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
         : '<p>Chưa có nội dung truyện chữ cho chương này.</p>';
-      // Force scrollable via inline style
       chapterCopy.style.maxHeight = '60vh';
       chapterCopy.style.overflowY = 'auto';
       chapterCopy.style.scrollBehavior = 'smooth';
     }
 
     var chapterLabel = document.querySelector('[data-player-current-chapter]');
-    if (chapterLabel) chapterLabel.textContent = story.chapterTitle || item.chapterLabel || 'Chương 1';
+    // Prefer chapter label from chapters store over top-level story.chapterTitle
+    var _chLabel = item.chapterLabel || 'Chương 1';
+    try {
+      var _csS = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+      var _chS = Array.isArray(_csS[String(story.id)]) ? _csS[String(story.id)] : [];
+      var _idx = Number(item.index || item.chapterIndex || 0);
+      if (_chS[_idx] && _chS[_idx].title) _chLabel = 'Chương ' + (_idx + 1) + ': ' + _chS[_idx].title;
+    } catch (e) {}
+    if (chapterLabel) chapterLabel.textContent = _chLabel;
   }
 
   function pickTrendingStories(stories) {
@@ -1154,7 +1187,16 @@
     if (allStories.length < 4 && window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
       window.AudioHubSupabase.fetchPublicStories().then(function (remote) {
         if (remote && remote.length) {
-          remote.forEach(function (s) { window.AudioHubStories.upsert(s); });
+          // Write directly to localStorage — DO NOT call upsert() (triggers API PATCH calls)
+          var existing = window.AudioHubStories.read() || [];
+          var existingIds = {};
+          existing.forEach(function(s) { if (s && s.id) existingIds[s.id] = true; });
+          remote.forEach(function (s) {
+            if (!existingIds[s.id]) {
+              existing.push(s);
+            }
+          });
+          try { localStorage.setItem('audiohub-library', JSON.stringify(existing)); } catch(e) {}
           renderSidebarTrending(currentStory);
           fetchMissingCoversFromD1();
           loadCardCoversFromIndexedDB();
@@ -1260,7 +1302,16 @@
     if (allStories.length < 4 && window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
       window.AudioHubSupabase.fetchPublicStories().then(function (remote) {
         if (remote && remote.length) {
-          remote.forEach(function (s) { window.AudioHubStories.upsert(s); });
+          // Write directly to localStorage — DO NOT call upsert() (triggers API PATCH calls)
+          var existing = window.AudioHubStories.read() || [];
+          var existingIds = {};
+          existing.forEach(function(s) { if (s && s.id) existingIds[s.id] = true; });
+          remote.forEach(function (s) {
+            if (!existingIds[s.id]) {
+              existing.push(s);
+            }
+          });
+          try { localStorage.setItem('audiohub-library', JSON.stringify(existing)); } catch(e) {}
           renderRelatedStories(story, forcedTag);
           fetchMissingCoversFromD1();
         }
@@ -1465,10 +1516,34 @@
       return fetchWithTimeout(url, 15000); // 15s timeout per attempt
     }
 
-    function tryPaths(idx) {
+    function tryLocalKeys() {
+      // Try AudioHubStoryAudio.get() FIRST — fast, local IndexedDB + Supabase Storage fallback
+      if (!window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') {
+        return Promise.resolve(null);
+      }
+      // Try each path via AudioHubStoryAudio (checks IndexedDB then Supabase Storage)
+      var localIdx = 0;
+      function tryNextLocal() {
+        if (localIdx >= paths.length) return Promise.resolve(null);
+        var key = paths[localIdx++];
+        console.log('[audio-debug] trying AudioHubStoryAudio.get:', key);
+        return window.AudioHubStoryAudio.get(key).then(function (blob) {
+          if (blob && blob.size > 0) {
+            console.log('[audio-debug] AudioHubStoryAudio OK:', key, blob.size);
+            return blob;
+          }
+          return tryNextLocal();
+        }).catch(function () {
+          return tryNextLocal();
+        });
+      }
+      return tryNextLocal();
+    }
+
+    function tryRemotePaths(idx) {
       if (idx >= paths.length) return Promise.resolve(null);
       var path = paths[idx];
-      console.log('[audio-debug] tryPaths[' + idx + ']:', path);
+      console.log('[audio-debug] tryRemotePaths[' + idx + ']:', path);
 
       // Try Cloudflare R2 first (same domain, fast, never sleeps)
       return fetchFromR2(path).catch(function (e) { console.log('[audio-debug] R2 failed:', path, e); return null; })
@@ -1478,50 +1553,11 @@
         return fetchFromBackend(path).catch(function (e) { console.log('[audio-debug] Render failed:', path, e); return null; });
       }).then(function (blob) {
         if (blob) { console.log('[audio-debug] Render OK:', path, blob.size); return blob; }
-        // Try AudioHubStoryAudio (IndexedDB + Supabase fallback)
-        console.log('[audio-debug] trying AudioHubStoryAudio for:', path);
-        var fromStore = (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function')
-          ? window.AudioHubStoryAudio.get(path).catch(function (e) { console.log('[audio-debug] IDB failed:', path, e); return null; })
-          : Promise.resolve(null);
-        return fromStore;
-      }).then(function (blob) {
-        if (blob) { console.log('[audio-debug] IDB/Supabase OK:', path, blob.size); }
-        return blob || tryPaths(idx + 1);
+        return tryRemotePaths(idx + 1);
       });
     }
 
-    // Fallback: if audioKey was empty, scan IndexedDB for any audio blob
-    function scanIdbForAudio() {
-      if (!window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.getAll !== 'function') {
-        return Promise.resolve(null);
-      }
-      return window.AudioHubStoryAudio.getAll().then(function (entries) {
-        if (!entries || !entries.length) return null;
-
-        // 1. Try matching by story ID (key == storyId or key == storyId.mp3)
-        if (storyId) {
-          var matchById = entries.find(function (e) {
-            return e.key === storyId || e.key === storyId + '.mp3';
-          });
-          if (matchById && matchById.blob && matchById.blob.size > 0) {
-            console.log('[audio-debug] IDB scan matched by storyId:', matchById.key, matchById.blob.size);
-            return matchById.blob;
-          }
-        }
-
-        // 2. Find newest audio entry as last resort
-        var newest = entries.sort(function (a, b) {
-          return (b.createdAt || '').localeCompare(a.createdAt || '');
-        })[0];
-        if (newest && newest.blob && newest.blob.size > 0) {
-          console.log('[audio-debug] IDB scan found newest audio:', newest.key, newest.blob.size);
-          return newest.blob;
-        }
-        return null;
-      }).catch(function () { return null; });
-    }
-
-    // Retry loop: try up to 4 times with increasing delays (0s, 10s, 20s, 40s)
+    // Loading chain: local (IndexedDB/Supabase) → remote (R2/Render) → retry
     var maxRetries = 4;
     var retryDelays = [0, 10000, 20000, 40000];
     var retryMessages = [
@@ -1533,29 +1569,18 @@
 
     function attemptLoad(retryIdx) {
       if (retryIdx >= maxRetries) {
-        // Final fallback: scan IndexedDB for any audio blob
-        scanIdbForAudio().then(function (blob) {
-          if (blob) {
-            try {
-              var audioUrl = URL.createObjectURL(blob);
-              audioUrlByNode.set(audioNode, audioUrl);
-              audioNode.src = audioUrl;
-              audioNode.classList.remove('is-hidden');
-              showNote('Tìm thấy audio trong bộ nhớ trình duyệt.');
-              console.log('[audio-debug] IDB scan fallback OK');
-            } catch (e) {
-              showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
-            }
-          } else {
-            showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
-          }
-        });
+        showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
         return;
       }
       if (retryIdx > 0) {
         showNote(retryMessages[retryIdx]);
       }
-      tryPaths(0).then(function (blob) {
+      // Step 1: Try local first (IndexedDB + Supabase Storage) — fast, per-story
+      tryLocalKeys().then(function (blob) {
+        if (blob) return blob;
+        // Step 2: Try remote (R2, Render) — slower, may share storage
+        return tryRemotePaths(0);
+      }).then(function (blob) {
         if (blob) {
           try {
             var audioUrl = URL.createObjectURL(blob);
@@ -1630,7 +1655,7 @@
             for (var j = 0; j < chapters.length; j++) {
               if (String(chapters[j].storyId) === String(_storyId)) { activeIdx = j; break; }
             }
-            return { chapters: chapters, activeIndex: activeIdx, chapterLabel: chapters[activeIdx] ? chapters[activeIdx].label : 'Chương 1' };
+            return { chapters: chapters, activeIndex: activeIdx, chapterLabel: chapters[activeIdx] ? chapters[activeIdx].label : 'Chương 1', playlist: { items: ents } };
           }
           // 1. Try by playlistId first — but only if story is actually in it
           if (_plId) {
@@ -1649,8 +1674,10 @@
               }
             }
           }
-          // 2. Fallback: search ALL playlists for one containing this story
-          if (!context) {
+          // 2. If a playlistId was explicitly provided, allow searching playlists for context.
+          //    Do NOT auto-select a playlist just because it contains this story — that causes the
+          //    detail page to show a partial playlist view and hide story chapters.
+          if (!context && _plId) {
             for (var k = 0; k < _allPls.length; k++) {
               _normalizePl(_allPls[k]);
               var items = _allPls[k].items || [];
@@ -1663,6 +1690,7 @@
               if (context) break;
             }
           }
+          // Do not fallback to searching by title. Only explicit playlistId should set playlist context.
         } catch (e) {}
       }
     }
@@ -1692,13 +1720,52 @@
     }
 
     var storyChapters = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
+    var storedChapters = [];
+    if (currentStory && currentStory.id) {
+      try {
+        var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        storedChapters = Array.isArray(_chStore[String(currentStory.id)]) ? _chStore[String(currentStory.id)] : [];
+      } catch (e) { storedChapters = []; }
+    }
+
+    // If local stored chapters are more complete than a playlist view, prefer the story's chapters
+    try {
+      if (playlistItemsForDisplay && storedChapters.length > (playlistItemsForDisplay.length || 0)) {
+        console.log('[story-detail] overrideChapterList: storedChapters (' + storedChapters.length + ') longer than playlist (' + (playlistItemsForDisplay.length || 0) + '), ignoring playlist and preferring story chapters');
+        // Nullify playlistItemsForDisplay so normal chapter rendering is used
+        playlistItemsForDisplay = null;
+      }
+    } catch (e) {}
+
+    if ((!storyChapters || storyChapters.length === 0) && storedChapters.length) {
+      storyChapters = storedChapters;
+    } else if (storedChapters.length > storyChapters.length) {
+      storyChapters = storedChapters;
+    }
+
+    // Debug: show decision summary
+    try {
+      console.log('[story-detail] overrideChapterList: decision: playlistItemsForDisplay=', !!playlistItemsForDisplay, 'playlistLen=', playlistItemsForDisplay ? playlistItemsForDisplay.length : 0, 'storyChaptersLen=', storyChapters.length, 'storedChaptersLen=', storedChapters.length);
+    } catch (e) {}
+
     var total = playlistItemsForDisplay ? playlistItemsForDisplay.length : (storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0);
-    // If still 0, count from readingText
+    // Fallback: count from audiohub-chapters-v1 localStorage when metadata underrates chapter count
+    if (!total && storedChapters.length) {
+      total = storedChapters.length;
+    }
+    // If still 0, count from readingText chapter headers
     if (!total && currentStory && currentStory.readingText) {
-      var chapterMatches = String(currentStory.readingText).match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter)\s+\d+/gim);
+      var chapterMatches = String(currentStory.readingText).match(/^(?:#*\s*)?(?:Chương|Chuong|Chapter|第.+)章/gim);
       if (chapterMatches) total = chapterMatches.length;
     }
-    // No demo fallback — show empty if no chapters data
+    // If still 0 but has readingText → 1 chapter (the whole text is one chapter)
+    if (!total && currentStory && currentStory.readingText && String(currentStory.readingText).trim().length > 10) {
+      total = 1;
+    }
+    // If still 0 but has no readingText but story exists → still show 1 placeholder
+    if (!total && currentStory && currentStory.id) {
+      total = 1;
+    }
     var storyTitle = currentStory && currentStory.title ? String(currentStory.title) : '';
     var chapterTitleFallback = currentStory && currentStory.chapterTitle ? String(currentStory.chapterTitle) : '';
 
@@ -1720,13 +1787,23 @@
       chapterTitlesFromText[0] = String(currentStory.chapterTitle).trim();
     }
 
-    // If no chapters data, auto-generate from readingText or chapterTitle
-    if (!storyChapters.length) {
+    // If no chapters data, try audiohub-chapters-v1 first
+    if (!storyChapters.length && currentStory && currentStory.id) {
+      try {
+        var _chStore2 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        var _chArr2 = Array.isArray(_chStore2[String(currentStory.id)]) ? _chStore2[String(currentStory.id)] : [];
+        _chArr2.forEach(function (ch, ci) {
+          storyChapters.push({ chapterNumber: ci + 1, title: ch.title || ch.chapterTitle || '' });
+        });
+      } catch (e) {}
+    }
+    // If still no chapters data, auto-generate from total
+    if (!storyChapters.length && total > 0) {
       for (var ci = 0; ci < total; ci++) {
-        var autoTitle = chapterTitlesFromText[ci] || '';
+        var autoTitle = chapterTitlesFromText[ci] || (total === 1 ? (storyTitle || 'Nội dung truyện') : '');
         storyChapters.push({ chapterNumber: ci + 1, title: autoTitle });
       }
-    } else {
+    } else if (storyChapters.length) {
       // Fill in missing titles from parsed text
       for (var ti = 0; ti < storyChapters.length; ti++) {
         if (!storyChapters[ti].title && chapterTitlesFromText[ti]) {
@@ -1873,6 +1950,19 @@
       if (playlistActiveIndex < 0) playlistActiveIndex = context.chapterIndex;
       if (playlistActiveIndex < 0 || playlistActiveIndex >= chapters.length) playlistActiveIndex = 0;
       return { chapters: chapters, activeIndex: playlistActiveIndex, chapterLabel: chapters[playlistActiveIndex] ? chapters[playlistActiveIndex].label : 'Chương 1' };
+    }
+
+    // Non-playlist mode: return chapters from story data so init code can use them
+    if (total > 0 && storyChapters.length) {
+      var _chapters = storyChapters.map(function (ch, idx) {
+        return {
+          label: ch.title ? ('Chương ' + (idx + 1) + ': ' + ch.title) : ('Chương ' + (idx + 1)),
+          storyId: storyId || '',
+          storyTitle: ch.title || '',
+          index: idx
+        };
+      });
+      return { chapters: _chapters, activeIndex: 0, chapterLabel: _chapters[0] ? _chapters[0].label : 'Chương 1' };
     }
 
     return null;
@@ -2394,7 +2484,13 @@
     if (mobileListens) mobileListens.textContent = story.listenCount || 0;
 
     // Reading text — render to chapter-copy div (needed when story comes from API via mergeAndRender or cache miss)
-    var readingContent = story.readingText || story.reading_text || story.description || '';
+    var chapterReadingTextN = '';
+    try {
+      var _csN = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+      var _chN = Array.isArray(_csN[String(story.id)]) ? _csN[String(story.id)] : [];
+      if (_chN[0] && _chN[0].readingText) chapterReadingTextN = _chN[0].readingText;
+    } catch (e) {}
+    var readingContent = chapterReadingTextN || story.readingText || story.reading_text || story.description || '';
 
     function renderReadingText() {
       var chapterCopy = document.querySelector('[data-chapter-copy]');
@@ -2479,31 +2575,52 @@
   }
 
   function fetchStoryFromSupabase(storyId) {
-    if (!window.AudioHubSupabase || typeof window.AudioHubSupabase.fetchStoryById !== 'function') {
-      return Promise.resolve(null);
+    if (!storyId) return Promise.resolve(null);
+    // Use D1 API (Cloudflare Pages Functions) — Supabase REST proxy not available
+    if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+      return window.AudioHubApi.request('/stories/' + encodeURIComponent(storyId), { method: 'GET' })
+        .then(function (story) {
+          if (!story || !story.id) return null;
+          // Normalize snake_case to camelCase
+          var normalized = Object.assign({}, story);
+          if (normalized.reading_text && !normalized.readingText) normalized.readingText = normalized.reading_text;
+          if (normalized.audio_key && !normalized.audioKey) normalized.audioKey = normalized.audio_key;
+          if (normalized.chapter_title && !normalized.chapterTitle) normalized.chapterTitle = normalized.chapter_title;
+          if (normalized.chapter_count != null && normalized.chapterCount == null) normalized.chapterCount = normalized.chapter_count;
+          if (normalized.cover_key && !normalized.coverKey) normalized.coverKey = normalized.cover_key;
+          if (normalized.cover_data && !normalized.coverData) normalized.coverData = normalized.cover_data;
+          if (normalized.is_completed != null && normalized.isCompleted == null) normalized.isCompleted = normalized.is_completed;
+          if (normalized.listen_count != null && normalized.listenCount == null) normalized.listenCount = normalized.listen_count;
+          if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+            window.AudioHubStories.upsert(normalized);
+          }
+          return normalized;
+        })
+        .catch(function () { return null; });
     }
-    if (String(storyId).startsWith('s_')) {
-      return Promise.resolve(null);
+    // Fallback: Supabase REST (may not be available)
+    if (window.AudioHubSupabase && typeof window.AudioHubSupabase.fetchStoryById === 'function') {
+      if (String(storyId).startsWith('s_')) return Promise.resolve(null);
+      return window.AudioHubSupabase.fetchStoryById(storyId)
+        .then(function (story) {
+          if (!story || !story.id) return null;
+          var normalized = Object.assign({}, story);
+          if (normalized.reading_text && !normalized.readingText) normalized.readingText = normalized.reading_text;
+          if (normalized.audio_key && !normalized.audioKey) normalized.audioKey = normalized.audio_key;
+          if (normalized.chapter_title && !normalized.chapterTitle) normalized.chapterTitle = normalized.chapter_title;
+          if (normalized.chapter_count != null && normalized.chapterCount == null) normalized.chapterCount = normalized.chapter_count;
+          if (normalized.cover_key && !normalized.coverKey) normalized.coverKey = normalized.cover_key;
+          if (normalized.cover_data && !normalized.coverData) normalized.coverData = normalized.cover_data;
+          if (normalized.is_completed != null && normalized.isCompleted == null) normalized.isCompleted = normalized.is_completed;
+          if (normalized.listen_count != null && normalized.listenCount == null) normalized.listenCount = normalized.listen_count;
+          if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+            window.AudioHubStories.upsert(normalized);
+          }
+          return normalized;
+        })
+        .catch(function () { return null; });
     }
-    return window.AudioHubSupabase.fetchStoryById(storyId)
-      .then(function (story) {
-        if (!story || !story.id) return null;
-        // Normalize snake_case to camelCase
-        var normalized = Object.assign({}, story);
-        if (normalized.reading_text && !normalized.readingText) normalized.readingText = normalized.reading_text;
-        if (normalized.audio_key && !normalized.audioKey) normalized.audioKey = normalized.audio_key;
-        if (normalized.chapter_title && !normalized.chapterTitle) normalized.chapterTitle = normalized.chapter_title;
-        if (normalized.chapter_count != null && normalized.chapterCount == null) normalized.chapterCount = normalized.chapter_count;
-        if (normalized.cover_key && !normalized.coverKey) normalized.coverKey = normalized.cover_key;
-        if (normalized.cover_data && !normalized.coverData) normalized.coverData = normalized.cover_data;
-        if (normalized.is_completed != null && normalized.isCompleted == null) normalized.isCompleted = normalized.is_completed;
-        if (normalized.listen_count != null && normalized.listenCount == null) normalized.listenCount = normalized.listen_count;
-        if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-          window.AudioHubStories.upsert(normalized);
-        }
-        return normalized;
-      })
-      .catch(function () { return null; });
+    return Promise.resolve(null);
   }
 
   function initPlayer() {
@@ -2519,7 +2636,10 @@
 
       // Always fetch from API in background to get full data (readingText, audioKey, etc.)
       // that may have been stripped from localStorage or never saved
-      var needsApiFetch = !story.readingText || !story.audioKey;
+      var hasChapters = Array.isArray(story.chapters) && story.chapters.length > 0;
+      var needsApiFetch = !story.readingText || !story.audioKey || !hasChapters || !story.chapterCount;
+      // Also fetch if chapters array exists but is empty (missing chapter data from DB)
+      if (!needsApiFetch && story.chapters && story.chapters.length === 0) needsApiFetch = true;
       if (needsApiFetch) {
         // Helper: merge API data into local story and re-render
         function mergeAndRender(apiStory) {
@@ -2527,12 +2647,16 @@
           var merged = Object.assign({}, story);
           var apiReadingText = apiStory.readingText || apiStory.reading_text || '';
           var apiAudioKey = apiStory.audioKey || apiStory.audio_key || '';
+          // D1 returns chapters as JSON string — parse it
           var apiChapters = apiStory.chapters || [];
+          if (typeof apiChapters === 'string') {
+            try { apiChapters = JSON.parse(apiChapters); } catch (e) { apiChapters = []; }
+          }
           var apiChapterCount = apiStory.chapterCount || apiStory.chapter_count || 0;
-          console.log('[story-detail] mergeAndRender apiStory:', apiStory.id, 'readingText:', apiReadingText ? apiReadingText.length + ' chars' : 'EMPTY', 'audioKey:', apiAudioKey || 'EMPTY');
+          console.log('[story-detail] mergeAndRender apiStory:', apiStory.id, 'readingText:', apiReadingText ? apiReadingText.length + ' chars' : 'EMPTY', 'audioKey:', apiAudioKey || 'EMPTY', 'chapters:', Array.isArray(apiChapters) ? apiChapters.length : apiChapters);
           if (apiReadingText) merged.readingText = apiReadingText;
           if (apiAudioKey) merged.audioKey = apiAudioKey;
-          if (apiChapters && apiChapters.length) merged.chapters = apiChapters;
+          if (Array.isArray(apiChapters) && apiChapters.length) merged.chapters = apiChapters;
           if (apiChapterCount) merged.chapterCount = apiChapterCount;
           bindStoryData(merged);
           // Re-render chapter list with fresh data
@@ -2594,8 +2718,18 @@
       console.log('[story-detail] Cache miss for storyId:', storyId);
       function handleCacheMissStory(apiStory) {
         if (!apiStory || !apiStory.id) return;
+        // D1 returns chapters as JSON string — parse it
+        if (typeof apiStory.chapters === 'string') {
+          try { apiStory.chapters = JSON.parse(apiStory.chapters); } catch (e) { apiStory.chapters = []; }
+        }
+        if (!apiStory.chapterCount && apiStory.chapter_count) apiStory.chapterCount = apiStory.chapter_count;
         console.log('[story-detail] Cache miss: bindStoryData', apiStory.id, 'desc:', apiStory.description ? apiStory.description.length + ' chars' : 'NONE', 'reading:', apiStory.readingText || apiStory.reading_text ? 'YES' : 'NO');
         bindStoryData(apiStory);
+        // Re-render chapter list with fresh API data (same as mergeAndRender)
+        try {
+          var _ctx = resolvePlaylistContext(apiStory.id || '');
+          overrideChapterList(_ctx, apiStory);
+        } catch (e) {}
       }
 
       // Try to resolve story title from multiple sources for title-matching
@@ -2975,7 +3109,7 @@
       if (!(target instanceof Element)) return;
       if (target.closest('[data-reading-autoscroll]') || target.closest('[data-reading-autoscroll-menu]')) return;
       readingAutoscrollMenu.classList.add('is-hidden');
-    });
+    }, { signal: _signal });
 
     if (readingAutoscrollMenu) readingAutoscrollMenu.classList.add('is-hidden');
     if (readingFullscreenButton) readingFullscreenButton.addEventListener('click', toggleReadingFullscreen);
@@ -2985,7 +3119,7 @@
     applyReadingLine('1.8');
     if (readingThemeButtons[0]) applyReadingTheme(readingThemeButtons[0].getAttribute('data-reading-theme') || '#0f172a,#e5e7eb');
 
-    window.addEventListener('beforeunload', function () { stopReadingAutoScroll(); });
+    window.addEventListener('beforeunload', function () { stopReadingAutoScroll(); }, { signal: _signal });
 
     var sleepToggle = document.querySelector('[data-sleep-toggle]');
     var sleepPanel = document.querySelector('[data-sleep-panel]');
@@ -3072,10 +3206,21 @@
 
     window.addEventListener('beforeunload', function () {
       clearSleepTimer();
-    });
+    }, { signal: _signal });
 
     var context = resolvePlaylistContext(storyId || '');
     var overrideState = overrideChapterList(context, story);
+
+    // Preload playlist story data from D1 API so getById() works immediately on chapter click
+    if (overrideState && Array.isArray(overrideState.chapters) && overrideState.chapters.length > 1) {
+      overrideState.chapters.forEach(function (ch) {
+        if (!ch.storyId) return;
+        // Skip if already in localStorage
+        if (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' && window.AudioHubStories.getById(ch.storyId)) return;
+        // Fetch from D1 API in background
+        fetchStoryFromSupabase(ch.storyId);
+      });
+    }
     // Retry chapter list if empty (SPA timing issue)
     if (!overrideState || !overrideState.chapters || !overrideState.chapters.length) {
       var _retryStory = story || (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(storyId) : null);
@@ -3097,20 +3242,14 @@
     // Re-render chapter list when D1 sync completes (may have new entries)
     window.addEventListener('audiohub-playlists-synced', function () {
       var _freshCtx = resolvePlaylistContext(storyId || '');
-      var _freshStory = story || (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(storyId) : null);
+      var _freshStory = (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(storyId) : null) || story;
       if (_freshStory) overrideChapterList(_freshCtx, _freshStory);
-    });
-    // Only use VISIBLE chapter nodes (mobile OR desktop, not both)
-    var allChapterNodes = document.querySelectorAll('[data-player-chapter]');
-    var chapterNodes = [];
-    for (var cn = 0; cn < allChapterNodes.length; cn++) {
-      if (allChapterNodes[cn].offsetParent !== null) {
-        chapterNodes.push(allChapterNodes[cn]);
-      }
-    }
-    // Fallback: if none visible, use all (shouldn't happen)
-    if (!chapterNodes.length) {
-      chapterNodes = Array.prototype.slice.call(allChapterNodes);
+    }, { signal: _signal });
+    // Helper: get fresh chapter nodes from DOM (survives innerHTML re-renders)
+    function getChapterNodes() {
+      var all = document.querySelectorAll('[data-chapter-index]');
+      if (!all.length) all = document.querySelectorAll('[data-player-chapter]');
+      return Array.prototype.slice.call(all);
     }
 
     var playerState = {
@@ -3125,9 +3264,16 @@
     };
 
     function currentChapterIndex() {
-      return chapterNodes.findIndex(function (node) {
-        return (node.getAttribute('data-player-chapter') || '') === playerState.chapter;
-      });
+      // Use data-chapter-index attribute (the actual chapter index) rather than
+      // array position, because getChapterNodes() returns items from both
+      // mobile and desktop lists (doubled count).
+      var nodes = getChapterNodes();
+      for (var i = 0; i < nodes.length; i++) {
+        if ((nodes[i].getAttribute('data-player-chapter') || '') === playerState.chapter) {
+          return Number(nodes[i].getAttribute('data-chapter-index')) || i;
+        }
+      }
+      return -1;
     }
 
     function setControlActive(button, active) {
@@ -3150,19 +3296,31 @@
       nativeAudio.currentTime = next;
     }
 
+    // Count unique chapter indices (mobile+desktop both have data-chapter-index)
+    function _countChapters() {
+      var _n = getChapterNodes();
+      var maxIdx = -1;
+      for (var ci = 0; ci < _n.length; ci++) {
+        var di = Number(_n[ci].getAttribute('data-chapter-index'));
+        if (!isNaN(di) && di > maxIdx) maxIdx = di;
+      }
+      return maxIdx + 1;
+    }
+
     function playNextChapterAuto() {
       var index = currentChapterIndex();
-      if (index < 0 || !chapterNodes.length) return false;
-      if (playerState.shuffle && chapterNodes.length > 1) {
+      var chapterCount = _countChapters();
+      if (index < 0 || !chapterCount) return false;
+      if (playerState.shuffle && chapterCount > 1) {
         var randomIndex = index;
         while (randomIndex === index) {
-          randomIndex = Math.floor(Math.random() * chapterNodes.length);
+          randomIndex = Math.floor(Math.random() * chapterCount);
         }
         playChapterAtIndex(randomIndex);
         return true;
       }
       var nextIndex = index + 1;
-      if (nextIndex < chapterNodes.length) {
+      if (nextIndex < chapterCount) {
         playChapterAtIndex(nextIndex);
         return true;
       }
@@ -3175,12 +3333,13 @@
 
     function playPrevChapterAuto() {
       var index = currentChapterIndex();
+      var chapterCount = _countChapters();
       if (index <= 0) {
-        if (playerState.repeat && chapterNodes.length) {
-          playChapterAtIndex(chapterNodes.length - 1);
+        if (playerState.repeat && chapterCount) {
+          playChapterAtIndex(chapterCount - 1);
           return;
         }
-        if (chapterNodes.length) playChapterAtIndex(0);
+        if (chapterCount) playChapterAtIndex(0);
         return;
       }
       playChapterAtIndex(index - 1);
@@ -3190,16 +3349,23 @@
     setControlActive(repeatButton, playerState.repeat);
 
     function getNextChapterText(currentIndex) {
-      if (!chapterNodes.length) return 'Hết danh sách chương';
+      var _nodes = getChapterNodes();
+      if (!_nodes.length) return 'Hết danh sách chương';
       var nextIndex = Number(currentIndex) + 1;
-      if (isNaN(nextIndex) || nextIndex < 0 || nextIndex >= chapterNodes.length) {
+      // Find node by data-chapter-index (not array position, because mobile+desktop are both present)
+      var nextNode = null;
+      for (var ni = 0; ni < _nodes.length; ni++) {
+        if (Number(_nodes[ni].getAttribute('data-chapter-index')) === nextIndex) {
+          nextNode = _nodes[ni]; break;
+        }
+      }
+      if (!nextNode) {
         return overrideState ? 'Hết danh sách phát' : 'Hết danh sách chương';
       }
-      var nextNode = chapterNodes[nextIndex];
-      var nextTextNode = nextNode ? nextNode.querySelector('span:last-child') : null;
+      var nextTextNode = nextNode.querySelector('span:last-child');
       var nextText = nextTextNode ? String(nextTextNode.textContent || '').trim() : '';
       if (nextText) return nextText;
-      var nextLabel = nextNode ? String(nextNode.getAttribute('data-player-chapter') || '').trim() : '';
+      var nextLabel = String(nextNode.getAttribute('data-player-chapter') || '').trim();
       return nextLabel || (overrideState ? 'Hết danh sách phát' : 'Hết danh sách chương');
     }
 
@@ -3207,8 +3373,8 @@
       playerState.chapter = overrideState.chapterLabel;
       playerState.next = getNextChapterText(overrideState.activeIndex);
       if (overrideState.chapters[overrideState.activeIndex]) applyStoryOverviewFromPlaylistItem(overrideState.chapters[overrideState.activeIndex]);
-    } else if (chapterNodes.length) {
-      playerState.chapter = chapterNodes[0].getAttribute('data-player-chapter') || playerState.chapter;
+    } else if (getChapterNodes().length) {
+      playerState.chapter = getChapterNodes()[0].getAttribute('data-player-chapter') || playerState.chapter;
       playerState.next = getNextChapterText(0);
     }
 
@@ -3241,16 +3407,23 @@
       if (volumeValue) volumeValue.textContent = playerState.volume;
       if (volumeSlider) volumeSlider.value = playerState.volume.replace('%', '');
       setActive(speedNodes, playerState.speed, 'data-player-speed');
-      setActive(chapterNodes, playerState.chapter, 'data-player-chapter');
+      setActive(getChapterNodes(), playerState.chapter, 'data-player-chapter');
 
       // Playing state animation
       var playerRoot = document.querySelector('[data-player-root]');
       if (playerRoot) playerRoot.classList.toggle('is-playing', playerState.playing);
     }
 
-    chapterNodes.forEach(function (link, index) {
-      link.addEventListener('click', function (event) {
+    // Event delegation on ALL .chapter-list containers (survives innerHTML re-renders)
+    var _chapterListContainers = document.querySelectorAll('.chapter-list');
+    for (var _clc = 0; _clc < _chapterListContainers.length; _clc++) {
+      _chapterListContainers[_clc].addEventListener('click', function (event) {
+        var link = event.target.closest && event.target.closest('.chapter-item');
+        if (!link) return;
         event.preventDefault();
+
+        var index = Number(link.getAttribute('data-chapter-index'));
+        if (isNaN(index) || index < 0) return;
 
         // Stop any currently playing audio immediately
         if (nativeAudio && !nativeAudio.paused) {
@@ -3284,7 +3457,7 @@
 
         playChapterAtIndex(index);
       });
-    });
+    }
 
     if (playButton) playButton.addEventListener('click', function () {
       if (nativeAudio && nativeAudio.getAttribute('src')) {
@@ -3309,10 +3482,13 @@
     });
 
     function playChapterAtIndex(index) {
-      if (!chapterNodes.length) return;
+      // Re-query DOM in case overrideChapterList re-rendered the chapter list
+      var freshNodes = document.querySelectorAll('[data-chapter-index]');
+      if (!freshNodes.length) freshNodes = document.querySelectorAll('[data-player-chapter]');
+      if (!freshNodes.length) return;
       var safeIndex = Number(index);
-      if (isNaN(safeIndex) || safeIndex < 0 || safeIndex >= chapterNodes.length) return;
-      var link = chapterNodes[safeIndex];
+      if (isNaN(safeIndex) || safeIndex < 0 || safeIndex >= freshNodes.length) return;
+      var link = freshNodes[safeIndex];
       if (!link) return;
 
       // Stop current audio before switching chapter
@@ -3334,17 +3510,21 @@
           renderPlayer();
           return;
         }
+      } else {
       }
 
-      // Update active chapter classes
-      chapterNodes.forEach(function (node, idx) {
-        node.classList.toggle('active', idx === safeIndex);
-        node.classList.toggle('is-active', idx === safeIndex);
+      // Update active chapter classes (use data-chapter-index, not array index,
+      // because freshNodes contains items from BOTH mobile and desktop lists)
+      freshNodes.forEach(function (node) {
+        var nodeIndex = Number(node.getAttribute('data-chapter-index'));
+        var isActive = nodeIndex === safeIndex;
+        node.classList.toggle('active', isActive);
+        node.classList.toggle('is-active', isActive);
         var dot = node.querySelector('.chapter-dot');
-        if (dot) dot.innerHTML = idx === safeIndex ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>' : '';
+        if (dot) dot.innerHTML = isActive ? '<i class="fa-solid fa-play" style="font-size:10px;color:#fff;"></i>' : '<span class="chapter-num">' + (nodeIndex + 1) + '</span>';
         var oldBadge = node.querySelector('.chapter-playing-badge');
         if (oldBadge) oldBadge.remove();
-        if (idx === safeIndex) {
+        if (isActive) {
           var badge = document.createElement('span');
           badge.className = 'chapter-playing-badge';
           badge.innerHTML = '<i class="fa-solid fa-play"></i> Đang phát';
@@ -3371,11 +3551,10 @@
 
       renderPlayer();
 
-      // Re-fetch audio for the new story
-      if (nextStory) {
-        bindStoryCover(nextStory);
-        bindStoryAudio(nextStory);
-        // Wait for audio to load then play
+      // Helper: play audio after story is loaded
+      function _playLoadedStory(storyObj) {
+        bindStoryCover(storyObj);
+        bindStoryAudio(storyObj);
         setTimeout(function () {
           if (nativeAudio) {
             nativeAudio.play().then(function () {
@@ -3387,6 +3566,25 @@
             });
           }
         }, 300);
+      }
+
+      // Re-fetch audio for the new story
+      if (nextStory) {
+        _playLoadedStory(nextStory);
+      } else if (playlistItem && playlistItem.storyId) {
+        // Story not in local store — fetch from D1 API
+        fetchStoryFromSupabase(String(playlistItem.storyId)).then(function (freshStory) {
+          if (freshStory) {
+            _playLoadedStory(freshStory);
+          } else {
+            // API returned null — show error instead of replaying wrong audio
+            console.warn('[chapter] Story not found in API:', playlistItem.storyId);
+            showToast('Không tìm thấy audio cho chương này.', 'error');
+          }
+        }).catch(function (err) {
+          console.error('[chapter] API fetch failed:', playlistItem.storyId, err);
+          showToast('Lỗi tải audio. Kiểm tra kết nối mạng.', 'error');
+        });
       } else if (nativeAudio && nativeAudio.getAttribute('src')) {
         nativeAudio.currentTime = 0;
         nativeAudio.play().then(function () {
@@ -3513,11 +3711,11 @@
 
     document.addEventListener('click', function () {
       closeSettingsPopover();
-    });
+    }, { signal: _signal });
 
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closeSettingsPopover();
-    });
+    }, { signal: _signal });
 
       // New speed buttons (sheet)
       var sheetSpeedBtns = Array.prototype.slice.call(document.querySelectorAll('[data-player-speed]'));
@@ -3610,8 +3808,8 @@
       volTrack.addEventListener('click', setVolFromEvent);
       var volDragging = false;
       volTrack.addEventListener('mousedown', function (e) { volDragging = true; setVolFromEvent(e); });
-      document.addEventListener('mousemove', function (e) { if (volDragging) setVolFromEvent(e); });
-      document.addEventListener('mouseup', function () { volDragging = false; });
+      document.addEventListener('mousemove', function (e) { if (volDragging) setVolFromEvent(e); }, { signal: _signal });
+      document.addEventListener('mouseup', function () { volDragging = false; }, { signal: _signal });
     }
 
     // Init
@@ -3649,7 +3847,7 @@
       // Close popup on outside click
       document.addEventListener('click', function () {
         speedPopup.classList.add('is-hidden');
-      });
+      }, { signal: _signal });
     }
 
     renderPlayer();
@@ -3739,8 +3937,8 @@
     }
     checkShowButton();
     // Re-check on URL change (SPA navigation)
-    window.addEventListener('popstate', checkShowButton);
-    window.addEventListener('audiohub:navigated', checkShowButton);
+    window.addEventListener('popstate', checkShowButton, { signal: _signal });
+    window.addEventListener('audiohub:navigated', checkShowButton, { signal: _signal });
 
     // Open modal
     if (addBtn) addBtn.addEventListener('click', openModal);
