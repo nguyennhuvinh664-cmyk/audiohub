@@ -53,6 +53,14 @@ export async function onRequest(context) {
       return Response.json({ success: true, id: found.id, old_user_id: found.user_id, new_user_id: newUserId }, { headers: corsHeaders });
     }
 
+    // POST /api/stories/fix-all-null-user - Fix ALL stories with NULL/empty user_id for current user
+    if (method === 'POST' && storyId === 'fix-all-null-user') {
+      const tokenUserId = extractUserIdFromToken();
+      if (!tokenUserId) return Response.json({ error: 'Auth required' }, { status: 401, headers: corsHeaders });
+      const result = await env.DB.prepare('UPDATE stories SET user_id = ?, updated_at = ? WHERE (user_id IS NULL OR user_id = ?)').bind(tokenUserId, new Date().toISOString(), '').run();
+      return Response.json({ success: true, updated: result.meta?.changes || 0, user_id: tokenUserId }, { headers: corsHeaders });
+    }
+
     // GET /api/stories/public - Public stories (must be before :id catch)
     if (method === 'GET' && storyId === 'public' && !action) {
       const genre = url.searchParams.get('genre');

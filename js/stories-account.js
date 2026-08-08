@@ -1584,7 +1584,27 @@
 
       apiCall.then(function (result) {
         published++;
-        console.log('[account] ✅ Published to D1:', story.title, '| id:', result && result.id);
+        var newId = (result && result.id) || story.id;
+        console.log('[account] ✅ Published to D1:', story.title, '| id:', newId);
+        // Update local story userId so future syncs work
+        try {
+          if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+            window.AudioHubStories.upsert({
+              id: newId,
+              title: story.title,
+              author: story.author,
+              genre: story.genre,
+              description: story.description,
+              readingText: story.readingText,
+              hashtags: story.hashtags,
+              visibility: story.visibility || 'Công khai',
+              coverKey: story.coverKey || story.cover_key || '',
+              audioKey: story.audioKey || '',
+              userId: userId
+            });
+            console.log('[account] ✅ Local story userId updated:', userId);
+          }
+        } catch (e) { console.warn('[account] Local story update failed:', e); }
         i++;
         processNext();
       }).catch(function (err) {
