@@ -1481,145 +1481,6 @@
     return playlist;
   }
 
-  function publishPlaylistToD1(playlistId, btn) {
-    var list = readPlaylists();
-    var pl = null;
-    list.forEach(function (p) { if (p.id === playlistId) pl = p; });
-    if (!pl) return;
-
-    var entries = pl.entries || [];
-    if (!entries.length) { window.alert('Playlist chưa có nội dung nào.'); return; }
-
-    var userId = getMyUserId();
-    if (!userId) { window.alert('Bạn chưa đăng nhập.'); return; }
-
-    var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
-    if (!hasApi) { window.alert('API không khả dụng.'); return; }
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-
-    // Read all local stories to find matching entries
-    var localStories = [];
-    try {
-      if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
-        localStories = window.AudioHubStories.read() || [];
-      }
-    } catch (e) {}
-
-    console.log('[account] publishPlaylistToD1 — entries:', entries.length, '| localStories:', localStories.length, '| uid:', userId);
-
-    var published = 0;
-    var errors = 0;
-    var errorMessages = [];
-
-    // Process entries sequentially
-    var i = 0;
-    function processNext() {
-      if (i >= entries.length) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
-        var msg = 'Đã đăng ' + published + '/' + entries.length + ' truyện lên D1.';
-        if (errors) msg += '\n\nLỗi:\n' + errorMessages.join('\n');
-        window.alert(msg);
-        // Re-sync stories from API
-        if (window.AudioHubStories && typeof window.AudioHubStories.sync === 'function') {
-          window.AudioHubStories.sync();
-        }
-        return;
-      }
-
-      var entry = entries[i];
-      var entryKey = entry.key || '';
-      console.log('[account] Processing entry:', i, '| key:', entryKey, '| title:', entry.title);
-
-      // Find matching local story by key or title
-      var story = localStories.find(function (s) {
-        return s && (s.id === entryKey || String(s.title).trim().toLowerCase() === String(entry.title || '').trim().toLowerCase());
-      });
-
-      if (!story || !story.title) {
-        console.warn('[account] ⚠ No matching local story for entry:', entry.title, '| key:', entryKey);
-        errors++;
-        errorMessages.push('Không tìm thấy story local: ' + (entry.title || entryKey));
-        i++;
-        processNext();
-        return;
-      }
-
-      console.log('[account] Found story:', story.id, '|', story.title, '| userId:', story.userId || story.user_id || 'NONE');
-
-      // Build payload for D1
-      var payload = {
-        title: story.title,
-        author: story.author || 'Admin AudioHub',
-        genre: story.genre || '',
-        description: story.description || '',
-        visibility: 'Công khai',
-        user_id: userId,
-        hashtags: story.hashtags || '',
-        coverKey: story.coverKey || story.cover_key || '',
-        audioKey: story.audioKey || '',
-        readingText: story.readingText || '',
-        chapters: story.chapters || []
-      };
-
-      // If story has real CUID, PATCH; otherwise POST to create
-      var isLocal = String(story.id).indexOf('s_') === 0;
-      var apiCall;
-      if (!isLocal && story.id) {
-        payload.id = story.id;
-        apiCall = window.AudioHubApi.request('/stories/' + encodeURIComponent(story.id), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      } else {
-        apiCall = window.AudioHubApi.request('/stories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      }
-
-      apiCall.then(function (result) {
-        published++;
-        var newId = (result && result.id) || story.id;
-        console.log('[account] ✅ Published to D1:', story.title, '| id:', newId);
-        // Update local story userId so future syncs work
-        try {
-          if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-            window.AudioHubStories.upsert({
-              id: newId,
-              title: story.title,
-              author: story.author,
-              genre: story.genre,
-              description: story.description,
-              readingText: story.readingText,
-              hashtags: story.hashtags,
-              visibility: story.visibility || 'Công khai',
-              coverKey: story.coverKey || story.cover_key || '',
-              audioKey: story.audioKey || '',
-              userId: userId
-            });
-            console.log('[account] ✅ Local story userId updated:', userId);
-          }
-        } catch (e) { console.warn('[account] Local story update failed:', e); }
-        i++;
-        processNext();
-      }).catch(function (err) {
-        var errMsg = (err && err.message) ? err.message : String(err);
-        console.error('[account] ❌ Publish failed:', story.title, '|', errMsg, err);
-        errors++;
-        errorMessages.push(story.title + ': ' + errMsg);
-        i++;
-        processNext();
-      });
-    }
-
-    processNext();
-  }
-
   function deletePlaylist(id) {
     // Find the playlist to get story keys before deleting
     var list = readPlaylists();
@@ -1803,7 +1664,6 @@
                 '<button type="button" class="pl-card__state-option" data-playlist-state="done" data-playlist-state-set="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-check"></i> Đã hoàn thành</button>' +
               '</div>' +
             '</div>' +
-            '<button type="button" class="pl-icon-btn pl-icon-btn--publish" data-playlist-publish="' + escapeHtml(pl.id) + '" title="Đăng lên D1"><i class="fa-solid fa-cloud-arrow-up"></i></button>' +
             '<button type="button" class="pl-icon-btn" data-playlist-rename="' + escapeHtml(pl.id) + '" title="Đổi tên"><i class="fa-solid fa-pen"></i></button>' +
             '<button type="button" class="pl-icon-btn pl-icon-btn--danger" data-playlist-delete="' + escapeHtml(pl.id) + '" title="Xóa truyện"><i class="fa-solid fa-trash"></i></button>' +
           '</div>' +
@@ -2318,14 +2178,6 @@
         return;
       }
 
-      var publishBtn = event.target.closest('[data-playlist-publish]');
-      if (publishBtn) {
-        var plId = publishBtn.getAttribute('data-playlist-publish');
-        if (plId) {
-          publishPlaylistToD1(plId, publishBtn);
-        }
-        return;
-      }
 
       var stateTrigger = event.target.closest('[data-playlist-state-trigger]');
       if (stateTrigger) {
@@ -2399,7 +2251,6 @@
       if (item
         && !event.target.closest('[data-playlist-rename]')
         && !event.target.closest('[data-playlist-delete]')
-        && !event.target.closest('[data-playlist-publish]')
         && !event.target.closest('[data-page-num]')
         && !event.target.closest('[data-page-prev]')
         && !event.target.closest('[data-page-next]')) {

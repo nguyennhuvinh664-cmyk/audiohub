@@ -1380,7 +1380,7 @@
 
     if (!isLocal) {
       // Already has real CUID — PATCH to D1 (ensure user_id + visibility) then redirect
-      var userId = _uid || getMyUserId() || '';
+      var userId = getMyUserId() || _uid || '';
       addPlaylistEntry(story.id, story);
       if (userId && window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
         console.log('[upload] syncToCloudAndRedirect — PATCH existing CUID story to D1:', story.id, '| userId:', userId);

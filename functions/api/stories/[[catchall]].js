@@ -61,6 +61,19 @@ export async function onRequest(context) {
       return Response.json({ success: true, updated: result.meta?.changes || 0, user_id: tokenUserId }, { headers: corsHeaders });
     }
 
+    // POST /api/stories/cleanup - Delete orphaned stories (Truyện mới, etc.)
+    if (method === 'POST' && storyId === 'cleanup') {
+      const body = await request.json().catch(() => ({}));
+      const titles = body.titles || [];
+      if (!titles.length) return Response.json({ error: 'titles array required' }, { status: 400, headers: corsHeaders });
+      let deleted = 0;
+      for (const t of titles) {
+        const result = await env.DB.prepare('DELETE FROM stories WHERE title = ?').bind(t).run();
+        deleted += result.meta?.changes || 0;
+      }
+      return Response.json({ success: true, deleted }, { headers: corsHeaders });
+    }
+
     // GET /api/stories/public - Public stories (must be before :id catch)
     if (method === 'GET' && storyId === 'public' && !action) {
       const genre = url.searchParams.get('genre');
