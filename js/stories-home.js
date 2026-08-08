@@ -498,39 +498,11 @@
   }
 
   function loadStoriesForHome() {
-    var localStories = window.AudioHubStories.read() || [];
-    var localPublic = localStories.filter(function (story) { return isPublicVisibility(story); });
-
-    // Always fetch fresh from API, merge with local
+    // Only show stories from D1 (API) — local stories are drafts, not published
     return fetchPublicStories().then(function (apiStories) {
-      var apiIds = {};
-      var apiTitles = {};  // normalized title fingerprint (dedup by title only)
-      (apiStories || []).forEach(function (s) {
-        apiIds[s.id] = true;
-        var key = (s.title || '').trim().toLowerCase();
-        if (key) apiTitles[key] = true;
-      });
-      // Filter local stories: skip if same ID or same title as API story
-      var localOnly = localPublic.filter(function (s) {
-        if (apiIds[s.id]) return false;
-        var key = (s.title || '').trim().toLowerCase();
-        if (key && apiTitles[key]) return false;
-        return true;
-      });
-      var merged = (apiStories || []).concat(localOnly);
-      // Dedup by title (keep first occurrence = newest from API)
-      var deduped = [];
-      var seenTitles = {};
-      merged.forEach(function (s) {
-        var key = (s.title || '').trim().toLowerCase();
-        if (!key) { deduped.push(s); return; }
-        if (seenTitles[key]) return;
-        seenTitles[key] = true;
-        deduped.push(s);
-      });
-      return deduped;
+      return apiStories || [];
     }).catch(function () {
-      return localPublic.length ? localPublic : localStories;
+      return [];
     });
   }
 
