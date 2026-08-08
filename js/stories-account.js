@@ -221,7 +221,29 @@
       id = persistentDeleted[i];
       if (id && !deletedStoryIds[id]) deletedStoryIds[id] = true;
     }
-    return stories.filter(function (s) { return s && s.id && !deletedStoryIds[s.id]; });
+    var userId = getMyUserId();
+    return stories.filter(function (s) {
+      if (!s || !s.id || deletedStoryIds[s.id]) return false;
+      // When logged in, only show stories that belong to this user
+      // (localStorage may contain public stories from other users merged by syncFromApiFallback)
+      if (userId) {
+        var storyUserId = String(s.userId || s.user_id || '').trim().toLowerCase();
+        var storyAuthor = String(s.author || '').trim().toLowerCase();
+        // Local-only drafts (s_ prefix) always belong to current user
+        if (String(s.id).startsWith('s_')) return true;
+        // Match by userId if available
+        if (storyUserId && storyUserId === userId) return true;
+        // Fallback: match by author name === logged-in user's name
+        var myName = String(localStorage.getItem('audiohub-auth-profile'));
+        try { myName = JSON.parse(myName); myName = String(myName && myName.name || '').trim().toLowerCase(); } catch (e) { myName = ''; }
+        if (myName && storyAuthor === myName) return true;
+        // If no userId and author doesn't match, exclude (foreign story)
+        if (!storyUserId) return false;
+        return false;
+      }
+      // Not logged in — show all (demo mode)
+      return true;
+    });
   }
 
   // Truyện chỉ lưu local (chưa upload lên backend) có ID bắt đầu bằng 's_'

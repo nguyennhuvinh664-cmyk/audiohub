@@ -1110,7 +1110,10 @@
         });
     }
 
-    return window.AudioHubApi.request('/stories', { method: 'GET' })
+    // When logged in, fetch only THIS user's stories (avoids polluting per-user localStorage with other users' public stories)
+    var _syncUserId = _getUserId();
+    var _storiesUrl = _syncUserId ? '/stories?user_id=' + encodeURIComponent(_syncUserId) : '/stories';
+    return window.AudioHubApi.request(_storiesUrl, { method: 'GET' })
       .then(function (remoteStories) {
         if (!Array.isArray(remoteStories)) {
           return readLocalStories();
