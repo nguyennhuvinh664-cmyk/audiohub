@@ -348,7 +348,8 @@
       listenHistory: listenHistory,
       coverLegacyDataUrl: coverDataUrl ? String(coverDataUrl).slice(0, 30) : '',
       createdAt: createdAt,
-      updatedAt: updatedAt
+      updatedAt: updatedAt,
+      userId: (story && (story.userId || story.user_id)) || ''
     };
   }
 

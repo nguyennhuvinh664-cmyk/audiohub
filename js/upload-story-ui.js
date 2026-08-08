@@ -1095,7 +1095,8 @@
         coverData: state.coverData || '',
         audioKey: state.audioKey || '',
         readingText: state.readingText || '',
-        hashtags: getCombinedHashtags()
+        hashtags: getCombinedHashtags(),
+        userId: _uid || getMyUserId() || ''
       }
     };
   }
