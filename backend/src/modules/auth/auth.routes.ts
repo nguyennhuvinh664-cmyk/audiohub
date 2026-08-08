@@ -45,7 +45,7 @@ router.post('/register', async (req, res) => {
   });
 
   const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '7d' });
-  return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName } }, 201);
+  return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } }, 201);
 });
 
 router.post('/login', async (req, res) => {
@@ -66,7 +66,7 @@ router.post('/login', async (req, res) => {
   }
 
   const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '7d' });
-  return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName } });
+  return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } });
 });
 
 router.get('/me', requireAuth, async (req: AuthRequest, res) => {
@@ -80,7 +80,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
     return fail(res, 'User not found', 404);
   }
 
-  return ok(res, { id: user.id, email: user.email, displayName: user.displayName, avatarDataUrl: user.avatarDataUrl || '' });
+  return ok(res, { id: user.id, email: user.email, displayName: user.displayName, avatarDataUrl: user.avatarDataUrl || '', isAdmin: user.isAdmin });
 });
 
 router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
@@ -126,7 +126,7 @@ router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
     }
   });
 
-  return ok(res, { id: updated.id, email: updated.email, displayName: updated.displayName, avatarDataUrl: updated.avatarDataUrl || '' });
+  return ok(res, { id: updated.id, email: updated.email, displayName: updated.displayName, avatarDataUrl: updated.avatarDataUrl || '', isAdmin: updated.isAdmin });
 });
 
 export default router;
