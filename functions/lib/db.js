@@ -36,14 +36,14 @@ export async function getPublicStories(db, options = {}) {
 }
 
 /**
- * Get stories by user ID
+ * Get stories by user ID (only stories explicitly owned by this user)
  */
 export async function getStoriesByUser(db, userId, options = {}) {
   const { limit = 50, offset = 0 } = options;
 
   const result = await db.prepare(
-    'SELECT * FROM stories WHERE user_id = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?'
-  ).bind(userId, limit, offset).all();
+    'SELECT * FROM stories WHERE user_id = ? AND user_id IS NOT NULL AND user_id != ? ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+  ).bind(userId, '', limit, offset).all();
 
   return result.results || [];
 }

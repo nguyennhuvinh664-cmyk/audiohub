@@ -9,6 +9,19 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const method = request.method;
 
+  // Extract user_id from JWT payload (base64 decode, no verification needed for scoping)
+  function extractUserIdFromToken() {
+    try {
+      const authHeader = request.headers.get('Authorization') || '';
+      const token = authHeader.replace(/^Bearer\s+/i, '');
+      if (!token || token.startsWith('guest-') || token === 'demo-local-token') return null;
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = JSON.parse(atob(parts[1]));
+      return payload.sub || payload.userId || payload.id || payload.user_id || null;
+    } catch (e) { return null; }
+  }
+
   // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -76,12 +89,25 @@ export async function onRequest(context) {
     if (method === 'POST' && !storyId) {
       const story = await request.json();
 
-      // Dedup: check if story with same title already exists → update instead of create
+      // Auto-set user_id from token if not provided
+      if (!story.user_id) {
+        const tokenUserId = extractUserIdFromToken();
+        if (tokenUserId) story.user_id = tokenUserId;
+      }
+
+      // Dedup: check if story with same title AND user_id exists → update instead of create
+      // Each user can have their own story with the same title
       const title = (story.title || '').trim();
+      const userId = story.user_id || null;
       if (title) {
-        const existing = await env.DB.prepare('SELECT id FROM stories WHERE title = ?').bind(title).first();
+        let existing;
+        if (userId) {
+          existing = await env.DB.prepare('SELECT id FROM stories WHERE title = ? AND user_id = ?').bind(title, userId).first();
+        } else {
+          existing = await env.DB.prepare('SELECT id FROM stories WHERE title = ? AND (user_id IS NULL OR user_id = ?)').bind(title, '').first();
+        }
         if (existing && existing.id) {
-          // Story with same title exists — update it
+          // Story with same title+user exists — update it
           story.id = existing.id;
           story.updated_at = new Date().toISOString();
           await upsertStory(env.DB, story);
