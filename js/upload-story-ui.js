@@ -1097,7 +1097,7 @@
         audioKey: state.audioKey || '',
         readingText: state.readingText || '',
         hashtags: getCombinedHashtags(),
-        userId: _uid || getMyUserId() || ''
+        userId: getMyUserId() || ''
       }
     };
   }
@@ -1380,7 +1380,7 @@
 
     if (!isLocal) {
       // Already has real CUID — PATCH to D1 (ensure user_id + visibility) then redirect
-      var userId = getMyUserId() || _uid || '';
+      var userId = getMyUserId() || '';
       addPlaylistEntry(story.id, story);
       if (userId && window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
         console.log('[upload] syncToCloudAndRedirect — PATCH existing CUID story to D1:', story.id, '| userId:', userId);
@@ -1561,7 +1561,7 @@
       if (!selectedPlaylistId) {
         var storyTitle = (story && story.title) || 'Truyện mới';
         var newPlId = 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now();
-        var newPl = { id: newPlId, name: storyTitle, entries: [], createdBy: 'admin', userId: _uid || '', createdAt: new Date().toISOString() };
+        var newPl = { id: newPlId, name: storyTitle, entries: [], createdBy: 'admin', userId: getMyUserId() || '', createdAt: new Date().toISOString() };
         playlists.push(newPl);
         localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
         selectedPlaylistId = newPlId;
