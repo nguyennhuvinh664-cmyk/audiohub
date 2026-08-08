@@ -504,28 +504,28 @@
     // Always fetch fresh from API, merge with local
     return fetchPublicStories().then(function (apiStories) {
       var apiIds = {};
-      var apiKeys = {};  // normalized title+author fingerprint
+      var apiTitles = {};  // normalized title fingerprint (dedup by title only)
       (apiStories || []).forEach(function (s) {
         apiIds[s.id] = true;
-        var key = (s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase();
-        if (key !== '::') apiKeys[key] = true;
+        var key = (s.title || '').trim().toLowerCase();
+        if (key) apiTitles[key] = true;
       });
-      // Filter local stories: skip if same ID or same title+author as API story
+      // Filter local stories: skip if same ID or same title as API story
       var localOnly = localPublic.filter(function (s) {
         if (apiIds[s.id]) return false;
-        var key = (s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase();
-        if (key !== '::' && apiKeys[key]) return false;
+        var key = (s.title || '').trim().toLowerCase();
+        if (key && apiTitles[key]) return false;
         return true;
       });
       var merged = (apiStories || []).concat(localOnly);
-      // Dedup by title+author (keep first occurrence = newest from API)
+      // Dedup by title (keep first occurrence = newest from API)
       var deduped = [];
-      var seenKeys = {};
+      var seenTitles = {};
       merged.forEach(function (s) {
-        var key = (s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase();
-        if (key === '::') { deduped.push(s); return; }
-        if (seenKeys[key]) return;
-        seenKeys[key] = true;
+        var key = (s.title || '').trim().toLowerCase();
+        if (!key) { deduped.push(s); return; }
+        if (seenTitles[key]) return;
+        seenTitles[key] = true;
         deduped.push(s);
       });
       return deduped;

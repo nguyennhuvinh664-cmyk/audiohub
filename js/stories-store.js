@@ -115,6 +115,15 @@
   }
 
   function writeLocalStories(stories) {
+    // DEFENSE-IN-DEPTH: filter out any deleted stories BEFORE writing
+    // This prevents syncFromApiFallback from re-adding deleted stories
+    // even if addDeletedId() failed or ID format changed after backend sync
+    var deletedIds = getDeletedIds();
+    if (deletedIds.length) {
+      var deletedMap = {};
+      deletedIds.forEach(function (id) { if (id) deletedMap[String(id)] = true; });
+      stories = stories.filter(function (s) { return s && s.id && !deletedMap[String(s.id)]; });
+    }
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
     } catch (e) {
@@ -773,8 +782,7 @@
 
         var existingLocal = readLocalStories().find(function (s) {
           return s && s.id && !String(s.id).startsWith('s_') &&
-            _nfc(s.title) === _nfc(localEntry.title) &&
-            String(s.author || '').trim() === String(localEntry.author || '').trim();
+            _nfc(s.title) === _nfc(localEntry.title);
         });
 
         if (existingLocal) {
@@ -1158,15 +1166,42 @@
   }
 
   function removeStory(id) {
+    // ALWAYS track deleted ID — even if local removal fails (story may only exist on server)
+    // This prevents syncFromApiFallback from re-adding the deleted story
+    addDeletedId(id);
     var removed = removeLocalStory(id);
-    if (removed) {
-      // Track deleted ID so sync doesn't bring it back
-      addDeletedId(id);
-      if (canUseApi() && id && !String(id).startsWith('s_')) {
-        window.AudioHubApi.request('/stories/' + encodeURIComponent(id), { method: 'DELETE' }).catch(function () {});
-      }
+    // Backend DELETE with retry (Render free tier sleeps → cold start 30-60s)
+    if (canUseApi() && id && !String(id).startsWith('s_')) {
+      _retryDelete(id, 0);
     }
     return removed;
+  }
+
+  // Retry DELETE with wake-up for sleeping Render backend
+  var _deleteRetrying = {};
+  function _retryDelete(id, attempt) {
+    if (_deleteRetrying[id]) return; // already retrying
+    if (attempt > 0) _deleteRetrying[id] = true;
+    window.AudioHubApi.request('/stories/' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function () {
+        delete _deleteRetrying[id];
+        console.log('[stories-store] ✅ DELETE succeeded for', id, attempt > 0 ? '(attempt ' + (attempt + 1) + ')' : '');
+      })
+      .catch(function (err) {
+        if (attempt < 2) {
+          // Wake up backend, then retry after 15s
+          var baseUrl = window.AudioHubApi.getBaseUrl ? window.AudioHubApi.getBaseUrl() : '/api/v1';
+          var healthUrl = baseUrl.replace('/api/v1', '') + '/health';
+          fetch(healthUrl, { method: 'GET', mode: 'no-cors' }).catch(function () {});
+          setTimeout(function () {
+            _deleteRetrying[id] = false;
+            _retryDelete(id, attempt + 1);
+          }, 15000);
+        } else {
+          delete _deleteRetrying[id];
+          console.warn('[stories-store] ❌ DELETE failed after 3 attempts for', id);
+        }
+      });
   }
 
   // Force-sync ALL local stories to backend (for fixing stale localStorage)

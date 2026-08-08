@@ -76,8 +76,22 @@ export async function onRequest(context) {
     if (method === 'POST' && !storyId) {
       const story = await request.json();
 
-      // Generate CUID if client sends null (syncLocalStoriesToApi sends id=null to let D1 gen)
-      if (!story.id) {
+      // Dedup: check if story with same title already exists → update instead of create
+      const title = (story.title || '').trim();
+      if (title) {
+        const existing = await env.DB.prepare('SELECT id FROM stories WHERE title = ?').bind(title).first();
+        if (existing && existing.id) {
+          // Story with same title exists — update it
+          story.id = existing.id;
+          story.updated_at = new Date().toISOString();
+          await upsertStory(env.DB, story);
+          const saved = await getStoryById(env.DB, story.id);
+          return Response.json(saved || { success: true, id: story.id }, { headers: corsHeaders });
+        }
+      }
+
+      // Generate CUID if client sends null OR s_ prefix (local temp ID)
+      if (!story.id || String(story.id).startsWith('s_')) {
         story.id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
       }
 

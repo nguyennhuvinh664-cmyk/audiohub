@@ -26,6 +26,11 @@
   var currentPlaylistListPage = 1;
   var currentPlaylistDetailPage = 1;
 
+  // Track recently deleted story IDs so background API re-fetch doesn't bring them back
+  var deletedStoryIds = {};
+  // Skip background API re-fetch after delete (prevents re-render that resets checkbox state)
+  var skipNextApiFetch = false;
+
   var mainTabButtons = Array.prototype.slice.call(document.querySelectorAll('[data-main-tab]'));
   var mainTabPanels = Array.prototype.slice.call(document.querySelectorAll('[data-main-panel]'));
 
@@ -184,10 +189,27 @@
     return text || fallback;
   }
 
+  // Read persistent deleted IDs from localStorage (set by AudioHubStories.remove → addDeletedId)
+  function getPersistentDeletedIds() {
+    try {
+      return JSON.parse(localStorage.getItem('audiohub-deleted-stories') || '[]');
+    } catch (e) { return []; }
+  }
+
   function getStories() {
     if (!window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return [];
     var stories = window.AudioHubStories.read();
-    return Array.isArray(stories) ? stories : [];
+    if (!Array.isArray(stories)) return [];
+    // Build lookup of ALL deleted IDs (in-memory + persistent localStorage)
+    // In-memory: fast check during current session after delete
+    // Persistent: survives page reload, covers race where syncFromApiFallback re-writes localStorage
+    var persistentDeleted = getPersistentDeletedIds();
+    var i, id;
+    for (i = 0; i < persistentDeleted.length; i++) {
+      id = persistentDeleted[i];
+      if (id && !deletedStoryIds[id]) deletedStoryIds[id] = true;
+    }
+    return stories.filter(function (s) { return s && s.id && !deletedStoryIds[s.id]; });
   }
 
   // Truyện chỉ lưu local (chưa upload lên backend) có ID bắt đầu bằng 's_'
@@ -303,14 +325,43 @@
     var localDrafts = allStories.filter(isLocalOnlyStory);
     renderStoriesFromList(nonLocal.concat(localDrafts));
 
+    // Skip background API re-fetch right after delete (prevents re-render that undoes the delete)
+    if (skipNextApiFetch) {
+      skipNextApiFetch = false;
+      return;
+    }
+
     // Then fetch from API in background (if logged in)
     if (isRealLogin()) {
       window.AudioHubApi.request('/stories', { method: 'GET' })
         .then(function (response) {
-          var stories = Array.isArray(response) ? response : [];
-          if (stories.length) {
-            renderStoriesFromList(stories);
+          var apiStories = Array.isArray(response) ? response : [];
+          // ALWAYS re-read persistent deleted IDs from localStorage (not just in-memory cache)
+          // This ensures stories deleted in another session/tab are still filtered
+          var persistentDeleted = getPersistentDeletedIds();
+          var deletedMap = {};
+          var i, id;
+          for (i = 0; i < persistentDeleted.length; i++) {
+            id = persistentDeleted[i];
+            if (id) deletedMap[id] = true;
           }
+          // Also merge in-memory deletions (current session)
+          for (var k in deletedStoryIds) {
+            if (deletedStoryIds[k]) deletedMap[k] = true;
+          }
+          // Filter out deleted stories from API response
+          var filtered = apiStories.filter(function (s) { return s && s.id && !deletedMap[s.id]; });
+          // Merge with local stories (don't let API response replace entire list)
+          var localStories = getStories();
+          var localById = {};
+          localStories.forEach(function (s) { if (s && s.id) localById[s.id] = s; });
+          var apiById = {};
+          filtered.forEach(function (s) { apiById[s.id] = s; });
+          // Local stories NOT in API response (e.g. s_ drafts, or API missed them)
+          var localOnly = localStories.filter(function (s) { return s && s.id && !apiById[s.id]; });
+          var merged = filtered.concat(localOnly);
+          // Always render (even if empty — clears stale list when all stories deleted)
+          renderStoriesFromList(merged);
         })
         .catch(function () {});
     }
@@ -756,10 +807,12 @@
 
       var deleteBtn = event.target.closest('[data-delete-selected]');
       if (deleteBtn) {
+        // Find checked checkboxes — try container first, fallback to whole page
         var container = deleteBtn.closest('[data-stories-published], [data-stories-drafts]');
-        if (!container) return;
-        var checked = Array.prototype.slice.call(container.querySelectorAll('[data-story-checkbox]:checked'));
-        if (!checked.length) return;
+        var checked = Array.prototype.slice.call(
+          (container || document).querySelectorAll('[data-story-checkbox]:checked')
+        );
+        if (!checked.length) { alert('Hãy chọn ít nhất 1 truyện trước khi xóa.'); return; }
         var ids = checked.map(function (cb) { return cb.getAttribute('data-story-id'); }).filter(Boolean);
         if (!ids.length) return;
         if (!window.confirm('Xóa ' + ids.length + ' truyện đã chọn?')) return;
@@ -798,23 +851,18 @@
     var deleteBtn = container.querySelector('[data-delete-selected]');
     if (deleteBtn) {
       deleteBtn.disabled = checked === 0;
-      deleteBtn.textContent = checked > 0 ? ('Xóa ' + checked + ' đã chọn') : 'Xóa đã chọn';
+      deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i> ' + (checked > 0 ? ('Xóa ' + checked + ' đã chọn') : 'Xóa đã chọn');
     }
   }
 
   function deleteStoriesByIds(ids) {
     if (!window.AudioHubStories || typeof window.AudioHubStories.remove !== 'function') return;
+    // Skip the background API re-fetch so deleted stories don't reappear from server
+    skipNextApiFetch = true;
     ids.forEach(function (id) {
+      // Track as deleted so background API re-fetch won't bring it back
+      deletedStoryIds[id] = true;
       window.AudioHubStories.remove(id);
-      // Delete from Cloudflare D1
-      try {
-        fetch('/api/stories/' + encodeURIComponent(id), {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' }
-        }).then(function (r) {
-          if (r.ok) console.log('[account] Deleted story from D1:', id);
-        }).catch(function (e) { console.warn('[account] D1 delete failed:', e); });
-      } catch (e) {}
     });
   }
 

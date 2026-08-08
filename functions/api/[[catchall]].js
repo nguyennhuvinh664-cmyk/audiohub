@@ -2,9 +2,9 @@
 export async function onRequest(context) {
   const BACKEND = 'https://audiohub-276v.onrender.com';
   const url = new URL(context.request.url);
-  // Strip /api/v1 prefix — backend routes don't have it
-  var backendPath = url.pathname.replace(/^\/api\/v1/, '') || '/';
-  const targetUrl = BACKEND + backendPath + url.search;
+  // Strip /api or /api/v1 prefix — backend routes are at /api/v1/*
+  var backendPath = url.pathname.replace(/^\/api\/v1/, '').replace(/^\/api/, '') || '/';
+  const targetUrl = BACKEND + '/api/v1' + backendPath + url.search;
 
   // Handle CORS preflight
   if (context.request.method === 'OPTIONS') {

@@ -335,6 +335,7 @@
             id: st.id, title: st.title, author: st.author || 'Ẩn danh',
             genre: st.genre || '', description: st.description || '',
             hashtags: st.hashtags || '', coverKey: st.cover_key || st.coverKey || '',
+            coverData: st.coverData || '', audioKey: st.audioKey || '',
             _isPlaylist: false, _story: st
           });
         });
@@ -358,13 +359,21 @@
         })
         .catch(function () { mergeAndRender(); });
 
-      // Local stories
+      // Local stories — MERGE with API stories (preserves hashtags, coverData not in API)
       try {
         if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
           (window.AudioHubStories.read() || []).forEach(function (s) {
             if (!s || !s.id || !s.title) return;
             var key = String(s.title || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-            if (storyMap[key]) return;
+            if (storyMap[key]) {
+              // Merge: fill missing fields from localStorage (API doesn't have hashtags)
+              var existing = storyMap[key];
+              if (!existing.hashtags && s.hashtags) existing.hashtags = s.hashtags;
+              if (!existing.coverData && s.coverData) existing.coverData = s.coverData;
+              if (!existing.audioKey && s.audioKey) existing.audioKey = s.audioKey;
+              if (!existing.readingText && s.readingText) existing.readingText = s.readingText;
+              return;
+            }
             storyMap[key] = s;
             storyOrder.push(key);
           });
@@ -410,16 +419,49 @@
       }
       if (chapterInput) chapterInput.value = '';
 
-      // Load cover image
-      if (storyData.id && coverZone && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-        var tryKeys = [storyData.id];
-        if (!String(storyData.id).startsWith('s_')) tryKeys.unshift('s_' + storyData.id);
-        else tryKeys.push(String(storyData.id).substring(2));
+      // Load cover — prefer base64 data URL if available (fast, no IDB lookup needed)
+      if (storyData.coverData && String(storyData.coverData).indexOf('data:') === 0) {
+        if (coverPreview) coverPreview.innerHTML = '<img src="' + storyData.coverData + '" alt="Ảnh bìa" />';
+        if (coverZone) coverZone.classList.add('is-ready');
+        if (coverLabel) coverLabel.textContent = 'Đã có ảnh bìa';
+        if (coverHint) coverHint.textContent = 'Chọn file khác để thay đổi';
+        state.coverReady = true;
+        state.coverData = storyData.coverData;
+        state.coverName = 'cover-' + storyData.id + '.jpg';
+      }
+
+      // Load cover image from IDB — try all possible key variants (skip if coverData already loaded)
+      if (!state.coverReady && storyData.id && coverZone && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        var sid = String(storyData.id);
+        var tryKeys = [];
+        // Priority: coverKey (c_ prefix) > s_ prefix > raw id > stripped id
+        if (storyData.coverKey) tryKeys.push(storyData.coverKey);
+        if (!sid.startsWith('s_')) {
+          tryKeys.push('s_' + sid);
+          tryKeys.push(sid);
+        } else {
+          tryKeys.push(sid);
+          tryKeys.push(sid.substring(2)); // strip s_ prefix
+        }
+
+        // Fallback: find old s_ prefix story with matching title (pre-CUID migration)
+        if (!sid.startsWith('s_') && storyData.title) {
+          try {
+            var _nfcTit = function (s) { return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
+            var _normTitle = _nfcTit(storyData.title);
+            var rawStories = JSON.parse(localStorage.getItem('audiohub-stories') || '[]');
+            (rawStories || []).forEach(function (s) {
+              if (s && s.id && String(s.id).startsWith('s_') && _nfcTit(s.title) === _normTitle) {
+                if (tryKeys.indexOf(String(s.id)) === -1) tryKeys.push(String(s.id));
+              }
+            });
+          } catch (e) {}
+        }
 
         (function tryLoad(idx) {
           if (idx >= tryKeys.length) return;
           window.AudioHubStoryCover.get(tryKeys[idx]).then(function (blob) {
-            if (!blob) { tryLoad(idx + 1); return; }
+            if (!blob || !blob.size) { tryLoad(idx + 1); return; }
             var url = URL.createObjectURL(blob);
             if (coverPreview) coverPreview.innerHTML = '<img src="' + url + '" alt="Ảnh bìa" />';
             coverZone.classList.add('is-ready');
@@ -530,6 +572,12 @@
           sessionStorage.setItem('audiohub-editStoryId', editStoryId);
           sessionStorage.setItem('audiohub-editStoryTitle', story.title || '');
           sessionStorage.setItem('audiohub-editStoryAuthor', story.author || '');
+          // Save hashtags + cover for form restoration
+          var _tags = story.hashtags || story.tags || '';
+          if (hashtagsInput && !hashtagsInput.value) hashtagsInput.value = Array.isArray(_tags) ? _tags.join(', ') : (_tags || '');
+          if (hashtagsInput && hashtagsInput.value) sessionStorage.setItem('audiohub-editHashtags', hashtagsInput.value);
+          if (story.coverKey) sessionStorage.setItem('audiohub-editCoverKey', story.coverKey);
+          if (story.coverData && String(story.coverData).indexOf('data:') === 0) sessionStorage.setItem('audiohub-editCoverData', story.coverData);
         }
       } catch (e) {}
 
@@ -774,6 +822,7 @@
 
       compressImage(file, 800, 0.7).then(function (dataUrl) {
         state.coverData = dataUrl;
+        try { sessionStorage.setItem('audiohub-editCoverData', dataUrl); } catch (e) {}
         state.coverReady = true;
         if (coverZone) coverZone.classList.remove('is-processing');
         if (previewCover) {
@@ -904,7 +953,10 @@
   if (genreSelect) genreSelect.addEventListener('change', render);
   if (chapterInput) chapterInput.addEventListener('input', render);
   if (youtubeInput) youtubeInput.addEventListener('input', render);
-  if (hashtagsInput) hashtagsInput.addEventListener('input', render);
+  if (hashtagsInput) hashtagsInput.addEventListener('input', function () {
+    try { sessionStorage.setItem('audiohub-editHashtags', hashtagsInput.value); } catch (e) {}
+    render();
+  });
 
   if (visibilitySelect) {
     visibilitySelect.addEventListener('change', function () {
@@ -1057,14 +1109,14 @@
       var _nfcFallback = function (s) { return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
       var normPayloadTitle = _nfcFallback(built.payload.title);
       var allStories = window.AudioHubStories.read();
-      // Find existing story with matching title+author (including s_ prefix local stories)
+      // Find existing story with matching title (including s_ prefix local stories)
       var match = (allStories || []).find(function (s) {
-        return s && _nfcFallback(s.title) === normPayloadTitle && s.author === built.payload.author;
+        return s && _nfcFallback(s.title) === normPayloadTitle;
       });
       if (match && match.id) {
         targetId = String(match.id);
         built.payload.id = targetId;
-        console.log('[upload] ⚠ Fallback matched by title+author:', targetId, '| match.id:', match.id);
+        console.log('[upload] ⚠ Fallback matched by title:', targetId, '| match.id:', match.id);
       }
       // Also search audiohub-chapters-v1 for any key with matching chapters (including s_ prefix)
       if (!targetId) {
@@ -1197,7 +1249,12 @@
       console.log('[upload] upsert:', story ? story.id + ' | chapters: ' + (story.chapters ? story.chapters.length : 0) : 'NULL');
       // Keep sessionStorage if appending to existing story; clear if creating new
       if (!targetId) {
-        try { sessionStorage.removeItem('audiohub-editStoryId'); } catch (e) {}
+        try {
+          sessionStorage.removeItem('audiohub-editStoryId');
+          sessionStorage.removeItem('audiohub-editHashtags');
+          sessionStorage.removeItem('audiohub-editCoverData');
+          sessionStorage.removeItem('audiohub-editCoverKey');
+        } catch (e) {}
       }
     } catch (e) {
       showBanner('Không thể lưu. Bộ nhớ trình duyệt có thể đầy.', false);
@@ -1258,7 +1315,7 @@
 
       var stories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
       var current = (stories || []).find(function (s) {
-        return s && _nfc(s.title) === normalizedTitle && s.author === story.author;
+        return s && _nfc(s.title) === normalizedTitle;
       });
 
       if (current && current.id && String(current.id).indexOf('s_') !== 0) {
@@ -1284,6 +1341,37 @@
           try { delete cs['s_' + realId]; } catch (e) {}
           localStorage.setItem('audiohub-chapters-v1', JSON.stringify(cs));
         } catch (e) { console.warn('[upload] ⚠ Chapter migration failed:', e); }
+
+        // --- MIGRATE cover + audio IndexedDB from s_ prefix → real CUID ---
+        var oldStoryId = story.id;
+        if (oldStoryId && oldStoryId !== realId) {
+          // Cover
+          if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function' && typeof window.AudioHubStoryCover.put === 'function') {
+            var coverKeys = [oldStoryId, 's_' + oldStoryId];
+            (function tryMigrateCover(idx) {
+              if (idx >= coverKeys.length) return;
+              window.AudioHubStoryCover.get(coverKeys[idx]).then(function (blob) {
+                if (!blob || !blob.size) { tryMigrateCover(idx + 1); return; }
+                window.AudioHubStoryCover.put(blob, realId).then(function () {
+                  console.log('[upload] ✅ Migrated cover from', coverKeys[idx], '→', realId);
+                }).catch(function () {});
+              }).catch(function () { tryMigrateCover(idx + 1); });
+            })(0);
+          }
+          // Audio
+          if (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function' && typeof window.AudioHubStoryAudio.put === 'function') {
+            var audioKeys = [oldStoryId, 's_' + oldStoryId];
+            (function tryMigrateAudio(idx) {
+              if (idx >= audioKeys.length) return;
+              window.AudioHubStoryAudio.get(audioKeys[idx]).then(function (blob) {
+                if (!blob || !blob.size) { tryMigrateAudio(idx + 1); return; }
+                window.AudioHubStoryAudio.put(blob, realId).then(function () {
+                  console.log('[upload] ✅ Migrated audio from', audioKeys[idx], '→', realId);
+                }).catch(function () {});
+              }).catch(function () { tryMigrateAudio(idx + 1); });
+            })(0);
+          }
+        }
 
         // 1. Update playlist entry keys from s_ to real CUID
         updatePlaylistEntryKeys(story.id, realId);
@@ -1468,11 +1556,15 @@
       } catch (e) {}
     }
 
-    // Hashtags
+    // Hashtags — fallback to sessionStorage if story has none
     var hashtagEl = $('[data-upload-hashtags]');
     if (hashtagEl) {
       var tags = story.hashtags || story.tags || '';
-      hashtagEl.value = Array.isArray(tags) ? tags.join(', ') : (tags || '');
+      var tagStr = Array.isArray(tags) ? tags.join(', ') : (tags || '');
+      if (!tagStr) {
+        try { tagStr = sessionStorage.getItem('audiohub-editHashtags') || ''; } catch (e) {}
+      }
+      hashtagEl.value = tagStr;
     }
 
     // Chapters — load from separate store if needed
@@ -1532,20 +1624,44 @@
       }
     }
 
-    // ── Load audio ──
+    // ── Last resort: restore cover from sessionStorage ──
+    if (!state.coverData && !state.coverReady) {
+      try {
+        var savedCover = sessionStorage.getItem('audiohub-editCoverData') || '';
+        if (savedCover && savedCover.indexOf('data:') === 0) {
+          state.coverData = savedCover;
+          state.coverReady = true;
+          if (coverPreview) coverPreview.innerHTML = '<img src="' + savedCover + '" alt="Ảnh bìa" />';
+          if (coverLabel) coverLabel.textContent = 'Đã có ảnh bìa';
+          if (coverHint) coverHint.textContent = 'Chọn file khác để thay đổi';
+        }
+      } catch (e) {}
+    }
+
+    // ── Load audio (try s_ prefix fallback) ──
     if (state.audioKey) {
       state.audioName = 'Audio đã lưu';
       if (audioLabel) audioLabel.textContent = 'Audio đã lưu';
       if (audioZone) audioZone.classList.add('is-ready');
       if (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
-        window.AudioHubStoryAudio.get(state.audioKey).then(function (blob) {
-          if (blob && audioPlayer) {
-            audioPlayer.src = URL.createObjectURL(blob);
-            audioPlayer.load();
+        var audioTryKeys = [state.audioKey];
+        if (!String(state.audioKey).startsWith('s_')) audioTryKeys.unshift('s_' + state.audioKey);
+        (function tryLoadAudio(idx) {
+          if (idx >= audioTryKeys.length) {
             setAudioPreviewDisabled(false);
-            if (audioPreviewName) audioPreviewName.textContent = state.audioName;
+            return;
           }
-        }).catch(function () { setAudioPreviewDisabled(false); });
+          window.AudioHubStoryAudio.get(audioTryKeys[idx]).then(function (blob) {
+            if (blob && audioPlayer) {
+              audioPlayer.src = URL.createObjectURL(blob);
+              audioPlayer.load();
+              setAudioPreviewDisabled(false);
+              if (audioPreviewName) audioPreviewName.textContent = state.audioName;
+            } else {
+              tryLoadAudio(idx + 1);
+            }
+          }).catch(function () { tryLoadAudio(idx + 1); });
+        })(0);
       } else {
         setAudioPreviewDisabled(false);
       }
