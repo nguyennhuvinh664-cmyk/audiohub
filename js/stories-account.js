@@ -1473,7 +1473,7 @@
   function createPlaylist(name) {
     var list = readPlaylists();
     var playlistName = String(name || '').trim() || 'Truyện mới';
-    var playlist = { id: generateId(), name: playlistName, entries: [], createdBy: 'admin', createdAt: new Date().toISOString() };
+    var playlist = { id: generateId(), name: playlistName, entries: [], createdBy: 'admin', userId: getMyUserId() || '', createdAt: new Date().toISOString() };
     list.push(playlist);
     writePlaylists(list);
     return playlist;
@@ -1605,7 +1605,13 @@
     syncPlaylistsFromD1().then(function (allPlaylists) {
       console.log('[account] syncPlaylistsFromD1 result:', allPlaylists ? allPlaylists.length : 'null', 'playlists');
       try {
+      var _plUserId = getMyUserId();
       var list = (allPlaylists || readPlaylists() || []).filter(function (p) {
+        // Filter by userId when logged in
+        if (_plUserId) {
+          var pUserId = String(p.userId || p.user_id || '').trim().toLowerCase();
+          if (pUserId && pUserId !== _plUserId) return false;
+        }
         var cb = String(p.createdBy || p.created_by || 'admin').toLowerCase();
         return cb === 'admin' || cb === 'user' || !cb;
       });
@@ -1682,7 +1688,12 @@
       // Fallback: use localStorage directly
       try {
         var fallback = readPlaylists() || [];
+        var _plUserId2 = getMyUserId();
         var list2 = (Array.isArray(fallback) ? fallback : []).filter(function (p) {
+          if (_plUserId2) {
+            var pUserId = String(p.userId || p.user_id || '').trim().toLowerCase();
+            if (pUserId && pUserId !== _plUserId2) return false;
+          }
           var cb = String(p.createdBy || p.created_by || 'admin').toLowerCase();
           return cb === 'admin' || cb === 'user' || !cb;
         });

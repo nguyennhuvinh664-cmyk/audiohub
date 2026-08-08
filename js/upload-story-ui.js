@@ -311,13 +311,23 @@
     function fetchAllStories() {
       var plMap = {}, storyMap = {}, plOrder = [], storyOrder = [];
 
-      // Playlists from localStorage
+      // Playlists from localStorage (only this user's playlists)
       try {
         var plRaw = localStorage.getItem(PLAYLIST_KEY) || '';
         var playlists = plRaw ? JSON.parse(plRaw) : [];
         if (Array.isArray(playlists)) {
           playlists.forEach(function (pl) {
             if (!pl || !pl.name) return;
+            // Filter by userId when logged in
+            if (_uid) {
+              var plUserId = String(pl.userId || pl.user_id || '').trim().toLowerCase();
+              var plCreatedBy = String(pl.createdBy || pl.created_by || '').trim().toLowerCase();
+              // Include if: has matching userId, or createdBy matches user name, or no userId set (legacy)
+              var myName = '';
+              try { var _ap = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}'); myName = String(_ap.name || '').trim().toLowerCase(); } catch (e) {}
+              if (plUserId && plUserId !== _uid) return;
+              if (!plUserId && plCreatedBy && myName && plCreatedBy !== myName && plCreatedBy !== 'admin') return;
+            }
             var key = String(pl.name || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
             if (plMap[key]) return;
             plMap[key] = { id: pl.id || ('pl_' + pl.name), title: pl.name, entries: pl.entries || [], _playlistObj: pl };
@@ -641,7 +651,7 @@
         var raw = localStorage.getItem(PLAYLIST_KEY) || '';
         var playlists = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(playlists)) playlists = [];
-        playlists.push({ id: newPlaylistId, name: val, entries: [], createdBy: 'admin', createdAt: new Date().toISOString() });
+        playlists.push({ id: newPlaylistId, name: val, entries: [], createdBy: 'admin', userId: _uid || '', createdAt: new Date().toISOString() });
         localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
         syncPlaylistsToStorage();
       } catch (e) {}
@@ -1467,7 +1477,7 @@
       if (!selectedPlaylistId) {
         var storyTitle = (story && story.title) || 'Truyện mới';
         var newPlId = 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now();
-        var newPl = { id: newPlId, name: storyTitle, entries: [], createdBy: 'admin', createdAt: new Date().toISOString() };
+        var newPl = { id: newPlId, name: storyTitle, entries: [], createdBy: 'admin', userId: _uid || '', createdAt: new Date().toISOString() };
         playlists.push(newPl);
         localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
         selectedPlaylistId = newPlId;
