@@ -74,6 +74,37 @@ export async function onRequest(context) {
       return Response.json({ success: true, deleted }, { headers: corsHeaders });
     }
 
+    // POST /api/stories/dedup - Remove duplicate stories (keep newest per title)
+    if (method === 'POST' && storyId === 'dedup') {
+      // Find all titles with more than 1 story
+      const dupes = await env.DB.prepare(
+        'SELECT title, COUNT(*) as cnt FROM stories GROUP BY title HAVING cnt > 1'
+      ).all();
+      let deleted = 0;
+      for (const row of (dupes.results || [])) {
+        // Keep the newest story with real CUID (not s_ prefix), delete the rest
+        const all = await env.DB.prepare(
+          'SELECT id, title, created_at FROM stories WHERE title = ? ORDER BY created_at DESC'
+        ).bind(row.title).all();
+        const stories = all.results || [];
+        // Prefer the one with real CUID (no s_ prefix)
+        let keepId = null;
+        for (const s of stories) {
+          if (s.id && !String(s.id).startsWith('s_')) { keepId = s.id; break; }
+        }
+        // If no real CUID, keep the newest
+        if (!keepId && stories.length) keepId = stories[0].id;
+        // Delete all except the kept one
+        for (const s of stories) {
+          if (s.id !== keepId) {
+            await env.DB.prepare('DELETE FROM stories WHERE id = ?').bind(s.id).run();
+            deleted++;
+          }
+        }
+      }
+      return Response.json({ success: true, deleted, duplicates_found: dupes.results?.length || 0 }, { headers: corsHeaders });
+    }
+
     // GET /api/stories/public - Public stories (must be before :id catch)
     if (method === 'GET' && storyId === 'public' && !action) {
       const genre = url.searchParams.get('genre');
