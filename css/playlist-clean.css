@@ -251,6 +251,17 @@
   border-color: rgba(239, 68, 68, 0.2);
 }
 
+.pl-icon-btn--publish {
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.2);
+}
+
+.pl-icon-btn--publish:hover {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
 .playlist-btn {
   width: 32px;
   height: 32px;
