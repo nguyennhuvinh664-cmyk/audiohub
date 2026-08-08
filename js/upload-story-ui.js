@@ -64,6 +64,15 @@
      ═══════════════════════════════════════════════════════════════════ */
   var AUTH_KEY = 'audiohub-auth-profile';
   var PLAYLIST_KEY = 'audiohub-playlists-v1';
+
+  function getMyUserId() {
+    try {
+      var raw = localStorage.getItem(AUTH_KEY);
+      var p = raw ? JSON.parse(raw) : null;
+      if (!p || !p.isLoggedIn) return null;
+      return (p.id && String(p.id).trim()) || (p.email && String(p.email).trim().toLowerCase()) || null;
+    } catch (e) { return null; }
+  }
   var defaultCoverBg = previewCover ? getComputedStyle(previewCover).backgroundImage : '';
 
   var state = {
@@ -343,8 +352,10 @@
         renderList(searchInput ? searchInput.value : '');
       }
 
-      // Fetch from D1 API
-      fetch('/api/stories')
+      // Fetch from D1 API (only this user's stories)
+      var _uid = getMyUserId();
+      var _apiUrl = _uid ? '/api/stories?user_id=' + encodeURIComponent(_uid) : '/api/stories';
+      fetch(_apiUrl)
         .then(function (r) { return r.ok ? r.json() : []; })
         .then(function (d1) {
           if (!Array.isArray(d1)) return;
@@ -364,6 +375,12 @@
         if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
           (window.AudioHubStories.read() || []).forEach(function (s) {
             if (!s || !s.id || !s.title) return;
+            // When logged in, skip stories that don't belong to this user
+            if (_uid) {
+              var _sUserId = String(s.userId || s.user_id || '').trim().toLowerCase();
+              if (String(s.id).startsWith('s_')) { /* local draft — always include */ }
+              else if (_sUserId && _sUserId !== _uid) return;
+            }
             var key = String(s.title || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
             if (storyMap[key]) {
               // Merge: fill missing fields from localStorage (API doesn't have hashtags)
