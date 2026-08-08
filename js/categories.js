@@ -40,7 +40,12 @@
   function goToGenre(genre) {
     var clean = String(genre || '').trim();
     if (!clean) return;
-    window.location.href = 'new-posts.html?genre=' + encodeURIComponent(clean) + '&page=1';
+    var url = '/html/new-posts.html?genre=' + encodeURIComponent(clean) + '&page=1';
+    if (window.AudioHubRouter && typeof window.AudioHubRouter.navigate === 'function') {
+      window.AudioHubRouter.navigate(url);
+    } else {
+      window.location.href = url;
+    }
   }
 
   function init() {

@@ -393,35 +393,7 @@
   </div>
 </footer>
 
-<script>
-  const ham = document.getElementById('hamburger');
-  const nav = document.getElementById('nav');
-  const ov  = document.getElementById('navOv');
-  const cls = document.getElementById('navClose');
-
-  function openNav()  { nav.classList.add('open'); ov.classList.add('show'); document.body.style.overflow='hidden'; ham.setAttribute('aria-expanded','true'); }
-  function closeNav() { nav.classList.remove('open'); ov.classList.remove('show'); document.body.style.overflow=''; ham.setAttribute('aria-expanded','false'); }
-
-  ham.addEventListener('click', () => nav.classList.contains('open') ? closeNav() : openNav());
-  ov.addEventListener('click', closeNav);
-  cls.addEventListener('click', closeNav);
-  nav.querySelectorAll('.nav__link').forEach(l => l.addEventListener('click', closeNav));
-  document.addEventListener('keydown', e => e.key==='Escape' && closeNav());
-</script>
-<script>
-/* Mobile Drawer */
-(function(){
-  var h=document.getElementById('mHamburger'),
-      d=document.getElementById('mDrawer'),
-      o=document.getElementById('mDrawerOverlay');
-  function open(){d.classList.add('is-open');o.classList.add('is-open');document.body.style.overflow='hidden';}
-  function close(){d.classList.remove('is-open');o.classList.remove('is-open');document.body.style.overflow='';}
-  if(h)h.addEventListener('click',open);
-  if(o)o.addEventListener('click',close);
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
-  d.querySelectorAll('.m-drawer__link').forEach(function(link){link.addEventListener('click',close);});
-})();
-</script>
+<script src="js/shell.js"></script>
 <script src="js/story-filters.js" data-page-script></script>
 <script src="js/api-client.js"></script>
 <script src="js/auth-state.js"></script>
@@ -431,6 +403,6 @@
 <script src="js/stories-home.js?v=20260725-7" data-page-script></script>
   <script src="js/dev-mode-config.js"></script>
   <script src="js/dev-mode.js"></script>
-  <script src="js/spa-router.js?v=20260804-1"></script>
+  <script src="js/spa-router.js?v=20260805-1"></script>
 </body>
 </html>

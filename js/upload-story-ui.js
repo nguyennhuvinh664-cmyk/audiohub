@@ -1,450 +1,130 @@
+/**
+ * upload-story-ui.js — Clean rewrite
+ * Handles: story name dropdown, cover/audio/reading uploads, draft/publish, cloud sync
+ */
 (function () {
   var root = document.querySelector('.upload-page');
-  if (!root) {
-    return;
-  }
+  if (!root) return;
 
-  var titleInput = document.querySelector('[data-upload-title]');
-  var descriptionInput = document.querySelector('[data-upload-description]');
-  var authorInput = document.querySelector('[data-upload-author]');
-  var genreSelect = document.querySelector('[data-upload-genre]');
-  var chapterInput = document.querySelector('[data-upload-chapter]');
-  var youtubeInput = document.querySelector('[data-upload-youtube-url]');
-  var visibilitySelect = document.querySelector('[data-upload-visibility]');
+  /* ═══════════════════════════════════════════════════════════════════
+     1. DOM REFERENCES
+     ═══════════════════════════════════════════════════════════════════ */
+  var $ = function (sel) { return document.querySelector(sel); };
+  var $$ = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
 
-  /* ── Playlist sync to D1 ── */
+  var titleInput = $('[data-upload-title]');
+  var descriptionInput = $('[data-upload-description]');
+  var authorInput = $('[data-upload-author]');
+  var genreSelect = $('[data-upload-genre]');
+  var chapterInput = $('[data-upload-chapter]');
+  var youtubeInput = $('[data-upload-youtube-url]');
+  var visibilitySelect = $('[data-upload-visibility]');
+
+  var coverZone = $('[data-upload-cover]');
+  var coverInput = $('[data-upload-cover-input]');
+  var coverLabel = $('[data-upload-cover-label]');
+  var coverHint = $('[data-upload-cover-hint]');
+  var coverPreview = $('[data-upload-cover-preview]');
+
+  var audioZone = $('[data-upload-audio]');
+  var audioInput = $('[data-upload-audio-input]');
+  var audioLabel = $('[data-upload-audio-label]');
+  var audioHint = $('[data-upload-audio-hint]');
+  var audioPreview = $('[data-upload-audio-preview]');
+  var audioPreviewName = $('[data-upload-audio-preview-name]');
+  var audioPlayer = $('[data-upload-audio-player]');
+
+  var readingZone = $('[data-upload-reading]');
+  var readingInput = $('[data-upload-reading-input]');
+  var readingLabel = $('[data-upload-reading-label]');
+  var readingHint = $('[data-upload-reading-hint]');
+
+  var previewTitle = $('[data-upload-preview-title]');
+  var previewMeta = $('[data-upload-preview-meta]');
+  var previewVisibility = $('[data-upload-preview-visibility]');
+  var previewCover = $('[data-upload-preview-cover]');
+  var titleCount = $('[data-upload-title-count]');
+  var descriptionCount = $('[data-upload-description-count]');
+  var mediaNote = $('[data-upload-media-note]');
+  var banner = $('[data-upload-banner]');
+  var publishButton = $('[data-upload-publish]');
+  var draftButtons = $$('[data-upload-draft]');
+  var visibilityButtons = $$('[data-upload-visibility-option]');
+  var hashtagsInput = null;
+
+  var checklist = {
+    title: $('[data-check-item="title"]'),
+    description: $('[data-check-item="description"]'),
+    metadata: $('[data-check-item="metadata"]'),
+    media: $('[data-check-item="media"]')
+  };
+
+  /* ═══════════════════════════════════════════════════════════════════
+     2. STATE
+     ═══════════════════════════════════════════════════════════════════ */
+  var AUTH_KEY = 'audiohub-auth-profile';
   var PLAYLIST_KEY = 'audiohub-playlists-v1';
+  var defaultCoverBg = previewCover ? getComputedStyle(previewCover).backgroundImage : '';
 
-  /** Sync playlists from localStorage to D1 */
-  function syncPlaylistsToStorage(specificPlaylistId) {
+  var state = {
+    coverReady: false,
+    audioReady: false,
+    coverProcessing: false,
+    audioProcessing: false,
+    visibility: 'Công khai',
+    coverName: '',
+    audioName: '',
+    coverData: '',      // base64 data URL (compressed JPEG)
+    coverKey: '',
+    audioKey: '',
+    audioFile: null,     // File object for upload after CUID
+    readingText: '',
+    submitting: false
+  };
+
+  var editStoryId = '';
+  // -1 means not editing a specific chapter (append mode). Default used to be 0 which caused new uploads to replace chapter 0.
+  var editChapterIndex = -1;
+  var selectedPlaylistId = null;
+
+  // Read URL params (with retry for SPA race)
+  function readUrlParams() {
     try {
-      var raw = localStorage.getItem(PLAYLIST_KEY) || '';
-      var playlists = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(playlists)) return;
+      var p = new URL(window.location.href).searchParams;
+      editStoryId = p.get('id') || '';
+      // If ?chapter is provided we use that index, otherwise -1 to indicate append mode
+      var rawChapter = p.get('chapter');
+      editChapterIndex = rawChapter !== null ? Math.max(0, parseInt(rawChapter || '0', 10)) : -1;
+    } catch (e) {
+      editStoryId = '';
+      editChapterIndex = -1;
+    }
+  }
+  readUrlParams();
 
-      playlists.forEach(function (pl) {
-        // If specificPlaylistId provided, only sync that one
-        if (specificPlaylistId && pl.id !== specificPlaylistId) return;
-        fetch('/api/playlists', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries || []) })
-        }).then(function (r) {
-          if (r.ok) console.log('[upload] Playlist synced to D1:', pl.name);
-        }).catch(function (e) {
-          console.warn('[upload] Playlist sync failed:', e);
-        });
-      });
-    } catch (e) {}
+  /* ═══════════════════════════════════════════════════════════════════
+     3. UTILITIES
+     ═══════════════════════════════════════════════════════════════════ */
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  /* ── Story name select dropdown ── */
-  var selectedPlaylistId = null;  // Track selected playlist ID for adding stories
-
-  (function initStoryNameSelect() {
-    var selectRoot = document.querySelector('[data-story-name-select]');
-    var trigger = document.querySelector('[data-story-name-trigger]');
-    var nameInput = document.querySelector('[data-story-name-input]');
-    var menu = document.querySelector('[data-story-name-menu]');
-    var list = document.querySelector('[data-story-name-list]');
-    var searchInput = document.querySelector('[data-story-name-search]');
-    var addBtn = document.querySelector('[data-story-name-add]');
-    if (!selectRoot || !trigger || !menu || !list) return;
-
-    var allStories = [];
-    var isAddingNew = false;
-
-    function escapeHtml(s) {
-      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function fetchAllStories() {
-      var plMap = {};   // playlist by lowercase title
-      var storyMap = {}; // real story by lowercase title
-      var plOrder = [];  // playlist titles in order
-      var storyOrder = []; // story titles in order
-
-      // 1) Playlists from localStorage
-      try {
-        var plRaw = localStorage.getItem('audiohub-playlists-v1') || '';
-        var playlists = plRaw ? JSON.parse(plRaw) : [];
-        if (Array.isArray(playlists)) {
-          playlists.forEach(function (pl) {
-            if (!pl || !pl.name) return;
-            var key = pl.name.toLowerCase();
-            if (plMap[key]) return;
-            var entries = pl.entries || pl.items || [];
-            plMap[key] = {
-              id: pl.id || ('pl_' + pl.name),
-              title: pl.name,
-              entries: entries,
-              _playlistObj: pl
-            };
-            plOrder.push(key);
-          });
-        }
-      } catch (e) {}
-
-      // Helper: merge plMap + storyMap → allStories
-      function mergeAndRender() {
-        var items = [];
-        var seen = {};
-        // First: playlists (with merged story data if available)
-        plOrder.forEach(function (key) {
-          var pl = plMap[key];
-          var st = storyMap[key];
-          var entry = {
-            id: pl.id,
-            title: pl.title,
-            _isPlaylist: true,
-            _entries: pl.entries,
-            // Auto-fill data from real story (if exists)
-            genre: st ? (st.genre || '') : '',
-            description: st ? (st.description || '') : '',
-            author: st ? (st.author || 'Ẩn danh') : 'Admin',
-            _storyData: st || null
-          };
-          items.push(entry);
-          seen[key] = true;
-        });
-        // Then: stories without playlist
-        storyOrder.forEach(function (key) {
-          if (seen[key]) return;
-          var st = storyMap[key];
-          items.push({
-            id: st.id,
-            title: st.title,
-            author: st.author || 'Ẩn danh',
-            genre: st.genre || '',
-            description: st.description || '',
-            hashtags: st.hashtags || '',
-            coverKey: st.cover_key || st.coverKey || '',
-            _isPlaylist: false,
-            _story: st
-          });
-        });
-        allStories = items;
-        renderList(searchInput ? searchInput.value : '');
-      }
-
-      // 2) Stories from D1 API
-      fetch('/api/stories')
-        .then(function (r) { return r.ok ? r.json() : []; })
-        .then(function (d1Stories) {
-          if (!Array.isArray(d1Stories)) return;
-          d1Stories.forEach(function (s) {
-            if (!s || !s.id || !s.title) return;
-            var key = s.title.toLowerCase();
-            if (storyMap[key]) return;
-            storyMap[key] = s;
-            storyOrder.push(key);
-          });
-          mergeAndRender();
-        })
-        .catch(function () { mergeAndRender(); });
-
-      // 3) Stories from localStorage (via AudioHubStories)
-      try {
-        if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
-          var stories = window.AudioHubStories.read();
-          if (Array.isArray(stories)) {
-            stories.forEach(function (s) {
-              if (!s || !s.id || !s.title) return;
-              var key = s.title.toLowerCase();
-              if (storyMap[key]) return;
-              storyMap[key] = s;
-              storyOrder.push(key);
-            });
-          }
-        }
-      } catch (e) {}
-
-      mergeAndRender();
-    }
-
-    function renderList(query) {
-      var q = String(query || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
-      var filtered = allStories.filter(function (s) {
-        if (!q) return true;
-        var title = String(s.title || s.name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
-        var author = String(s.author || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
-        return title.indexOf(q) >= 0 || author.indexOf(q) >= 0;
-      });
-      // Sort newest first
-      filtered.sort(function (a, b) {
-        var ta = Date.parse(a.createdAt || a.updatedAt || 0) || 0;
-        var tb = Date.parse(b.createdAt || b.updatedAt || 0) || 0;
-        return tb - ta;
-      });
-      var html = '';
-      filtered.forEach(function (s) {
-        var title = escapeHtml(s.title);
-        var genre = escapeHtml(s.genre || '');
-        var tag = (s._isPlaylist && !s._storyData) ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Truyện</span>' : '';
-        html += '<button type="button" class="story-name-select__item" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '" data-is-playlist="' + (s._isPlaylist ? '1' : '0') + '">' +
-          '<span class="story-name-select__item-title">' + title + '</span>' +
-          '<span class="story-name-select__item-meta">' + tag + (genre ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span>' +
-          '</button>';
-      });
-      if (!filtered.length && !isAddingNew) {
-        html = '<div class="story-name-select__empty">Không tìm thấy truyện</div>';
-      }
-      list.innerHTML = html;
-    }
-
-    function selectStory(story) {
-      if (!story) return;
-      isAddingNew = false;
-      // Track selected playlist ID
-      selectedPlaylistId = story._isPlaylist ? story.id : null;
-      console.log('[upload] Selected:', story.title, '| isPlaylist:', story._isPlaylist);
-      // Set hidden input value (Tên truyện)
-      if (titleInput) titleInput.value = story.title || '';
-
-      // Query cover elements (outside IIFE scope)
-      var coverZoneEl = document.querySelector('[data-upload-cover]');
-      var coverLabelEl = document.querySelector('[data-upload-cover-label]');
-      var coverHintEl = document.querySelector('[data-upload-cover-hint]');
-      var coverPreviewEl = document.querySelector('[data-upload-cover-preview]');
-
-      // Helper: auto-fill form + cover + hashtag from story data
-      function autoFillFromStoryData(storyData) {
-        if (!storyData) return;
-        // Thể loại + Mô tả
-        if (genreSelect && storyData.genre) genreSelect.value = storyData.genre;
-        if (descriptionInput && storyData.description) descriptionInput.value = storyData.description;
-        // Hashtag
-        var hashtagEl = document.querySelector('[data-upload-hashtags]');
-        if (hashtagEl) {
-          var tags = storyData.hashtags || storyData.tags || '';
-          if (Array.isArray(tags)) {
-            hashtagEl.value = tags.join(', ');
-          } else {
-            hashtagEl.value = tags || '';
-          }
-        }
-        // Tên chương → xóa
-        if (chapterInput) chapterInput.value = '';
-        console.log('[upload] Auto-filled:', storyData.title, '| genre:', storyData.genre, '| hashtag:', storyData.hashtags);
-        // Ảnh bìa → dùng AudioHubStoryCover (IndexedDB + D1 fallback)
-        var storyId = storyData.id;
-        if (storyId && coverZoneEl && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-          // Try with and without s_ prefix
-          var tryKeys = [storyId];
-          if (!String(storyId).startsWith('s_')) tryKeys.unshift('s_' + storyId);
-          else tryKeys.push(String(storyId).substring(2));
-
-          function tryLoadCover(idx) {
-            if (idx >= tryKeys.length) return;
-            window.AudioHubStoryCover.get(tryKeys[idx]).then(function (blob) {
-              if (!blob) { tryLoadCover(idx + 1); return; }
-              var url = URL.createObjectURL(blob);
-              // Show in preview container
-              if (coverPreviewEl) {
-                coverPreviewEl.innerHTML = '<img src="' + url + '" alt="Ảnh bìa" />';
-              }
-              coverZoneEl.classList.add('is-ready');
-              if (coverLabelEl) coverLabelEl.textContent = 'Đã có ảnh bìa';
-              if (coverHintEl) coverHintEl.textContent = 'Chọn file khác để thay đổi';
-              state.coverReady = true;
-              state.coverName = 'cover-' + storyId + '.jpg';
-              // Convert blob to data URL for publish validation
-              var reader = new FileReader();
-              reader.onload = function () {
-                state.coverData = reader.result;
-                console.log('[upload] ✅ coverData set from auto-fill blob');
-              };
-              reader.readAsDataURL(blob);
-            }).catch(function () { tryLoadCover(idx + 1); });
-          }
-          tryLoadCover(0);
-        }
-      }
-
-      function clearFormFields() {
-        if (genreSelect) genreSelect.value = '';
-        if (descriptionInput) descriptionInput.value = '';
-        if (chapterInput) chapterInput.value = '';
-        if (coverZoneEl) {
-          coverZoneEl.classList.remove('is-ready');
-          if (coverLabelEl) coverLabelEl.textContent = 'Thêm ảnh bìa';
-          if (coverHintEl) coverHintEl.textContent = 'PNG/JPG • Tối đa 5MB';
-        }
-        if (coverPreviewEl) {
-          coverPreviewEl.innerHTML = '<i class="fa-regular fa-image upload-cover-zone__placeholder-icon"></i>';
-        }
-        state.coverReady = false;
-        state.coverName = '';
-      }
-
-      if (!story._isPlaylist) {
-        // Real story selected → auto-fill directly
-        autoFillFromStoryData(story);
-      } else {
-        // Playlist selected → auto-fill from merged _storyData (if available)
-        if (story._storyData) {
-          console.log('[upload] Auto-fill from story data:', story._storyData.title, '| genre:', story._storyData.genre);
-          autoFillFromStoryData(story._storyData);
-        } else {
-          console.log('[upload] Playlist has no matching story:', story.title);
-          clearFormFields();
-        }
-      }
-
-      // Update trigger text
-      trigger.innerHTML = escapeHtml(story.title) + ' <i class="fa-solid fa-chevron-down"></i>';
-      trigger.classList.add('is-selected');
-      // Close menu
-      menu.classList.add('is-hidden');
-      trigger.setAttribute('aria-expanded', 'false');
-      render();
-    }
-
-    function startAddNew() {
-      isAddingNew = true;
-      selectedPlaylistId = null;  // Reset playlist selection when adding new
-      // Hide trigger, show text input
-      trigger.classList.add('is-hidden');
-      if (nameInput) {
-        nameInput.classList.remove('is-hidden');
-        nameInput.value = '';
-        nameInput.focus();
-      }
-      menu.classList.add('is-hidden');
-      trigger.setAttribute('aria-expanded', 'false');
-    }
-
-    function confirmAddNew() {
-      var val = nameInput ? nameInput.value.trim() : '';
-      if (!val) return;
-
-      // Create playlist in localStorage
-      var PLAYLIST_KEY = 'audiohub-playlists-v1';
-      var newPlaylistId = null;
-      try {
-        var raw = localStorage.getItem(PLAYLIST_KEY) || '';
-        var playlists = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(playlists)) playlists = [];
-        newPlaylistId = 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now();
-        var newPlaylist = {
-          id: newPlaylistId,
-          name: val,
-          entries: [],
-          createdBy: 'admin',
-          createdAt: new Date().toISOString()
-        };
-        playlists.push(newPlaylist);
-        localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
-        syncPlaylistsToStorage();
-      } catch (e) {}
-
-      // Track selected playlist ID
-      selectedPlaylistId = newPlaylistId;
-      console.log('[upload] Created and selected playlist:', val, newPlaylistId);
-
-      // Set hidden input value
-      if (titleInput) titleInput.value = val;
-      // Update trigger text
-      trigger.innerHTML = escapeHtml(val) + ' <i class="fa-solid fa-chevron-down"></i>';
-      trigger.classList.add('is-selected');
-      // Hide input, show trigger
-      if (nameInput) nameInput.classList.add('is-hidden');
-      trigger.classList.remove('is-hidden');
-      isAddingNew = false;
-
-      // Refresh playlist list and select the new one
-      fetchAllStories();
-      var created = allStories.find(function (s) { return s.title === val; });
-      if (created) selectStory(created);
-    }
-
-    function cancelAddNew() {
-      if (nameInput) nameInput.classList.add('is-hidden');
-      trigger.classList.remove('is-hidden');
-      isAddingNew = false;
-    }
-
-    // Toggle menu
-    trigger.addEventListener('click', function () {
-      var hidden = menu.classList.toggle('is-hidden');
-      trigger.setAttribute('aria-expanded', hidden ? 'false' : 'true');
-      if (!hidden) {
-        isAddingNew = false;
-        if (searchInput) { searchInput.value = ''; searchInput.focus(); }
-        renderList('');
-      }
-    });
-
-    // Search filter
-    if (searchInput) {
-      searchInput.addEventListener('input', function () {
-        renderList(searchInput.value);
-      });
-    }
-
-    // Name input: Enter to confirm, Escape to cancel
-    if (nameInput) {
-      nameInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          confirmAddNew();
-        } else if (e.key === 'Escape') {
-          cancelAddNew();
-        }
-      });
-      nameInput.addEventListener('blur', function () {
-        // Small delay to allow click events to fire first
-        setTimeout(function () {
-          if (isAddingNew && nameInput && nameInput.value.trim()) {
-            confirmAddNew();
-          } else if (isAddingNew) {
-            cancelAddNew();
-          }
-        }, 150);
-      });
-    }
-
-    // Close on outside click
-    document.addEventListener('click', function (e) {
-      if (!selectRoot.contains(e.target)) {
-        menu.classList.add('is-hidden');
-        trigger.setAttribute('aria-expanded', 'false');
-      }
-    });
-
-    // Click on story item
-    list.addEventListener('click', function (e) {
-      var btn = e.target.closest('.story-name-select__item');
-      if (!btn) return;
-      var id = btn.getAttribute('data-story-id');
-      var story = allStories.find(function (s) { return String(s.id) === id; });
-      if (story) selectStory(story);
-    });
-
-    // Add new button
-    if (addBtn) {
-      addBtn.addEventListener('click', function () {
-        startAddNew();
-      });
-    }
-
-    // Load stories on init
-    fetchAllStories();
-    // Sync existing playlists to Storage on page load
-    syncPlaylistsToStorage();
-  })();
-
-  function dataUrlToBlob(dataUrl) {
-    if (!dataUrl || typeof dataUrl !== 'string') return null;
-    var parts = dataUrl.split(',');
-    if (parts.length < 2) return null;
-    var mime = (parts[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
-    var raw = atob(parts[1]);
-    var arr = new Uint8Array(raw.length);
-    for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-    return new Blob([arr], { type: mime });
+  function clearObjectUrl(url) {
+    if (url) { try { URL.revokeObjectURL(url); } catch (e) {} }
   }
 
+  function setFieldValue(node, value) {
+    if (node) node.value = value || '';
+  }
+
+  function showBanner(message, published) {
+    if (!banner) return;
+    banner.textContent = message;
+    banner.classList.remove('is-hidden');
+    banner.classList.toggle('is-published', !!published);
+  }
+
+  /* ── YouTube helpers ── */
   function extractYoutubeId(value) {
     var raw = String(value || '').trim();
     if (!raw) return '';
@@ -455,195 +135,42 @@
       /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
       /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
     ];
-    for (var i = 0; i < patterns.length; i += 1) {
-      var match = raw.match(patterns[i]);
-      if (match && match[1]) return match[1];
+    for (var i = 0; i < patterns.length; i++) {
+      var m = raw.match(patterns[i]);
+      if (m && m[1]) return m[1];
     }
     return '';
   }
 
-  function normalizeYoutubeUrl(value) {
-    var raw = String(value || '').trim();
-    if (!raw) return '';
-    var id = extractYoutubeId(raw);
-    return id ? ('https://www.youtube.com/watch?v=' + id) : raw;
-  }
-
-  function normalizeYoutubeId(value, fallbackUrl) {
-    return extractYoutubeId(value) || extractYoutubeId(fallbackUrl) || '';
-  }
-
-  function validateYoutubeUrl(value) {
-    var raw = String(value || '').trim();
-    if (!raw) return { ok: true, url: '', id: '' };
-    var normalizedUrl = normalizeYoutubeUrl(raw);
-    var id = normalizeYoutubeId('', normalizedUrl);
-    if (!id) {
-      return { ok: false, url: raw, id: '', message: 'Link YouTube không hợp lệ.' };
-    }
-    return { ok: true, url: normalizedUrl, id: id };
-  }
-
   function getYoutubePayload() {
-    return validateYoutubeUrl(youtubeInput ? youtubeInput.value : '');
-  }
-  var visibilityButtons = Array.prototype.slice.call(document.querySelectorAll('[data-upload-visibility-option]'));
-  var previewTitle = document.querySelector('[data-upload-preview-title]');
-  var previewMeta = document.querySelector('[data-upload-preview-meta]');
-  var previewVisibility = document.querySelector('[data-upload-preview-visibility]');
-  var previewCover = document.querySelector('[data-upload-preview-cover]');
-  var titleCount = document.querySelector('[data-upload-title-count]');
-  var descriptionCount = document.querySelector('[data-upload-description-count]');
-  var coverZone = document.querySelector('[data-upload-cover]');
-  var audioZone = document.querySelector('[data-upload-audio]');
-  var readingZone = document.querySelector('[data-upload-reading]');
-  var hashtagsInput = null;
-  var AUTH_STORAGE_KEY = 'audiohub-auth-profile';
-
-  function readAuthProfile() {
-    try {
-      var raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
-      var parsed = raw ? JSON.parse(raw) : null;
-      if (!parsed || !parsed.isLoggedIn) {
-        return null;
-      }
-      return {
-        name: String(parsed.name || '').trim(),
-        email: String(parsed.email || '').trim()
-      };
-    } catch (error) {
-      return null;
-    }
+    var raw = String(youtubeInput ? youtubeInput.value : '').trim();
+    if (!raw) return { ok: true, url: '', id: '' };
+    var id = extractYoutubeId(raw);
+    if (!id) return { ok: false, url: raw, id: '', message: 'Link YouTube không hợp lệ.' };
+    return { ok: true, url: 'https://www.youtube.com/watch?v=' + id, id: id };
   }
 
-  function readHeaderName() {
-    var node = document.querySelector('.auth-menu__label');
-    return node ? String(node.textContent || '').trim() : '';
-  }
-
-  function getAuthorFromSession() {
-    var profile = readAuthProfile();
-    if (profile && profile.name) return profile.name;
-    return readHeaderName();
-  }
-
-  function syncAuthorInput() {
-    if (!authorInput) return '';
-    var authorName = getAuthorFromSession();
-    authorInput.value = authorName || '';
-    authorInput.readOnly = true;
-    authorInput.setAttribute('readonly', 'readonly');
-    authorInput.setAttribute('aria-readonly', 'true');
-    authorInput.placeholder = 'Tự động theo tài khoản đăng nhập';
-    authorInput.title = authorName ? 'Tác giả được lấy theo tài khoản đăng nhập' : 'Vui lòng đăng nhập để tự động điền tác giả';
-    return authorName;
-  }
-
-  syncAuthorInput();
-  window.setTimeout(syncAuthorInput, 0);
-  window.setTimeout(syncAuthorInput, 300);
-  window.setTimeout(syncAuthorInput, 1000);
-  window.addEventListener('focus', syncAuthorInput);
-  window.addEventListener('pageshow', syncAuthorInput);
-  window.addEventListener('audiohub:auth-updated', syncAuthorInput);
-  window.addEventListener('storage', function (event) {
-    if (event && event.key && event.key !== AUTH_STORAGE_KEY) return;
-    syncAuthorInput();
-  });
-
-  if (authorInput) {
-    authorInput.addEventListener('beforeinput', function (event) { event.preventDefault(); });
-    authorInput.addEventListener('input', function () { syncAuthorInput(); });
-    authorInput.addEventListener('paste', function (event) { event.preventDefault(); });
-    authorInput.addEventListener('drop', function (event) { event.preventDefault(); });
-  }
-
-  var authorSyncTimer = window.setInterval(function () {
-    var name = syncAuthorInput();
-    if (name) window.clearInterval(authorSyncTimer);
-  }, 500);
-  window.setTimeout(function () { window.clearInterval(authorSyncTimer); }, 15000);
-
-  if (window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function' && typeof window.AudioHubApi.request === 'function') {
-    var token = window.AudioHubApi.getToken();
-    if (token && !getAuthorFromSession()) {
-      window.AudioHubApi.request('/auth/me', { method: 'GET' })
-        .then(function (user) {
-          var name = user && user.displayName ? String(user.displayName).trim() : '';
-          var email = user && user.email ? String(user.email).trim() : '';
-          if (!name) return;
-          try {
-            window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
-              isLoggedIn: true,
-              name: name,
-              email: email
-            }));
-          } catch (error) {}
-          syncAuthorInput();
-          render();
-        })
-        .catch(function () {});
-    }
-  }
-
-  function getEffectiveAuthorName() {
-    var authorName = getAuthorFromSession();
-    if (authorName) return authorName;
-
-    var profile = readAuthProfile();
-    var email = profile && profile.email ? String(profile.email).trim() : '';
-    if (email && email.indexOf('@') > 0) {
-      return email.split('@')[0];
-    }
-
-    var rawValue = authorInput ? String(authorInput.value || '').trim() : '';
-    if (rawValue) return rawValue;
-
-    return 'Anh Ngọc'; // Default demo author name
-  }
-
-  window.AudioHubUploadAuthor = {
-    getAuthorFromSession: getAuthorFromSession,
-    syncAuthorInput: syncAuthorInput
-  };
-
-  syncAuthorInput();
-
-  function normalizeHashtagToken(value) {
-    return String(value || '').trim().replace(/^#+/, '').replace(/\s+/g, '-').toLowerCase();
+  /* ── Hashtag helpers ── */
+  function normalizeHashtagToken(v) {
+    return String(v || '').trim().replace(/^#+/, '').replace(/\s+/g, '-').toLowerCase();
   }
 
   function parseHashtags(value) {
     var tokens = String(value || '').split(/[\s,]+/g);
     var seen = {};
-    return tokens.map(normalizeHashtagToken).filter(function (tag) {
-      if (!tag) return false;
-      if (seen[tag]) return false;
-      seen[tag] = true;
+    return tokens.map(normalizeHashtagToken).filter(function (t) {
+      if (!t || seen[t]) return false;
+      seen[t] = true;
       return true;
     });
   }
 
-  function ensureHashtagInput() {
-    if (!descriptionInput || hashtagsInput) return;
-    var field = document.createElement('label');
-    field.className = 'upload-field';
-    field.innerHTML = 'Hashtag (nhập tay)<input type="text" data-upload-hashtags placeholder="#aothatday, #satthu" />';
-    var parent = descriptionInput.parentElement;
-    if (!parent || !parent.parentElement) return;
-    parent.parentElement.insertBefore(field, parent.nextSibling);
-    hashtagsInput = field.querySelector('[data-upload-hashtags]');
-  }
-
-  ensureHashtagInput();
-  hashtagsInput = document.querySelector('[data-upload-hashtags]') || hashtagsInput;
-
   function extractHashtagsFromDescription(value) {
     var tags = [];
-    var regex = /#([^#\n]+)/gu;
-    var match = null;
-    while ((match = regex.exec(String(value || '')))) {
-      var tag = normalizeHashtagToken(String(match[1] || '').replace(/[.,;:!?]+$/g, ''));
+    var re = /#([^#\n]+)/gu;
+    var m;
+    while ((m = re.exec(String(value || '')))) {
+      var tag = normalizeHashtagToken(String(m[1] || '').replace(/[.,;:!?]+$/g, ''));
       if (tag) tags.push(tag);
     }
     return parseHashtags(tags.join(' '));
@@ -655,280 +182,521 @@
     return parseHashtags(manual.concat(fromDesc).join(' '));
   }
 
-  if (hashtagsInput) {
-    hashtagsInput.addEventListener('input', render);
+  /* ── Image compression ── */
+  function compressImage(file, maxWidth, quality) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var canvas = document.createElement('canvas');
+          var w = img.width, h = img.height;
+          if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
-  if (descriptionInput) {
-    descriptionInput.addEventListener('input', function () {
+  /* ═══════════════════════════════════════════════════════════════════
+     4. AUTHOR SYNC (from auth profile)
+     ═══════════════════════════════════════════════════════════════════ */
+  function readAuthProfile() {
+    try {
+      var raw = localStorage.getItem(AUTH_KEY);
+      var p = raw ? JSON.parse(raw) : null;
+      if (!p || !p.isLoggedIn) return null;
+      return { name: String(p.name || '').trim(), email: String(p.email || '').trim() };
+    } catch (e) { return null; }
+  }
+
+  function readHeaderName() {
+    var n = $('.auth-menu__label');
+    return n ? String(n.textContent || '').trim() : '';
+  }
+
+  function getAuthorFromSession() {
+    var profile = readAuthProfile();
+    if (profile && profile.name) return profile.name;
+    return readHeaderName();
+  }
+
+  function getEffectiveAuthorName() {
+    var name = getAuthorFromSession();
+    if (name) return name;
+    var profile = readAuthProfile();
+    var email = profile && profile.email ? String(profile.email).trim() : '';
+    if (email && email.indexOf('@') > 0) return email.split('@')[0];
+    var raw = authorInput ? String(authorInput.value || '').trim() : '';
+    if (raw) return raw;
+    return 'Anh Ngọc';
+  }
+
+  function syncAuthorInput() {
+    if (!authorInput) return '';
+    var name = getAuthorFromSession();
+    authorInput.value = name || '';
+    authorInput.readOnly = true;
+    authorInput.setAttribute('readonly', 'readonly');
+    authorInput.placeholder = 'Tự động theo tài khoản đăng nhập';
+    return name;
+  }
+
+  syncAuthorInput();
+  setTimeout(syncAuthorInput, 0);
+  setTimeout(syncAuthorInput, 300);
+  setTimeout(syncAuthorInput, 1000);
+  window.addEventListener('focus', syncAuthorInput);
+  window.addEventListener('pageshow', syncAuthorInput);
+  window.addEventListener('audiohub:auth-updated', syncAuthorInput);
+  window.addEventListener('storage', function (e) {
+    if (e && e.key && e.key !== AUTH_KEY) return;
+    syncAuthorInput();
+  });
+
+  if (authorInput) {
+    authorInput.addEventListener('beforeinput', function (e) { e.preventDefault(); });
+    authorInput.addEventListener('input', syncAuthorInput);
+    authorInput.addEventListener('paste', function (e) { e.preventDefault(); });
+    authorInput.addEventListener('drop', function (e) { e.preventDefault(); });
+  }
+
+  // Try fetching author from API if not set
+  if (window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function' && typeof window.AudioHubApi.request === 'function') {
+    var token = window.AudioHubApi.getToken();
+    if (token && !getAuthorFromSession()) {
+      window.AudioHubApi.request('/auth/me', { method: 'GET' }).then(function (user) {
+        var name = user && user.displayName ? String(user.displayName).trim() : '';
+        var email = user && user.email ? String(user.email).trim() : '';
+        if (!name) return;
+        try {
+          localStorage.setItem(AUTH_KEY, JSON.stringify({ isLoggedIn: true, name: name, email: email }));
+        } catch (e) {}
+        syncAuthorInput();
+        render();
+      }).catch(function () {});
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     5. STORY NAME DROPDOWN
+     ═══════════════════════════════════════════════════════════════════ */
+  (function initStoryNameSelect() {
+    var selectRoot = $('[data-story-name-select]');
+    var trigger = $('[data-story-name-trigger]');
+    var nameInput = $('[data-story-name-input]');
+    var menu = $('[data-story-name-menu]');
+    var list = $('[data-story-name-list]');
+    var searchInput = $('[data-story-name-search]');
+    var addBtn = $('[data-story-name-add]');
+    if (!selectRoot || !trigger || !menu || !list) return;
+
+    var allStories = [];
+    var isAddingNew = false;
+
+    function fetchAllStories() {
+      var plMap = {}, storyMap = {}, plOrder = [], storyOrder = [];
+
+      // Playlists from localStorage
+      try {
+        var plRaw = localStorage.getItem(PLAYLIST_KEY) || '';
+        var playlists = plRaw ? JSON.parse(plRaw) : [];
+        if (Array.isArray(playlists)) {
+          playlists.forEach(function (pl) {
+            if (!pl || !pl.name) return;
+            var key = String(pl.name || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+            if (plMap[key]) return;
+            plMap[key] = { id: pl.id || ('pl_' + pl.name), title: pl.name, entries: pl.entries || [], _playlistObj: pl };
+            plOrder.push(key);
+          });
+        }
+      } catch (e) {}
+
+      function mergeAndRender() {
+        var items = [], seen = {};
+        plOrder.forEach(function (key) {
+          var pl = plMap[key], st = storyMap[key];
+          items.push({
+            id: pl.id, title: pl.title, _isPlaylist: true, _entries: pl.entries,
+            genre: st ? (st.genre || '') : '', description: st ? (st.description || '') : '',
+            author: st ? (st.author || 'Ẩn danh') : 'Admin', _storyData: st || null
+          });
+          seen[key] = true;
+        });
+        storyOrder.forEach(function (key) {
+          if (seen[key]) return;
+          var st = storyMap[key];
+          items.push({
+            id: st.id, title: st.title, author: st.author || 'Ẩn danh',
+            genre: st.genre || '', description: st.description || '',
+            hashtags: st.hashtags || '', coverKey: st.cover_key || st.coverKey || '',
+            _isPlaylist: false, _story: st
+          });
+        });
+        allStories = items;
+        renderList(searchInput ? searchInput.value : '');
+      }
+
+      // Fetch from D1 API
+      fetch('/api/stories')
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (d1) {
+          if (!Array.isArray(d1)) return;
+          d1.forEach(function (s) {
+            if (!s || !s.id || !s.title) return;
+            var key = String(s.title || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+            if (storyMap[key]) return;
+            storyMap[key] = s;
+            storyOrder.push(key);
+          });
+          mergeAndRender();
+        })
+        .catch(function () { mergeAndRender(); });
+
+      // Local stories
+      try {
+        if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+          (window.AudioHubStories.read() || []).forEach(function (s) {
+            if (!s || !s.id || !s.title) return;
+            var key = String(s.title || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+            if (storyMap[key]) return;
+            storyMap[key] = s;
+            storyOrder.push(key);
+          });
+        }
+      } catch (e) {}
+      mergeAndRender();
+    }
+
+    function renderList(query) {
+      var q = String(query || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+      var filtered = allStories.filter(function (s) {
+        if (!q) return true;
+        var t = String(s.title || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+        var a = String(s.author || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+        return t.indexOf(q) >= 0 || a.indexOf(q) >= 0;
+      });
+      filtered.sort(function (a, b) {
+        return (Date.parse(b.createdAt || b.updatedAt || 0) || 0) - (Date.parse(a.createdAt || a.updatedAt || 0) || 0);
+      });
+      var html = '';
+      filtered.forEach(function (s) {
+        var title = escapeHtml(s.title);
+        var genre = escapeHtml(s.genre || '');
+        var tag = (s._isPlaylist && !s._storyData) ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Truyện</span>' : '';
+        html += '<button type="button" class="story-name-select__item" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '" data-is-playlist="' + (s._isPlaylist ? '1' : '0') + '">' +
+          '<span class="story-name-select__item-title">' + title + '</span>' +
+          '<span class="story-name-select__item-meta">' + tag + (genre ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span></button>';
+      });
+      if (!filtered.length && !isAddingNew) {
+        html = '<div class="story-name-select__empty">Không tìm thấy truyện</div>';
+      }
+      list.innerHTML = html;
+    }
+
+    function autoFillFromStoryData(storyData) {
+      if (!storyData) return;
+      if (genreSelect && storyData.genre) genreSelect.value = storyData.genre;
+      if (descriptionInput && storyData.description) descriptionInput.value = storyData.description;
+      var hashtagEl = $('[data-upload-hashtags]');
+      if (hashtagEl) {
+        var tags = storyData.hashtags || storyData.tags || '';
+        hashtagEl.value = Array.isArray(tags) ? tags.join(', ') : (tags || '');
+      }
+      if (chapterInput) chapterInput.value = '';
+
+      // Load cover image
+      if (storyData.id && coverZone && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+        var tryKeys = [storyData.id];
+        if (!String(storyData.id).startsWith('s_')) tryKeys.unshift('s_' + storyData.id);
+        else tryKeys.push(String(storyData.id).substring(2));
+
+        (function tryLoad(idx) {
+          if (idx >= tryKeys.length) return;
+          window.AudioHubStoryCover.get(tryKeys[idx]).then(function (blob) {
+            if (!blob) { tryLoad(idx + 1); return; }
+            var url = URL.createObjectURL(blob);
+            if (coverPreview) coverPreview.innerHTML = '<img src="' + url + '" alt="Ảnh bìa" />';
+            coverZone.classList.add('is-ready');
+            if (coverLabel) coverLabel.textContent = 'Đã có ảnh bìa';
+            if (coverHint) coverHint.textContent = 'Chọn file khác để thay đổi';
+            state.coverReady = true;
+            state.coverName = 'cover-' + storyData.id + '.jpg';
+            var reader = new FileReader();
+            reader.onload = function () { state.coverData = reader.result; };
+            reader.readAsDataURL(blob);
+          }).catch(function () { tryLoad(idx + 1); });
+        })(0);
+      }
+    }
+
+    function clearFormFields() {
+      if (genreSelect) genreSelect.value = '';
+      if (descriptionInput) descriptionInput.value = '';
+      if (chapterInput) chapterInput.value = '';
+      if (coverZone) {
+        coverZone.classList.remove('is-ready');
+        if (coverLabel) coverLabel.textContent = 'Thêm ảnh bìa';
+        if (coverHint) coverHint.textContent = 'PNG/JPG • Tối đa 5MB';
+      }
+      if (coverPreview) coverPreview.innerHTML = '<i class="fa-regular fa-image upload-cover-zone__placeholder-icon"></i>';
+      state.coverReady = false;
+      state.coverName = '';
+    }
+
+    function selectStory(story) {
+      if (!story) return;
+      isAddingNew = false;
+      selectedPlaylistId = story._isPlaylist ? story.id : null;
+
+      // ── Resolve the REAL story CUID (NOT playlist ID!) ──
+      function _normTxt(s) {
+        return String(s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      }
+
+      editStoryId = '';
+      if (story._isPlaylist) {
+        // Playlist: try multiple sources to find real story CUID
+        var entries = story._entries || [];
+        var entryKey = (entries.length && entries[0] && entries[0].key) ? String(entries[0].key) : '';
+
+        // 1. Try _storyData (matched by title from API/localStorage)
+        if (story._storyData && story._storyData.id && !String(story._storyData.id).startsWith('pl-')) {
+          editStoryId = String(story._storyData.id);
+        }
+        // 2. Try entries[0].key if it's a real CUID (not pl- or s_pl-)
+        if (!editStoryId && entryKey && entryKey.indexOf('pl-') !== 0) {
+          editStoryId = entryKey;
+        }
+        // 3. Search audiohub-stories raw localStorage for matching title with real CUID
+        if (!editStoryId) {
+          try {
+            var normTitle = _normTxt(story.title);
+            var rawStories = JSON.parse(localStorage.getItem('audiohub-stories') || '[]');
+            if (Array.isArray(rawStories)) {
+              // Prefer entries with real CUID (non-pl-, non-s_)
+              var realCuidMatch = rawStories.find(function (s) {
+                return s && s.id && !String(s.id).startsWith('pl-') && !String(s.id).startsWith('s_pl-') && !String(s.id).startsWith('s_') &&
+                  _normTxt(s.title) === normTitle;
+              });
+              if (realCuidMatch) {
+                editStoryId = String(realCuidMatch.id);
+                console.log('[upload] 🔍 Found real CUID from audiohub-stories:', editStoryId, '|', realCuidMatch.title);
+              }
+            }
+          } catch (e) {}
+        }
+        // 4. Search audiohub-chapters-v1 for real CUID key
+        if (!editStoryId) {
+          try {
+            var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var _realKeys = Object.keys(_chStore).filter(function (k) {
+              return k && !k.startsWith('pl-') && !k.startsWith('s_pl-') && !k.startsWith('s_') &&
+                Array.isArray(_chStore[k]) && _chStore[k].length > 0;
+            });
+            if (_realKeys.length === 1) {
+              editStoryId = _realKeys[0];
+              console.log('[upload] 🔍 Found real CUID from chapters store:', editStoryId);
+            } else if (_realKeys.length > 1) {
+              editStoryId = _realKeys[_realKeys.length - 1];
+              console.log('[upload] 🔍 Using latest real CUID from chapters:', editStoryId);
+            }
+          } catch (e) {}
+        }
+        // 5. Last resort: use entryKey even if it's pl-
+        if (!editStoryId && entryKey) {
+          editStoryId = entryKey;
+        }
+        console.log('[upload] 📖 selectStory (PLAYLIST) — playlistId:', story.id, '| resolved editStoryId:', editStoryId, '| entryKey:', entryKey);
+      } else {
+        // Regular story
+        var realId = story.id || '';
+        if (realId && !String(realId).startsWith('s_')) {
+          editStoryId = realId;
+        } else if (story._storyData && story._storyData.id) {
+          editStoryId = String(story._storyData.id);
+        }
+      }
+      editChapterIndex = -1; // Always append new chapter when selecting from dropdown
+
+      // Persist editStoryId + story meta across page reloads (SPA redirect)
+      try {
+        if (editStoryId && !String(editStoryId).startsWith('pl-')) {
+          sessionStorage.setItem('audiohub-editStoryId', editStoryId);
+          sessionStorage.setItem('audiohub-editStoryTitle', story.title || '');
+          sessionStorage.setItem('audiohub-editStoryAuthor', story.author || '');
+        }
+      } catch (e) {}
+
+      // Pre-load existing chapters from audiohub-chapters-v1 for diagnostics
+      if (editStoryId && !String(editStoryId).startsWith('pl-')) {
+        try {
+          var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+          var _existing = Array.isArray(_cs[editStoryId]) ? _cs[editStoryId] : [];
+          console.log('[upload] 📖 selectStory — editStoryId:', editStoryId, '| existing chapters:', _existing.length, _existing.map(function(c) { return c.title; }));
+        } catch (e) {}
+      }
+
+      if (titleInput) titleInput.value = story.title || '';
+
+      if (!story._isPlaylist) {
+        autoFillFromStoryData(story);
+      } else if (story._storyData) {
+        autoFillFromStoryData(story._storyData);
+      } else {
+        clearFormFields();
+      }
+
+      trigger.innerHTML = escapeHtml(story.title) + ' <i class="fa-solid fa-chevron-down"></i>';
+      trigger.classList.add('is-selected');
+      menu.classList.add('is-hidden');
+      trigger.setAttribute('aria-expanded', 'false');
       render();
+    }
+
+    function startAddNew() {
+      isAddingNew = true;
+      selectedPlaylistId = null;
+      trigger.classList.add('is-hidden');
+      if (nameInput) { nameInput.classList.remove('is-hidden'); nameInput.value = ''; nameInput.focus(); }
+      menu.classList.add('is-hidden');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function confirmAddNew() {
+      var val = nameInput ? nameInput.value.trim() : '';
+      if (!val) return;
+      var newPlaylistId = 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now();
+      try {
+        var raw = localStorage.getItem(PLAYLIST_KEY) || '';
+        var playlists = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(playlists)) playlists = [];
+        playlists.push({ id: newPlaylistId, name: val, entries: [], createdBy: 'admin', createdAt: new Date().toISOString() });
+        localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+        syncPlaylistsToStorage();
+      } catch (e) {}
+
+      selectedPlaylistId = newPlaylistId;
+      if (titleInput) titleInput.value = val;
+      trigger.innerHTML = escapeHtml(val) + ' <i class="fa-solid fa-chevron-down"></i>';
+      trigger.classList.add('is-selected');
+      if (nameInput) nameInput.classList.add('is-hidden');
+      trigger.classList.remove('is-hidden');
+      isAddingNew = false;
+      fetchAllStories();
+    }
+
+    function cancelAddNew() {
+      if (nameInput) nameInput.classList.add('is-hidden');
+      trigger.classList.remove('is-hidden');
+      isAddingNew = false;
+    }
+
+    trigger.addEventListener('click', function () {
+      var hidden = menu.classList.toggle('is-hidden');
+      trigger.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+      if (!hidden) {
+        isAddingNew = false;
+        if (searchInput) { searchInput.value = ''; searchInput.focus(); }
+        renderList('');
+      }
     });
-  }
 
-  function syncHashtagPreview() {
-    if (!hashtagsInput) return;
-    var tags = getCombinedHashtags();
-    hashtagsInput.title = tags.length ? ('Hashtags: #' + tags.join(' #')) : '';
-  }
+    if (searchInput) searchInput.addEventListener('input', function () { renderList(searchInput.value); });
 
-  var originalRender = render;
-  render = function () {
-    originalRender();
-    syncHashtagPreview();
-  };
-  var coverInput = document.querySelector('[data-upload-cover-input]');
-  var audioInput = document.querySelector('[data-upload-audio-input]');
-  var readingInput = document.querySelector('[data-upload-reading-input]');
-  var coverLabel = document.querySelector('[data-upload-cover-label]');
-  var audioLabel = document.querySelector('[data-upload-audio-label]');
-  var readingLabel = document.querySelector('[data-upload-reading-label]');
-  var coverHint = document.querySelector('[data-upload-cover-hint]');
-  var audioHint = document.querySelector('[data-upload-audio-hint]');
-  var readingHint = document.querySelector('[data-upload-reading-hint]');
-  var mediaNote = document.querySelector('[data-upload-media-note]');
-  var banner = document.querySelector('[data-upload-banner]');
-  var audioPreview = document.querySelector('[data-upload-audio-preview]');
-  var audioPreviewName = document.querySelector('[data-upload-audio-preview-name]');
-  var audioPlayer = document.querySelector('[data-upload-audio-player]');
-  var coverProcessing = null;
-  var audioProcessing = null;
-  var coverObjectUrl = '';
-  var audioObjectUrl = '';
-  var draftButtons = Array.prototype.slice.call(document.querySelectorAll('[data-upload-draft]'));
-  var publishButton = document.querySelector('[data-upload-publish]');
-  var checklist = {
-    title: document.querySelector('[data-check-item="title"]'),
-    description: document.querySelector('[data-check-item="description"]'),
-    metadata: document.querySelector('[data-check-item="metadata"]'),
-    media: document.querySelector('[data-check-item="media"]')
-  };
-  var editStoryId = '';
-  try {
-    editStoryId = new window.URL(window.location.href).searchParams.get('id') || '';
-  } catch (error) {
-    editStoryId = '';
-  }
-
-  var defaultCoverBackground = previewCover ? window.getComputedStyle(previewCover).backgroundImage : '';
-  var state = {
-    coverReady: false,
-    audioReady: false,
-    coverProcessing: false,
-    audioProcessing: false,
-    visibility: visibilitySelect && visibilitySelect.value ? visibilitySelect.value : 'Công khai',
-    coverName: '',
-    audioName: '',
-    coverDataUrl: '',
-    coverKey: '',
-    audioKey: '',
-    readingText: '',
-    submitting: false
-  };
-
-  function clearObjectUrl(value) {
-    if (!value) {
-      return;
-    }
-    try {
-      URL.revokeObjectURL(value);
-    } catch (error) {
-    }
-  }
-
-  function renderProcessing(node, active, label) {
-    if (!node) {
-      return;
-    }
-    if (!active) {
-      node.remove();
-      return;
+    if (nameInput) {
+      nameInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); confirmAddNew(); }
+        else if (e.key === 'Escape') cancelAddNew();
+      });
+      nameInput.addEventListener('blur', function () {
+        setTimeout(function () {
+          if (isAddingNew && nameInput && nameInput.value.trim()) confirmAddNew();
+          else if (isAddingNew) cancelAddNew();
+        }, 150);
+      });
     }
 
-    var fill = node.querySelector('[data-upload-processing-fill]');
-    var text = node.querySelector('[data-upload-processing-text]');
-    if (text) {
-      text.textContent = label;
-    }
-    if (fill) {
-      fill.style.width = '22%';
-      window.setTimeout(function () {
-        fill.style.width = '72%';
-      }, 120);
-    }
-  }
-
-  function ensureProcessingPill(target, current, label) {
-    if (!target) {
-      return null;
-    }
-    if (!current) {
-      current = document.createElement('div');
-      current.className = 'upload-processing';
-      current.innerHTML = '<span data-upload-processing-text></span><div class="upload-processing__bar"><div class="upload-processing__fill" data-upload-processing-fill></div></div>';
-      target.appendChild(current);
-    }
-    renderProcessing(current, true, label);
-    return current;
-  }
-
-  function removeProcessingPill(current) {
-    if (!current) {
-      return null;
-    }
-    current.remove();
-    return null;
-  }
-
-  function setAudioPreviewDisabled(disabled) {
-    if (!audioPreview) {
-      return;
-    }
-    audioPreview.classList.toggle('is-disabled', disabled);
-    if (audioPlayer) {
-      audioPlayer.toggleAttribute('disabled', disabled);
-      audioPlayer.controls = !disabled;
-    }
-  }
-
-  setAudioPreviewDisabled(true);
-
-  function stopAudio() {
-    if (!audioPlayer) {
-      return;
-    }
-    try {
-      audioPlayer.pause();
-      audioPlayer.currentTime = 0;
-    } catch (error) {
-    }
-  }
-
-  function resetAudioPreview() {
-    stopAudio();
-    clearObjectUrl(audioObjectUrl);
-    audioObjectUrl = '';
-    if (audioPlayer) {
-      audioPlayer.removeAttribute('src');
-      audioPlayer.load();
-    }
-    if (audioPreviewName) {
-      audioPreviewName.textContent = 'Chưa chọn file audio';
-    }
-    setAudioPreviewDisabled(true);
-  }
-
-  function resetCoverPreview() {
-    clearObjectUrl(coverObjectUrl);
-    coverObjectUrl = '';
-    if (previewCover) {
-      previewCover.style.backgroundImage = defaultCoverBackground;
-      previewCover.classList.remove('has-uploaded-image');
-    }
-    // Reset upload cover zone preview
-    var coverPreviewEl = document.querySelector('[data-upload-cover-preview]');
-    if (coverPreviewEl) {
-      coverPreviewEl.innerHTML = '<i class="fa-regular fa-image upload-cover-zone__placeholder-icon"></i>';
-    }
-  }
-
-  function markDone(title, hintNode, fileName) {
-    if (hintNode) {
-      hintNode.innerHTML = 'Tệp: <span class="upload-dropzone__filename">' + fileName + '</span>';
-    }
-  }
-
-  function setCoverProcessing(processing) {
-    state.coverProcessing = processing;
-    if (!coverZone) {
-      return;
-    }
-    coverZone.classList.toggle('is-ready', !!state.coverReady);
-    coverZone.classList.toggle('is-processing', processing);
-    coverProcessing = processing ? ensureProcessingPill(coverZone, coverProcessing, 'Đang xử lý ảnh…') : removeProcessingPill(coverProcessing);
-  }
-
-  function setAudioProcessing(processing) {
-    state.audioProcessing = processing;
-    if (!audioZone) {
-      return;
-    }
-    audioZone.classList.toggle('is-ready', !!state.audioReady);
-    audioZone.classList.toggle('is-processing', processing);
-    audioProcessing = processing ? ensureProcessingPill(audioZone, audioProcessing, 'Đang xử lý audio…') : removeProcessingPill(audioProcessing);
-  }
-
-  function setChecklistItem(node, done) {
-    if (!node) {
-      return;
-    }
-    var icon = node.querySelector('i');
-    node.classList.toggle('is-done', done);
-    if (icon) {
-      icon.className = done ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle';
-    }
-  }
-
-  function syncVisibilityButtons() {
-    visibilityButtons.forEach(function (button) {
-      var active = button.getAttribute('data-upload-visibility-option') === state.visibility;
-      button.classList.toggle('is-active', active);
+    document.addEventListener('click', function (e) {
+      if (!selectRoot.contains(e.target)) {
+        menu.classList.add('is-hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
     });
+
+    list.addEventListener('click', function (e) {
+      var btn = e.target.closest('.story-name-select__item');
+      if (!btn) return;
+      var id = btn.getAttribute('data-story-id');
+      var story = allStories.find(function (s) { return String(s.id) === id; });
+      if (story) selectStory(story);
+    });
+
+    if (addBtn) addBtn.addEventListener('click', startAddNew);
+
+    fetchAllStories();
+    syncPlaylistsToStorage();
+  })();
+
+  /* ═══════════════════════════════════════════════════════════════════
+     6. PLAYLIST SYNC TO D1
+     ═══════════════════════════════════════════════════════════════════ */
+  function syncPlaylistsToStorage(specificPlaylistId) {
+    try {
+      var raw = localStorage.getItem(PLAYLIST_KEY) || '';
+      var playlists = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(playlists)) return;
+      playlists.forEach(function (pl) {
+        if (specificPlaylistId && pl.id !== specificPlaylistId) return;
+        fetch('/api/playlists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries || []) })
+        }).then(function (r) {
+          if (r.ok) console.log('[upload] Playlist synced:', pl.name);
+        }).catch(function () {});
+      });
+    } catch (e) {}
   }
 
-  function updateMediaNote() {
-    if (!mediaNote) {
-      return;
-    }
-
-    mediaNote.classList.remove('is-success', 'is-partial', 'is-empty');
-
-    if (state.coverReady && state.audioReady) {
-      mediaNote.textContent = 'Đã chọn ảnh bìa và file audio từ máy của bạn.';
-      mediaNote.classList.add('is-success');
-      return;
-    }
-
-    if (state.coverReady || state.audioReady) {
-      mediaNote.textContent = state.coverReady
-        ? 'Đã có ảnh bìa, còn thiếu file audio.'
-        : 'Đã có file audio, còn thiếu ảnh bìa.';
-      mediaNote.classList.add('is-partial');
-      return;
-    }
-
-    mediaNote.textContent = 'Chưa chọn ảnh bìa và file audio.';
-    mediaNote.classList.add('is-empty');
+  /* ═══════════════════════════════════════════════════════════════════
+     7. HASHTAG INPUT (auto-create if not in HTML)
+     ═══════════════════════════════════════════════════════════════════ */
+  function ensureHashtagInput() {
+    if (!descriptionInput || hashtagsInput) return;
+    var field = document.createElement('label');
+    field.className = 'upload-field';
+    field.innerHTML = 'Hashtag (nhập tay)<input type="text" data-upload-hashtags placeholder="#aothatday, #satthu" />';
+    var parent = descriptionInput.parentElement;
+    if (!parent || !parent.parentElement) return;
+    parent.parentElement.insertBefore(field, parent.nextSibling);
   }
+  ensureHashtagInput();
+  hashtagsInput = $('[data-upload-hashtags]');
 
+  /* ═══════════════════════════════════════════════════════════════════
+     8. RENDERING
+     ═══════════════════════════════════════════════════════════════════ */
   function render() {
     var title = titleInput ? titleInput.value.trim() : '';
     var description = descriptionInput ? descriptionInput.value.trim() : '';
     var author = getEffectiveAuthorName();
     var genre = genreSelect ? genreSelect.value : '';
 
-    if (authorInput && authorInput.value !== author) {
-      authorInput.value = author;
-    }
+    if (authorInput && authorInput.value !== author) authorInput.value = author;
     syncAuthorInput();
 
-    if (titleCount && titleInput) {
-      titleCount.textContent = titleInput.value.length + ' / 120';
-    }
-    if (descriptionCount && descriptionInput) {
-      descriptionCount.textContent = descriptionInput.value.length + ' / 5000';
-    }
-    if (previewTitle) {
-      previewTitle.textContent = title || 'Tiêu đề truyện của bạn sẽ hiện ở đây';
-    }
-    if (previewMeta) {
-      previewMeta.textContent = [author || 'Tác giả', genre || 'Thể loại', state.visibility].join(' · ');
-    }
-    if (previewVisibility) {
-      previewVisibility.textContent = state.visibility;
-    }
-    if (previewCover) {
-      previewCover.classList.toggle('is-ready', state.coverReady);
-    }
+    if (titleCount && titleInput) titleCount.textContent = titleInput.value.length + ' / 120';
+    if (descriptionCount && descriptionInput) descriptionCount.textContent = descriptionInput.value.length + ' / 5000';
+    if (previewTitle) previewTitle.textContent = title || 'Tiêu đề truyện của bạn sẽ hiện ở đây';
+    if (previewMeta) previewMeta.textContent = [author || 'Tác giả', genre || 'Thể loại', state.visibility].join(' · ');
+    if (previewVisibility) previewVisibility.textContent = state.visibility;
+    if (previewCover) previewCover.classList.toggle('is-ready', state.coverReady);
 
     setChecklistItem(checklist.title, !!title);
     setChecklistItem(checklist.description, description.length >= 30);
@@ -938,315 +706,98 @@
     updateMediaNote();
   }
 
-  function showBanner(message, published) {
-    if (!banner) {
-      return;
-    }
-    banner.textContent = message;
-    banner.classList.remove('is-hidden');
-    banner.classList.toggle('is-published', !!published);
-  }
-
-  function setFieldValue(node, value) {
+  function setChecklistItem(node, done) {
     if (!node) return;
-    node.value = value || '';
+    var icon = node.querySelector('i');
+    node.classList.toggle('is-done', done);
+    if (icon) icon.className = done ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle';
   }
 
-  function setDraftContext(story) {
-    if (!story || !story.id) {
-      return;
-    }
-    editStoryId = String(story.id);
-    if (root) {
-      root.setAttribute('data-editing-draft', editStoryId);
-    }
-    if (banner) {
-      banner.textContent = 'Đang chỉnh sửa bản nháp #' + editStoryId;
-      banner.classList.remove('is-hidden');
-      banner.classList.remove('is-published');
-    }
-  }
-
-  function hydrateDraft(story) {
-    if (!story) {
-      return false;
-    }
-
-    setDraftContext(story);
-    setFieldValue(titleInput, story.title);
-    setFieldValue(descriptionInput, story.description);
-    setFieldValue(genreSelect, story.genre);
-    setFieldValue(chapterInput, story.chapterTitle);
-    setFieldValue(youtubeInput, story.youtubeUrl);
-    setFieldValue(visibilitySelect, story.visibility || 'Riêng tư');
-    state.visibility = visibilitySelect && visibilitySelect.value ? visibilitySelect.value : (story.visibility || 'Riêng tư');
-    state.coverKey = story.coverKey || '';
-    state.audioKey = story.audioKey || '';
-    state.readingText = story.readingText || '';
-    state.coverReady = !!story.coverKey;
-    state.audioReady = !!story.audioKey;
-
-    if (story.coverKey) {
-      state.coverName = 'Ảnh bìa đã lưu';
-      if (coverLabel) coverLabel.textContent = 'Ảnh bìa đã lưu trong bản nháp';
-      if (coverZone) coverZone.classList.add('is-ready');
-    }
-
-    if (story.audioKey) {
-      state.audioName = 'Audio đã lưu';
-      if (audioLabel) audioLabel.textContent = 'Audio đã lưu trong bản nháp';
-      if (audioZone) audioZone.classList.add('is-ready');
-      setAudioPreviewDisabled(false);
-    }
-
-    render();
-    return true;
-  }
-
-  function loadDraftFromQuery() {
-    if (!editStoryId || !window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') {
-      return false;
-    }
-    var story = window.AudioHubStories.getById(editStoryId);
-    if (!story) {
-      return false;
-    }
-    return hydrateDraft(story);
-  }
-
-  window.addEventListener('audiohub:stories-updated', function () {
-    if (!editStoryId) return;
-    loadDraftFromQuery();
-  });
-
-  function openPreviewCard() {
-    var previewCard = document.querySelector('[data-upload-preview-card]');
-    if (!previewCard) {
-      showBanner('Không tìm thấy khung xem trước.', false);
-      return;
-    }
-
-    previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    previewCard.classList.add('is-highlighted');
-    window.setTimeout(function () {
-      previewCard.classList.remove('is-highlighted');
-    }, 1800);
-    render();
-    showBanner('Đang hiển thị bản xem trước bên dưới.', false);
-  }
-
-  function compressImage(file, maxWidth, quality) {
-    return new Promise(function (resolve) {
-      var reader = new FileReader();
-      reader.onload = function () {
-        var img = new Image();
-        img.onload = function () {
-          var canvas = document.createElement('canvas');
-          var w = img.width;
-          var h = img.height;
-          if (w > maxWidth) {
-            h = Math.round(h * maxWidth / w);
-            w = maxWidth;
-          }
-          canvas.width = w;
-          canvas.height = h;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
+  function syncVisibilityButtons() {
+    visibilityButtons.forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.getAttribute('data-upload-visibility-option') === state.visibility);
     });
   }
 
-  function setCoverPreview(file) {
-    if (!file || !coverZone) {
-      return;
+  function updateMediaNote() {
+    if (!mediaNote) return;
+    mediaNote.classList.remove('is-success', 'is-partial', 'is-empty');
+    if (state.coverReady && state.audioReady) {
+      mediaNote.textContent = 'Đã chọn ảnh bìa và file audio từ máy của bạn.';
+      mediaNote.classList.add('is-success');
+    } else if (state.coverReady || state.audioReady) {
+      mediaNote.textContent = state.coverReady ? 'Đã có ảnh bìa, còn thiếu file audio.' : 'Đã có file audio, còn thiếu ảnh bìa.';
+      mediaNote.classList.add('is-partial');
+    } else {
+      mediaNote.textContent = 'Chưa chọn ảnh bìa và file audio.';
+      mediaNote.classList.add('is-empty');
     }
-
-    state.coverReady = false;
-    state.coverName = file.name;
-    state.coverDataUrl = '';
-    state.coverKey = '';
-
-    if (coverLabel) {
-      coverLabel.textContent = 'Đang xử lý ảnh…';
-    }
-
-    markDone(coverLabel, coverHint, file.name);
-    setCoverProcessing(true);
-
-    clearObjectUrl(coverObjectUrl);
-    coverObjectUrl = URL.createObjectURL(file);
-
-    // Show in upload cover zone preview
-    var coverPreviewEl = document.querySelector('[data-upload-cover-preview]');
-    if (coverPreviewEl) {
-      coverPreviewEl.innerHTML = '<img src="' + coverObjectUrl + '" alt="Ảnh bìa" />';
-    }
-
-    // Compress image before saving (max 800px, JPEG quality 0.7)
-    compressImage(file, 800, 0.7).then(function (compressedDataUrl) {
-      state.coverData = compressedDataUrl; // compressed base64
-      state.coverReady = true;
-      setCoverProcessing(false);
-      if (previewCover) {
-        previewCover.style.backgroundImage = 'url("' + coverObjectUrl + '")';
-        previewCover.classList.add('has-uploaded-image');
-      }
-      if (coverLabel) {
-        coverLabel.textContent = 'Ảnh bìa đã chọn';
-      }
-      render();
-      // Cover will be uploaded to Storage after publish (with storyId)
-    });
   }
 
-  function setAudioPreview(file) {
-    if (!file || !audioZone) {
-      return;
-    }
+  /* ═══════════════════════════════════════════════════════════════════
+     9. FILE UPLOAD HANDLERS
+     ═══════════════════════════════════════════════════════════════════ */
+  var coverObjectUrl = '';
+  var audioObjectUrl = '';
 
-    state.audioReady = false;
-    state.audioName = file.name;
-    state.audioFile = file;
-    state.audioKey = '';
-    if (audioZone) {
-      audioZone.classList.remove('is-ready');
-    }
-
-    if (audioLabel) {
-      audioLabel.textContent = 'Đang xử lý audio…';
-    }
-
-    markDone(audioLabel, audioHint, file.name);
-    setAudioProcessing(true);
-    setAudioPreviewDisabled(true);
-
-    stopAudio();
-    clearObjectUrl(audioObjectUrl);
-    audioObjectUrl = URL.createObjectURL(file);
-
-    var storePromise = window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function'
-      ? window.AudioHubStoryAudio.put(file)
-      : Promise.reject(new Error('missing audio store'));
-
-    storePromise
-      .then(function (audioKey) {
-        state.audioKey = audioKey;
-        if (audioLabel) {
-          audioLabel.textContent = 'Audio đã chọn';
-        }
-        // Update story's audioKey in localStorage so detail page can find it
-        if (editStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
-          var currentStory = window.AudioHubStories.getById(editStoryId);
-          if (currentStory && !currentStory.audioKey) {
-            currentStory.audioKey = audioKey;
-            window.AudioHubStories.upsert(currentStory);
-          }
-        }
-        render();
-      })
-      .catch(function () {
-        state.audioKey = '';
-        if (audioLabel) {
-          audioLabel.textContent = 'Audio đã chọn (chưa lưu)';
-        }
-        render();
-      });
-
-    window.setTimeout(function () {
-      state.audioReady = true;
-      setAudioProcessing(false);
-      if (audioLabel) {
-        audioLabel.textContent = state.audioKey ? 'Audio đã chọn' : 'Audio đã chọn (chưa lưu)';
-      }
-      if (audioPreviewName) {
-        audioPreviewName.textContent = file.name;
-      }
-      if (audioPlayer) {
-        audioPlayer.src = audioObjectUrl;
-        audioPlayer.load();
-      }
-      setAudioPreviewDisabled(false);
-      render();
-    }, 1100);
-  }
-
-  if (titleInput) {
-    titleInput.addEventListener('input', render);
-  }
-  if (descriptionInput) {
-    descriptionInput.addEventListener('input', render);
-  }
-  if (authorInput) {
-    authorInput.addEventListener('input', render);
-  }
-  if (genreSelect) {
-    genreSelect.addEventListener('change', render);
-  }
-  if (chapterInput) {
-    chapterInput.addEventListener('input', render);
-  }
-  if (youtubeInput) {
-    youtubeInput.addEventListener('input', render);
-  }
-  if (visibilitySelect) {
-    visibilitySelect.addEventListener('change', function () {
-      state.visibility = visibilitySelect.value;
-      render();
-    });
-  }
-
-  visibilityButtons.forEach(function (button) {
-    button.addEventListener('click', function () {
-      var selected = button.getAttribute('data-upload-visibility-option') || 'Công khai';
-      state.visibility = selected;
-      if (visibilitySelect) {
-        visibilitySelect.value = selected;
-      }
-      render();
-    });
-  });
-
-  if (!visibilitySelect && visibilityButtons.length) {
-    var defaultButton = visibilityButtons.find(function (button) {
-      return button.classList.contains('is-active');
-    }) || visibilityButtons[0];
-    if (defaultButton) {
-      state.visibility = defaultButton.getAttribute('data-upload-visibility-option') || 'Công khai';
-    }
-  } else if (visibilitySelect && !visibilitySelect.value) {
-    visibilitySelect.value = state.visibility;
-  }
-
+  // ── Cover ──
   if (coverInput) {
     coverInput.addEventListener('change', function () {
       var file = coverInput.files && coverInput.files[0];
       if (!file) {
         state.coverReady = false;
         state.coverName = '';
-        if (coverZone) {
-          coverZone.classList.remove('is-ready');
-        }
-        if (coverLabel) {
-          coverLabel.textContent = 'Thêm ảnh bìa';
-        }
-        if (coverHint) {
-          coverHint.textContent = 'Tỷ lệ 16:9 hoặc bìa đứng đều có thể preview trực tiếp';
-        }
+        if (coverZone) coverZone.classList.remove('is-ready');
+        if (coverLabel) coverLabel.textContent = 'Thêm ảnh bìa';
+        if (coverHint) coverHint.textContent = 'PNG/JPG • Tối đa 5MB';
         if (previewCover) {
-          resetCoverPreview();
+          clearObjectUrl(coverObjectUrl);
+          coverObjectUrl = '';
+          previewCover.style.backgroundImage = defaultCoverBg;
+          previewCover.classList.remove('has-uploaded-image');
         }
-        setCoverProcessing(false);
+        if (coverPreview) coverPreview.innerHTML = '<i class="fa-regular fa-image upload-cover-zone__placeholder-icon"></i>';
         render();
         return;
       }
-      setCoverPreview(file);
-      try { coverInput.value = ''; } catch (error) {}
+
+      state.coverReady = false;
+      state.coverName = file.name;
+      state.coverData = '';
+      state.coverKey = '';
+      if (coverLabel) coverLabel.textContent = 'Đang xử lý ảnh…';
+      if (coverZone) coverZone.classList.add('is-processing');
+
+      clearObjectUrl(coverObjectUrl);
+      coverObjectUrl = URL.createObjectURL(file);
+      if (coverPreview) coverPreview.innerHTML = '<img src="' + coverObjectUrl + '" alt="Ảnh bìa" />';
+
+      compressImage(file, 800, 0.7).then(function (dataUrl) {
+        state.coverData = dataUrl;
+        state.coverReady = true;
+        if (coverZone) coverZone.classList.remove('is-processing');
+        if (previewCover) {
+          previewCover.style.backgroundImage = 'url("' + coverObjectUrl + '")';
+          previewCover.classList.add('has-uploaded-image');
+        }
+        if (coverLabel) coverLabel.textContent = 'Ảnh bìa đã chọn';
+        render();
+      });
+      try { coverInput.value = ''; } catch (e) {}
     });
   }
+
+  // ── Audio ──
+  function stopAudio() {
+    if (audioPlayer) { try { audioPlayer.pause(); audioPlayer.currentTime = 0; } catch (e) {} }
+  }
+
+  function setAudioPreviewDisabled(disabled) {
+    if (audioPreview) audioPreview.classList.toggle('is-disabled', disabled);
+    if (audioPlayer) { audioPlayer.controls = !disabled; }
+  }
+
+  setAudioPreviewDisabled(true);
 
   if (audioInput) {
     audioInput.addEventListener('change', function () {
@@ -1254,25 +805,58 @@
       if (!file) {
         state.audioReady = false;
         state.audioName = '';
-        setAudioProcessing(false);
-        if (audioZone) {
-          audioZone.classList.remove('is-ready');
-        }
-        if (audioLabel) {
-          audioLabel.textContent = 'Thêm file audio demo';
-        }
-        if (audioHint) {
-          audioHint.textContent = 'MP3 / WAV / AAC từ máy của bạn';
-        }
-        resetAudioPreview();
+        state.audioFile = null;
+        if (audioZone) audioZone.classList.remove('is-ready');
+        if (audioLabel) audioLabel.textContent = 'Thêm file audio demo';
+        if (audioHint) audioHint.textContent = 'MP3/WAV • Tối đa 50MB';
+        stopAudio();
+        clearObjectUrl(audioObjectUrl);
+        audioObjectUrl = '';
+        if (audioPlayer) { audioPlayer.removeAttribute('src'); audioPlayer.load(); }
+        if (audioPreviewName) audioPreviewName.textContent = 'Chưa chọn file audio';
+        setAudioPreviewDisabled(true);
         render();
         return;
       }
-      setAudioPreview(file);
-      try { audioInput.value = ''; } catch (error) {}
+
+      state.audioReady = false;
+      state.audioName = file.name;
+      state.audioFile = file;
+      state.audioKey = '';
+      if (audioZone) audioZone.classList.add('is-processing');
+      if (audioLabel) audioLabel.textContent = 'Đang xử lý audio…';
+
+      stopAudio();
+      clearObjectUrl(audioObjectUrl);
+      audioObjectUrl = URL.createObjectURL(file);
+
+      // Save to IndexedDB
+      var storePromise = (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function')
+        ? window.AudioHubStoryAudio.put(file)
+        : Promise.reject(new Error('missing audio store'));
+
+      storePromise.then(function (audioKey) {
+        state.audioKey = audioKey;
+      }).catch(function () {
+        state.audioKey = '';
+      });
+
+      // Show preview after delay (let IndexedDB save)
+      setTimeout(function () {
+        state.audioReady = true;
+        if (audioZone) audioZone.classList.remove('is-processing');
+        if (audioLabel) audioLabel.textContent = state.audioKey ? 'Audio đã chọn' : 'Audio đã chọn (chưa lưu)';
+        if (audioPreviewName) audioPreviewName.textContent = file.name;
+        if (audioPlayer) { audioPlayer.src = audioObjectUrl; audioPlayer.load(); }
+        setAudioPreviewDisabled(false);
+        render();
+      }, 1100);
+
+      try { audioInput.value = ''; } catch (e) {}
     });
   }
 
+  // ── Reading text (.txt/.md) ──
   if (readingInput) {
     readingInput.addEventListener('change', function () {
       var file = readingInput.files && readingInput.files[0];
@@ -1287,13 +871,12 @@
       var isValidType = /text\/plain|text\/markdown/.test(String(file.type || '')) || /\.(txt|md)$/i.test(String(file.name || ''));
       if (!isValidType) {
         showBanner('File truyện chữ chỉ hỗ trợ .txt hoặc .md', false);
-        try { readingInput.value = ''; } catch (error) {}
+        try { readingInput.value = ''; } catch (e) {}
         return;
       }
-
       if (typeof file.size === 'number' && file.size > 2 * 1024 * 1024) {
         showBanner('File truyện chữ vượt quá 2MB.', false);
-        try { readingInput.value = ''; } catch (error) {}
+        try { readingInput.value = ''; } catch (e) {}
         return;
       }
 
@@ -1301,63 +884,79 @@
       reader.onload = function () {
         state.readingText = typeof reader.result === 'string' ? reader.result : '';
         if (readingLabel) readingLabel.textContent = 'Đã tải truyện chữ';
-        if (readingHint) readingHint.innerHTML = 'Tệp: <span class="upload-dropzone__filename">' + file.name + '</span>';
+        if (readingHint) readingHint.innerHTML = 'Tệp: <span class="upload-dropzone__filename">' + escapeHtml(file.name) + '</span>';
         if (readingZone) readingZone.classList.add('is-ready');
         render();
+        console.log('[upload] ✅ readingText loaded:', state.readingText.length, 'chars');
       };
-      reader.onerror = function () {
-        showBanner('Không thể đọc file truyện chữ.', false);
-      };
+      reader.onerror = function () { showBanner('Không thể đọc file truyện chữ.', false); };
       reader.readAsText(file, 'utf-8');
-      try { readingInput.value = ''; } catch (error) {}
+      try { readingInput.value = ''; } catch (e) {}
     });
   }
 
-  function setSubmitting(submitting) {
-    state.submitting = !!submitting;
-    draftButtons.forEach(function (button) {
-      button.disabled = state.submitting;
+  /* ═══════════════════════════════════════════════════════════════════
+     10. EVENT LISTENERS
+     ═══════════════════════════════════════════════════════════════════ */
+  if (titleInput) titleInput.addEventListener('input', render);
+  if (descriptionInput) descriptionInput.addEventListener('input', render);
+  if (authorInput) authorInput.addEventListener('input', render);
+  if (genreSelect) genreSelect.addEventListener('change', render);
+  if (chapterInput) chapterInput.addEventListener('input', render);
+  if (youtubeInput) youtubeInput.addEventListener('input', render);
+  if (hashtagsInput) hashtagsInput.addEventListener('input', render);
+
+  if (visibilitySelect) {
+    visibilitySelect.addEventListener('change', function () {
+      state.visibility = visibilitySelect.value;
+      render();
     });
-    if (publishButton) {
-      publishButton.disabled = state.submitting;
-    }
   }
 
+  visibilityButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      state.visibility = btn.getAttribute('data-upload-visibility-option') || 'Công khai';
+      if (visibilitySelect) visibilitySelect.value = state.visibility;
+      render();
+    });
+  });
+
+  if (!visibilitySelect && visibilityButtons.length) {
+    var def = visibilityButtons.find(function (b) { return b.classList.contains('is-active'); }) || visibilityButtons[0];
+    if (def) state.visibility = def.getAttribute('data-upload-visibility-option') || 'Công khai';
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     11. BUILD PAYLOAD
+     ═══════════════════════════════════════════════════════════════════ */
   function buildStoryPayload(forcePublished, forceDraft) {
-    var youtubePayload = getYoutubePayload();
-    var currentStoryId = editStoryId || '';
-    if (!currentStoryId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
-      var previewStory = null;
-      try {
-        var idFromUrl = new window.URL(window.location.href).searchParams.get('id') || '';
-        if (idFromUrl) {
-          previewStory = window.AudioHubStories.getById(idFromUrl);
-          currentStoryId = previewStory && previewStory.id ? String(previewStory.id) : '';
-        }
-      } catch (error) {
-      }
-    }
-    if (!youtubePayload.ok) {
-      return { ok: false, message: youtubePayload.message || 'Link YouTube không hợp lệ.' };
-    }
+    var ytPayload = getYoutubePayload();
+    if (!ytPayload.ok) return { ok: false, message: ytPayload.message || 'Link YouTube không hợp lệ.' };
 
     var resolvedAuthor = getEffectiveAuthorName();
-    if (!resolvedAuthor) {
-      return { ok: false, message: 'Vui lòng nhập tên tác giả.' };
+    if (!resolvedAuthor) return { ok: false, message: 'Vui lòng nhập tên tác giả.' };
+
+    // Get current story ID (from URL or state)
+    var currentId = editStoryId || '';
+    if (!currentId) {
+      try {
+        var idFromUrl = new URL(window.location.href).searchParams.get('id') || '';
+        if (idFromUrl) currentId = idFromUrl;
+      } catch (e) {}
     }
 
     return {
       ok: true,
       payload: {
-        id: currentStoryId || undefined,
+        id: currentId || undefined,
         title: titleInput ? titleInput.value.trim() : '',
         description: descriptionInput ? descriptionInput.value.trim() : '',
         author: resolvedAuthor,
         channelName: resolvedAuthor,
         genre: genreSelect ? genreSelect.value : '',
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
-        youtubeUrl: youtubePayload.url,
-        youtubeId: youtubePayload.id,
+        youtubeUrl: ytPayload.url,
+        youtubeId: ytPayload.id,
         visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Công khai')),
         coverKey: state.coverKey || '',
         coverData: state.coverData || '',
@@ -1368,245 +967,670 @@
     };
   }
 
-  function saveDraftStory(statusLabel) {
-    if (state.submitting) {
-      return;
-    }
+  /* ═══════════════════════════════════════════════════════════════════
+     12. SAVE / PUBLISH
+     ═══════════════════════════════════════════════════════════════════ */
+  function setSubmitting(v) {
+    state.submitting = !!v;
+    draftButtons.forEach(function (b) { b.disabled = state.submitting; });
+    if (publishButton) publishButton.disabled = state.submitting;
+  }
 
+  function saveDraftStory() {
+    if (state.submitting) return;
     var built = buildStoryPayload(false, true);
-    if (!built.ok) {
-      showBanner(built.message, false);
-      return;
-    }
+    if (!built.ok) { showBanner(built.message, false); return; }
+    if (!window.AudioHubStories) { showBanner('Thiếu stories-store.js.', false); return; }
 
-    if (!window.AudioHubStories) {
-      showBanner('Chưa thể lưu vì thiếu stories-store.js.', false);
-      return;
-    }
-
-    if (authorInput) {
-      authorInput.value = built.payload.author;
-      authorInput.readOnly = true;
-    }
-
-    var story = null;
+    var story;
     try {
       story = window.AudioHubStories.upsert(built.payload);
-    } catch (error) {
-      showBanner('Không thể lưu nháp demo. Trình duyệt có thể đang đầy bộ nhớ (localStorage).', false);
+    } catch (e) {
+      showBanner('Không thể lưu nháp. Bộ nhớ trình duyệt có thể đầy.', false);
       return;
     }
-
-    showBanner(statusLabel + ' Đã lưu vào danh sách demo.', false);
+    showBanner('Bản nháp giao diện. Đã lưu vào danh sách demo.', false);
     return story;
   }
 
-  function saveStory(statusLabel, published) {
-    if (state.submitting) {
-      return;
-    }
+  function saveStory(published) {
+    if (state.submitting) return;
 
     var built = buildStoryPayload(!!published);
-    if (!built.ok) {
-      showBanner(built.message, false);
-      return;
-    }
+    if (!built.ok) { showBanner(built.message, false); return; }
+    if (!window.AudioHubStories) { showBanner('Thiếu stories-store.js.', false); return; }
 
-    if (authorInput) {
-      authorInput.value = built.payload.author;
-      authorInput.readOnly = true;
-    }
-
-    render();
-
-    if (!window.AudioHubStories) {
-      showBanner('Chưa thể lưu vì thiếu stories-store.js.', false);
-      return;
-    }
-
-    // Validate BEFORE upsert
+    // Validate publish requirements
     if (published && !state.coverData && !state.coverKey) {
       showBanner('Ảnh bìa chưa lưu xong. Đợi vài giây rồi bấm lại.', false);
       return;
     }
-
     if (published && !state.audioKey) {
       showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
       return;
     }
-
     if (published && !state.readingText) {
       showBanner('Chưa có nội dung truyện chữ. Hãy tải file .txt hoặc .md trước khi đăng.', false);
       return;
     }
 
-    setSubmitting(true);
-    window.setTimeout(function () {
-      setSubmitting(false);
-    }, 1500);
-
-    var submitAt = Date.now();
+    // Debounce
     try {
-      var lastSubmitAt = Number(window.sessionStorage.getItem('audiohub-upload-last-submit-at') || '0');
-      if (!isNaN(lastSubmitAt) && submitAt - lastSubmitAt < 1200) {
+      var last = Number(sessionStorage.getItem('audiohub-upload-last-submit-at') || '0');
+      if (!isNaN(last) && Date.now() - last < 1200) {
         showBanner('Bạn vừa thao tác quá nhanh, vui lòng chờ một chút.', false);
         return;
       }
-      window.sessionStorage.setItem('audiohub-upload-last-submit-at', String(submitAt));
-    } catch (error) {
+      sessionStorage.setItem('audiohub-upload-last-submit-at', String(Date.now()));
+    } catch (e) {}
+
+    setSubmitting(true);
+    setTimeout(function () { setSubmitting(false); }, 1500);
+
+    // ── CHAPTER APPEND LOGIC ──
+    // If editing existing story (editStoryId set), append or merge chapter instead of blindly creating new story
+    var targetId = editStoryId || '';
+    // SAFEGUARD: reject playlist IDs — they're not real story IDs
+    if (targetId && (String(targetId).indexOf('pl-') === 0 || String(targetId).indexOf('s_pl-') === 0)) {
+      console.error('[upload] 🚨 SAFETY: targetId is a playlist ID, not story ID! Clearing.', targetId);
+      targetId = '';
+      editStoryId = '';
+    }
+    // Restore from sessionStorage if empty (after SPA redirect)
+    if (!targetId) {
+      try {
+        var savedId = sessionStorage.getItem('audiohub-editStoryId') || '';
+        var savedTitle = sessionStorage.getItem('audiohub-editStoryTitle') || '';
+        if (savedId && !String(savedId).startsWith('pl-') && !String(savedId).startsWith('s_')) {
+          targetId = savedId;
+          editStoryId = savedId;
+          built.payload.id = savedId;
+          console.log('[upload] 🔄 Restored targetId from sessionStorage:', savedId, '|', savedTitle);
+        }
+      } catch (e) {}
+    }
+    console.log('[upload] 📖 CHAPTER APPEND — targetId:', targetId, '| chapterTitle:', built.payload.chapterTitle);
+
+    // Fallback: match by title+author if editStoryId is empty (SPA race / page reload)
+    // Use NFD normalization for Vietnamese diacritics (ô ≠ ố)
+    if (!targetId && built.payload.title && window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+      var _nfcFallback = function (s) { return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
+      var normPayloadTitle = _nfcFallback(built.payload.title);
+      var allStories = window.AudioHubStories.read();
+      // Find existing story with matching title+author (including s_ prefix local stories)
+      var match = (allStories || []).find(function (s) {
+        return s && _nfcFallback(s.title) === normPayloadTitle && s.author === built.payload.author;
+      });
+      if (match && match.id) {
+        targetId = String(match.id);
+        built.payload.id = targetId;
+        console.log('[upload] ⚠ Fallback matched by title+author:', targetId, '| match.id:', match.id);
+      }
+      // Also search audiohub-chapters-v1 for any key with matching chapters (including s_ prefix)
+      if (!targetId) {
+        try {
+          var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+          Object.keys(_cs).forEach(function (k) {
+            if (targetId || !Array.isArray(_cs[k]) || !_cs[k].length) return;
+            // Check if this key's story has matching title in audiohub-stories
+            var _rawStories = JSON.parse(localStorage.getItem('audiohub-stories') || '[]');
+            var _match = (_rawStories || []).find(function (s) {
+              return s && s.id === k && _nfcFallback(s.title) === normPayloadTitle;
+            });
+            if (_match) {
+              targetId = k;
+              built.payload.id = k;
+              console.log('[upload] ⚠ Found chapters under key:', k);
+            }
+          });
+        } catch (e) {}
+      }
     }
 
-    var story = null;
+    var existingStory = null;
+    var existingChapters = [];
+    if (targetId && window.AudioHubStories) {
+      if (typeof window.AudioHubStories.getById === 'function') {
+        existingStory = window.AudioHubStories.getById(targetId);
+      }
+      if ((!existingStory || !existingStory.id) && typeof window.AudioHubStories.read === 'function') {
+        var allStories = window.AudioHubStories.read() || [];
+        var found = allStories.find(function (s) { return s && String(s.id) === String(targetId); });
+        if (found) existingStory = found;
+      }
+    }
+
+    if (existingStory && existingStory.id) {
+      existingChapters = Array.isArray(existingStory.chapters) ? existingStory.chapters.slice() : [];
+    }
+
+    // Load stored chapters and merge with existingStory chapters
+    // Always prefer audiohub-chapters-v1 (authoritative store) over story.chapters
+    if (targetId) {
+      try {
+        var chapStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        var storedChapters = Array.isArray(chapStore[targetId]) ? chapStore[targetId].slice() : [];
+        // Fallback: check s_ prefix variants
+        if (!storedChapters.length && String(targetId).indexOf('s_') !== 0 && Array.isArray(chapStore['s_' + targetId])) {
+          storedChapters = chapStore['s_' + targetId].slice();
+        }
+        if (!storedChapters.length && String(targetId).indexOf('s_') === 0) {
+          var plainId = targetId.replace(/^s_/, '');
+          if (plainId && Array.isArray(chapStore[plainId])) {
+            storedChapters = chapStore[plainId].slice();
+          }
+        }
+        // Last resort: search ALL s_ prefix keys for chapters that match this title
+        if (!storedChapters.length && built.payload.title) {
+          var _nfcSearch = function (s) { return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
+          var _normTitle = _nfcSearch(built.payload.title);
+          var _rawStories = JSON.parse(localStorage.getItem('audiohub-stories') || '[]');
+          Object.keys(chapStore).forEach(function (k) {
+            if (storedChapters.length) return;
+            if (!Array.isArray(chapStore[k]) || !chapStore[k].length) return;
+            var _s = (_rawStories || []).find(function (st) { return st && st.id === k && _nfcSearch(st.title) === _normTitle; });
+            if (_s) {
+              storedChapters = chapStore[k].slice();
+              console.log('[upload] 🔍 Found chapters under fallback key:', k, '(', storedChapters.length, 'chapters)');
+              // Migrate to targetId
+              if (k !== targetId) {
+                chapStore[targetId] = storedChapters;
+                try { delete chapStore[k]; } catch (e) {}
+                localStorage.setItem('audiohub-chapters-v1', JSON.stringify(chapStore));
+                console.log('[upload] ✅ Migrated chapters from', k, '→', targetId);
+              }
+            }
+          });
+        }
+
+        // ALWAYS prefer storedChapters (audiohub-chapters-v1) — it's the authoritative chapter store
+        // existingStory.chapters from API/localStorage may be stale or missing chapters
+        if (storedChapters.length) {
+          existingChapters = storedChapters;
+          console.log('[upload] 📖 Using storedChapters from audiohub-chapters-v1:', storedChapters.length, 'chapters');
+        } else if (existingChapters.length) {
+          console.log('[upload] 📖 Using existingStory.chapters:', existingChapters.length, 'chapters');
+        } else {
+          console.log('[upload] 📖 No existing chapters found for targetId:', targetId);
+        }
+      } catch (e) {
+        console.warn('[upload] ⚠ Failed to load storedChapters:', e);
+        existingChapters = existingChapters || [];
+      }
+    }
+
+    if (targetId) {
+      if (!existingStory) {
+        console.log('[upload] ⚠ No local story object found for targetId, preserving available local chapters:', targetId);
+      }
+
+      var newChapter = {
+        title: built.payload.chapterTitle || '',
+        audioKey: built.payload.audioKey || '',
+        coverKey: built.payload.coverKey || '',
+        readingText: built.payload.readingText || ''
+      };
+
+      // If editing specific chapter index, replace; otherwise append as new chapter
+      if (typeof editChapterIndex === 'number' && editChapterIndex >= 0 && editChapterIndex < existingChapters.length) {
+        existingChapters[editChapterIndex] = newChapter;
+      } else {
+        existingChapters.push(newChapter);
+      }
+
+      built.payload.chapters = existingChapters;
+      built.payload.chapterCount = existingChapters.length;
+
+      if (!built.payload.readingText && existingStory && existingStory.readingText) {
+        built.payload.readingText = existingStory.readingText;
+      }
+
+      console.log('[upload] ✅ Chapter merged/appended — total:', existingChapters.length, '| targetId:', targetId);
+    } else {
+      console.log('[upload] ℹ No targetId — creating NEW story');
+    }
+
+    // ── UPSERT ──
+    var story;
     try {
       story = window.AudioHubStories.upsert(built.payload);
-    } catch (error) {
-      showBanner('Không thể lưu truyện demo. Trình duyệt có thể đang đầy bộ nhớ (localStorage). Hãy thử xoá dữ liệu site hoặc dùng file nhỏ hơn.', false);
+      console.log('[upload] upsert:', story ? story.id + ' | chapters: ' + (story.chapters ? story.chapters.length : 0) : 'NULL');
+      // Keep sessionStorage if appending to existing story; clear if creating new
+      if (!targetId) {
+        try { sessionStorage.removeItem('audiohub-editStoryId'); } catch (e) {}
+      }
+    } catch (e) {
+      showBanner('Không thể lưu. Bộ nhớ trình duyệt có thể đầy.', false);
       return;
     }
 
-    // ── Save cover to IndexedDB immediately (critical for display on other pages) ──
+    // Save cover to IndexedDB immediately
     if (story && story.id && state.coverData && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.put === 'function') {
       try {
-        var _coverParts = String(state.coverData).split(',');
-        var _coverMime = (_coverParts[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
-        var _coverRaw = atob(_coverParts[1] || '');
-        var _coverArr = new Uint8Array(_coverRaw.length);
-        for (var ci = 0; ci < _coverRaw.length; ci++) _coverArr[ci] = _coverRaw.charCodeAt(ci);
-        var _coverBlob = new Blob([_coverArr], { type: _coverMime });
-        window.AudioHubStoryCover.put(_coverBlob, story.id).then(function () {
-          console.log('[upload] ✅ cover saved to IndexedDB for', story.id);
-        }).catch(function (e) {
-          console.warn('[upload] cover IndexedDB save failed:', e);
-        });
-      } catch (e) {
-        console.warn('[upload] cover IndexedDB save error:', e);
-      }
+        var parts = String(state.coverData).split(',');
+        var mime = (parts[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+        var raw = atob(parts[1] || '');
+        var arr = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        var blob = new Blob([arr], { type: mime });
+        window.AudioHubStoryCover.put(blob, story.id).then(function () {
+          console.log('[upload] ✅ Cover saved to IndexedDB:', story.id);
+        }).catch(function (e) { console.warn('[upload] Cover save failed:', e); });
+      } catch (e) { console.warn('[upload] Cover save error:', e); }
     }
 
-    // After publish: add chapter entry to playlist if a playlist was selected
-    if (published && story && story.id && selectedPlaylistId) {
-      var PLAYLIST_KEY = 'audiohub-playlists-v1';
-      try {
-        var plRaw = localStorage.getItem(PLAYLIST_KEY) || '';
-        var playlists = plRaw ? JSON.parse(plRaw) : [];
-        if (Array.isArray(playlists)) {
-          var matchedPl = playlists.find(function (pl) {
-            return pl && pl.id === selectedPlaylistId;
-          });
-          if (matchedPl) {
-            var entries = matchedPl.entries || [];
-            var chapterTitle = (chapterInput ? chapterInput.value.trim() : '') || '';
-            var chapterIndex = entries.length; // auto-increment: next index after last entry
-            // Build href for story-detail with playlistId
-            var entryHref = '/story-detail?id=' + encodeURIComponent(story.id) + '&playlistId=' + encodeURIComponent(matchedPl.id);
-            // Add chapter entry to playlist
-            entries.push({
-              key: story.id,
-              title: story.title || '',
-              chapterTitle: chapterTitle,
-              chapterIndex: chapterIndex,
-              author: story.author || '',
-              genre: story.genre || '',
-              href: entryHref,
-              status: 'listening',
-              progress: 0,
-              addedAt: new Date().toISOString()
-            });
-            matchedPl.entries = entries;
-            localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
-            syncPlaylistsToStorage(matchedPl.id);
-            console.log('[upload] ✅ Added chapter to playlist:', matchedPl.name, '| chapter:', chapterTitle, '(' + entries.length + ' entries)');
-          }
-        }
-      } catch (e) { console.warn('[upload] Add to playlist failed:', e); }
-    }
-
-    // Cover upload is now handled in stories-store.js syncToSupabaseWithRetry callback
-    // (runs after Supabase sync provides the real CUID, so cover_data is saved correctly)
-
-    // ── DIRECT COVER UPLOAD: save cover_data to D1 immediately ──
-    // This ensures cover is available on all devices, even if sync callback fails
-    if (published && story && state.coverData && story.id) {
-      // Poll for cloud ID — syncToD1 will replace s_ ID with real ID
-      var _coverAttempts = 0;
-      var _coverPoll = setInterval(function () {
-        _coverAttempts++;
-        if (_coverAttempts > 20) { clearInterval(_coverPoll); return; } // 10s timeout
-        // Check if story has been synced to cloud (ID changed from s_ to real ID)
-        var _stories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
-        var _current = (_stories || []).find(function (s) { return s.title === story.title && s.author === story.author; });
-        if (_current && _current.id && String(_current.id).indexOf('s_') !== 0) {
-          clearInterval(_coverPoll);
-          // Cloud ID available — PUT cover_data to D1
-          fetch('/api/stories/' + encodeURIComponent(_current.id), {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: _current.id, cover_data: state.coverData })
-          }).then(function (r) {
-            if (r.ok) console.log('[upload] ✅ cover_data saved to D1 for', _current.id);
-            else console.warn('[upload] cover_data save failed:', r.status);
-          }).catch(function (e) { console.warn('[upload] cover_data save error:', e); });
-        }
-      }, 500);
-    }
-
-    // After story is synced to backend with real CUID, re-upload audio if needed
-    var audioUploadedToBackend = Promise.resolve();
-    if (published && story && state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
-      var fileToUpload = state.audioFile;
-      // Upload immediately — even with s_ ID, Supabase will create a real entry
-      audioUploadedToBackend = window.AudioHubStoryAudio.put(fileToUpload, story.id).then(function (newAudioKey) {
-        state.audioFile = null;
-        if (newAudioKey && newAudioKey !== state.audioKey) {
-          state.audioKey = newAudioKey;
-          story.audioKey = newAudioKey;
-          window.AudioHubStories.upsert(story);
-        }
-      }).catch(function (err) {
-        console.warn('[upload] Audio upload failed, will retry:', err);
-        // Keep state.audioFile for retry
-      });
-    }
-
-    showBanner(statusLabel + ' Đã lưu vào danh sách demo.', published);
+    showBanner(published ? 'Truyện demo đã được đưa vào trạng thái sẵn sàng xuất bản.' : 'Đã lưu nháp.', published);
 
     if (published && story && story.id) {
-      var detailUrl = '/story-detail?id=' + encodeURIComponent(story.id);
-      if (window.AudioHubRouter) { window.AudioHubRouter.navigate(detailUrl); } else { window.location.href = detailUrl; }
+      syncToCloudAndRedirect(story);
     }
   }
 
-  draftButtons.forEach(function (button) {
-    button.addEventListener('click', function () {
-      if (button.hasAttribute('data-upload-preview')) {
-        openPreviewCard();
-        return;
+  /* ═══════════════════════════════════════════════════════════════════
+     13. CLOUD SYNC (single poll loop)
+     ═══════════════════════════════════════════════════════════════════ */
+  function syncToCloudAndRedirect(story) {
+    var isLocal = String(story.id).indexOf('s_') === 0;
+
+    function doRedirect(realId) {
+      var url = '/story-detail?id=' + encodeURIComponent(realId);
+      // Force full page reload (not SPA navigate) to ensure fresh code + cache bust
+      window.location.href = url;
+    }
+
+    if (!isLocal) {
+      // Already has real CUID — add playlist entry + redirect
+      addPlaylistEntry(story.id, story);
+      doRedirect(story.id);
+      return;
+    }
+
+    // Poll for real CUID
+    var attempts = 0;
+    // NFD-normalized title comparison (handles Vietnamese diacritics: ô ≠ ố)
+    function _nfc(s) {
+      return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    }
+    var normalizedTitle = _nfc(story.title);
+    var poll = setInterval(function () {
+      attempts++;
+      if (attempts > 30) { clearInterval(poll); doRedirect(story.id); return; } // 15s timeout
+
+      var stories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
+      var current = (stories || []).find(function (s) {
+        return s && _nfc(s.title) === normalizedTitle && s.author === story.author;
+      });
+
+      if (current && current.id && String(current.id).indexOf('s_') !== 0) {
+        clearInterval(poll);
+        var realId = current.id;
+        console.log('[upload] ✅ CUID received:', realId);
+
+        // --- MIGRATE chapter store from local draft id -> real id (prevent lost chapters) ---
+        try {
+          var cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+          var oldKey = story.id;
+          // Migrate from s_ key to real CUID
+          if (oldKey && cs && !Array.isArray(cs[realId])) {
+            var srcKey = cs[oldKey] ? oldKey : (cs['s_' + oldKey] ? 's_' + oldKey : '');
+            if (srcKey && Array.isArray(cs[srcKey]) && cs[srcKey].length) {
+              cs[realId] = cs[srcKey];
+              console.log('[upload] ✅ Migrated chapters from', srcKey, '→', realId, '(', cs[srcKey].length, 'chapters)');
+            }
+          }
+          // Clean up ALL s_ prefix variants
+          try { delete cs[story.id]; } catch (e) {}
+          try { delete cs['s_' + story.id]; } catch (e) {}
+          try { delete cs['s_' + realId]; } catch (e) {}
+          localStorage.setItem('audiohub-chapters-v1', JSON.stringify(cs));
+        } catch (e) { console.warn('[upload] ⚠ Chapter migration failed:', e); }
+
+        // 1. Update playlist entry keys from s_ to real CUID
+        updatePlaylistEntryKeys(story.id, realId);
+
+        // 2. Add playlist entry
+        addPlaylistEntry(realId, story);
+
+        // 3. Upload cover_data to D1
+        if (state.coverData) {
+          fetch('/api/stories/' + encodeURIComponent(realId), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: realId, cover_data: state.coverData })
+          }).then(function (r) {
+            if (r.ok) console.log('[upload] ✅ cover_data saved to D1');
+          }).catch(function () {});
+        }
+
+        // 3. Upload audio if new file selected
+        if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
+          window.AudioHubStoryAudio.put(state.audioFile, realId).then(function (newKey) {
+            state.audioFile = null;
+            if (newKey && newKey !== state.audioKey) {
+              state.audioKey = newKey;
+              current.audioKey = newKey;
+              window.AudioHubStories.upsert(current);
+              fetch('/api/stories/' + encodeURIComponent(realId), {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: realId, audio_key: newKey })
+              }).then(function () { doRedirect(realId); }).catch(function () { doRedirect(realId); });
+            } else {
+              doRedirect(realId);
+            }
+          }).catch(function () { doRedirect(realId); });
+        } else {
+          doRedirect(realId);
+        }
       }
-      if (button.hasAttribute('data-upload-draft')) {
-        saveDraftStory('Bản nháp giao diện');
-        showBanner('Đã lưu nháp trong trình duyệt. Bạn có thể tiếp tục chỉnh sửa sau.', false);
-        if (banner) {
-          banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 500);
+  }
+
+  /* ── Update playlist entry keys from s_ to real CUID ── */
+  function updatePlaylistEntryKeys(oldId, newId) {
+    if (!oldId || !newId || oldId === newId) return;
+    try {
+      var raw = localStorage.getItem(PLAYLIST_KEY) || '';
+      var playlists = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(playlists)) return;
+      var changed = false;
+      playlists.forEach(function (pl) {
+        (pl.entries || []).forEach(function (e) {
+          if (String(e.key) === String(oldId)) {
+            e.key = newId;
+            if (e.href) e.href = e.href.replace(encodeURIComponent(oldId), encodeURIComponent(newId));
+            changed = true;
+          }
+        });
+      });
+      if (changed) {
+        localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+        console.log('[upload] ✅ Updated playlist entry keys:', oldId, '→', newId);
+        syncPlaylistsToStorage();
+      }
+    } catch (e) {}
+  }
+
+  /* ── Playlist entry helper (single code path) ── */
+  function addPlaylistEntry(storyId, story) {
+    try {
+      var raw = localStorage.getItem(PLAYLIST_KEY) || '';
+      var playlists = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(playlists)) playlists = [];
+
+      // Auto-create playlist if none selected
+      if (!selectedPlaylistId) {
+        var storyTitle = (story && story.title) || 'Truyện mới';
+        var newPlId = 'pl-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now();
+        var newPl = { id: newPlId, name: storyTitle, entries: [], createdBy: 'admin', createdAt: new Date().toISOString() };
+        playlists.push(newPl);
+        localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+        selectedPlaylistId = newPlId;
+        syncPlaylistsToStorage(newPlId);
+        console.log('[upload] ✅ Auto-created playlist:', storyTitle);
+      }
+
+      var pl = playlists.find(function (p) { return p && p.id === selectedPlaylistId; });
+      if (!pl) return;
+      var entries = pl.entries || [];
+      // Dedup
+      if (entries.some(function (e) { return String(e.key || '') === String(storyId); })) return;
+
+      var chapterTitle = (chapterInput ? chapterInput.value.trim() : '') || '';
+      entries.push({
+        key: storyId,
+        title: story.title || '',
+        chapterTitle: chapterTitle,
+        chapterIndex: entries.length,
+        author: story.author || '',
+        genre: story.genre || '',
+        href: '/story-detail?id=' + encodeURIComponent(storyId) + '&playlistId=' + encodeURIComponent(pl.id),
+        status: 'listening',
+        progress: 0,
+        addedAt: new Date().toISOString()
+      });
+      pl.entries = entries;
+      localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+      syncPlaylistsToStorage(pl.id);
+      console.log('[upload] ✅ Playlist entry added:', pl.name, '| chapter:', chapterTitle);
+    } catch (e) { console.warn('[upload] Playlist entry failed:', e); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     14. BUTTON HANDLERS
+     ═══════════════════════════════════════════════════════════════════ */
+  draftButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.hasAttribute('data-upload-preview')) {
+        var card = $('[data-upload-preview-card]');
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('is-highlighted');
+          setTimeout(function () { card.classList.remove('is-highlighted'); }, 1800);
+          render();
+          showBanner('Đang hiển thị bản xem trước bên dưới.', false);
         }
         return;
       }
-      saveStory('Bản nháp giao diện', false);
-      showBanner('Đã lưu nháp trong trình duyệt. Bạn có thể tiếp tục chỉnh sửa sau.', false);
-      if (banner) {
-        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      saveDraftStory();
     });
   });
 
   if (publishButton) {
     publishButton.addEventListener('click', function () {
-      saveStory('Truyện demo đã được đưa vào trạng thái sẵn sàng xuất bản.', true);
-      if (banner) {
-        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      saveStory(true);
+      if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 
+  /* ═══════════════════════════════════════════════════════════════════
+     15. DRAFT HYDRATION (load existing story into form)
+     ═══════════════════════════════════════════════════════════════════ */
+  function hydrateDraft(story) {
+    if (!story) return false;
+
+    console.log('[upload] hydrateDraft:', story.id, '| title:', story.title);
+    editStoryId = String(story.id);
+    if (root) root.setAttribute('data-editing-draft', editStoryId);
+    if (banner) {
+      banner.textContent = 'Đang chỉnh sửa: ' + story.title;
+      banner.classList.remove('is-hidden');
+      banner.classList.remove('is-published');
+    }
+
+    setFieldValue(titleInput, story.title);
+    setFieldValue(descriptionInput, story.description);
+    setFieldValue(genreSelect, story.genre);
+    setFieldValue(youtubeInput, story.youtubeUrl);
+    setFieldValue(visibilitySelect, story.visibility || 'Riêng tư');
+    state.visibility = (visibilitySelect && visibilitySelect.value) || story.visibility || 'Riêng tư';
+
+    // Update story name trigger
+    var trigger = $('[data-story-name-trigger]');
+    if (trigger && story.title) {
+      trigger.innerHTML = escapeHtml(story.title) + ' <i class="fa-solid fa-chevron-down"></i>';
+      trigger.classList.add('is-selected');
+    }
+
+    // Auto-detect playlist
+    if (story.title) {
+      try {
+        var pls = JSON.parse(localStorage.getItem(PLAYLIST_KEY) || '[]');
+        if (Array.isArray(pls)) {
+          var matched = pls.find(function (pl) {
+            return pl && pl.name && pl.name.toLowerCase() === String(story.title).toLowerCase();
+          });
+          if (matched) {
+            selectedPlaylistId = matched.id;
+            console.log('[upload] 🎵 Auto-detected playlist:', matched.name);
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Hashtags
+    var hashtagEl = $('[data-upload-hashtags]');
+    if (hashtagEl) {
+      var tags = story.hashtags || story.tags || '';
+      hashtagEl.value = Array.isArray(tags) ? tags.join(', ') : (tags || '');
+    }
+
+    // Chapters — load from separate store if needed
+    var chapters = Array.isArray(story.chapters) ? story.chapters : [];
+    if (!chapters.length && story.id) {
+      try {
+        var cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        chapters = Array.isArray(cs[story.id]) ? cs[story.id] : [];
+      } catch (e) {}
+    }
+    var chapter = chapters[editChapterIndex] || {};
+    var chapterTitle = chapter.title || story.chapterTitle || '';
+    var chapterAudioKey = chapter.audioKey || story.audioKey || '';
+    var chapterReadingText = chapter.readingText || story.readingText || '';
+
+    setFieldValue(chapterInput, chapterTitle);
+    if (chapterAudioKey) state.audioKey = chapterAudioKey;
+    if (chapterReadingText) state.readingText = chapterReadingText;
+    state.coverReady = !!(state.coverKey || story.coverKey);
+    state.audioReady = !!(state.audioKey);
+
+    // ── Load cover image ──
+    state.coverName = 'Ảnh bìa đã lưu';
+    if (coverZone) coverZone.classList.add('is-ready');
+
+    if (story.coverData && String(story.coverData).indexOf('data:') === 0) {
+      state.coverData = story.coverData;
+      state.coverReady = true;
+      if (coverPreview) coverPreview.innerHTML = '<img src="' + story.coverData + '" alt="Ảnh bìa" />';
+      if (coverLabel) coverLabel.textContent = 'Đã có ảnh bìa';
+      if (coverHint) coverHint.textContent = 'Chọn file khác để thay đổi';
+    } else if (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+      var coverKey = story.coverKey || '';
+      var idbKey = coverKey && String(coverKey).indexOf('c_') === 0 ? coverKey : story.id;
+      if (idbKey) {
+        if (coverLabel) coverLabel.textContent = 'Đang tải ảnh bìa…';
+        var tryKeys = [idbKey];
+        if (!String(idbKey).startsWith('s_')) tryKeys.unshift('s_' + idbKey);
+
+        (function tryLoadCover(idx) {
+          if (idx >= tryKeys.length) {
+            if (coverLabel) coverLabel.textContent = 'Ảnh bìa đã lưu';
+            return;
+          }
+          window.AudioHubStoryCover.get(tryKeys[idx]).then(function (blob) {
+            if (!blob || !blob.size) { tryLoadCover(idx + 1); return; }
+            var url = URL.createObjectURL(blob);
+            if (coverPreview) coverPreview.innerHTML = '<img src="' + url + '" alt="Ảnh bìa" />';
+            if (coverLabel) coverLabel.textContent = 'Đã có ảnh bìa';
+            if (coverHint) coverHint.textContent = 'Chọn file khác để thay đổi';
+            state.coverReady = true;
+            var reader = new FileReader();
+            reader.onload = function () { state.coverData = reader.result; };
+            reader.readAsDataURL(blob);
+          }).catch(function () { tryLoadCover(idx + 1); });
+        })(0);
+      }
+    }
+
+    // ── Load audio ──
+    if (state.audioKey) {
+      state.audioName = 'Audio đã lưu';
+      if (audioLabel) audioLabel.textContent = 'Audio đã lưu';
+      if (audioZone) audioZone.classList.add('is-ready');
+      if (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
+        window.AudioHubStoryAudio.get(state.audioKey).then(function (blob) {
+          if (blob && audioPlayer) {
+            audioPlayer.src = URL.createObjectURL(blob);
+            audioPlayer.load();
+            setAudioPreviewDisabled(false);
+            if (audioPreviewName) audioPreviewName.textContent = state.audioName;
+          }
+        }).catch(function () { setAudioPreviewDisabled(false); });
+      } else {
+        setAudioPreviewDisabled(false);
+      }
+    }
+
+    // ── Reading text label ──
+    if (state.readingText && readingLabel) {
+      readingLabel.textContent = 'Đã có nội dung truyện chữ';
+      if (readingHint) readingHint.textContent = 'Chọn file khác để thay đổi';
+      if (readingZone) readingZone.classList.add('is-ready');
+    }
+
+    if (chapterTitle) showBanner('Đang chỉnh sửa: ' + story.title + ' — ' + chapterTitle, false);
+
+    render();
+    return true;
+  }
+
+  function loadDraftFromQuery() {
+    console.log('[upload] loadDraftFromQuery — editStoryId:', editStoryId);
+    if (!editStoryId || !window.AudioHubStories || typeof window.AudioHubStories.getById !== 'function') {
+      console.log('[upload] ⚠ loadDraftFromQuery skipped');
+      return false;
+    }
+    var story = window.AudioHubStories.getById(editStoryId);
+    if (story) {
+      console.log('[upload] ✅ Found in localStorage:', story.id);
+      return hydrateDraft(story);
+    }
+
+    // Fetch from API
+    console.log('[upload] 🔄 Fetching from API:', editStoryId);
+    fetch('/api/stories/' + encodeURIComponent(editStoryId))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (remote) {
+        if (!remote || !remote.id) return;
+        var normalized = remote;
+        if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+          normalized = window.AudioHubStories.upsert(remote);
+        }
+        // Load chapters from separate store
+        if (normalized && normalized.id && (!normalized.chapters || !normalized.chapters.length)) {
+          try {
+            var cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var sid = String(normalized.id);
+            var localCh = Array.isArray(cs[sid]) ? cs[sid] : [];
+            if (!localCh.length && !sid.startsWith('s_')) {
+              localCh = Array.isArray(cs['s_' + sid]) ? cs['s_' + sid] : [];
+            }
+            if (localCh.length) {
+              normalized.chapters = localCh;
+              normalized.chapterCount = localCh.length;
+            }
+          } catch (e) {}
+        }
+        hydrateDraft(normalized);
+      })
+      .catch(function (e) { console.log('[upload] ⚠ API fetch failed:', e); });
+    return false;
+  }
+
+  // Retry on stories-updated (SPA race fix)
+  window.addEventListener('audiohub:stories-updated', function () {
+    if (editStoryId) { loadDraftFromQuery(); return; }
+    try {
+      var p = new URL(window.location.href).searchParams;
+      var id = p.get('id') || '';
+      if (id) {
+        editStoryId = id;
+      var rawChapter = p.get('chapter');
+      editChapterIndex = rawChapter !== null ? Math.max(0, parseInt(rawChapter || '0', 10)) : -1;
+      loadDraftFromQuery();
+    }
+  } catch (e) {}
+  });
+
+  /* ═══════════════════════════════════════════════════════════════════
+     16. INIT
+     ═══════════════════════════════════════════════════════════════════ */
   loadDraftFromQuery();
   render();
+
+  // Global for other modules
+  window.AudioHubUploadAuthor = {
+    getAuthorFromSession: getAuthorFromSession,
+    syncAuthorInput: syncAuthorInput
+  };
 })();

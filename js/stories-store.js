@@ -43,7 +43,7 @@
 
     values.forEach(function (story) {
       var fingerprint = [
-        String(story.title || '').trim().toLowerCase(),
+        _nfc(story.title),
         String(story.author || '').trim().toLowerCase()
       ].join('::');
       if (!fingerprint || fingerprint === '::') {
@@ -58,6 +58,20 @@
       var currentTime = Date.parse(String(current.updatedAt || current.createdAt || '')) || 0;
       var nextTime = Date.parse(String(story.updatedAt || story.createdAt || '')) || 0;
       if (nextTime >= currentTime) {
+        // Migrate chapters from old story to new one before replacing
+        try {
+          var oldChapters = getChaptersForStory(current.id);
+          var newChapters = getChaptersForStory(story.id);
+          if (oldChapters.length && (!newChapters.length || newChapters.length < oldChapters.length)) {
+            saveChaptersForStory(story.id, oldChapters);
+            console.log('[stories-store] Merged chapters from', current.id, '→', story.id, '(', oldChapters.length, 'chapters)');
+          }
+          // Cleanup old s_ keys
+          var cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+          try { delete cs[current.id]; } catch (e) {}
+          try { delete cs['s_' + current.id]; } catch (e) {}
+          localStorage.setItem('audiohub-chapters-v1', JSON.stringify(cs));
+        } catch (e) {}
         pickedByFingerprint[fingerprint] = story;
       }
     });
@@ -143,6 +157,11 @@
 
   function normalize(value, fallback) {
     return value ? String(value).trim() : fallback;
+  }
+
+  // NFD-normalized title comparison (handles Vietnamese diacritics: ô ≠ ố, ư ≠ ứ, etc.)
+  function _nfc(s) {
+    return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   }
 
   function normalizeNumber(value) {
@@ -248,6 +267,16 @@
     var coverDataUrl = (story && (story.coverDataUrl || story.cover_data_url)) || '';
     var chapterTitle = (story && (story.chapterTitle || story.chapter_title)) || '';
     var chapterCount = normalizeNumber(story && (story.chapterCount || story.chapter_count));
+    var storedChapters = [];
+    if (story && story.id) {
+      storedChapters = getChaptersForStory(String(story.id));
+    }
+    if (!Array.isArray(chapters) || !chapters.length) {
+      chapters = Array.isArray(storedChapters) ? storedChapters : [];
+    } else if (Array.isArray(storedChapters) && storedChapters.length > chapters.length) {
+      chapters = storedChapters;
+      chapterCount = storedChapters.length;
+    }
     var listenCount = normalizeNumber(story && (story.listenCount || story.listen_count));
     var listenCount2d = normalizeNumber(story && (story.listenCount2d || story.listen_count2d));
     var listenCount7d = normalizeNumber(story && (story.listenCount7d || story.listen_count7d));
@@ -339,13 +368,57 @@
   function saveChaptersForStory(sid, chapters) {
     if (!sid || !Array.isArray(chapters)) return;
     var store = readChaptersStore();
-    store[sid] = chapters;
+    var existing = Array.isArray(store[sid]) ? store[sid].slice() : [];
+    console.log('[chapters-store] 📖 saveChaptersForStory — sid:', sid, '| incoming:', chapters.length, '| existing:', existing.length);
+    console.log('[chapters-store]   incoming titles:', chapters.map(function(c) { return c && c.title; }));
+    console.log('[chapters-store]   existing titles:', existing.map(function(c) { return c && c.title; }));
+    // Merge existing and incoming chapters, keeping unique entries
+    // Use index-based identity: incoming chapters replace existing at same index,
+    // new chapters are appended. This prevents dedup from collapsing different chapters
+    // that share the same audioKey or readingText.
+    function chapterKey(ch, idx) {
+      if (!ch) return '';
+      // Use title + index as primary identity — chapters at different indices are different
+      var k = String(ch.title || '') + '||idx:' + idx + '||' + String(ch.audioKey || '') + '||' + String((ch.readingText || '').slice(0, 120));
+      return k.replace(/\s+/g, ' ').trim();
+    }
+    // Build index-based merge: incoming chapters overwrite existing at same position
+    var merged = existing.slice();
+    chapters.forEach(function (c, i) {
+      if (!merged[i]) {
+        // New index — append
+        merged.push(c);
+      } else {
+        // Existing index — replace with incoming (it's the latest version)
+        merged[i] = c;
+      }
+    });
+    // Dedup by full key (title+audioKey+readingText 120 chars) as safety net
+    var deduped = [];
+    var seen = {};
+    merged.forEach(function (c, i) {
+      var k = chapterKey(c, i);
+      if (!k || k === '||idx:' + i + '||') {
+        // Empty chapter — use JSON as fallback key
+        try { k = JSON.stringify(c || {}); } catch (e) { k = 'auto_' + i + '_' + Date.now(); }
+      }
+      if (!seen[k]) { seen[k] = true; deduped.push(c); }
+    });
+    store[sid] = deduped;
+    if (!String(sid).startsWith('s_') && store['s_' + sid]) {
+      delete store['s_' + sid];
+    }
     writeChaptersStore(store);
+    console.log('[chapters-store] ✅ SAVED — final:', deduped.length, '| titles:', deduped.map(function(c) { return c && c.title; }));
   }
   function getChaptersForStory(sid) {
     if (!sid) return [];
     var store = readChaptersStore();
-    return Array.isArray(store[sid]) ? store[sid] : [];
+    var chapters = Array.isArray(store[sid]) ? store[sid] : [];
+    if (!chapters.length && sid && !String(sid).startsWith('s_')) {
+      chapters = Array.isArray(store['s_' + sid]) ? store['s_' + sid] : chapters;
+    }
+    return chapters;
   }
 
   function upsertLocalStory(story) {
@@ -385,9 +458,18 @@
     if (!id) {
       return null;
     }
-    return readLocalStories().find(function (story) {
-      return story.id === id;
+    var story = readLocalStories().find(function (s) {
+      return s.id === id;
     }) || null;
+    // Always prefer chapters from audiohub-chapters-v1 (authoritative store)
+    if (story) {
+      var stored = getChaptersForStory(id);
+      if (stored.length) {
+        story.chapters = stored;
+        story.chapterCount = stored.length;
+      }
+    }
+    return story;
   }
 
   function removeLocalStory(id) {
@@ -671,45 +753,85 @@
   function upsertStory(story) {
     var localEntry = upsertLocalStory(story);
 
-    // Sync to D1 via Cloudflare Pages Functions (Supabase deprecated)
+    // Sync to D1 via Cloudflare Pages Functions
     var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
     if (hasApi) {
       var payload = mapStoryPayload(localEntry);
       if (localEntry.id && !String(localEntry.id).startsWith('s_')) {
+        // Real CUID — PATCH existing story
         window.AudioHubApi.request('/stories/' + encodeURIComponent(localEntry.id), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         }).catch(function () {});
       } else {
+        // Temp s_ ID — check localStorage for existing story with same title+author
+        // that already has a real CUID (prevents duplicate D1 entries)
         if (_syncingStories[localEntry.id]) {
           return localEntry;
         }
-        _syncingStories[localEntry.id] = true;
-        window.AudioHubApi.request('/stories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).then(function (created) {
-          delete _syncingStories[localEntry.id];
-          if (!created || !created.id) return;
-          var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
-          removeLocalStory(localEntry.id);
-          upsertLocalStory({
-            id: created.id, title: localEntry.title, author: localEntry.author,
-            genre: localEntry.genre, description: localEntry.description,
-            readingText: localEntry.readingText, hashtags: localEntry.hashtags,
-            chapterTitle: localEntry.chapterTitle, chapters: savedChapters,
-            chapterCount: savedChapters.length || localEntry.chapterCount || 0,
-            visibility: localEntry.visibility, audioStatus: localEntry.audioStatus,
-            coverData: localEntry.coverData, coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
-            youtubeUrl: localEntry.youtubeUrl, youtubeId: localEntry.youtubeId,
-            createdAt: created.createdAt || localEntry.createdAt,
-            updatedAt: created.updatedAt || new Date().toISOString()
-          });
-        }).catch(function () {
-          delete _syncingStories[localEntry.id];
+
+        var existingLocal = readLocalStories().find(function (s) {
+          return s && s.id && !String(s.id).startsWith('s_') &&
+            _nfc(s.title) === _nfc(localEntry.title) &&
+            String(s.author || '').trim() === String(localEntry.author || '').trim();
         });
+
+        if (existingLocal) {
+          // Story with real CUID already exists locally — PATCH it instead of creating new
+          _syncingStories[localEntry.id] = true;
+          window.AudioHubApi.request('/stories/' + encodeURIComponent(existingLocal.id), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(function () {
+            delete _syncingStories[localEntry.id];
+            // Replace local s_ entry with real ID
+            var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
+            removeLocalStory(localEntry.id);
+            upsertLocalStory({
+              id: existingLocal.id, title: localEntry.title, author: localEntry.author,
+              genre: localEntry.genre, description: localEntry.description,
+              readingText: localEntry.readingText, hashtags: localEntry.hashtags,
+              chapterTitle: localEntry.chapterTitle, chapters: savedChapters,
+              chapterCount: savedChapters.length || localEntry.chapterCount || 0,
+              visibility: localEntry.visibility, audioStatus: localEntry.audioStatus,
+              coverData: localEntry.coverData, coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
+              youtubeUrl: localEntry.youtubeUrl, youtubeId: localEntry.youtubeId,
+              createdAt: existingLocal.createdAt || localEntry.createdAt,
+              updatedAt: new Date().toISOString()
+            });
+          }).catch(function () {
+            delete _syncingStories[localEntry.id];
+          });
+        } else {
+          // No existing story — create new in D1
+          _syncingStories[localEntry.id] = true;
+          window.AudioHubApi.request('/stories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(function (created) {
+            delete _syncingStories[localEntry.id];
+            if (!created || !created.id) return;
+            var savedChapters = Array.isArray(localEntry.chapters) ? localEntry.chapters : [];
+            removeLocalStory(localEntry.id);
+            upsertLocalStory({
+              id: created.id, title: localEntry.title, author: localEntry.author,
+              genre: localEntry.genre, description: localEntry.description,
+              readingText: localEntry.readingText, hashtags: localEntry.hashtags,
+              chapterTitle: localEntry.chapterTitle, chapters: savedChapters,
+              chapterCount: savedChapters.length || localEntry.chapterCount || 0,
+              visibility: localEntry.visibility, audioStatus: localEntry.audioStatus,
+              coverData: localEntry.coverData, coverKey: localEntry.coverKey, audioKey: localEntry.audioKey,
+              youtubeUrl: localEntry.youtubeUrl, youtubeId: localEntry.youtubeId,
+              createdAt: created.createdAt || localEntry.createdAt,
+              updatedAt: created.updatedAt || new Date().toISOString()
+            });
+          }).catch(function () {
+            delete _syncingStories[localEntry.id];
+          });
+        }
       }
     }
 
@@ -831,10 +953,12 @@
     if (!merged.youtubeUrl && localEntry.youtubeUrl) merged.youtubeUrl = String(localEntry.youtubeUrl);
     if (!merged.youtubeId && localEntry.youtubeId) merged.youtubeId = String(localEntry.youtubeId);
     if (!merged.readingText && localEntry.readingText) merged.readingText = String(localEntry.readingText);
-    // Preserve local chapters if remote has none
-    if ((!merged.chapters || !merged.chapters.length) && Array.isArray(localEntry.chapters) && localEntry.chapters.length) {
+    // Always preserve local chapters — local is more up-to-date than API (PATCH lag)
+    var remoteChCount = (merged.chapters && merged.chapters.length) || 0;
+    var localChCount = (localEntry.chapters && localEntry.chapters.length) || 0;
+    if (localChCount) {
       merged.chapters = localEntry.chapters;
-      merged.chapterCount = localEntry.chapters.length;
+      merged.chapterCount = localChCount;
     }
 
     var mergedAuthor = sanitizeAuthor(merged.author);
@@ -915,9 +1039,25 @@
             notifyStoriesSynced();
             return localStories;
           }
+          var localById = {};
+          localStories.forEach(function (item) {
+            if (item && item.id) localById[String(item.id)] = item;
+          });
+
           var normalized = publicStories.map(function (story) {
-            return normalizeStory(story);
-          }).filter(Boolean);
+            var entry = normalizeStory(story);
+            var local = localById[String(entry.id)] || null;
+            // Always preserve local chapters if local has more than remote
+            if (local) {
+              var remoteChCount = (entry.chapters && entry.chapters.length) || 0;
+              var localChCount = (local.chapters && local.chapters.length) || 0;
+              if (localChCount > remoteChCount) {
+                entry.chapters = local.chapters;
+                entry.chapterCount = localChCount;
+              }
+            }
+            return entry;
+          }).filter(Boolean).filter(function (s) { return !isDeleted(s.id); });
 
           // Build index of API stories by ID
           var apiIds = {};
@@ -964,7 +1104,7 @@
           remoteIds[String(entry.id)] = true;
           var local = localById[String(entry.id)] || null;
           return mergeStoryWithLocal(entry, local);
-        }).filter(Boolean);
+        }).filter(Boolean).filter(function (s) { return !isDeleted(s.id); });
 
         // PRESERVE local stories not in remote response (e.g. public stories from other users)
         var localOnly = localStories.filter(function (item) {
@@ -1239,6 +1379,19 @@
         }).then(function (created) {
           delete _syncingStories[story.id];
           if (!created || !created.id) return;
+
+          // ── Migrate chapters from old s_ ID to new real CUID ──
+          try {
+            var _chapKey = 'audiohub-chapters-v1';
+            var _chapStore = JSON.parse(localStorage.getItem(_chapKey) || '{}');
+            var _oldChapters = Array.isArray(_chapStore[oldStoryId]) ? _chapStore[oldStoryId] : [];
+            if (_oldChapters.length) {
+              _chapStore[created.id] = _oldChapters;
+              delete _chapStore[oldStoryId];
+              localStorage.setItem(_chapKey, JSON.stringify(_chapStore));
+              console.log('[sync] ✅ Chapters migrated:', oldStoryId, '→', created.id, '(' + _oldChapters.length + ' chapters)');
+            }
+          } catch (e) { console.warn('[sync] Chapter migration failed:', e); }
 
           // Upload audio blob to new story if we have one
           if (audioInfo.audioBlob) {

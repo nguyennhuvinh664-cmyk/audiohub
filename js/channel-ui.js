@@ -153,11 +153,12 @@
       + '<div class="story-meta"><span>' + esc(genre) + '</span><span><i class="fa-regular fa-eye"></i> ' + fmt(story.listenCount || story.views) + '</span></div>'
       + '<h2 class="story-title">' + esc(title) + '</h2>'
       + '<div class="story-footer"><span><i class="fa-regular fa-user"></i> ' + esc(author) + '</span><span class="story-rating"><i class="fa-solid fa-star"></i> —</span></div>'
+      + '</div></a>'
       + '<div class="story-card__actions">'
-      + '<a href="' + href + '" class="story-card__listen"><i class="fa-solid fa-play"></i> Nghe ngay</a>'
+      + '<button type="button" class="story-card__listen" onclick="window.location.href=\'' + href + '\'" aria-label="Nghe ngay"><i class="fa-solid fa-play"></i> Nghe ngay</button>'
       + '<button type="button" class="story-card__fav" data-fav><i class="fa-regular fa-heart"></i> Yêu thích</button>'
       + '</div>'
-      + '</div></a></div>';
+      + '</div>';
   }
 
   // ── Hydrate covers ──

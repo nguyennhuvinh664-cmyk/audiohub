@@ -439,17 +439,18 @@
     }
     dropdownRoot.dataset.bound = 'true';
 
-    dropdownTrigger.addEventListener('click', function () {
-      var isOpen = dropdownMenu.hidden;
-      dropdownMenu.hidden = !isOpen;
-      dropdownTrigger.setAttribute('aria-expanded', String(isOpen));
+    dropdownTrigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = !dropdownMenu.classList.contains('is-hidden');
+      dropdownMenu.classList.toggle('is-hidden', isOpen);
+      dropdownTrigger.setAttribute('aria-expanded', String(!isOpen));
     });
 
     dropdownItems.forEach(function (item) {
       item.addEventListener('click', function () {
         var value = item.getAttribute('data-genre-value') || '';
         genreSelect.value = value;
-        dropdownMenu.hidden = true;
+        dropdownMenu.classList.add('is-hidden');
         dropdownTrigger.setAttribute('aria-expanded', 'false');
         renderHomeStories();
       });
@@ -457,7 +458,7 @@
 
     document.addEventListener('click', function (e) {
       if (!dropdownRoot.contains(e.target)) {
-        dropdownMenu.hidden = true;
+        dropdownMenu.classList.add('is-hidden');
         dropdownTrigger.setAttribute('aria-expanded', 'false');
       }
     });
@@ -728,29 +729,51 @@
             }
           });
           // Self-heal for nodes still without cover
-          if (!coverMap[id] && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
-            window.AudioHubStoryCover.get(id).then(function (blob) {
-              if (blob && blob.size > 0) return blob;
-              return scanIndexedDbForCover(id);
-            }).then(function (blob) {
-              if (!blob || blob.size === 0) return;
-              var reader = new FileReader();
-              reader.onload = function () {
-                var dataUrl = reader.result;
-                if (!dataUrl || dataUrl.indexOf('data:image') !== 0) return;
-                fetch('/api/stories/' + encodeURIComponent(id), {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id: id, cover_data: dataUrl })
-                }).then(function (r) {
-                  if (r.ok) console.log('[self-heal] ✅ cover saved to D1 for', id);
-                }).catch(function () {});
-                Array.prototype.forEach.call(nodes, function (n) {
-                  if (!n.querySelector('.sc__cover-img')) applyCoverToThumb(n, dataUrl);
-                });
-              };
-              reader.readAsDataURL(blob);
-            }).catch(function () {});
+          if (!coverMap[id]) {
+            // Try IndexedDB first, then Supabase Storage URL
+            var idbPromise = (window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function')
+              ? window.AudioHubStoryCover.get(id).then(function (blob) {
+                  if (blob && blob.size > 0) return blob;
+                  return scanIndexedDbForCover(id);
+                })
+              : Promise.resolve(null);
+
+            idbPromise.then(function (blob) {
+              if (blob && blob.size > 0) {
+                var reader = new FileReader();
+                reader.onload = function () {
+                  var dataUrl = reader.result;
+                  if (!dataUrl || dataUrl.indexOf('data:image') !== 0) return;
+                  fetch('/api/stories/' + encodeURIComponent(id), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, cover_data: dataUrl })
+                  }).then(function (r) {
+                    if (r.ok) console.log('[self-heal] ✅ cover saved to D1 for', id);
+                  }).catch(function () {});
+                  Array.prototype.forEach.call(nodes, function (n) {
+                    if (!n.querySelector('.sc__cover-img')) applyCoverToThumb(n, dataUrl);
+                  });
+                };
+                reader.readAsDataURL(blob);
+                return; // done
+              }
+              // Fallback: try Supabase Storage URL directly
+              var storageUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(id) + '/cover';
+              Array.prototype.forEach.call(nodes, function (n) {
+                if (!n.querySelector('.sc__cover-img') && !(n.style.backgroundImage && n.style.backgroundImage.indexOf('url(') !== -1)) {
+                  applyCoverToThumb(n, storageUrl);
+                }
+              });
+            }).catch(function () {
+              // Final fallback: Supabase Storage URL
+              var storageUrl = SUPABASE_STORAGE_DIRECT + encodeURIComponent(id) + '/cover';
+              Array.prototype.forEach.call(nodes, function (n) {
+                if (!n.querySelector('.sc__cover-img') && !(n.style.backgroundImage && n.style.backgroundImage.indexOf('url(') !== -1)) {
+                  applyCoverToThumb(n, storageUrl);
+                }
+              });
+            });
           }
         });
       }).catch(function () {});

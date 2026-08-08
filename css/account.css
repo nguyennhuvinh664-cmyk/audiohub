@@ -1272,6 +1272,8 @@
 }
 
 .yt-card__menu-btn {
+  position: relative;
+  z-index: 5;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -1292,10 +1294,7 @@
 }
 
 .yt-card__menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  right: 0;
+  position: fixed;
   min-width: 180px;
   background: #282828;
   border-radius: 8px;

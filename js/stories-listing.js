@@ -64,12 +64,12 @@
       '<div class="story-meta"><span>' + genre + '</span><span><i class="fa-regular fa-eye"></i> ' + viewsLabel + '</span></div>' +
       '<h2 class="story-title">' + title + '</h2>' +
       '<div class="story-footer"><a href="channel.html?author=' + encodeURIComponent(story.author || '') + '" style="color:inherit;text-decoration:none;" onclick="event.stopPropagation()"><span><i class="fa-regular fa-user"></i> ' + author + '</span></a><span class="story-rating"><i class="fa-solid fa-star"></i> —</span></div>' +
-      '<div class="story-card__actions">' +
-      '<button type="button" class="story-card__fav" data-library-favorite aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i> Yêu thích</button>' +
-      '<a href="' + href + '" class="story-card__listen"><i class="fa-solid fa-play"></i> Nghe ngay</a>' +
-      '</div>' +
       '</div>' +
       '</a>' +
+      '<div class="story-card__actions">' +
+      '<button type="button" class="story-card__fav" data-library-favorite aria-label="Yêu thích" aria-pressed="false"><i class="fa-regular fa-heart"></i> Yêu thích</button>' +
+      '<button type="button" class="story-card__listen" onclick="window.location.href=\'' + href + '\'" aria-label="Nghe ngay"><i class="fa-solid fa-play"></i> Nghe ngay</button>' +
+      '</div>' +
       '</div>'
     );
   }
@@ -102,11 +102,11 @@
       '<div class="story-meta"><span>Playlist</span><span><i class="fa-solid fa-circle-check"></i> Đã hoàn thành</span></div>' +
       '<h2 class="story-title">' + name + '</h2>' +
       '<div class="story-footer"><span><i class="fa-regular fa-user"></i> Admin</span><span class="story-rating"><i class="fa-solid fa-star"></i> —</span></div>' +
-      '<div class="story-card__actions">' +
-      '<a href="' + href + '" class="story-card__listen"><i class="fa-solid fa-play"></i> Nghe ngay</a>' +
-      '</div>' +
       '</div>' +
       '</a>' +
+      '<div class="story-card__actions">' +
+      '<button type="button" class="story-card__listen" onclick="window.location.href=\'' + href + '\'" aria-label="Nghe ngay"><i class="fa-solid fa-play"></i> Nghe ngay</button>' +
+      '</div>' +
       '</div>'
     );
   }
@@ -622,7 +622,17 @@
         return true;
       });
       var merged = apiStories.concat(localOnly);
-      renderStories(merged);
+      // Dedup by title+author (keep first occurrence = newest from API)
+      var deduped = [];
+      var seenKeys = {};
+      merged.forEach(function (s) {
+        var key = ((s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase());
+        if (key === '::') { deduped.push(s); return; }
+        if (seenKeys[key]) return;
+        seenKeys[key] = true;
+        deduped.push(s);
+      });
+      renderStories(deduped);
     }).catch(function () {
       // API failed — keep local render if any
       if (!localPublic.length) {

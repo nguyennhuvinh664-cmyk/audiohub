@@ -1725,6 +1725,9 @@
       try {
         var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
         storedChapters = Array.isArray(_chStore[String(currentStory.id)]) ? _chStore[String(currentStory.id)] : [];
+        console.log('[story-detail] 📖 READ audiohub-chapters-v1 — storyId:', currentStory.id, '| storedChapters:', storedChapters.length, '| titles:', storedChapters.map(function(c) { return c && c.title; }));
+        console.log('[story-detail]   currentStory.chapters:', storyChapters.length, '| titles:', storyChapters.map(function(c) { return c && c.title; }));
+        console.log('[story-detail]   all keys in store:', Object.keys(_chStore));
       } catch (e) { storedChapters = []; }
     }
 
@@ -1737,9 +1740,8 @@
       }
     } catch (e) {}
 
-    if ((!storyChapters || storyChapters.length === 0) && storedChapters.length) {
-      storyChapters = storedChapters;
-    } else if (storedChapters.length > storyChapters.length) {
+    // ALWAYS prefer storedChapters (audiohub-chapters-v1) — it's the authoritative chapter store
+    if (storedChapters.length) {
       storyChapters = storedChapters;
     }
 
@@ -1826,6 +1828,8 @@
     }
 
     // ── Build chapter rows ──
+    // Store chapter-specific data for click handler (readingText too long for data attributes)
+    window.__chapterReadingTexts = {};
     var chapterRows = [];
     for (var i = 0; i < total; i++) {
       var chapterNum = i + 1;
@@ -1841,6 +1845,9 @@
       // In playlist mode, also check playlist entry's chapterTitle
       if (!chapterTitle && playlistItemsForDisplay && playlistItemsForDisplay[i]) {
         chapterTitle = playlistItemsForDisplay[i].chapterTitle || playlistItemsForDisplay[i].storyTitle || '';
+      }
+      if (i === 0) {
+        console.log('[story-detail] 📖 Chapter', chapterNum, '— ch.title:', ch.title, '| chapterTitle:', chapterTitle, '| ch.readingText:', ch.readingText ? ch.readingText.slice(0, 50) : 'NONE');
       }
 
       if (playlistItemsForDisplay) {
@@ -1882,8 +1889,14 @@
         }
       }
 
+      // Get chapter-specific audioKey and readingText from storedChapters
+      var chAudioKey = (storedChapters[i] && storedChapters[i].audioKey) || (ch && ch.audioKey) || '';
+      var chReadingText = (storedChapters[i] && storedChapters[i].readingText) || (ch && ch.readingText) || '';
+      // Store full reading text in JS for click handler
+      if (chReadingText) window.__chapterReadingTexts[i] = chReadingText;
+
       chapterRows.push(
-        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml(displayName) + '" data-chapter-index="' + i + '">'
+        '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml(displayName) + '" data-chapter-index="' + i + '" data-audio-key="' + escapeHtml(chAudioKey) + '">'
         + '<span class="chapter-dot">' + dotContent + '</span>'
         + '<div class="chapter-item-body">'
         + '<span class="chapter-item-text">' + escapeHtml(displayName) + '</span>'
@@ -3586,14 +3599,48 @@
           showToast('Lỗi tải audio. Kiểm tra kết nối mạng.', 'error');
         });
       } else if (nativeAudio && nativeAudio.getAttribute('src')) {
-        nativeAudio.currentTime = 0;
-        nativeAudio.play().then(function () {
-          playerState.playing = true;
-          renderPlayer();
-        }).catch(function () {
-          playerState.playing = false;
-          renderPlayer();
-        });
+        // Same story — check if chapter has its own audioKey
+        var chAudioKey = link.getAttribute('data-audio-key') || '';
+        var chReadingText = (window.__chapterReadingTexts && window.__chapterReadingTexts[safeIndex]) || '';
+        var currentAudioKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
+
+        if (chAudioKey && chAudioKey !== currentAudioKey) {
+          // Chapter has different audio — load it
+          console.log('[chapter] Switching to chapter audio:', chAudioKey);
+          var chapterStory = Object.assign({}, story, { audioKey: chAudioKey });
+          bindStoryAudio(chapterStory);
+          setTimeout(function () {
+            if (nativeAudio) {
+              nativeAudio.play().then(function () {
+                playerState.playing = true;
+                renderPlayer();
+              }).catch(function () {
+                playerState.playing = false;
+                renderPlayer();
+              });
+            }
+          }, 300);
+        } else {
+          nativeAudio.currentTime = 0;
+          nativeAudio.play().then(function () {
+            playerState.playing = true;
+            renderPlayer();
+          }).catch(function () {
+            playerState.playing = false;
+            renderPlayer();
+          });
+        }
+
+        // Update reading text for this chapter
+        if (chReadingText) {
+          var chapterCopy = document.querySelector('[data-chapter-copy]');
+          if (chapterCopy) {
+            var ct = cleanReadingText(chReadingText);
+            var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+            chapterCopy.innerHTML = bl.length ? bl.map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('') : '';
+            chapterCopy.scrollTop = 0;
+          }
+        }
       }
     }
 

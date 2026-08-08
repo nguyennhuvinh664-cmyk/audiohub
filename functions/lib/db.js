@@ -170,7 +170,7 @@ export async function upsertPlaylist(db, playlist) {
     id, name, state || 'ongoing', created_by || 'admin',
     created_at || new Date().toISOString(),
     updated_at || new Date().toISOString(),
-    JSON.stringify(items || [])
+    typeof items === 'string' ? items : JSON.stringify(items || [])
   ).run();
 }
 

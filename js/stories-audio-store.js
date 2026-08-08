@@ -139,6 +139,10 @@
   function putAudio(blob, storyId) {
     if (!blob) return Promise.resolve('');
 
+    // Always store locally first (so bindStoryAudio can find it by storyId)
+    var localKey = storyId || makeKey();
+    putAudioLocal(blob, localKey).catch(function () {});
+
     // Upload to Supabase Storage if we have any story ID
     if (storyId) {
       var path = storyId + '.mp3';
@@ -152,16 +156,15 @@
         return uploadToRenderBackend(blob, storyId).catch(function () {
           // Try R2 as last cloud option
           return uploadToR2(blob, storyId).catch(function () {
-            // All failed — store in local IndexedDB with storyId as key
-            // (so D1 audio_key matches IndexedDB key)
-            return putAudioLocal(blob, storyId);
+            // All cloud failed — local copy already stored above
+            return localKey;
           });
         });
       });
     }
 
-    // No story ID yet — store locally
-    return putAudioLocal(blob);
+    // No story ID yet — already stored locally above
+    return Promise.resolve(localKey);
   }
 
   function putAudioLocal(blob, optionalKey) {

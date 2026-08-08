@@ -54,14 +54,13 @@
 
 # Backend proxy is handled by Cloudflare Pages Functions (functions/api, functions/media, functions/auth)
 
-# Root-level story-detail — serve actual file at clean URL
-/story-detail  /story-detail.html  200
-
 # Static assets — must be before SPA fallback
 /css/*     /css/:splat     200
 /js/*      /js/:splat      200
 /img/*     /img/:splat     200
 /fonts/*   /fonts/:splat   200
+
+# Story detail — handled by functions/api/story-detail.js (bypasses catch-all)
 
 # SPA fallback — must be last
 /*  /index.html  200

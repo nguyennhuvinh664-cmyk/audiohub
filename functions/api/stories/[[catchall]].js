@@ -12,7 +12,7 @@ export async function onRequest(context) {
   // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization'
   };
 
@@ -94,8 +94,8 @@ export async function onRequest(context) {
       return Response.json(saved || { success: true, id: story.id }, { headers: corsHeaders });
     }
 
-    // PUT /api/stories/:id - Update story
-    if (method === 'PUT' && storyId) {
+    // PUT or PATCH /api/stories/:id - Update story
+    if ((method === 'PUT' || method === 'PATCH') && storyId) {
       const updates = await request.json();
       updates.id = storyId;
       updates.updated_at = new Date().toISOString();

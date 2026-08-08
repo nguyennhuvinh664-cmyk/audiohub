@@ -1,26 +1,27 @@
-<!DOCTYPE html>
+// Cloudflare Pages Function: serve story-detail HTML for /story-detail?id=xxx
+// Bypasses _redirects catch-all which would otherwise serve index.html
+// SPA router fetches this endpoint instead of /story-detail.html
+
+const STORY_DETAIL_HTML = `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <style>html{opacity:0!important;transition:opacity .3s ease!important}</style>
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#09090f" />
   <title>Đang tải... | AudioHub</title>
-  <link rel="stylesheet" href="css/style-categories.css" />
-  <link rel="stylesheet" href="css/header-enhancements.css" />
-  <link rel="stylesheet" href="css/library-state.css" />
-  <link rel="stylesheet" href="css/story-detail-ui.css?v=20260803-6" />
-  <link rel="stylesheet" href="css/story-detail-mobile.css?v=20260803-4" />
+  <link rel="stylesheet" href="/css/style-categories.css" />
+  <link rel="stylesheet" href="/css/header-enhancements.css" />
+  <link rel="stylesheet" href="/css/library-state.css" />
+  <link rel="stylesheet" href="/css/story-detail-ui.css" />
+  <link rel="stylesheet" href="/css/story-detail-mobile.css" />
 </head>
 <body class="detail-page">
 <div id="page-content">
-
   <div class="m-page">
   <main class="detail-main">
     <div class="container">
-      <div class="breadcrumb"><a href="index.html">Home</a> <span>/</span> <a href="new-posts.html" data-crumb-genre></a> <span>/</span> <a href="new-posts.html" data-crumb-title></a></div>
-
+      <div class="breadcrumb"><a href="/index.html">Home</a> <span>/</span> <a href="/new-posts.html" data-crumb-genre></a> <span>/</span> <a href="/new-posts.html" data-crumb-title></a></div>
       <div class="detail-layout">
         <section class="detail-content">
           <article class="panel story-overview" data-detail-story data-title="" data-author="" data-genre="">
@@ -30,18 +31,16 @@
               <span><i class="fa-regular fa-clock"></i> Ongoing</span>
               <span data-detail-created-at><i class="fa-regular fa-calendar"></i> </span>
               <span data-detail-listen-count><i class="fa-regular fa-eye"></i> 0 lượt nghe</span>
-              <a href="contact.html" class="detail-share"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</a>
+              <a href="/contact.html" class="detail-share"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</a>
             </div>
             <div class="library-actions">
               <button type="button" class="library-action" data-detail-favorite aria-pressed="false"><i class="fa-solid fa-heart"></i> Yêu thích</button>
             </div>
-
             <div class="detail-copy">
               <h2>Giới thiệu truyện</h2>
               <div data-detail-description></div>
             </div>
           </article>
-
           <section class="sd-player" data-player-root>
             <!-- Cover Art -->
             <div class="sd-cover">
@@ -132,53 +131,30 @@
               <div class="sd-settings__divider"></div>
               <div class="sd-settings__section">
                 <div class="sd-settings__label">Tự động</div>
-                <label class="sd-settings__toggle">
-                  <span>Tiếp tục chương sau</span>
-                  <input type="checkbox" checked data-player-auto-next />
-                  <span class="sd-settings__switch"></span>
-                </label>
-                <label class="sd-settings__toggle">
-                  <span>Tự động cuộn</span>
-                  <input type="checkbox" data-player-auto-scroll />
-                  <span class="sd-settings__switch"></span>
-                </label>
+                <label class="sd-settings__toggle"><span>Tiếp tục chương sau</span><input type="checkbox" checked data-player-auto-next /><span class="sd-settings__switch"></span></label>
+                <label class="sd-settings__toggle"><span>Tự động cuộn</span><input type="checkbox" data-player-auto-scroll /><span class="sd-settings__switch"></span></label>
               </div>
             </div>
           </section>
-
           <section class="mobile-card mobile-story-info" aria-label="Thông tin truyện">
-            <div class="mobile-card__heading">
-              <h2><i class="fa-solid fa-circle-info"></i> Thông tin truyện</h2>
-            </div>
+            <div class="mobile-card__heading"><h2><i class="fa-solid fa-circle-info"></i> Thông tin truyện</h2></div>
             <a href="#" class="mobile-story-info__item" data-mobile-author><span class="mobile-story-info__label">Tác giả</span><strong></strong></a>
             <a href="#" class="mobile-story-info__item" data-mobile-genre><span class="mobile-story-info__label">Thể loại</span><strong></strong></a>
             <div class="mobile-story-info__item"><span class="mobile-story-info__label">Tình trạng</span><strong>Đang ra</strong></div>
             <div class="mobile-story-info__item" data-mobile-listens><span class="mobile-story-info__label">Lượt nghe</span><strong>0</strong></div>
           </section>
-
           <section class="mobile-card mobile-chapter-list" aria-label="Danh sách chương di động">
-            <div class="mobile-card__heading">
-              <h2><i class="fa-solid fa-list-music"></i> Danh sách chương</h2>
-              <span data-mobile-chapter-count></span>
-              <button type="button" class="add-chapter-btn is-hidden" data-mobile-add-chapter-btn title="Đăng chương mới"><i class="fa-solid fa-plus"></i></button>
-            </div>
+            <div class="mobile-card__heading"><h2><i class="fa-solid fa-list-music"></i> Danh sách chương</h2><span data-mobile-chapter-count></span><button type="button" class="add-chapter-btn is-hidden" data-mobile-add-chapter-btn title="Đăng chương mới"><i class="fa-solid fa-plus"></i></button></div>
             <div class="chapter-list" data-mobile-chapter-list></div>
           </section>
-
-          <!-- Next Up -->
           <div class="sd-nextup is-hidden" data-nextup>
             <div class="sd-nextup__label">Nổi bật tiếp theo</div>
             <div class="sd-nextup__card">
               <div class="sd-nextup__thumb"></div>
-              <div class="sd-nextup__info">
-                <span class="sd-nextup__eyebrow">Chương tiếp theo</span>
-                <span class="sd-nextup__title"></span>
-                <span class="sd-nextup__meta"></span>
-              </div>
+              <div class="sd-nextup__info"><span class="sd-nextup__eyebrow">Chương tiếp theo</span><span class="sd-nextup__title"></span><span class="sd-nextup__meta"></span></div>
               <button type="button" class="sd-nextup__play" data-player-next-chapter><i class="fa-solid fa-play"></i></button>
             </div>
           </div>
-
           <article class="panel chapter-reading" id="chapter-reading">
             <div class="section-heading"><h2><i class="fa-regular fa-file-lines"></i> Đọc Truyện Chữ</h2><a href="#chapter-reading">Bản in</a></div>
             <div class="reading-toolbar" data-reading-toolbar>
@@ -225,37 +201,28 @@
                 </div>
               </div>
             </div>
-            <div class="chapter-copy" data-chapter-copy>
-              <p data-loading-placeholder>Đang tải nội dung...</p>
-            </div>
+            <div class="chapter-copy" data-chapter-copy><p data-loading-placeholder>Đang tải nội dung...</p></div>
           </article>
-
           <section class="panel audio-video-embed is-hidden" data-story-video-wrap>
             <div class="section-heading"><h2><i class="fa-brands fa-youtube"></i> Video YouTube</h2></div>
             <div class="audio-video-embed__frame" data-story-video></div>
           </section>
-
           <section class="panel comments-panel">
-            <div class="section-heading"><h2><i class="fa-regular fa-comments"></i> Bình Luận &amp; Đánh Giá (2)</h2></div>
-            <div class="comment-login is-hidden" data-comment-guest>Bạn cần đăng nhập để tham gia thảo luận.<a href="login.html" class="btn btn--primary">Đăng nhập ngay</a></div>
+            <div class="section-heading"><h2><i class="fa-regular fa-comments"></i> Bình Luận &amp; Đánh Giá</h2></div>
+            <div class="comment-login is-hidden" data-comment-guest>Bạn cần đăng nhập để tham gia thảo luận.<a href="/login.html" class="btn btn--primary">Đăng nhập ngay</a></div>
             <form class="comment-entry is-hidden" data-comment-form>
-              <div class="comment-entry__head"><div><div class="comment-entry__title">Chia sẻ cảm nhận của bạn</div><div class="comment-entry__hint">Đánh giá nhanh chất lượng truyện và để lại bình luận demo.</div></div></div>
+              <div class="comment-entry__head"><div><div class="comment-entry__title">Chia sẻ cảm nhận của bạn</div><div class="comment-entry__hint">Đánh giá nhanh chất lượng truyện và để lại bình luận.</div></div></div>
               <textarea data-comment-text placeholder="Bạn thấy phần mở đầu, giọng đọc hoặc nhịp truyện thế nào?"></textarea>
-              <div class="comment-entry__actions"><span class="comment-entry__status" data-comment-status>Nhập bình luận để gửi demo.</span><button type="submit" class="btn btn--primary">Gửi bình luận</button></div>
+              <div class="comment-entry__actions"><span class="comment-entry__status" data-comment-status>Nhập bình luận để gửi.</span><button type="submit" class="btn btn--primary">Gửi bình luận</button></div>
             </form>
-            <div class="comment-list" data-comment-list>
-              <div class="comment-item"><div class="comment-avatar">KV</div><div class="comment-body"><div class="comment-head"><strong>Hải Minh Khánh</strong><span>13/02/2024 lúc 9:28 sáng</span></div><p>Mở đầu rất cuốn, mong cập nhật chương đều!</p></div></div>
-              <div class="comment-item"><div class="comment-avatar">XC</div><div class="comment-body"><div class="comment-head"><strong>Xoài Chua Story</strong><span>14/02/2024 lúc 5:52 sáng</span></div><p>Giọng đọc rõ và nhịp kể ổn, phần đấu trí nghe rất đã.</p></div></div>
-            </div>
+            <div class="comment-list" data-comment-list></div>
           </section>
         </section>
-
         <aside class="detail-sidebar">
           <section class="panel sidebar-panel">
             <div class="section-heading"><h2><i class="fa-solid fa-music"></i> Danh sách chương</h2><span data-sidebar-chapter-count></span><button type="button" class="add-chapter-btn is-hidden" data-add-chapter-btn title="Đăng chương mới vào bộ truyện này"><i class="fa-solid fa-plus"></i></button></div>
             <div class="chapter-list" data-sidebar-chapter-list></div>
           </section>
-
           <section class="panel sidebar-panel">
             <div class="section-heading"><h2><i class="fa-solid fa-arrow-trend-up"></i> Truyện Trending</h2></div>
             <div class="mini-list" data-sidebar-trending></div>
@@ -264,9 +231,7 @@
       </div>
     </div>
   </main>
-  </div> <!-- /m-page -->
-
-  <!-- Add Chapter Modal -->
+  </div>
   <div class="add-chapter-modal is-hidden" data-add-chapter-modal>
     <div class="add-chapter-modal__backdrop" data-add-chapter-close></div>
     <div class="add-chapter-modal__panel" role="dialog" aria-modal="true" aria-labelledby="add-chapter-title">
@@ -274,24 +239,10 @@
       <h3 id="add-chapter-title"><i class="fa-solid fa-plus"></i> Đăng chương mới</h3>
       <p class="add-chapter-modal__series" data-add-chapter-series-name></p>
       <div class="add-chapter-modal__form">
-        <label class="add-chapter-modal__field">
-          <span>Tên chương</span>
-          <input type="text" data-add-chapter-name placeholder="Ví dụ: Chương 5 - Cuộc hội ngộ" />
-        </label>
-        <label class="add-chapter-modal__field">
-          <span>Audio chương này</span>
-          <input type="file" accept="audio/*" data-add-chapter-audio />
-          <small class="add-chapter-modal__hint" data-add-chapter-audio-hint>MP3/WAV • Tối đa 50MB</small>
-        </label>
-        <label class="add-chapter-modal__field">
-          <span>Truyện chữ (tùy chọn)</span>
-          <input type="file" accept=".txt,text/plain,.md,text/markdown" data-add-chapter-reading />
-          <small class="add-chapter-modal__hint" data-add-chapter-reading-hint>TXT/MD • Tối đa 2MB</small>
-        </label>
-        <label class="add-chapter-modal__field">
-          <span>Mô tả chương (tùy chọn)</span>
-          <textarea data-add-chapter-desc placeholder="Nội dung tóm tắt chương này..." rows="3"></textarea>
-        </label>
+        <label class="add-chapter-modal__field"><span>Tên chương</span><input type="text" data-add-chapter-name placeholder="Ví dụ: Chương 5 - Cuộc hội ngộ" /></label>
+        <label class="add-chapter-modal__field"><span>Audio chương này</span><input type="file" accept="audio/*" data-add-chapter-audio /><small class="add-chapter-modal__hint" data-add-chapter-audio-hint>MP3/WAV • Tối đa 50MB</small></label>
+        <label class="add-chapter-modal__field"><span>Truyện chữ (tùy chọn)</span><input type="file" accept=".txt,text/plain,.md,text/markdown" data-add-chapter-reading /><small class="add-chapter-modal__hint" data-add-chapter-reading-hint>TXT/MD • Tối đa 2MB</small></label>
+        <label class="add-chapter-modal__field"><span>Mô tả chương (tùy chọn)</span><textarea data-add-chapter-desc placeholder="Nội dung tóm tắt chương này..." rows="3"></textarea></label>
       </div>
       <div class="add-chapter-modal__actions">
         <button type="button" class="btn btn--outline" data-add-chapter-close>Hủy</button>
@@ -300,7 +251,6 @@
       <div class="add-chapter-modal__status is-hidden" data-add-chapter-status></div>
     </div>
   </div>
-
   <div class="auth-required-modal is-hidden" data-auth-required-modal>
     <div class="auth-required-modal__backdrop" data-auth-required-close></div>
     <div class="auth-required-modal__panel" role="dialog" aria-modal="true" aria-labelledby="auth-required-title">
@@ -308,18 +258,15 @@
       <div class="auth-required-modal__icon"><i class="fa-solid fa-lock"></i></div>
       <h3 id="auth-required-title">Yêu cầu đăng nhập</h3>
       <p>Bạn cần đăng nhập tài khoản để nghe chương này.</p>
-      <a href="login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>
+      <a href="/login.html" class="auth-required-modal__primary">Đăng nhập ngay</a>
       <button type="button" class="auth-required-modal__secondary" data-auth-required-close>Đóng lại</button>
     </div>
   </div>
-
-
-    <script src="js/api-client.js"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/stories-store.js?v=20260803-1"></script>
-  <script src="js/auth-state.js"></script>
+    <script src="/js/api-client.js"></script>
+  <script src="/js/supabase-client.js"></script>
+  <script src="/js/stories-store.js"></script>
+  <script src="/js/auth-state.js"></script>
 <script>
-  /* Description expand/collapse */
   (function(){
     var dc = document.querySelector('.detail-copy');
     if(!dc) return;
@@ -329,12 +276,18 @@
     });
   })();
   </script>
-
 </div>
-  <script src="js/shell-inject.js"></script>
-  <script src="js/library-state.js" data-page-script></script>
-  <script src="js/stories-cover-store.js" data-page-script></script>
-  <script src="js/stories-audio-store.js?v=20260803-2" data-page-script></script>
-  <script src="js/story-detail-ui.js?v=20260806-18" data-page-script></script>
+  <script src="/js/shell-inject.js"></script>
+  <script src="/js/library-state.js" data-page-script></script>
+  <script src="/js/stories-cover-store.js" data-page-script></script>
+  <script src="/js/stories-audio-store.js" data-page-script></script>
+  <script src="/js/story-detail-ui.js" data-page-script></script>
 </body>
-</html>
+</html>`;
+
+export async function onRequest(context) {
+  return new Response(STORY_DETAIL_HTML, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  });
+}

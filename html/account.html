@@ -9,7 +9,7 @@
   <title>Tài Khoản | AudioHub</title>
   <link rel="stylesheet" href="../css/style-categories.css" />
   <link rel="stylesheet" href="../css/account.css?v=20260803-1" />
-  <link rel="stylesheet" href="../css/playlist-clean.css" />
+  <link rel="stylesheet" href="../css/playlist-clean.css?v=2" />
   <link rel="stylesheet" href="../css/library-state.css" />
   <link rel="stylesheet" href="../css/content-search.css" />
   <link rel="stylesheet" href="../css/account-mobile.css" />
@@ -55,15 +55,15 @@
 
           <!-- 3 nav cards -->
           <div class="account-navcards" role="tablist" aria-label="Khu vực tài khoản">
-            <button type="button" class="account-navcard is-active" data-main-tab="history" aria-selected="true">
+            <button type="button" class="account-navcard is-active" data-main-tab="history" aria-selected="true" onclick="window.AudioHubSwitchMainTab&&window.AudioHubSwitchMainTab('history')">
               <i class="fa-solid fa-headphones"></i>
               <span>Nghe gần đây</span>
             </button>
-            <button type="button" class="account-navcard" data-main-tab="favorites" aria-selected="false">
+            <button type="button" class="account-navcard" data-main-tab="favorites" aria-selected="false" onclick="window.AudioHubSwitchMainTab&&window.AudioHubSwitchMainTab('favorites')">
               <i class="fa-solid fa-heart"></i>
               <span>Yêu thích</span>
             </button>
-            <button type="button" class="account-navcard" data-main-tab="mycontent" aria-selected="false">
+            <button type="button" class="account-navcard" data-main-tab="mycontent" aria-selected="false" onclick="window.AudioHubSwitchMainTab&&window.AudioHubSwitchMainTab('mycontent')">
               <i class="fa-solid fa-book-open"></i>
               <span>Nội dung của tôi</span>
             </button>
@@ -211,7 +211,7 @@
   <script src="../js/stories-cover-store.js" data-page-script></script>
   <script src="../js/stories-audio-store.js?v=20260803-2" data-page-script></script>
   <script src="../js/library-state.js" data-page-script></script>
-  <script src="../js/stories-account.js?v=6" data-page-script></script>
+  <script src="../js/stories-account.js?v=12" data-page-script></script>
   <script src="../js/content-search.js" data-page-script></script>
 </body>
 </html>

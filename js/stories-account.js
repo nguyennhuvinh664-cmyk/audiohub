@@ -266,7 +266,17 @@
   }
 
   function renderStoriesFromList(stories) {
-    var sorted = sortRecentDesc(stories);
+    // Deduplicate by title::author (DB may have duplicate rows from repeated syncs)
+    var deduped = [];
+    var seenKeys = {};
+    (stories || []).forEach(function (s) {
+      var key = ((s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase());
+      if (key === '::') { deduped.push(s); return; }
+      if (seenKeys[key]) return;
+      seenKeys[key] = true;
+      deduped.push(s);
+    });
+    var sorted = sortRecentDesc(deduped);
     var published = sorted.filter(function (story) { return !isDraft(story); });
     var drafts = sorted.filter(isDraft);
 
@@ -410,6 +420,56 @@
     });
   }
 
+  function positionStoryMenu(panel, menuBtn) {
+    if (!panel || !menuBtn) return;
+    var rect = menuBtn.getBoundingClientRect();
+    var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    var panelWidth = panel.offsetWidth || 180;
+    var panelHeight = panel.offsetHeight || 220;
+    var left = Math.min(rect.right - panelWidth, viewportWidth - panelWidth - 8);
+    var top = Math.min(rect.bottom + 4, viewportHeight - panelHeight - 8);
+
+    left = Math.max(8, left);
+    top = Math.max(8, top);
+
+    panel.style.position = 'fixed';
+    panel.style.top = top + 'px';
+    panel.style.left = left + 'px';
+    panel.style.right = 'auto';
+    panel.style.zIndex = '10000';
+  }
+
+  function updateStoryMenuPositions() {
+    document.querySelectorAll('[data-story-menu-panel]').forEach(function (panel) {
+      if (panel.classList.contains('is-hidden')) return;
+      var storyId = panel.getAttribute('data-story-menu-panel');
+      var menuBtn = storyId ? document.querySelector('[data-story-menu="' + storyId + '"]') : null;
+      if (menuBtn) positionStoryMenu(panel, menuBtn);
+    });
+  }
+
+  function openStoryMenu(storyId, menuBtn) {
+    if (!storyId || !menuBtn) return;
+    var panel = document.querySelector('[data-story-menu-panel="' + storyId + '"]');
+    if (!panel) return;
+
+    var isOpen = !panel.classList.contains('is-hidden');
+    closeAllMenus();
+    if (isOpen) return;
+
+    panel.classList.remove('is-hidden');
+    document.body.appendChild(panel);
+    positionStoryMenu(panel, menuBtn);
+
+    var scrollParent = menuBtn.closest('.account-scroll-list');
+    if (scrollParent) {
+      scrollParent.addEventListener('scroll', function () {
+        positionStoryMenu(panel, menuBtn);
+      }, { passive: true });
+    }
+  }
+
   function bindStoryMenuActions() {
     document.addEventListener('change', function (event) {
       var selectAll = event.target.closest('[data-select-all]');
@@ -456,6 +516,8 @@
     // Close menus on SPA navigation (popstate, hashchange, spa:navigated)
     window.addEventListener('popstate', closeAllMenus);
     window.addEventListener('hashchange', closeAllMenus);
+    window.addEventListener('resize', updateStoryMenuPositions);
+    window.addEventListener('scroll', updateStoryMenuPositions, true);
     document.addEventListener('spa:navigated', closeAllMenus);
 
     document.addEventListener('click', function (event) {
@@ -467,33 +529,11 @@
       // toggle 3-dot menu
       var menuBtn = event.target.closest('[data-story-menu], .account-item-menu-btn');
       if (menuBtn) {
-        var sid = menuBtn.getAttribute('data-story-menu');
-        var panel = document.querySelector('[data-story-menu-panel="' + sid + '"]');
-        if (!panel) return;
-        var isOpen = !panel.classList.contains('is-hidden');
-        // Close all menus first
-        closeAllMenus();
-        if (!isOpen) {
-          panel.classList.remove('is-hidden');
-          // Move panel to body to escape scroll container overflow
-          var rect = menuBtn.getBoundingClientRect();
-          panel.style.position = 'fixed';
-          panel.style.top = (rect.bottom + 4) + 'px';
-          panel.style.left = (rect.right - 180) + 'px';
-          panel.style.right = 'auto';
-          panel.style.zIndex = '10000';
-          document.body.appendChild(panel);
-          // Close on scroll
-          var scrollParent = menuBtn.closest('.account-scroll-list');
-          if (scrollParent) {
-            var onScroll = function() {
-              closeAllMenus();
-              scrollParent.removeEventListener('scroll', onScroll);
-            };
-            scrollParent.addEventListener('scroll', onScroll, { once: true });
-          }
-        }
+        event.preventDefault();
         event.stopPropagation();
+        var sid = menuBtn.getAttribute('data-story-menu');
+        if (!sid) return;
+        openStoryMenu(sid, menuBtn);
         return;
       }
 
@@ -1057,6 +1097,14 @@
 
     mount.innerHTML = html;
 
+    mount.querySelectorAll('[data-story-menu]').forEach(function (menuBtn) {
+      menuBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        openStoryMenu(menuBtn.getAttribute('data-story-menu'), menuBtn);
+      });
+    });
+
     var paginationWrap = document.querySelector('[data-pagination-wrap="' + type + '"]');
     if (paginationWrap) {
       paginationWrap.innerHTML = totalPages > 1 ? buildPagination(page, totalPages, type) : '';
@@ -1190,6 +1238,7 @@
       .then(function (d1Playlists) {
         if (!Array.isArray(d1Playlists) || !d1Playlists.length) return readPlaylists();
 
+        try {
         var local = readPlaylists();
         var localMap = {};
         local.forEach(function (pl) { localMap[pl.id] = pl; });
@@ -1202,10 +1251,14 @@
         d1Playlists.forEach(function (pl) {
           if (!pl || !pl.id || seenIds[pl.id]) return;
           seenIds[pl.id] = true;
-          // Parse items if string
+          // Parse items if string (handle double-stringify from D1)
           var entries = pl.items || pl.entries || [];
           if (typeof entries === 'string') {
             try { entries = JSON.parse(entries); } catch (e) { entries = []; }
+            // Double-stringify fix: if still string after first parse, parse again
+            if (typeof entries === 'string') {
+              try { entries = JSON.parse(entries); } catch (e2) { entries = []; }
+            }
           }
           merged.push({
             id: pl.id,
@@ -1225,10 +1278,88 @@
           merged.push(pl);
         });
 
+        // Reconcile: if D1 playlist has 0 entries but localStorage has entries for same ID, use local entries
+        var localMap2 = {};
+        local.forEach(function (pl) { if (pl && pl.id) localMap2[pl.id] = pl; });
+        merged.forEach(function (pl) {
+          if (pl && pl.id && (!pl.entries || !pl.entries.length)) {
+            var localPl = localMap2[pl.id];
+            if (localPl && localPl.entries && localPl.entries.length) {
+              pl.entries = localPl.entries;
+              console.log('[account] ✅ Reconciled entries from localStorage for playlist:', pl.name);
+              // Re-sync to D1
+              try {
+                fetch('/api/playlists', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries) })
+                }).catch(function () {});
+              } catch (e) {}
+            }
+          }
+        });
+
+        // Auto-populate: if playlist still has 0 entries, scan stories for matches
+        var hasEmpty = merged.some(function (pl) { return pl && (!pl.entries || !pl.entries.length); });
+        if (hasEmpty) {
+          try {
+            var storiesRaw = localStorage.getItem('audiohub-stories');
+            var allStories = storiesRaw ? JSON.parse(storiesRaw) : [];
+            if (Array.isArray(allStories) && allStories.length) {
+              merged.forEach(function (pl) {
+                if (pl && (!pl.entries || !pl.entries.length)) {
+                  // Match stories by name similarity or created_by
+                  var matched = allStories.filter(function (s) {
+                    if (!s || !s.id) return false;
+                    // Match by title containing playlist name or vice versa
+                    var plName = (pl.name || '').toLowerCase();
+                    var sTitle = (s.title || '').toLowerCase();
+                    if (plName && sTitle && (sTitle.indexOf(plName) !== -1 || plName.indexOf(sTitle) !== -1)) return true;
+                    // Match by author
+                    var sAuthor = String(s.author || s.created_by || '').toLowerCase();
+                    var plAuthor = String(pl.createdBy || pl.created_by || '').toLowerCase();
+                    if (sAuthor && plAuthor && sAuthor === plAuthor) return true;
+                    return false;
+                  });
+                  if (matched.length) {
+                    pl.entries = matched.map(function (s, i) {
+                      return {
+                        key: s.id,
+                        title: s.title || '',
+                        chapterTitle: '',
+                        chapterIndex: i,
+                        author: s.author || '',
+                        genre: s.genre || '',
+                        href: '/story-detail?id=' + encodeURIComponent(s.id) + (pl.id ? ('&playlistId=' + encodeURIComponent(pl.id)) : ''),
+                        status: 'listening',
+                        progress: 0,
+                        addedAt: s.createdAt || new Date().toISOString()
+                      };
+                    });
+                    console.log('[account] ✅ Auto-populated playlist:', pl.name, '| entries:', pl.entries.length);
+                    // Sync to D1
+                    try {
+                      fetch('/api/playlists', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries) })
+                      }).catch(function () {});
+                    } catch (e) {}
+                  }
+                }
+              });
+            }
+          } catch (e) {}
+        }
+
         // Save merged to localStorage
         try { localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
 
         return merged;
+        } catch (mergeErr) {
+          console.error('[account] Merge error, falling back to localStorage:', mergeErr);
+          return readPlaylists();
+        }
       })
       .catch(function () {
         return readPlaylists();
@@ -1381,13 +1512,18 @@
 
     if (playlistNote) playlistNote.classList.toggle('is-hidden', true);
 
-    // Show loading state
-    playlistListMount.innerHTML = '<p class="playlist-empty">Đang tải...</p>';
+    // Show loading state only if list is empty or shows loading
+    if (!playlistListMount.children.length || playlistListMount.textContent.indexOf('Đang tải') >= 0) {
+      playlistListMount.innerHTML = '<p class="playlist-empty">Đang tải...</p>';
+    }
 
     // Fetch from D1 and merge with localStorage
     syncPlaylistsFromD1().then(function (allPlaylists) {
-      var list = allPlaylists.filter(function (p) {
-        return String(p.createdBy || 'admin') === 'admin';
+      console.log('[account] syncPlaylistsFromD1 result:', allPlaylists ? allPlaylists.length : 'null', 'playlists');
+      try {
+      var list = (allPlaylists || readPlaylists() || []).filter(function (p) {
+        var cb = String(p.createdBy || p.created_by || 'admin').toLowerCase();
+        return cb === 'admin' || cb === 'user' || !cb;
       });
 
       if (!list.length) {
@@ -1450,9 +1586,36 @@
       // Scroll playlist list to top on page change
       playlistListMount.scrollTop = 0;
 
-      renderPlaylistDetail();
-    }).catch(function () {
-      playlistListMount.innerHTML = '<p class="playlist-empty">Lỗi tải dữ liệu. Thử lại sau.</p>';
+      try { renderPlaylistDetail(); } catch (detailErr) {
+        console.error('[account] renderPlaylistDetail error:', detailErr);
+      }
+      } catch (renderErr) {
+        console.error('[account] renderPlaylist error:', renderErr);
+        playlistListMount.innerHTML = '<p class="playlist-empty">Lỗi hiển thị. Thử lại sau.</p>';
+      }
+    }).catch(function (err) {
+      console.error('[account] syncPlaylistsFromD1 catch:', err && err.message ? err.message : err);
+      // Fallback: use localStorage directly
+      try {
+        var fallback = readPlaylists() || [];
+        var list2 = (Array.isArray(fallback) ? fallback : []).filter(function (p) {
+          var cb = String(p.createdBy || p.created_by || 'admin').toLowerCase();
+          return cb === 'admin' || cb === 'user' || !cb;
+        });
+        if (list2.length) {
+          playlistListMount.innerHTML = list2.map(function (pl) {
+            var count = (pl.entries || []).length;
+            return '<div class="pl-card" data-playlist-id="' + escapeHtml(pl.id) + '">' +
+              '<div class="pl-card__name">' + escapeHtml(pl.name || 'Truyện') + '</div>' +
+              '<div class="pl-card__meta">' + count + ' truyện</div>' +
+            '</div>';
+          }).join('');
+        } else {
+          playlistListMount.innerHTML = '<p class="playlist-empty">Lỗi tải dữ liệu. Thử lại sau.</p>';
+        }
+      } catch (e2) {
+        playlistListMount.innerHTML = '<p class="playlist-empty">Lỗi tải dữ liệu. Thử lại sau.</p>';
+      }
     });
   }
 
@@ -1593,7 +1756,14 @@
             '</div>' +
             '<div class="playlist-entry-actions">' +
               '<a href="' + escapeHtml(entryHref) + '" class="playlist-btn" title="Nghe"><i class="fa-solid fa-play"></i></a>' +
-              '<button type="button" class="playlist-btn playlist-btn--remove" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '" title="Xóa khỏi truyện"><i class="fa-solid fa-xmark"></i></button>' +
+              '<div class="playlist-kebab-wrap">' +
+                '<button type="button" class="playlist-btn playlist-btn--kebab" data-kebab-toggle="' + escapeHtml(entry.key) + '" title="Chỉnh sửa"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
+                '<div class="playlist-kebab-menu" data-kebab-menu="' + escapeHtml(entry.key) + '">' +
+                  '<button type="button" class="playlist-kebab-item" data-entry-edit="' + escapeHtml(entry.key) + '"><i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa</button>' +
+                  '<button type="button" class="playlist-kebab-item" data-entry-rename="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-pen"></i> Đổi tên</button>' +
+                  '<button type="button" class="playlist-kebab-item playlist-kebab-item--danger" data-entry-remove="' + escapeHtml(entry.key) + '" data-playlist-id="' + escapeHtml(pl.id) + '"><i class="fa-solid fa-trash"></i> Xóa</button>' +
+                '</div>' +
+              '</div>' +
             '</div>' +
           '</div>';
       }).join('');
@@ -1756,7 +1926,15 @@
     }
   }
 
+  function closeAllKebabMenus() {
+    var floating = document.querySelector('.playlist-kebab-floating');
+    if (floating) floating.remove();
+  }
+
   function bindPlaylistActions() {
+    // Singleton guard: only register once to avoid duplicate handlers
+    if (window.__playlistActionsBound) return;
+    window.__playlistActionsBound = true;
     // dùng event delegation để tránh null khi bind
     document.addEventListener('click', function (event) {
       if (event.target.closest('[data-playlist-create]')) {
@@ -1781,8 +1959,88 @@
         return;
       }
 
+      // Kebab menu toggle — clone into floating position:fixed element
+      var kebabToggle = event.target.closest('[data-kebab-toggle]');
+      if (kebabToggle) {
+        event.stopPropagation();
+        event.preventDefault();
+        var key = kebabToggle.getAttribute('data-kebab-toggle');
+        closeAllKebabMenus();
+        // Find the source menu template in the playlist detail
+        var detailEl = document.querySelector('[data-playlist-detail]');
+        if (!detailEl) return;
+        var srcMenu = detailEl.querySelector('[data-kebab-menu="' + key + '"]');
+        if (!srcMenu) return;
+        // Clone the menu and create a floating element
+        var floating = document.createElement('div');
+        floating.className = 'playlist-kebab-floating';
+        floating.innerHTML = srcMenu.innerHTML;
+        floating.style.cssText = 'position:fixed;z-index:999999;background:#1e1b2e;border:1px solid rgba(255,255,255,0.1);border-radius:10px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,0.4);padding:4px;display:block;';
+        // Position below the ⋮ button
+        var rect = kebabToggle.getBoundingClientRect();
+        var topPos = rect.bottom + 4;
+        var leftPos = rect.right - 160;
+        if (leftPos < 8) leftPos = 8;
+        if (topPos + 130 > window.innerHeight) {
+          topPos = rect.top - 130 - 4;
+        }
+        floating.style.top = topPos + 'px';
+        floating.style.left = leftPos + 'px';
+        document.body.appendChild(floating);
+        // Close on scroll or resize
+        var _closeOnScroll = function () { closeAllKebabMenus(); window.removeEventListener('scroll', _closeOnScroll); };
+        window.addEventListener('scroll', _closeOnScroll, { passive: true });
+        window.addEventListener('resize', _closeOnScroll, { passive: true, once: true });
+        return;
+      }
+
+      // Edit chapter (navigate to upload-story with chapter index)
+      var editBtn = event.target.closest('[data-entry-edit]');
+      if (editBtn) {
+        var editKey = editBtn.getAttribute('data-entry-edit');
+        closeAllKebabMenus();
+        if (editKey) {
+          // Find the entry's chapter index from the DOM
+          var entryEl = editBtn.closest('.playlist-entry');
+          var chIdx = entryEl ? (Number(entryEl.getAttribute('data-chapter-index')) || 0) : 0;
+          var editUrl = '/upload-story.html?id=' + encodeURIComponent(editKey) + '&chapter=' + chIdx;
+          if (window.AudioHubRouter && window.AudioHubRouter.navigate) {
+            window.AudioHubRouter.navigate(editUrl);
+          } else {
+            window.location.href = editUrl;
+          }
+        }
+        return;
+      }
+
+      // Rename chapter
+      var renameBtn = event.target.closest('[data-entry-rename]');
+      if (renameBtn) {
+        var entryKey = renameBtn.getAttribute('data-entry-rename');
+        var plId = renameBtn.getAttribute('data-playlist-id');
+        closeAllKebabMenus();
+        if (entryKey && plId) {
+          // Find current chapter title
+          var allPls = readPlaylists();
+          var matchedPl = allPls.find(function (p) { return p.id === plId; });
+          var matchedEntry = matchedPl ? (matchedPl.entries || []).find(function (e) { return e.key === entryKey; }) : null;
+          var currentTitle = matchedEntry ? (matchedEntry.chapterTitle || matchedEntry.title || '') : '';
+          var newTitle = window.prompt('Tên chương:', currentTitle);
+          if (newTitle !== null && newTitle.trim() !== currentTitle) {
+            if (matchedPl && matchedEntry) {
+              matchedEntry.chapterTitle = newTitle.trim();
+              writePlaylists(allPls);
+              syncPlaylistsToStorage(plId);
+              renderPlaylistDetail(true);
+            }
+          }
+        }
+        return;
+      }
+
       var removeBtn = event.target.closest('[data-entry-remove]');
       if (removeBtn) {
+        closeAllKebabMenus();
         var entryKey = removeBtn.getAttribute('data-entry-remove');
         var plId = removeBtn.getAttribute('data-playlist-id');
         if (entryKey && plId) {
@@ -1905,9 +2163,15 @@
           renderPlaylist();
         }
       }
+
+      // Close kebab menus when clicking outside
+      if (!event.target.closest('.playlist-kebab-wrap') && !event.target.closest('.playlist-kebab-menu') && !event.target.closest('.playlist-kebab-floating')) {
+        closeAllKebabMenus();
+      }
     });
 
     document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeAllKebabMenus(); return; }
       if (e.key !== 'Enter') return;
       var input = document.querySelector('[data-playlist-create-name]');
       if (document.activeElement !== input) return;
@@ -1918,6 +2182,12 @@
       input.value = '';
       renderPlaylist();
     });
+
+    /* Close on window resize */
+    window.addEventListener('resize', function () {
+      var open = document.querySelector('.playlist-kebab-menu.is-open');
+      if (open) closeAllKebabMenus();
+    }, { passive: true });
   }
 
   // Global API for other pages to add entries to a playlist
@@ -1968,10 +2238,8 @@
   }
 
   function fetchCoverFromStorage(node, url) {
-    console.log('[FETCH-COVER] url:', url);
     node.setAttribute('data-cover-state', 'pending');
     fetch(url).then(function (r) {
-      console.log('[FETCH-COVER] status:', r.status, 'url:', url);
       if (!r.ok) return null;
       // Try to read as text first to detect data-URL strings
       return r.clone().text().then(function (txt) {
@@ -1996,9 +2264,18 @@
     }).catch(function () { node.setAttribute('data-cover-state', 'no-cover'); });
   }
 
+  var _coverHydrating = false;
+  var _coverHydrateTimer = null;
   function hydratePlaylistCovers() {
+    // Debounce: prevent rapid consecutive calls (observer fires on each img append)
+    if (_coverHydrateTimer) clearTimeout(_coverHydrateTimer);
+    _coverHydrateTimer = setTimeout(function () { _doHydrateCovers(); }, 150);
+  }
+  function _doHydrateCovers() {
+    if (_coverHydrating) return;
+    _coverHydrating = true;
     var detail = document.querySelector('[data-playlist-detail]');
-    if (!detail) return;
+    if (!detail) { _coverHydrating = false; return; }
     // Build title→cloudKey map from current playlist entries
     var titleToCloudKey = {};
     try {
@@ -2045,23 +2322,34 @@
         node.setAttribute('data-cover-state', 'no-cover');
       }
     });
+    _coverHydrating = false;
   }
 
   // MutationObserver: auto-hydrate covers whenever playlist detail DOM changes
   (function () {
-    var observer = new MutationObserver(function () { hydratePlaylistCovers(); });
+    var _observerTimer = null;
+    var observer = new MutationObserver(function () {
+      // Debounce observer: avoid rapid fire when hydration appends <img> elements
+      if (_observerTimer) clearTimeout(_observerTimer);
+      _observerTimer = setTimeout(function () { hydratePlaylistCovers(); }, 200);
+    });
     var target = document.querySelector('[data-playlist-detail]');
     if (target) {
       observer.observe(target, { childList: true, subtree: true });
     } else {
-      // Wait for it to appear
+      // Wait for it to appear (throttled — body observer is expensive)
+      var _obs2Timer = null;
       var obs2 = new MutationObserver(function () {
-        var t = document.querySelector('[data-playlist-detail]');
-        if (t) {
-          obs2.disconnect();
-          observer.observe(t, { childList: true, subtree: true });
-          hydratePlaylistCovers();
-        }
+        if (_obs2Timer) return;
+        _obs2Timer = setTimeout(function () {
+          _obs2Timer = null;
+          var t = document.querySelector('[data-playlist-detail]');
+          if (t) {
+            obs2.disconnect();
+            observer.observe(t, { childList: true, subtree: true });
+            hydratePlaylistCovers();
+          }
+        }, 300);
       });
       obs2.observe(document.body, { childList: true, subtree: true });
     }
@@ -2076,23 +2364,34 @@
 
   // ── End Playlist ──────────────────────────────────────────────────────────
 
-  function refreshAll() {
+  function _doRefreshAll() {
     try { renderStoriesSection(); } catch (e) {}
     try { renderLibrarySections(); } catch (e) {}
     try { renderTrash(); } catch (e) {}
     try { renderPlaylist(); } catch (e) {}
+  }
+  var _refreshTimer = null;
+  function refreshAll() {
+    // Debounce: prevent rapid consecutive refreshes (storage events, sync events)
+    if (_refreshTimer) clearTimeout(_refreshTimer);
+    _refreshTimer = setTimeout(_doRefreshAll, 200);
   }
 
   initAvatar();
   initTabs();
   initMainTabs();
   initContentTabs();
+
+  // Global tab switch function (used by onclick in HTML as failsafe)
+  window.AudioHubSwitchMainTab = function (name) {
+    setMainTab(name);
+  };
   bindStoryMenuActions();
   bindCollectionActions();
   bindPagination();
   bindPlaylistActions();
   clearLocalDemoStories();
-  refreshAll();
+  _doRefreshAll(); // Immediate render on init (no debounce)
 
   // ── ROBUST FALLBACK: document-level click delegation for main tabs ──
   // SPA router loads scripts in parallel — initMainTabs() may run before DOM is ready.

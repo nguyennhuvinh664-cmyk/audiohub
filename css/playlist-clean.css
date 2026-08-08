@@ -191,7 +191,6 @@
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(15, 15, 25, 0.97);
-  backdrop-filter: blur(20px);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
   z-index: 9999;
 }
@@ -319,14 +318,13 @@
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
   min-height: 80px;
 }
 
 .playlist-entry:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.12);
-  transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -482,6 +480,64 @@
   background: rgba(239, 68, 68, 0.15);
   color: #f87171;
   border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Kebab (⋮) menu */
+.playlist-kebab-wrap {
+  position: relative;
+  z-index: 10;
+}
+.playlist-btn--kebab {
+  color: rgba(255, 255, 255, 0.4);
+  border-color: transparent;
+  background: transparent;
+}
+.playlist-btn--kebab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+/* Menu: position absolute inside fixed overlay — escapes overflow */
+.playlist-kebab-menu {
+  display: none;
+  position: absolute;
+  right: auto;
+  top: auto;
+  background: #1e1b2e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  min-width: 150px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  padding: 4px;
+}
+.playlist-kebab-menu.is-open {
+  display: block;
+}
+.playlist-kebab-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+.playlist-kebab-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+.playlist-kebab-item--danger {
+  color: #f87171;
+}
+.playlist-kebab-item--danger:hover {
+  background: rgba(239,68,68,0.15);
+  color: #f87171;
 }
 
 /* Responsive */
