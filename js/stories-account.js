@@ -288,14 +288,14 @@
   }
 
   function renderStoriesFromList(stories) {
-    // Deduplicate by title::author (DB may have duplicate rows from repeated syncs)
+    // Deduplicate by title (DB may have duplicate rows from repeated syncs)
     var deduped = [];
-    var seenKeys = {};
+    var seenTitles = {};
     (stories || []).forEach(function (s) {
-      var key = ((s.title || '').trim().toLowerCase() + '::' + (s.author || '').trim().toLowerCase());
-      if (key === '::') { deduped.push(s); return; }
-      if (seenKeys[key]) return;
-      seenKeys[key] = true;
+      var key = (s.title || '').trim().toLowerCase();
+      if (!key) { deduped.push(s); return; }
+      if (seenTitles[key]) return;
+      seenTitles[key] = true;
       deduped.push(s);
     });
     var sorted = sortRecentDesc(deduped);
