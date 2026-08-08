@@ -462,9 +462,13 @@
         var title = escapeHtml(s.title);
         var genre = escapeHtml(s.genre || '');
         var tag = (s._isPlaylist && !s._storyData) ? '<span class="story-name-select__item-tag story-name-select__item-tag--playlist">Truyện</span>' : '';
+        // Check if story needs D1 sync (has real CUID but might not be in D1 with correct user_id)
+        var needsSync = !s._isPlaylist && s.id && !String(s.id).startsWith('s_') && !String(s.id).startsWith('pl-');
+        var syncBtn = needsSync ? '<button type="button" class="story-name-select__item-sync" data-story-sync="' + escapeHtml(s.id) + '" title="Đồng bộ lên D1"><i class="fa-solid fa-cloud-arrow-up"></i></button>' : '';
         html += '<button type="button" class="story-name-select__item" data-story-id="' + escapeHtml(s.id) + '" data-story-title="' + title + '" data-is-playlist="' + (s._isPlaylist ? '1' : '0') + '">' +
           '<span class="story-name-select__item-title">' + title + '</span>' +
-          '<span class="story-name-select__item-meta">' + tag + (genre ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span></button>';
+          '<span class="story-name-select__item-meta">' + tag + (genre ? '<span class="story-name-select__item-genre">' + genre + '</span>' : '') + '</span>' +
+          syncBtn + '</button>';
       });
       if (!filtered.length && !isAddingNew) {
         html = '<div class="story-name-select__empty">Không tìm thấy truyện</div>';
@@ -671,6 +675,67 @@
       render();
     }
 
+    function syncStoryToD1(storyId, btn) {
+      if (!storyId || !window.AudioHubApi || typeof window.AudioHubApi.request !== 'function') return;
+      var userId = _uid || getMyUserId();
+      if (!userId) { alert('Bạn chưa đăng nhập.'); return; }
+
+      // Find story from allStories or local stories
+      var story = allStories.find(function (s) { return String(s.id) === storyId; });
+      if (!story) {
+        try {
+          var raw = _readScopedStories();
+          story = (raw || []).find(function (s) { return s && String(s.id) === storyId; });
+        } catch (e) {}
+      }
+      if (!story || !story.title) { alert('Không tìm thấy story: ' + storyId); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      console.log('[upload] syncStoryToD1 — syncing:', story.title, '| id:', storyId, '| userId:', userId);
+
+      var payload = {
+        id: storyId,
+        title: story.title,
+        author: story.author || 'Admin AudioHub',
+        genre: story.genre || '',
+        description: story.description || '',
+        visibility: 'Công khai',
+        user_id: userId,
+        readingText: story.readingText || '',
+        hashtags: story.hashtags || '',
+        coverKey: story.coverKey || story.cover_key || '',
+        audioKey: story.audioKey || '',
+        chapters: story.chapters || []
+      };
+
+      window.AudioHubApi.request('/stories/' + encodeURIComponent(storyId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (result) {
+        console.log('[upload] ✅ syncStoryToD1 success:', story.title, '| id:', result && result.id);
+        btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        btn.style.color = '#22c55e';
+        // Refresh story list
+        fetchAllStories();
+        setTimeout(function () {
+          btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
+          btn.style.color = '';
+          btn.disabled = false;
+        }, 2000);
+      }).catch(function (err) {
+        console.error('[upload] ❌ syncStoryToD1 failed:', story.title, err);
+        btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        btn.style.color = '#ef4444';
+        setTimeout(function () {
+          btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
+          btn.style.color = '';
+          btn.disabled = false;
+        }, 2000);
+      });
+    }
+
     function startAddNew() {
       isAddingNew = true;
       selectedPlaylistId = null;
@@ -742,6 +807,14 @@
     });
 
     list.addEventListener('click', function (e) {
+      // Handle sync button click
+      var syncBtn = e.target.closest('[data-story-sync]');
+      if (syncBtn) {
+        e.stopPropagation();
+        var syncId = syncBtn.getAttribute('data-story-sync');
+        syncStoryToD1(syncId, syncBtn);
+        return;
+      }
       var btn = e.target.closest('.story-name-select__item');
       if (!btn) return;
       var id = btn.getAttribute('data-story-id');
