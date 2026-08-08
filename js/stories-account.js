@@ -1507,8 +1507,11 @@
       }
     } catch (e) {}
 
+    console.log('[account] publishPlaylistToD1 — entries:', entries.length, '| localStories:', localStories.length, '| uid:', userId);
+
     var published = 0;
     var errors = 0;
+    var errorMessages = [];
 
     // Process entries sequentially
     var i = 0;
@@ -1516,7 +1519,9 @@
       if (i >= entries.length) {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
-        window.alert('Đã đăng ' + published + '/' + entries.length + ' truyện lên D1.' + (errors ? ' (' + errors + ' lỗi)' : ''));
+        var msg = 'Đã đăng ' + published + '/' + entries.length + ' truyện lên D1.';
+        if (errors) msg += '\n\nLỗi:\n' + errorMessages.join('\n');
+        window.alert(msg);
         // Re-sync stories from API
         if (window.AudioHubStories && typeof window.AudioHubStories.sync === 'function') {
           window.AudioHubStories.sync();
@@ -1526,6 +1531,7 @@
 
       var entry = entries[i];
       var entryKey = entry.key || '';
+      console.log('[account] Processing entry:', i, '| key:', entryKey, '| title:', entry.title);
 
       // Find matching local story by key or title
       var story = localStories.find(function (s) {
@@ -1533,11 +1539,15 @@
       });
 
       if (!story || !story.title) {
+        console.warn('[account] ⚠ No matching local story for entry:', entry.title, '| key:', entryKey);
         errors++;
+        errorMessages.push('Không tìm thấy story local: ' + (entry.title || entryKey));
         i++;
         processNext();
         return;
       }
+
+      console.log('[account] Found story:', story.id, '|', story.title, '| userId:', story.userId || story.user_id || 'NONE');
 
       // Build payload for D1
       var payload = {
@@ -1578,8 +1588,10 @@
         i++;
         processNext();
       }).catch(function (err) {
-        console.error('[account] ❌ Publish failed:', story.title, err);
+        var errMsg = (err && err.message) ? err.message : String(err);
+        console.error('[account] ❌ Publish failed:', story.title, '|', errMsg, err);
         errors++;
+        errorMessages.push(story.title + ': ' + errMsg);
         i++;
         processNext();
       });
