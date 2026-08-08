@@ -307,6 +307,7 @@
 
     var allStories = [];
     var isAddingNew = false;
+    var _uid = getMyUserId();
 
     function fetchAllStories() {
       var plMap = {}, storyMap = {}, plOrder = [], storyOrder = [];
@@ -363,7 +364,7 @@
       }
 
       // Fetch from D1 API (only this user's stories)
-      var _uid = getMyUserId();
+      _uid = getMyUserId();
       var _apiUrl = _uid ? '/api/stories?user_id=' + encodeURIComponent(_uid) : '/api/stories';
       fetch(_apiUrl)
         .then(function (r) { return r.ok ? r.json() : []; })
@@ -385,11 +386,12 @@
         if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
           (window.AudioHubStories.read() || []).forEach(function (s) {
             if (!s || !s.id || !s.title) return;
-            // When logged in, skip stories that don't belong to this user
+            // When logged in, only include stories belonging to this user
             if (_uid) {
               var _sUserId = String(s.userId || s.user_id || '').trim().toLowerCase();
               if (String(s.id).startsWith('s_')) { /* local draft — always include */ }
-              else if (_sUserId && _sUserId !== _uid) return;
+              else if (!_sUserId) return; // legacy story without user_id — exclude
+              else if (_sUserId !== _uid) return; // different user's story — exclude
             }
             var key = String(s.title || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
             if (storyMap[key]) {
@@ -406,6 +408,29 @@
           });
         }
       } catch (e) {}
+
+      // Cleanup: remove orphaned stories from localStorage (no userId, not local draft)
+      // This ensures old synced data from other users doesn't persist
+      if (_uid && window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+        try {
+          var _allLocal = window.AudioHubStories.read() || [];
+          var _orphaned = _allLocal.filter(function (s) {
+            if (!s || !s.id) return false;
+            if (String(s.id).startsWith('s_')) return false; // keep local drafts
+            var _sUid = String(s.userId || s.user_id || '').trim().toLowerCase();
+            return !_sUid; // orphaned: no userId
+          });
+          if (_orphaned.length) {
+            _orphaned.forEach(function (s) {
+              if (window.AudioHubStories && typeof window.AudioHubStories.remove === 'function') {
+                window.AudioHubStories.remove(s.id);
+              }
+            });
+            console.log('[upload] Cleaned up', _orphaned.length, 'orphaned stories from localStorage');
+          }
+        } catch (e) {}
+      }
+
       mergeAndRender();
     }
 
@@ -716,6 +741,21 @@
 
     fetchAllStories();
     syncPlaylistsToStorage();
+
+    // Re-fetch when auth profile is ready (fixes timing: auth hydrates async after page load)
+    window.addEventListener('audiohub:auth-updated', function () {
+      _uid = getMyUserId();
+      fetchAllStories();
+    });
+    // Also re-fetch when dropdown opens (ensures fresh data after auth is ready)
+    trigger.addEventListener('click', function () {
+      if (!menu.classList.contains('is-hidden')) return; // already open
+      var currentUid = getMyUserId();
+      if (currentUid && currentUid !== _uid) {
+        _uid = currentUid;
+        fetchAllStories();
+      }
+    });
   })();
 
   /* ═══════════════════════════════════════════════════════════════════
