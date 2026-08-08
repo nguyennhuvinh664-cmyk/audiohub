@@ -4,7 +4,12 @@
     try {
       var raw = window.localStorage.getItem('audiohub-auth-profile');
       var parsed = raw ? JSON.parse(raw) : null;
-      return parsed && parsed.id ? String(parsed.id) : null;
+      if (!parsed || !parsed.isLoggedIn) return null;
+      // Use id, or fallback to email, or fallback to name
+      return (parsed.id && String(parsed.id).trim())
+        || (parsed.email && String(parsed.email).trim().toLowerCase())
+        || (parsed.name && String(parsed.name).trim().toLowerCase())
+        || null;
     } catch (e) { return null; }
   }
   function _storiesKey() {
