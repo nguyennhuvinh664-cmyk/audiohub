@@ -191,9 +191,21 @@
 
   // Read persistent deleted IDs from localStorage (set by AudioHubStories.remove → addDeletedId)
   function getPersistentDeletedIds() {
+    var uid = getMyUserId();
+    var key = uid ? 'audiohub-deleted-stories-' + uid : 'audiohub-deleted-stories';
     try {
-      return JSON.parse(localStorage.getItem('audiohub-deleted-stories') || '[]');
+      return JSON.parse(localStorage.getItem(key) || '[]');
     } catch (e) { return []; }
+  }
+
+  // Get current user's ID from auth profile (for API filtering)
+  function getMyUserId() {
+    try {
+      var raw = localStorage.getItem('audiohub-auth-profile');
+      var p = raw ? JSON.parse(raw) : null;
+      if (!p || !p.isLoggedIn) return null;
+      return (p.id && String(p.id).trim()) || (p.email && String(p.email).trim().toLowerCase()) || null;
+    } catch (e) { return null; }
   }
 
   function getStories() {
@@ -333,7 +345,9 @@
 
     // Then fetch from API in background (if logged in)
     if (isRealLogin()) {
-      window.AudioHubApi.request('/stories', { method: 'GET' })
+      var userId = getMyUserId();
+      var apiUrl = userId ? '/stories?user_id=' + encodeURIComponent(userId) : '/stories';
+      window.AudioHubApi.request(apiUrl, { method: 'GET' })
         .then(function (response) {
           var apiStories = Array.isArray(response) ? response : [];
           // ALWAYS re-read persistent deleted IDs from localStorage (not just in-memory cache)
