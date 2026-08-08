@@ -129,4 +129,26 @@ router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
   return ok(res, { id: updated.id, email: updated.email, displayName: updated.displayName, avatarDataUrl: updated.avatarDataUrl || '', isAdmin: updated.isAdmin });
 });
 
+// ── TEMP: one-time setup endpoint (REMOVE AFTER USE) ──────────────
+router.post('/setup-admin', async (req, res) => {
+  const { secret, email } = req.body || {};
+  if (secret !== 'audiohub-setup-2026') return fail(res, 'Forbidden', 403);
+  if (!email) return fail(res, 'Email required', 400);
+
+  // Add column if not exists
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false'
+  );
+
+  // Set admin
+  const result = await prisma.$executeRawUnsafe(
+    'UPDATE users SET is_admin = true WHERE email = $1',
+    email
+  );
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  return ok(res, { updated: Number(result), isAdmin: user?.isAdmin ?? false });
+});
+// ── END TEMP ──────────────────────────────────────────────────────
+
 export default router;
