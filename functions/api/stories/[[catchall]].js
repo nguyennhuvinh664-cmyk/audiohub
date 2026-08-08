@@ -39,6 +39,20 @@ export async function onRequest(context) {
     const storyId = pathParts[0];
     const action = pathParts[1]; // e.g., 'listen'
 
+    // POST /api/stories/fix-user-id - Maintenance: find story by title and update user_id
+    if (method === 'POST' && storyId === 'fix-user-id') {
+      const body = await request.json();
+      const title = (body.title || '').trim();
+      const newUserId = (body.user_id || '').trim();
+      if (!title) return Response.json({ error: 'title is required' }, { status: 400, headers: corsHeaders });
+      // Find story by title (any user)
+      const found = await env.DB.prepare('SELECT id, title, user_id FROM stories WHERE title = ?').bind(title).first();
+      if (!found) return Response.json({ error: 'Story not found: ' + title }, { status: 404, headers: corsHeaders });
+      // Update user_id
+      await env.DB.prepare('UPDATE stories SET user_id = ?, updated_at = ? WHERE id = ?').bind(newUserId || null, new Date().toISOString(), found.id).run();
+      return Response.json({ success: true, id: found.id, old_user_id: found.user_id, new_user_id: newUserId }, { headers: corsHeaders });
+    }
+
     // GET /api/stories/public - Public stories (must be before :id catch)
     if (method === 'GET' && storyId === 'public' && !action) {
       const genre = url.searchParams.get('genre');
