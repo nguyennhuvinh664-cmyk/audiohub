@@ -1387,7 +1387,9 @@
         var hasEmpty = merged.some(function (pl) { return pl && (!pl.entries || !pl.entries.length); });
         if (hasEmpty) {
           try {
-            var storiesRaw = localStorage.getItem('audiohub-stories');
+            var _plUserId = getMyUserId();
+            var _plStoriesKey = _plUserId ? 'audiohub-stories-' + _plUserId : 'audiohub-stories';
+            var storiesRaw = localStorage.getItem(_plStoriesKey);
             var allStories = storiesRaw ? JSON.parse(storiesRaw) : [];
             if (Array.isArray(allStories) && allStories.length) {
               merged.forEach(function (pl) {

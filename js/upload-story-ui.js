@@ -73,6 +73,14 @@
       return (p.id && String(p.id).trim()) || (p.email && String(p.email).trim().toLowerCase()) || null;
     } catch (e) { return null; }
   }
+  // Read stories from user-scoped localStorage key (NOT the old unscoped 'audiohub-stories')
+  function _readScopedStories() {
+    try {
+      var uid = getMyUserId();
+      var key = uid ? 'audiohub-stories-' + uid : 'audiohub-stories';
+      return JSON.parse(localStorage.getItem(key) || '[]');
+    } catch (e) { return []; }
+  }
   var defaultCoverBg = previewCover ? getComputedStyle(previewCover).backgroundImage : '';
 
   var state = {
@@ -339,6 +347,7 @@
 
       function mergeAndRender() {
         var items = [], seen = {};
+        console.log('[upload] mergeAndRender — storyMap keys:', Object.keys(storyMap).length, '| plMap keys:', Object.keys(plMap).length, '| uid:', _uid);
         plOrder.forEach(function (key) {
           var pl = plMap[key], st = storyMap[key];
           items.push({
@@ -363,13 +372,16 @@
         renderList(searchInput ? searchInput.value : '');
       }
 
-      // Fetch from D1 API (only this user's stories)
+      // Fetch from D1 API (only this user's stories) — use AudioHubApi for Authorization header
       _uid = getMyUserId();
-      var _apiUrl = _uid ? '/api/stories?user_id=' + encodeURIComponent(_uid) : '/api/stories';
-      fetch(_apiUrl)
-        .then(function (r) { return r.ok ? r.json() : []; })
+      var _apiPath = _uid ? '/stories?user_id=' + encodeURIComponent(_uid) : '/stories';
+      var _apiCall = (window.AudioHubApi && typeof window.AudioHubApi.request === 'function')
+        ? window.AudioHubApi.request(_apiPath, { method: 'GET' })
+        : fetch('/api' + _apiPath).then(function (r) { return r.ok ? r.json() : []; });
+      _apiCall
         .then(function (d1) {
           if (!Array.isArray(d1)) return;
+          console.log('[upload] API stories for user ' + (_uid || 'NONE') + ':', d1.length, 'stories');
           d1.forEach(function (s) {
             if (!s || !s.id || !s.title) return;
             var key = String(s.title || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -501,7 +513,7 @@
           try {
             var _nfcTit = function (s) { return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
             var _normTitle = _nfcTit(storyData.title);
-            var rawStories = JSON.parse(localStorage.getItem('audiohub-stories') || '[]');
+            var rawStories = _readScopedStories();
             (rawStories || []).forEach(function (s) {
               if (s && s.id && String(s.id).startsWith('s_') && _nfcTit(s.title) === _normTitle) {
                 if (tryKeys.indexOf(String(s.id)) === -1) tryKeys.push(String(s.id));
@@ -571,7 +583,7 @@
         if (!editStoryId) {
           try {
             var normTitle = _normTxt(story.title);
-            var rawStories = JSON.parse(localStorage.getItem('audiohub-stories') || '[]');
+            var rawStories = _readScopedStories();
             if (Array.isArray(rawStories)) {
               // Prefer entries with real CUID (non-pl-, non-s_)
               var realCuidMatch = rawStories.find(function (s) {
@@ -744,7 +756,9 @@
 
     // Re-fetch when auth profile is ready (fixes timing: auth hydrates async after page load)
     window.addEventListener('audiohub:auth-updated', function () {
-      _uid = getMyUserId();
+      var newUid = getMyUserId();
+      console.log('[upload] auth-updated — uid:', newUid, '(was:', _uid, ')');
+      _uid = newUid;
       fetchAllStories();
     });
     // Also re-fetch when dropdown opens (ensures fresh data after auth is ready)

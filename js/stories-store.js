@@ -1154,6 +1154,10 @@
 
         var mergedStories = drafts.concat(normalized).concat(localOnly).slice(0, 50);
         writeLocalStories(mergedStories);
+        // Clean up old unscoped key when logged in (prevents stale cross-user data)
+        if (_syncUserId) {
+          try { window.localStorage.removeItem('audiohub-stories'); } catch (e) {}
+        }
         notifyStoriesUpdated();
         notifyStoriesSynced();
         return mergedStories;
@@ -1520,10 +1524,27 @@
 
   migrateAnonymousAuthors();
 
-  // Fetch stories from Supabase immediately (no need to wait for token)
+  // Fetch stories immediately (may run before auth is ready — user_id will be null)
   syncFromApi().then(function () {
     migrateAnonymousAuthors();
   });
+
+  // Re-sync after auth completes — ensures stories are scoped to correct user
+  // (syncFromApi() at load time may have fetched ALL public stories before auth was ready)
+  var _lastSyncUid = null;
+  window.addEventListener('audiohub:auth-updated', function () {
+    var currentUid = _getUserId();
+    if (currentUid !== _lastSyncUid) {
+      _lastSyncUid = currentUid;
+      if (currentUid) {
+        console.log('[stories-store] auth-updated — re-syncing with user_id:', currentUid);
+        syncFromApi().then(function () { migrateAnonymousAuthors(); });
+      }
+    }
+  });
+  // Also try to get uid immediately if already available
+  var _initUid = _getUserId();
+  if (_initUid) _lastSyncUid = _initUid;
 
   // Sync local drafts to Render backend in background (non-blocking, needs token + audio store)
   function trySyncLocal(attempt) {
