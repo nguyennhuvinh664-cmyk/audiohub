@@ -1,10 +1,24 @@
 (function () {
-  var STORAGE_KEY = 'audiohub-stories';
-  var DELETED_STORIES_KEY = 'audiohub-deleted-stories';
+  // ── User-scoped localStorage keys ──
+  function _getUserId() {
+    try {
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
+      var parsed = raw ? JSON.parse(raw) : null;
+      return parsed && parsed.id ? String(parsed.id) : null;
+    } catch (e) { return null; }
+  }
+  function _storiesKey() {
+    var uid = _getUserId();
+    return uid ? 'audiohub-stories-' + uid : 'audiohub-stories';
+  }
+  function _deletedKey() {
+    var uid = _getUserId();
+    return uid ? 'audiohub-deleted-stories-' + uid : 'audiohub-deleted-stories';
+  }
 
   function getDeletedIds() {
     try {
-      return JSON.parse(localStorage.getItem(DELETED_STORIES_KEY) || '[]');
+      return JSON.parse(localStorage.getItem(_deletedKey()) || '[]');
     } catch (e) {
       return [];
     }
@@ -14,7 +28,7 @@
     var deleted = getDeletedIds();
     if (deleted.indexOf(id) === -1) {
       deleted.push(id);
-      try { localStorage.setItem(DELETED_STORIES_KEY, JSON.stringify(deleted)); } catch (e) {}
+      try { localStorage.setItem(_deletedKey(), JSON.stringify(deleted)); } catch (e) {}
     }
   }
 
@@ -86,7 +100,7 @@
   }
 
   function readLocalStories() {
-    var raw = window.localStorage.getItem(STORAGE_KEY);
+    var raw = window.localStorage.getItem(_storiesKey());
     var parsed = safeParse(raw, []);
     var next = dedupeStories(Array.isArray(parsed) ? parsed : []).map(function (story) {
       // Migration: fix default visibility from old 'Riêng tư' to 'Công khai'
@@ -108,7 +122,7 @@
       || next.length !== deduped.length;
     if (needsWrite) {
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.slice(0, 50)));
+        window.localStorage.setItem(_storiesKey(), JSON.stringify(next.slice(0, 50)));
       } catch (error) {}
     }
     return next;
@@ -125,7 +139,7 @@
       stories = stories.filter(function (s) { return s && s.id && !deletedMap[String(s.id)]; });
     }
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+      window.localStorage.setItem(_storiesKey(), JSON.stringify(stories));
     } catch (e) {
       // localStorage full — progressively strip large fields, readingText LAST
       var slimmed = stories.map(function (s) {
@@ -137,7 +151,7 @@
         return copy;
       });
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(slimmed));
+        window.localStorage.setItem(_storiesKey(), JSON.stringify(slimmed));
       } catch (e2) {
         // Still full — strip chapters (can be re-fetched from API)
         var evenSlimmer = slimmed.map(function (s) {
@@ -146,7 +160,7 @@
           return copy;
         });
         try {
-          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(evenSlimmer));
+          window.localStorage.setItem(_storiesKey(), JSON.stringify(evenSlimmer));
         } catch (e3) {
           // Still full — strip readingText as absolute last resort
           var minimal = evenSlimmer.map(function (s) {
@@ -154,7 +168,7 @@
             delete copy.readingText;
             return copy;
           });
-          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal.slice(0, 10)));
+          window.localStorage.setItem(_storiesKey(), JSON.stringify(minimal.slice(0, 10)));
         }
       }
     }
