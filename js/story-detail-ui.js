@@ -1864,7 +1864,11 @@
 
       // ── Lock state ──
       var isLocked = false;
-      if (!playlistItemsForDisplay && storyChapters.length > 0 && storyChapters[i] && storyChapters[i].id) {
+      // Author can always access their own chapters — never lock for author
+      var _myName = '';
+      try { var _ap = JSON.parse(localStorage.getItem('audiohub-auth-profile') || '{}'); _myName = _ap.name || ''; } catch (e) {}
+      var isAuthor = loggedIn && _myName && story && String(story.author || '') === _myName;
+      if (!isAuthor && !playlistItemsForDisplay && storyChapters.length > 0 && storyChapters[i] && storyChapters[i].id) {
         var playable = storyChapters[i].isFree || storyChapters[i].isUnlocked;
         isLocked = !playable;
       }
