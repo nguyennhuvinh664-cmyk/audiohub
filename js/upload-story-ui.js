@@ -1399,6 +1399,14 @@
       addPlaylistEntry(story.id, story);
       if (userId && window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
         console.log('[upload] syncToCloudAndRedirect — PATCH existing CUID story to D1:', story.id, '| userId:', userId);
+        // Build chapters array from local store (authoritative chapter source)
+        var _chaptersForD1 = [];
+        try {
+          var _chapStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+          _chaptersForD1 = Array.isArray(_chapStore[story.id]) ? _chapStore[story.id] : [];
+        } catch (e) {}
+        console.log('[upload] syncToCloudAndRedirect — chapters to sync:', _chaptersForD1.length, '| story.chapters:', (story.chapters || []).length);
+
         window.AudioHubApi.request('/stories/' + encodeURIComponent(story.id), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -1413,7 +1421,8 @@
             reading_text: story.readingText || story.reading_text || '',
             hashtags: story.hashtags || '',
             cover_key: story.coverKey || story.cover_key || '',
-            audio_key: story.audioKey || story.audio_key || ''
+            audio_key: story.audioKey || story.audio_key || '',
+            chapters: _chaptersForD1.length ? _chaptersForD1 : (story.chapters || [])
           })
         }).then(function () {
           console.log('[upload] ✅ PATCH to D1 success:', story.id);
@@ -1505,18 +1514,42 @@
         // 2. Add playlist entry
         addPlaylistEntry(realId, story);
 
-        // 3. Upload cover_data to D1
-        if (state.coverData) {
-          fetch('/api/stories/' + encodeURIComponent(realId), {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: realId, cover_data: state.coverData })
-          }).then(function (r) {
-            if (r.ok) console.log('[upload] ✅ cover_data saved to D1');
-          }).catch(function () {});
-        }
+        // 3. Full PATCH to D1 — metadata + chapters + cover + audio
+        var _chaptersForD1 = [];
+        try {
+          var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+          _chaptersForD1 = Array.isArray(_cs[realId]) ? _cs[realId] : [];
+        } catch (e) {}
+        console.log('[upload] ✅ PATCH full story to D1:', realId, '| chapters:', _chaptersForD1.length);
 
-        // 3. Upload audio if new file selected
+        var _patchBody = {
+          id: realId,
+          title: story.title,
+          author: story.author || 'Admin AudioHub',
+          genre: story.genre || '',
+          description: story.description || '',
+          visibility: 'Công khai',
+          user_id: getMyUserId() || '',
+          reading_text: story.readingText || story.reading_text || '',
+          hashtags: story.hashtags || '',
+          cover_key: story.coverKey || story.cover_key || '',
+          cover_data: state.coverData || '',
+          audio_key: story.audioKey || story.audio_key || '',
+          chapters: _chaptersForD1.length ? _chaptersForD1 : (story.chapters || []),
+          chapter_count: (_chaptersForD1.length || (story.chapters || []).length) || 0
+        };
+
+        fetch('/api/stories/' + encodeURIComponent(realId), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(_patchBody)
+        }).then(function () {
+          console.log('[upload] ✅ Full PATCH to D1 success:', realId);
+        }).catch(function (e) {
+          console.warn('[upload] ⚠ Full PATCH to D1 failed:', e);
+        });
+
+        // 4. Upload audio file to IndexedDB if new file selected
         if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
           window.AudioHubStoryAudio.put(state.audioFile, realId).then(function (newKey) {
             state.audioFile = null;
