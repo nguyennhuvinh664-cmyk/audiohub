@@ -3229,11 +3229,9 @@
       var ch1Node = document.querySelector('[data-chapter-index="0"]');
       if (ch1Node) {
         var ch1AudioKey = ch1Node.getAttribute('data-audio-key') || '';
-        var storyAudioKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
-        if (ch1AudioKey && ch1AudioKey !== storyAudioKey) {
-          console.log('[story-detail] 🔧 Rebinding audio: ch1 data-audio-key=' + ch1AudioKey + ' != story.audioKey=' + storyAudioKey);
-          var correctedStory = Object.assign({}, story, { audioKey: ch1AudioKey });
-          bindStoryAudio(correctedStory);
+        if (ch1AudioKey) {
+          console.log('[story-detail] 🔧 Rebinding audio with ch1 data-audio-key:', ch1AudioKey);
+          bindStoryAudio(Object.assign({}, story, { audioKey: ch1AudioKey }));
         }
       }
     }, 100);
@@ -3261,8 +3259,7 @@
           var _ch1 = document.querySelector('[data-chapter-index="0"]');
           if (_ch1) {
             var _k1 = _ch1.getAttribute('data-audio-key') || '';
-            var _sk1 = _retryStory && (_retryStory.audioKey || _retryStory.audio_key) ? String(_retryStory.audioKey || _retryStory.audio_key) : '';
-            if (_k1 && _k1 !== _sk1) bindStoryAudio(Object.assign({}, _retryStory, { audioKey: _k1 }));
+            if (_k1) bindStoryAudio(Object.assign({}, _retryStory, { audioKey: _k1 }));
           }
         }, 500);
         setTimeout(function () {
@@ -3274,8 +3271,7 @@
           var _ch1b = document.querySelector('[data-chapter-index="0"]');
           if (_ch1b) {
             var _k1b = _ch1b.getAttribute('data-audio-key') || '';
-            var _sk1b = _retryStory && (_retryStory.audioKey || _retryStory.audio_key) ? String(_retryStory.audioKey || _retryStory.audio_key) : '';
-            if (_k1b && _k1b !== _sk1b) bindStoryAudio(Object.assign({}, _retryStory, { audioKey: _k1b }));
+            if (_k1b) bindStoryAudio(Object.assign({}, _retryStory, { audioKey: _k1b }));
           }
         }, 1500);
       }
@@ -3290,8 +3286,7 @@
         var _ch1c = document.querySelector('[data-chapter-index="0"]');
         if (_ch1c) {
           var _k1c = _ch1c.getAttribute('data-audio-key') || '';
-          var _sk1c = _freshStory && (_freshStory.audioKey || _freshStory.audio_key) ? String(_freshStory.audioKey || _freshStory.audio_key) : '';
-          if (_k1c && _k1c !== _sk1c) bindStoryAudio(Object.assign({}, _freshStory, { audioKey: _k1c }));
+          if (_k1c) bindStoryAudio(Object.assign({}, _freshStory, { audioKey: _k1c }));
         }
       }, 100);
     }, { signal: _signal });
