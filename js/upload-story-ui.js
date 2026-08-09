@@ -771,6 +771,21 @@
         fetchAllStories();
       }
     });
+
+    // Auto-select story from sessionStorage (after publish redirect back)
+    setTimeout(function () {
+      try {
+        var savedId = sessionStorage.getItem('audiohub-editStoryId') || '';
+        var savedTitle = sessionStorage.getItem('audiohub-editStoryTitle') || '';
+        if (savedId && savedTitle && allStories.length) {
+          var match = allStories.find(function (s) { return String(s.id) === savedId || (s.title || '').trim().toLowerCase() === savedTitle.trim().toLowerCase(); });
+          if (match) {
+            console.log('[upload] 🔄 Auto-selecting story from sessionStorage:', match.title, '| id:', match.id);
+            selectStory(match);
+          }
+        }
+      } catch (e) {}
+    }, 800); // wait for API fetch to complete
   })();
 
   /* ═══════════════════════════════════════════════════════════════════
