@@ -3500,8 +3500,12 @@
       if (!freshNodes.length) freshNodes = document.querySelectorAll('[data-player-chapter]');
       if (!freshNodes.length) return;
       var safeIndex = Number(index);
-      if (isNaN(safeIndex) || safeIndex < 0 || safeIndex >= freshNodes.length) return;
-      var link = freshNodes[safeIndex];
+      if (isNaN(safeIndex) || safeIndex < 0) return;
+      // Find the correct node by data-chapter-index (freshNodes has duplicates from mobile+desktop)
+      var link = null;
+      for (var _fi = 0; _fi < freshNodes.length; _fi++) {
+        if (Number(freshNodes[_fi].getAttribute('data-chapter-index')) === safeIndex) { link = freshNodes[_fi]; break; }
+      }
       if (!link) return;
 
       // Stop current audio before switching chapter
