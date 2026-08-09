@@ -1407,6 +1407,14 @@
         } catch (e) {}
         console.log('[upload] syncToCloudAndRedirect — chapters to sync:', _chaptersForD1.length, '| story.chapters:', (story.chapters || []).length);
 
+        // Preserve original audio_key (chapter 1) — don't let new chapter overwrite it
+        var _existingStory = null;
+        try {
+          var _allStories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
+          _existingStory = (_allStories || []).find(function (s) { return s && String(s.id) === String(story.id); });
+        } catch (e) {}
+        var _origAudioKey = (_existingStory && (_existingStory.audioKey || _existingStory.audio_key)) || story.audioKey || story.audio_key || '';
+
         window.AudioHubApi.request('/stories/' + encodeURIComponent(story.id), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -1421,7 +1429,7 @@
             reading_text: story.readingText || story.reading_text || '',
             hashtags: story.hashtags || '',
             cover_key: story.coverKey || story.cover_key || '',
-            audio_key: story.audioKey || story.audio_key || '',
+            audio_key: _origAudioKey,
             chapters: _chaptersForD1.length ? _chaptersForD1 : (story.chapters || [])
           })
         }).then(function () {
@@ -1522,6 +1530,15 @@
         } catch (e) {}
         console.log('[upload] ✅ PATCH full story to D1:', realId, '| chapters:', _chaptersForD1.length);
 
+        // Preserve original audio_key — first chapter's audio
+        var _origAudioKey2 = '';
+        try {
+          // Check if story already exists in localStorage with an audio key
+          var _existing2 = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(realId) : null;
+          _origAudioKey2 = _existing2 && (_existing2.audioKey || _existing2.audio_key) ? (_existing2.audioKey || _existing2.audio_key) : '';
+        } catch (e) {}
+        if (!_origAudioKey2) _origAudioKey2 = story.audioKey || story.audio_key || '';
+
         var _patchBody = {
           id: realId,
           title: story.title,
@@ -1534,7 +1551,7 @@
           hashtags: story.hashtags || '',
           cover_key: story.coverKey || story.cover_key || '',
           cover_data: state.coverData || '',
-          audio_key: story.audioKey || story.audio_key || '',
+          audio_key: _origAudioKey2,
           chapters: _chaptersForD1.length ? _chaptersForD1 : (story.chapters || []),
           chapter_count: (_chaptersForD1.length || (story.chapters || []).length) || 0
         };
