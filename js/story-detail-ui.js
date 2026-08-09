@@ -3224,6 +3224,20 @@
     var context = resolvePlaylistContext(storyId || '');
     var overrideState = overrideChapterList(context, story);
 
+    // Rebind audio using chapter 1's data-audio-key (story.audioKey may be stale/wrong)
+    setTimeout(function () {
+      var ch1Node = document.querySelector('[data-chapter-index="0"]');
+      if (ch1Node) {
+        var ch1AudioKey = ch1Node.getAttribute('data-audio-key') || '';
+        var storyAudioKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
+        if (ch1AudioKey && ch1AudioKey !== storyAudioKey) {
+          console.log('[story-detail] 🔧 Rebinding audio: ch1 data-audio-key=' + ch1AudioKey + ' != story.audioKey=' + storyAudioKey);
+          var correctedStory = Object.assign({}, story, { audioKey: ch1AudioKey });
+          bindStoryAudio(correctedStory);
+        }
+      }
+    }, 100);
+
     // Preload playlist story data from D1 API so getById() works immediately on chapter click
     if (overrideState && Array.isArray(overrideState.chapters) && overrideState.chapters.length > 1) {
       overrideState.chapters.forEach(function (ch) {
@@ -3243,11 +3257,25 @@
           if (chList && !chList.querySelector('.chapter-item')) {
             overrideChapterList(context, _retryStory);
           }
+          // Rebind audio after retry render
+          var _ch1 = document.querySelector('[data-chapter-index="0"]');
+          if (_ch1) {
+            var _k1 = _ch1.getAttribute('data-audio-key') || '';
+            var _sk1 = _retryStory && (_retryStory.audioKey || _retryStory.audio_key) ? String(_retryStory.audioKey || _retryStory.audio_key) : '';
+            if (_k1 && _k1 !== _sk1) bindStoryAudio(Object.assign({}, _retryStory, { audioKey: _k1 }));
+          }
         }, 500);
         setTimeout(function () {
           var chList = document.querySelector('.chapter-list');
           if (chList && !chList.querySelector('.chapter-item')) {
             overrideChapterList(context, _retryStory);
+          }
+          // Rebind audio after retry render
+          var _ch1b = document.querySelector('[data-chapter-index="0"]');
+          if (_ch1b) {
+            var _k1b = _ch1b.getAttribute('data-audio-key') || '';
+            var _sk1b = _retryStory && (_retryStory.audioKey || _retryStory.audio_key) ? String(_retryStory.audioKey || _retryStory.audio_key) : '';
+            if (_k1b && _k1b !== _sk1b) bindStoryAudio(Object.assign({}, _retryStory, { audioKey: _k1b }));
           }
         }, 1500);
       }
@@ -3257,6 +3285,15 @@
       var _freshCtx = resolvePlaylistContext(storyId || '');
       var _freshStory = (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(storyId) : null) || story;
       if (_freshStory) overrideChapterList(_freshCtx, _freshStory);
+      // Rebind audio after sync re-renders chapter list
+      setTimeout(function () {
+        var _ch1c = document.querySelector('[data-chapter-index="0"]');
+        if (_ch1c) {
+          var _k1c = _ch1c.getAttribute('data-audio-key') || '';
+          var _sk1c = _freshStory && (_freshStory.audioKey || _freshStory.audio_key) ? String(_freshStory.audioKey || _freshStory.audio_key) : '';
+          if (_k1c && _k1c !== _sk1c) bindStoryAudio(Object.assign({}, _freshStory, { audioKey: _k1c }));
+        }
+      }, 100);
     }, { signal: _signal });
     // Helper: get fresh chapter nodes from DOM (survives innerHTML re-renders)
     function getChapterNodes() {
