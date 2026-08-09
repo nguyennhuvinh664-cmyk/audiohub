@@ -3522,6 +3522,11 @@
         if (playlistItem.storyId && window.AudioHubStories && typeof window.AudioHubStories.getById === 'function') {
           nextStory = window.AudioHubStories.getById(String(playlistItem.storyId));
         }
+        // If nextStory is the SAME story (non-playlist chapter switch), treat as same-story
+        // so the chapter's own data-audio-key is used instead of story-level audioKey
+        if (nextStory && story && String(nextStory.id) === String(story.id)) {
+          nextStory = null;
+        }
         if (nextStory && String(nextStory.visibility || '').trim() === 'Không công khai' && !isMember()) {
           showAuthRequiredModal();
           renderPlayer();
