@@ -88,6 +88,7 @@
     audioReady: false,
     coverProcessing: false,
     audioProcessing: false,
+    audioUploading: false,  // True while audio is being saved to IndexedDB
     visibility: 'Công khai',
     coverName: '',
     audioName: '',
@@ -102,6 +103,7 @@
   var editStoryId = '';
   // -1 means not editing a specific chapter (append mode). Default used to be 0 which caused new uploads to replace chapter 0.
   var editChapterIndex = -1;
+  var editChapterIndexFromUrl = false; // true when URL had explicit ?chapter=N
   var selectedPlaylistId = null;
 
   // Read URL params (with retry for SPA race)
@@ -112,6 +114,7 @@
       // If ?chapter is provided we use that index, otherwise -1 to indicate append mode
       var rawChapter = p.get('chapter');
       editChapterIndex = rawChapter !== null ? Math.max(0, parseInt(rawChapter || '0', 10)) : -1;
+      editChapterIndexFromUrl = rawChapter !== null;
     } catch (e) {
       editStoryId = '';
       editChapterIndex = -1;
@@ -629,7 +632,7 @@
           editStoryId = String(story._storyData.id);
         }
       }
-      editChapterIndex = -1; // Always append new chapter when selecting from dropdown
+      if (!editChapterIndexFromUrl) editChapterIndex = -1; // Reset only if not explicitly set from URL
 
       // Persist editStoryId + story meta across page reloads (SPA redirect)
       try {
@@ -969,6 +972,7 @@
       state.audioName = file.name;
       state.audioFile = file;
       state.audioKey = '';
+      state.audioUploading = true;  // Block submit until IndexedDB save completes
       if (audioZone) audioZone.classList.add('is-processing');
       if (audioLabel) audioLabel.textContent = 'Đang xử lý audio…';
 
@@ -976,15 +980,34 @@
       clearObjectUrl(audioObjectUrl);
       audioObjectUrl = URL.createObjectURL(file);
 
-      // Save to IndexedDB
+      console.log('[upload] 🎵 Audio file selected:', file.name, '| editChapterIndex:', editChapterIndex, '| editStoryId:', editStoryId);
+
+      // Save to IndexedDB — generates unique key for this audio file
       var storePromise = (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function')
         ? window.AudioHubStoryAudio.put(file)
         : Promise.reject(new Error('missing audio store'));
 
       storePromise.then(function (audioKey) {
+        console.log('[upload] ✅ IndexedDB save complete — audioKey:', audioKey, '| file:', file.name);
         state.audioKey = audioKey;
+        state.audioUploading = false;  // Ready to submit
+        // Update chapter in localStorage if it was already saved with empty audioKey
+        try {
+          var _targetId = editStoryId || '';
+          if (_targetId && typeof editChapterIndex === 'number' && editChapterIndex >= 0) {
+            var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var _chs = Array.isArray(_cs[_targetId]) ? _cs[_targetId] : [];
+            if (_chs[editChapterIndex] && !_chs[editChapterIndex].audioKey) {
+              _chs[editChapterIndex].audioKey = audioKey;
+              _cs[_targetId] = _chs;
+              localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs));
+              console.log('[upload] ✅ Updated chapter audioKey in localStorage:', editChapterIndex, '→', audioKey);
+            }
+          }
+        } catch (e) {}
       }).catch(function () {
         state.audioKey = '';
+        state.audioUploading = false;
       });
 
       // Show preview after delay (let IndexedDB save)
@@ -1106,7 +1129,7 @@
         chapterTitle: chapterInput ? chapterInput.value.trim() : '',
         youtubeUrl: ytPayload.url,
         youtubeId: ytPayload.id,
-        visibility: forcePublished ? 'Công khai' : (forceDraft ? 'Riêng tư' : (state.visibility || 'Công khai')),
+        visibility: forceDraft ? 'Riêng tư' : (state.visibility || 'Công khai'),
         coverKey: state.coverKey || '',
         coverData: state.coverData || '',
         audioKey: state.audioKey || '',
@@ -1155,14 +1178,27 @@
       showBanner('Ảnh bìa chưa lưu xong. Đợi vài giây rồi bấm lại.', false);
       return;
     }
+    // Block submit while audio is still being saved to IndexedDB
+    if (published && state.audioUploading) {
+      showBanner('Audio đang lưu xong. Đợi vài giây rồi bấm lại.', false);
+      return;
+    }
     if (published && !state.audioKey) {
-      showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
-      return;
+      // Check if editing existing chapter that already has audio in storage
+      var _existingHasAudio = false;
+      if (typeof editChapterIndex === 'number' && editChapterIndex >= 0 && targetId) {
+        try {
+          var _vcs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+          var _vchs = Array.isArray(_vcs[targetId]) ? _vcs[targetId] : [];
+          if (_vchs[editChapterIndex] && _vchs[editChapterIndex].audioKey) _existingHasAudio = true;
+        } catch (e) {}
+      }
+      if (!_existingHasAudio) {
+        showBanner('Audio chưa lưu xong (IndexedDB). Đợi vài giây rồi bấm lại.', false);
+        return;
+      }
     }
-    if (published && !state.readingText) {
-      showBanner('Chưa có nội dung truyện chữ. Hãy tải file .txt hoặc .md trước khi đăng.', false);
-      return;
-    }
+    // Reading text is now optional — no validation required
 
     // Debounce
     try {
@@ -1321,10 +1357,36 @@
         readingText: built.payload.readingText || ''
       };
 
+      console.log('[upload] 🔍 SAVE DEBUG — editChapterIndex:', editChapterIndex);
+      console.log('[upload]   state.audioKey:', state.audioKey || '(EMPTY)');
+      console.log('[upload]   newChapter.audioKey:', newChapter.audioKey || '(EMPTY)');
+      console.log('[upload]   existingChapters:', existingChapters.length);
+      if (existingChapters.length) {
+        existingChapters.forEach(function (ch, i) {
+          console.log('[upload]     ch' + (i+1) + '.audioKey:', ch.audioKey || '(EMPTY)');
+        });
+      }
+
       // If editing specific chapter index, replace; otherwise append as new chapter
       if (typeof editChapterIndex === 'number' && editChapterIndex >= 0 && editChapterIndex < existingChapters.length) {
+        // ROOT FIX: Compare state.audioKey with old chapter's audioKey.
+        // If same → no new upload → preserve old. If different → new upload → use new.
+        var oldCh = existingChapters[editChapterIndex] || {};
+        console.log('[upload] ✏️ EDITING existing chapter', editChapterIndex + 1);
+        console.log('[upload]   oldCh.audioKey:', oldCh.audioKey || '(EMPTY)');
+        console.log('[upload]   state.audioKey:', state.audioKey || '(EMPTY)');
+        if (state.audioKey === (oldCh.audioKey || '')) {
+          // Same audioKey as stored — no new upload → preserve old chapter's audioKey
+          newChapter.audioKey = oldCh.audioKey || '';
+          console.log('[upload]   → Preserving old audioKey (no new upload)');
+        } else {
+          console.log('[upload]   → Using new audioKey:', newChapter.audioKey || '(EMPTY)');
+        }
+        if (!newChapter.coverKey && oldCh.coverKey) newChapter.coverKey = oldCh.coverKey;
+        if (!newChapter.readingText && oldCh.readingText) newChapter.readingText = oldCh.readingText;
         existingChapters[editChapterIndex] = newChapter;
       } else {
+        console.log('[upload] ➕ APPENDING new chapter — audioKey:', newChapter.audioKey || '(EMPTY)');
         existingChapters.push(newChapter);
       }
 
@@ -1336,8 +1398,20 @@
       }
 
       console.log('[upload] ✅ Chapter merged/appended — total:', existingChapters.length, '| targetId:', targetId);
+      console.log('[upload] 📋 ALL chapters audioKeys:', existingChapters.map(function(c, i) { return 'ch' + (i + 1) + ':' + (c.audioKey || '(empty)'); }));
     } else {
       console.log('[upload] ℹ No targetId — creating NEW story');
+      // FIX: Save first chapter to chapters store (audiohub-chapters-v1)
+      // Without this, Chapter 1's audioKey and readingText are lost when Chapter 2 is added later
+      var _firstChapter = {
+        title: built.payload.chapterTitle || '',
+        audioKey: built.payload.audioKey || '',
+        coverKey: built.payload.coverKey || '',
+        readingText: built.payload.readingText || ''
+      };
+      built.payload.chapters = [_firstChapter];
+      built.payload.chapterCount = 1;
+      console.log('[upload] 📖 NEW STORY — saving first chapter:', _firstChapter.title, '| audioKey:', _firstChapter.audioKey || '(empty)');
     }
 
     // ── UPSERT ──
@@ -1345,6 +1419,16 @@
     try {
       story = window.AudioHubStories.upsert(built.payload);
       console.log('[upload] upsert:', story ? story.id + ' | chapters: ' + (story.chapters ? story.chapters.length : 0) : 'NULL');
+
+      // VERIFY: Read back from localStorage to confirm chapters saved correctly
+      try {
+        var _verifyStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        var _verifyChapters = Array.isArray(_verifyStore[story.id]) ? _verifyStore[story.id] : [];
+        console.log('[upload] ✅ VERIFY from localStorage — chapters:', _verifyChapters.length);
+        _verifyChapters.forEach(function (ch, i) {
+          console.log('[upload]   ch' + (i+1) + ':', { title: ch.title, audioKey: ch.audioKey || '(EMPTY)' });
+        });
+      } catch (e) { console.warn('[upload] Verify failed:', e); }
       // Keep sessionStorage if appending to existing story; clear if creating new
       if (!targetId) {
         try {
@@ -1414,6 +1498,10 @@
           _existingStory = (_allStories || []).find(function (s) { return s && String(s.id) === String(story.id); });
         } catch (e) {}
         var _origAudioKey = (_existingStory && (_existingStory.audioKey || _existingStory.audio_key)) || story.audioKey || story.audio_key || '';
+        // FIX: If audio key is local (a_*), use story ID instead so R2 can find it
+        if (_origAudioKey && String(_origAudioKey).indexOf('a_') === 0) {
+          _origAudioKey = story.id;
+        }
 
         window.AudioHubApi.request('/stories/' + encodeURIComponent(story.id), {
           method: 'PATCH',
@@ -1530,14 +1618,9 @@
         } catch (e) {}
         console.log('[upload] ✅ PATCH full story to D1:', realId, '| chapters:', _chaptersForD1.length);
 
-        // Preserve original audio_key — first chapter's audio
-        var _origAudioKey2 = '';
-        try {
-          // Check if story already exists in localStorage with an audio key
-          var _existing2 = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(realId) : null;
-          _origAudioKey2 = _existing2 && (_existing2.audioKey || _existing2.audio_key) ? (_existing2.audioKey || _existing2.audio_key) : '';
-        } catch (e) {}
-        if (!_origAudioKey2) _origAudioKey2 = story.audioKey || story.audio_key || '';
+        // Use realId as audio_key so R2 can find it by story ID
+        // (old code used local key a_xxx which doesn't exist in R2)
+        var _origAudioKey2 = realId;
 
         var _patchBody = {
           id: realId,
@@ -1566,23 +1649,31 @@
           console.warn('[upload] ⚠ Full PATCH to D1 failed:', e);
         });
 
-        // 4. Upload audio file to IndexedDB if new file selected
+        // 4. Upload audio to cloud (R2/Supabase) using REAL story ID as key
+        // This ensures audio is findable via story ID in incognito/other browsers
         if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
-          window.AudioHubStoryAudio.put(state.audioFile, realId).then(function (newKey) {
+          // FIX: Use realId (not local state.audioKey) so R2 stores as {storyId}.mp3
+          window.AudioHubStoryAudio.put(state.audioFile, realId).then(function () {
+            console.log('[upload] ✅ Audio uploaded to cloud with story ID:', realId);
             state.audioFile = null;
-            if (newKey && newKey !== state.audioKey) {
-              state.audioKey = newKey;
-              current.audioKey = newKey;
-              window.AudioHubStories.upsert(current);
-              fetch('/api/stories/' + encodeURIComponent(realId), {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: realId, audio_key: newKey })
-              }).then(function () { doRedirect(realId); }).catch(function () { doRedirect(realId); });
-            } else {
-              doRedirect(realId);
+            // Update chapter audioKey to use story ID (so bindStoryAudio finds it)
+            state.audioKey = realId;
+            if (typeof editChapterIndex === 'number' && Array.isArray(current.chapters) && current.chapters[editChapterIndex]) {
+              current.chapters[editChapterIndex].audioKey = realId;
             }
-          }).catch(function () { doRedirect(realId); });
+            if (!editChapterIndex || editChapterIndex === 0) {
+              current.audioKey = realId;
+            }
+            window.AudioHubStories.upsert(current);
+            fetch('/api/stories/' + encodeURIComponent(realId), {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: realId, audio_key: realId })
+            }).then(function () { doRedirect(realId); }).catch(function () { doRedirect(realId); });
+          }).catch(function () {
+            console.warn('[upload] ⚠ Cloud audio upload failed, redirecting anyway');
+            doRedirect(realId);
+          });
         } else {
           doRedirect(realId);
         }
@@ -1615,7 +1706,7 @@
     } catch (e) {}
   }
 
-  /* ── Playlist entry helper (single code path) ── */
+  /* ── Playlist entry helper — adds ALL chapters at once ── */
   function addPlaylistEntry(storyId, story) {
     try {
       var raw = localStorage.getItem(PLAYLIST_KEY) || '';
@@ -1637,26 +1728,49 @@
       var pl = playlists.find(function (p) { return p && p.id === selectedPlaylistId; });
       if (!pl) return;
       var entries = pl.entries || [];
-      // Dedup
-      if (entries.some(function (e) { return String(e.key || '') === String(storyId); })) return;
 
-      var chapterTitle = (chapterInput ? chapterInput.value.trim() : '') || '';
-      entries.push({
-        key: storyId,
-        title: story.title || '',
-        chapterTitle: chapterTitle,
-        chapterIndex: entries.length,
-        author: story.author || '',
-        genre: story.genre || '',
-        href: '/story-detail?id=' + encodeURIComponent(storyId) + '&playlistId=' + encodeURIComponent(pl.id),
-        status: 'listening',
-        progress: 0,
-        addedAt: new Date().toISOString()
+      // Check if this story already has entries in the playlist
+      var existingEntries = entries.filter(function (e) { return String(e.key || '') === String(storyId); });
+      var existingChapterIndices = {};
+      existingEntries.forEach(function (e) {
+        if (typeof e.chapterIndex === 'number') existingChapterIndices[e.chapterIndex] = true;
       });
+
+      // Read ALL chapters from audiohub-chapters-v1
+      var chapStore2 = {};
+      try { chapStore2 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}'); } catch (e) {}
+      var chapters2 = Array.isArray(chapStore2[storyId]) ? chapStore2[storyId] : [];
+
+      // Find chapters that are NOT yet in the playlist
+      var newChapters = chapters2.filter(function (ch, i) { return !existingChapterIndices[i]; });
+
+      if (newChapters.length === 0) {
+        console.log('[upload] ℹ️ All chapters already in playlist, skipping.');
+        return;
+      }
+
+      // Add only the new chapter entries
+      newChapters.forEach(function (ch, i) {
+        var globalIdx = chapters2.indexOf(ch);
+        entries.push({
+          key: storyId,
+          title: story.title || '',
+          chapterTitle: ch.title || ('Chương ' + (globalIdx + 1)),
+          chapterIndex: globalIdx,
+          author: story.author || '',
+          genre: story.genre || '',
+          href: '/story-detail?id=' + encodeURIComponent(storyId) + '&playlistId=' + encodeURIComponent(pl.id),
+          status: 'listening',
+          progress: 0,
+          addedAt: new Date().toISOString()
+        });
+      });
+      console.log('[upload] ✅ Added ' + newChapters.length + ' new chapter entries to playlist:', pl.name);
+
+      // Save playlists
       pl.entries = entries;
-      localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
+      localStorage.setItem('audiohub-playlists', JSON.stringify(playlists));
       syncPlaylistsToStorage(pl.id);
-      console.log('[upload] ✅ Playlist entry added:', pl.name, '| chapter:', chapterTitle);
     } catch (e) { console.warn('[upload] Playlist entry failed:', e); }
   }
 
@@ -1753,12 +1867,23 @@
     }
     var chapter = chapters[editChapterIndex] || {};
     var chapterTitle = chapter.title || story.chapterTitle || '';
-    var chapterAudioKey = chapter.audioKey || story.audioKey || '';
-    var chapterReadingText = chapter.readingText || story.readingText || '';
+    // Only use chapter's own audioKey — don't fallback to story.audioKey (that's chapter 1's audio)
+    var chapterAudioKey = chapter.audioKey || '';
+    // FIX: Only use chapter's own readingText — don't fallback to story.readingText
+    // When append mode (editChapterIndex=-1), chapter={} so fallback would leak old text
+    var chapterReadingText = (editChapterIndex >= 0 && chapters[editChapterIndex]) ? (chapters[editChapterIndex].readingText || '') : '';
 
     setFieldValue(chapterInput, chapterTitle);
-    if (chapterAudioKey) state.audioKey = chapterAudioKey;
-    if (chapterReadingText) state.readingText = chapterReadingText;
+    // ROOT FIX: Only set state.audioKey from storage if it's empty (no fresh upload).
+    // If state.audioKey already has a value from a fresh upload, preserve it.
+    console.log('[upload] 📖 loadDraftFromQuery — editChapterIndex:', editChapterIndex, '| chapterAudioKey:', chapterAudioKey || '(empty)', '| state.audioKey BEFORE:', state.audioKey || '(empty)');
+    if (!state.audioKey) {
+      state.audioKey = chapterAudioKey;
+      state.audioReady = false;
+    }
+    console.log('[upload] 📖 loadDraftFromQuery — state.audioKey AFTER:', state.audioKey || '(empty)');
+    // FIX: Always reset readingText — prevents old chapter's text from leaking into new chapter
+    state.readingText = chapterReadingText || '';
     state.coverReady = !!(state.coverKey || story.coverKey);
     state.audioReady = !!(state.audioKey);
 
@@ -1909,6 +2034,7 @@
         editStoryId = id;
       var rawChapter = p.get('chapter');
       editChapterIndex = rawChapter !== null ? Math.max(0, parseInt(rawChapter || '0', 10)) : -1;
+      editChapterIndexFromUrl = rawChapter !== null;
       loadDraftFromQuery();
     }
   } catch (e) {}

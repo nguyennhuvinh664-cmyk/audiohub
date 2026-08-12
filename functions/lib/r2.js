@@ -60,6 +60,10 @@ export async function deleteCover(r2, storyId) {
  * Get audio file from R2
  */
 export async function getAudio(r2, storyId) {
+  if (!r2 || !r2.AUDIO) {
+    console.log('[r2] AUDIO binding not available');
+    return null;
+  }
   const key = `${storyId}.mp3`;
   const object = await r2.AUDIO.get(key);
 
@@ -83,6 +87,10 @@ export async function getAudio(r2, storyId) {
  * Upload audio file to R2
  */
 export async function uploadAudio(r2, storyId, file) {
+  if (!r2 || !r2.AUDIO) {
+    console.log('[r2] AUDIO binding not available for upload');
+    return { success: false, error: 'R2 AUDIO binding not configured' };
+  }
   const key = `${storyId}.mp3`;
   const contentType = file.type || 'audio/mpeg';
 
@@ -97,6 +105,7 @@ export async function uploadAudio(r2, storyId, file) {
  * Delete audio file from R2
  */
 export async function deleteAudio(r2, storyId) {
+  if (!r2 || !r2.AUDIO) return { success: false };
   const key = `${storyId}.mp3`;
   await r2.AUDIO.delete(key);
   return { success: true };
