@@ -9,7 +9,7 @@
 
   /* ── Config ─────────────────────────────────────────────────────────── */
   var SHELL_ID = 'page-content';
-  var ASSET_VERSION = '20260807-14'; // bump to force cache-bust on CSS/JS loads
+  var ASSET_VERSION = '20260810-2'; // bump to force cache-bust on CSS/JS loads
 
   /** Pages that live in /html/ directory */
   var HTML_PAGES = [
@@ -290,6 +290,14 @@
     var route = normalizePath(targetUrl.pathname);
     var pageName = extractPageName(targetUrl.pathname);
 
+    // FIX: Save current path to sessionStorage so hard refresh can restore it
+    // Cloudflare Pages redirects .html URLs to / — sessionStorage preserves the intent
+    if (route !== 'index.html') {
+      try { sessionStorage.setItem('audiohub-last-route', route); } catch (e) {}
+    } else {
+      try { sessionStorage.removeItem('audiohub-last-route'); } catch (e) {}
+    }
+
     // Preserve query string and hash
     var search = targetUrl.search || '';
     var hash = targetUrl.hash || '';
@@ -456,6 +464,19 @@
       isInitialLoad = false;
       hideSpaLoader();
       return;
+    }
+
+    // FIX: If we're on root but user was on a subpage (Cloudflare redirect), restore it
+    if (pageName === 'index.html' && window.location.pathname === '/') {
+      var savedRoute = null;
+      try { savedRoute = sessionStorage.getItem('audiohub-last-route'); } catch (e) {}
+      if (savedRoute && isKnownRoute(savedRoute) && savedRoute !== 'index.html') {
+        // Restore the subpage — update URL and load content
+        var savedPageName = extractPageName('/' + savedRoute);
+        history.replaceState({ route: savedRoute, page: savedPageName }, '', '/' + savedRoute);
+        route = savedRoute;
+        pageName = savedPageName;
+      }
     }
 
     // If this is a subpage (not root index.html), load its content into the shell

@@ -13,6 +13,24 @@
   <link rel="stylesheet" href="css/mobile-shared.css" />
   <link rel="stylesheet" href="css/header-enhancements.css" />
   <link rel="stylesheet" href="css/auth-state.css" />
+  <script>
+    // FIX: Cloudflare Pages redirects .html URLs to / (root) via 308.
+    // Detect the original path from document.referrer and save to sessionStorage
+    // so the SPA router can restore the correct page on hard refresh.
+    (function() {
+      if (window.location.pathname === '/' && document.referrer) {
+        try {
+          var ref = new URL(document.referrer);
+          if (ref.origin === window.location.origin) {
+            var refPath = ref.pathname.replace(/^\//, '').replace(/\.html$/, '');
+            if (refPath && refPath !== 'index.html' && refPath !== '') {
+              sessionStorage.setItem('audiohub-last-route', refPath);
+            }
+          }
+        } catch(e) {}
+      }
+    })();
+  </script>
   <style>
     .cgrid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
     @media (max-width: 480px) {
