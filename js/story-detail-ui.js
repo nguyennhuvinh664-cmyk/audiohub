@@ -389,6 +389,23 @@
 
   window.addEventListener('audiohub:stories-updated', function () {
     ensureStoryContext();
+    // FIX: When story was fetched from API async (page initially empty),
+    // re-render story data + audio binding so user sees content + hears audio.
+    var storyNode = document.querySelector('[data-detail-story]');
+    if (storyNode) {
+      var titleEl = storyNode.querySelector('.detail-title');
+      var isDomEmpty = titleEl && (titleEl.textContent || '').trim() === 'Đang tải...';
+      if (isDomEmpty) {
+        var storyId = resolveStoryId();
+        var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
+          ? window.AudioHubStories.getById(storyId) : null;
+        if (story && story.id) {
+          currentPlayingAudioKey = (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
+          bindStoryData(story);
+          try { overrideChapterList(resolvePlaylistContext(storyId || ''), story); } catch (e) {}
+        }
+      }
+    }
   }, { signal: _signal });
 
   window.addEventListener('audiohub:stories-synced', function () {
@@ -416,9 +433,8 @@
 
     var listenNode = storyNode.querySelector('[data-detail-listen-count]');
     if (listenNode) {
-      var listens2d = Number(story.listenCount2d || 0);
-      var listens = listens2d > 0 ? listens2d : Number(story.listenCount || 0);
-      listenNode.innerHTML = '<i class="fa-regular fa-eye"></i> ' + listens + ' lượt nghe (2 ngày)';
+      var totalListens = Number(story.listenCount || 0);
+      listenNode.innerHTML = '<i class="fa-regular fa-eye"></i> ' + totalListens + ' lượt nghe';
     }
   }
 
@@ -682,6 +698,31 @@
     if (!story) {
       if (storyId && !isSyntheticStoryId(storyId)) {
         markPendingStorySync(storyId);
+        // API fallback: fetch story from D1 when not in localStorage
+        if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+          window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
+            .then(function (apiStory) {
+              if (!apiStory || !apiStory.id) return;
+              // Normalize snake_case to camelCase
+              if (apiStory.reading_text && !apiStory.readingText) apiStory.readingText = apiStory.reading_text;
+              if (apiStory.audio_key && !apiStory.audioKey) apiStory.audioKey = apiStory.audio_key;
+              if (apiStory.chapter_title && !apiStory.chapterTitle) apiStory.chapterTitle = apiStory.chapter_title;
+              if (apiStory.chapter_count != null && apiStory.chapterCount == null) apiStory.chapterCount = apiStory.chapter_count;
+              if (apiStory.cover_key && !apiStory.coverKey) apiStory.coverKey = apiStory.cover_key;
+              if (apiStory.cover_data && !apiStory.coverData) apiStory.coverData = apiStory.cover_data;
+              if (apiStory.listen_count != null && apiStory.listenCount == null) apiStory.listenCount = apiStory.listen_count;
+              if (typeof apiStory.chapters === 'string') {
+                try { apiStory.chapters = JSON.parse(apiStory.chapters); } catch (e) { apiStory.chapters = []; }
+              }
+              // Cache in localStorage for next load
+              if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+                window.AudioHubStories.upsert(apiStory);
+              }
+              // Re-trigger render
+              window.dispatchEvent(new Event('audiohub:stories-updated'));
+            })
+            .catch(function () {});
+        }
       }
       ensureFallbackHashtags(storyNode);
       return null;
@@ -721,8 +762,14 @@
       return null;
     }
     if (String(story.visibility || '') === 'Không công khai' && !isMember()) {
-      renderAccessDenied(storyNode, story);
-      return null;
+      // Owner can always see their own stories
+      var _ownerId = '';
+      try { var _ap = JSON.parse(localStorage.getItem('audiohub-auth-profile') || '{}'); _ownerId = _ap.id || _ap.email || ''; } catch (e) {}
+      var _storyOwnerId = story.userId || story.user_id || '';
+      if (!_ownerId || String(_storyOwnerId).toLowerCase() !== String(_ownerId).toLowerCase()) {
+        renderAccessDenied(storyNode, story);
+        return null;
+      }
     }
 
     storyNode.setAttribute('data-story-id', String(story.id || ''));
@@ -769,7 +816,7 @@
     }
 
     var chapterCopy = document.querySelector('[data-chapter-copy]');
-    // Read readingText from first chapter if available (per-chapter storage)
+    // Read readingText from FIRST chapter as fallback
     var chapterReadingText0 = '';
     try {
       var _cs0 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
@@ -777,35 +824,36 @@
       if (_ch0[0] && _ch0[0].readingText) chapterReadingText0 = _ch0[0].readingText;
     } catch (e) {}
     var readingContent = chapterReadingText0 || story.readingText || story.description || '';
-    console.log('[story-detail] reading render: chapterCopy:', !!chapterCopy, 'readingContent:', readingContent ? readingContent.length + ' chars' : 'EMPTY');
+
+    // Track last rendered text to avoid overwriting chapter-specific text
+    if (!window.__lastRenderedReadingText) window.__lastRenderedReadingText = '';
+
     function renderReadingText() {
       var cc = document.querySelector('[data-chapter-copy]');
+      // CRITICAL: If click handler already set chapter text, DON'T overwrite it.
+      // Compare current innerHTML length to detect if click handler set different text.
+      if (cc && cc.innerHTML && window.__lastRenderedReadingText && cc.innerHTML !== window.__lastRenderedReadingText) {
+        // DOM has different text than what we last set — click handler changed it, don't overwrite
+        return true;
+      }
       if (cc && readingContent) {
         var ct = cleanReadingText(readingContent);
         var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
         cc.innerHTML = bl.length ? bl.map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('') : '';
+        window.__lastRenderedReadingText = cc.innerHTML;
         // Force scrollable via inline style (CSS may not apply due to selector issues)
         cc.style.maxHeight = '60vh';
         cc.style.overflowY = 'auto';
         cc.style.scrollBehavior = 'smooth';
-        console.log('[story-detail] reading render: OK, paragraphs:', bl.length);
         return true;
       }
-      console.log('[story-detail] reading render: FAIL, cc:', !!cc, 'content:', readingContent ? readingContent.length : 0);
       return false;
     }
     if (!renderReadingText()) {
       // DOM not ready — retry with increasing delays
-      console.log('[story-detail] reading render: retrying...');
-      requestAnimationFrame(function () {
-        if (!renderReadingText()) {
-          setTimeout(function () {
-            if (!renderReadingText()) {
-              setTimeout(renderReadingText, 300);
-            }
-          }, 100);
-        }
-      });
+      requestAnimationFrame(function () { renderReadingText(); });
+      setTimeout(function () { renderReadingText(); }, 100);
+      setTimeout(function () { renderReadingText(); }, 300);
     }
 
     // Read chapter title from chapters store (not top-level story.chapterTitle which gets overwritten by latest upload)
@@ -1135,7 +1183,7 @@
       // Read readingText from the SPECIFIC CHAPTER, not story level
       var chapterReadingText = '';
       try {
-        var chapIdx = typeof item.chapterIndex === 'number' ? item.chapterIndex : 0;
+        var chapIdx = typeof item.chapterIndex === 'number' ? item.chapterIndex : (typeof item.index === 'number' ? item.index : 0);
         var chapStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
         var storyChapters = Array.isArray(chapStore[String(item.storyId)]) ? chapStore[String(item.storyId)] : [];
         if (storyChapters[chapIdx] && storyChapters[chapIdx].readingText) {
@@ -1441,6 +1489,8 @@
     var noteNode = document.querySelector('[data-story-audio-note]');
     if (!audioNode) return;
 
+    var _callerAudioKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
+
     function showNote(message) {
       if (!noteNode) return;
       noteNode.textContent = message;
@@ -1631,7 +1681,7 @@
                   storyId: String(e.key || e.storyId || ''),
                   storyTitle: String(e.title || e.storyTitle || ''),
                   chapterTitle: String(e.chapterTitle || ''),
-                  label: String(e.chapterTitle || ('Chương ' + (i + 1))),
+                  label: (function() { var _t = e.chapterTitle || e.storyTitle || e.title || ''; return _t ? ('Chương ' + (i + 1) + ': ' + _t) : ('Chương ' + (i + 1)); })(),
                   index: i
                 };
               });
@@ -1645,7 +1695,7 @@
             for (var i = 0; i < ents.length; i++) {
               var e = ents[i];
               chapters.push({
-                label: e.label || ('Chương ' + (i + 1)),
+                label: e.label || (e.storyTitle || e.title ? ('Chương ' + (i + 1) + ': ' + (e.storyTitle || e.title)) : ('Chương ' + (i + 1))),
                 storyId: String(e.storyId || e.key || ''),
                 storyTitle: String(e.storyTitle || e.title || ''),
                 index: typeof e.index === 'number' ? e.index : i
@@ -1892,8 +1942,10 @@
       // Get chapter-specific audioKey and readingText from storedChapters
       var chAudioKey = (storedChapters[i] && storedChapters[i].audioKey) || (ch && ch.audioKey) || '';
       var chReadingText = (storedChapters[i] && storedChapters[i].readingText) || (ch && ch.readingText) || '';
+      if (i < 5) console.log('[story-detail] Chapter', i + 1, 'audioKey:', chAudioKey || '(empty)', '| title:', ch.title || chapterTitle);
       // Store full reading text in JS for click handler
       if (chReadingText) window.__chapterReadingTexts[i] = chReadingText;
+      if (i < 5) console.log('[story-detail] Chapter', i + 1, 'readingText:', chReadingText ? chReadingText.substring(0, 60) + '...' : '(empty)');
 
       chapterRows.push(
         '<a href="#chapter-reading" class="chapter-item' + (isActive ? ' active is-active' : '') + (isLocked ? ' is-locked' : '') + '" data-player-chapter="' + escapeHtml(displayName) + '" data-chapter-index="' + i + '" data-audio-key="' + escapeHtml(chAudioKey) + '">'
@@ -1952,8 +2004,9 @@
     // For playlist mode, return override state
     if (context && context.playlist && Array.isArray(context.playlist.items)) {
       var chapters = context.playlist.items.map(function (item, index) {
+        var _chTitle = (item && (item.chapterTitle || item.storyTitle)) || '';
         return {
-          label: 'Chương ' + (index + 1),
+          label: _chTitle ? ('Chương ' + (index + 1) + ': ' + _chTitle) : ('Chương ' + (index + 1)),
           storyId: item && item.storyId ? String(item.storyId) : '',
           storyTitle: item && item.storyTitle ? String(item.storyTitle) : '',
           index: typeof item.chapterIndex === 'number' ? item.chapterIndex : index
@@ -2440,6 +2493,11 @@
     return storyId || '';
   }
 
+  // Module-scope flags for audio tracking
+  var _mergeRendering = false;
+  var currentPlayingAudioKey = '';
+  var _userSelectedChapter = false;
+
   function bindStoryData(story) {
     if (!story || !story.id) return;
     trackStoryListen(story.id);
@@ -2494,7 +2552,7 @@
       mobileGenre.querySelector('strong').textContent = story.genre || 'Khác';
     }
     var mobileListens = document.querySelector('[data-mobile-listens] strong');
-    if (mobileListens) mobileListens.textContent = story.listenCount || 0;
+    if (mobileListens) mobileListens.textContent = (story.listenCount || 0) + ' lượt nghe';
 
     // Reading text — render to chapter-copy div (needed when story comes from API via mergeAndRender or cache miss)
     var chapterReadingTextN = '';
@@ -2507,24 +2565,9 @@
 
     function renderReadingText() {
       var chapterCopy = document.querySelector('[data-chapter-copy]');
-      // Debug: check what's actually in the DOM
-      if (!chapterCopy) {
-        var _pc2 = document.getElementById('page-content');
-        var _allDC = document.querySelectorAll('[data-chapter-copy]');
-        var _allCC = document.querySelectorAll('.chapter-copy');
-        console.log('[story-detail] renderReadingText DEBUG: pageContent:', !!_pc2, 'innerHTML:', _pc2 ? _pc2.innerHTML.length : 0, 'all[data-chapter-copy]:', _allDC.length, 'all.chapter-copy:', _allCC.length);
-        if (_pc2) {
-          // Find the reading section
-          var _readingSection = _pc2.querySelector('.chapter-reading');
-          console.log('[story-detail] renderReadingText DEBUG: .chapter-reading:', !!_readingSection, 'innerHTML:', _readingSection ? _readingSection.innerHTML.substring(0, 200) : 'NONE');
-        }
-        // Also try alternative selectors
-        var _alt = document.querySelector('#page-content [data-chapter-copy]');
-        console.log('[story-detail] renderReadingText DEBUG: #page-content [data-chapter-copy]:', !!_alt);
-        var _alt2 = document.querySelector('.chapter-reading [data-chapter-copy]');
-        console.log('[story-detail] renderReadingText DEBUG: .chapter-reading [data-chapter-copy]:', !!_alt2);
-        var _alt3 = document.querySelector('article[data-detail-story] [data-chapter-copy]');
-        console.log('[story-detail] renderReadingText DEBUG: article[data-detail-story] [data-chapter-copy]:', !!_alt3);
+      // CRITICAL: If click handler already set chapter text, DON'T overwrite it.
+      if (chapterCopy && chapterCopy.innerHTML && window.__lastRenderedReadingText && chapterCopy.innerHTML !== window.__lastRenderedReadingText) {
+        return true;
       }
       if (chapterCopy && readingContent) {
         var cleanedText = cleanReadingText(readingContent);
@@ -2532,7 +2575,7 @@
         chapterCopy.innerHTML = blocks.length
           ? blocks.map(function (line) { return '<p>' + escapeHtml(line) + '</p>'; }).join('')
           : '';
-        // Force scrollable via inline style (CSS may not apply due to selector issues)
+        window.__lastRenderedReadingText = chapterCopy.innerHTML;
         chapterCopy.style.maxHeight = '60vh';
         chapterCopy.style.overflowY = 'auto';
         chapterCopy.style.scrollBehavior = 'smooth';
@@ -2543,16 +2586,16 @@
 
     // Try immediately, retry after DOM settles (SPA timing)
     if (!renderReadingText()) {
-      requestAnimationFrame(function () {
-        if (!renderReadingText()) {
-          setTimeout(renderReadingText, 100);
-        }
-      });
+      requestAnimationFrame(function () { renderReadingText(); });
+      setTimeout(function () { renderReadingText(); }, 100);
     }
 
     renderStoryMeta(detailStoryNode, story);
     bindStoryCover(story);
-    bindStoryAudio(story);
+    // Skip audio rebind if user already selected a chapter (prevents overwrite)
+    if (!_userSelectedChapter) {
+      bindStoryAudio(story);
+    }
     updateAudioHeadingStoryTitle(story);
     renderSidebarTrending(story);
     fetchMissingCoversFromD1();
@@ -2641,11 +2684,33 @@
 
     // STEP 1: Try localStorage (instant)
     var story = initStoryDetailFromStore(storyId);
+    // Initialize module-scope tracker with story's audio key
+    currentPlayingAudioKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
+    // Fix corrupted story.audioKey: rebuild from chapter 1's data-audio-key
+    if (story && story.id && currentPlayingAudioKey) {
+      try {
+        var _chs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        var _chArr = Array.isArray(_chs[String(story.id)]) ? _chs[String(story.id)] : [];
+        if (_chArr.length > 0 && _chArr[0].audioKey && _chArr[0].audioKey !== currentPlayingAudioKey) {
+          console.log('[story-detail] Fixing corrupted audioKey:', currentPlayingAudioKey, '->', _chArr[0].audioKey);
+          story.audioKey = _chArr[0].audioKey;
+          currentPlayingAudioKey = _chArr[0].audioKey;
+          if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+            window.AudioHubStories.upsert(story);
+          }
+        }
+      } catch (e) {}
+    }
     console.log('[story-detail] initStoryDetailFromStore:', story ? story.id : 'null', 'readingText:', story && story.readingText ? story.readingText.length + ' chars' : 'NONE', 'audioKey:', story && story.audioKey ? 'YES' : 'NONE');
 
     if (story && story.id) {
       // Cache hit — render immediately
       bindStoryData(story);
+      // Render chapter list IMMEDIATELY so data-audio-key attributes exist for click handler
+      try {
+        var _initCtx = resolvePlaylistContext(storyId || '');
+        overrideChapterList(_initCtx, story);
+      } catch (e) {}
 
       // Always fetch from API in background to get full data (readingText, audioKey, etc.)
       // that may have been stripped from localStorage or never saved
@@ -2671,15 +2736,22 @@
           if (apiAudioKey) merged.audioKey = apiAudioKey;
           if (Array.isArray(apiChapters) && apiChapters.length) merged.chapters = apiChapters;
           if (apiChapterCount) merged.chapterCount = apiChapterCount;
+          _mergeRendering = true;
           bindStoryData(merged);
+          _mergeRendering = false;
           // Re-render chapter list with fresh data
           try {
             var _ctx = resolvePlaylistContext(merged.id || '');
             overrideChapterList(_ctx, merged);
           } catch (e) {}
           // Also update localStorage so next load is instant
+          // Do NOT overwrite story.audioKey — API may return chapter-level key
+          // which corrupts localStorage and makes all chapters play same audio.
           if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+            var _savedAudioKey = merged.audioKey;
+            delete merged.audioKey;
             window.AudioHubStories.upsert(merged);
+            merged.audioKey = _savedAudioKey;
           }
         }
 
@@ -2697,6 +2769,10 @@
         if (apiId) {
           // Found CUID in localStorage — fetch directly
           fetchStoryFromApi(apiId).then(mergeAndRender).catch(function () {});
+        } else if (storyId && !isSyntheticStoryId(storyId)) {
+          // FIX: No CUID found in localStorage, but storyId is a real CUID —
+          // fetch directly from API (getStoryById ignores visibility, works for any story)
+          fetchStoryFromApi(storyId).then(mergeAndRender).catch(function () {});
         }
 
         // Try 2: Fetch all public stories from API to find by title (always try, even if Try 1 found a CUID — for robustness)
@@ -2737,7 +2813,9 @@
         }
         if (!apiStory.chapterCount && apiStory.chapter_count) apiStory.chapterCount = apiStory.chapter_count;
         console.log('[story-detail] Cache miss: bindStoryData', apiStory.id, 'desc:', apiStory.description ? apiStory.description.length + ' chars' : 'NONE', 'reading:', apiStory.readingText || apiStory.reading_text ? 'YES' : 'NO');
+        _mergeRendering = true;
         bindStoryData(apiStory);
+        _mergeRendering = false;
         // Re-render chapter list with fresh API data (same as mergeAndRender)
         try {
           var _ctx = resolvePlaylistContext(apiStory.id || '');
@@ -3224,17 +3302,8 @@
     var context = resolvePlaylistContext(storyId || '');
     var overrideState = overrideChapterList(context, story);
 
-    // Rebind audio using chapter 1's data-audio-key (story.audioKey may be stale/wrong)
-    setTimeout(function () {
-      var ch1Node = document.querySelector('[data-chapter-index="0"]');
-      if (ch1Node) {
-        var ch1AudioKey = ch1Node.getAttribute('data-audio-key') || '';
-        if (ch1AudioKey) {
-          console.log('[story-detail] 🔧 Rebinding audio with ch1 data-audio-key:', ch1AudioKey);
-          bindStoryAudio(Object.assign({}, story, { audioKey: ch1AudioKey }));
-        }
-      }
-    }, 100);
+    // NOTE: Removed ch1 audio retry rebinding — it overwrites user's chapter selection.
+    // Chapter audio is now correctly managed via currentPlayingAudioKey tracking.
 
     // Preload playlist story data from D1 API so getById() works immediately on chapter click
     if (overrideState && Array.isArray(overrideState.chapters) && overrideState.chapters.length > 1) {
@@ -3255,23 +3324,11 @@
           if (chList && !chList.querySelector('.chapter-item')) {
             overrideChapterList(context, _retryStory);
           }
-          // Rebind audio after retry render
-          var _ch1 = document.querySelector('[data-chapter-index="0"]');
-          if (_ch1) {
-            var _k1 = _ch1.getAttribute('data-audio-key') || '';
-            if (_k1) bindStoryAudio(Object.assign({}, _retryStory, { audioKey: _k1 }));
-          }
         }, 500);
         setTimeout(function () {
           var chList = document.querySelector('.chapter-list');
           if (chList && !chList.querySelector('.chapter-item')) {
             overrideChapterList(context, _retryStory);
-          }
-          // Rebind audio after retry render
-          var _ch1b = document.querySelector('[data-chapter-index="0"]');
-          if (_ch1b) {
-            var _k1b = _ch1b.getAttribute('data-audio-key') || '';
-            if (_k1b) bindStoryAudio(Object.assign({}, _retryStory, { audioKey: _k1b }));
           }
         }, 1500);
       }
@@ -3281,14 +3338,6 @@
       var _freshCtx = resolvePlaylistContext(storyId || '');
       var _freshStory = (window.AudioHubStories && typeof window.AudioHubStories.getById === 'function' ? window.AudioHubStories.getById(storyId) : null) || story;
       if (_freshStory) overrideChapterList(_freshCtx, _freshStory);
-      // Rebind audio after sync re-renders chapter list
-      setTimeout(function () {
-        var _ch1c = document.querySelector('[data-chapter-index="0"]');
-        if (_ch1c) {
-          var _k1c = _ch1c.getAttribute('data-audio-key') || '';
-          if (_k1c) bindStoryAudio(Object.assign({}, _freshStory, { audioKey: _k1c }));
-        }
-      }, 100);
     }, { signal: _signal });
     // Helper: get fresh chapter nodes from DOM (survives innerHTML re-renders)
     function getChapterNodes() {
@@ -3506,7 +3555,38 @@
 
     if (playButton) playButton.addEventListener('click', function () {
       if (nativeAudio && nativeAudio.getAttribute('src')) {
+        // Don't allow play if audio is in error state or hasn't loaded metadata
+        if (nativeAudio.error) {
+          playerState.playing = false;
+          renderPlayer();
+          return;
+        }
         if (nativeAudio.paused) {
+          // Only play if audio has loaded enough (readyState >= 2 = HAVE_CURRENT_DATA)
+          if (nativeAudio.readyState < 2) {
+            // Audio not ready yet — show loading, wait for canplay
+            var waitHandler = function () {
+              nativeAudio.removeEventListener('canplay', waitHandler);
+              nativeAudio.play().then(function () {
+                playerState.playing = true;
+                renderPlayer();
+              }).catch(function () {
+                playerState.playing = false;
+                renderPlayer();
+              });
+            };
+            nativeAudio.addEventListener('canplay', waitHandler);
+            // Timeout: if audio doesn't load in 15s, reset
+            setTimeout(function () {
+              nativeAudio.removeEventListener('canplay', waitHandler);
+              if (nativeAudio.readyState < 2) {
+                playerState.playing = false;
+                renderPlayer();
+              }
+            }, 15000);
+            renderPlayer(); // show loading state
+            return;
+          }
           nativeAudio.play().then(function () {
             playerState.playing = true;
             renderPlayer();
@@ -3522,7 +3602,7 @@
         return;
       }
 
-      playerState.playing = !playerState.playing;
+      // No audio src — can't play, don't toggle UI
       renderPlayer();
     });
 
@@ -3607,8 +3687,14 @@
 
       // Helper: play audio after story is loaded
       function _playLoadedStory(storyObj) {
+        _userSelectedChapter = true;
         bindStoryCover(storyObj);
-        bindStoryAudio(storyObj);
+        // CRITICAL: If user already selected a chapter, do NOT overwrite with story-level audio.
+        // The chapter click handler already set the correct audio via bindStoryAudio(chapterStory).
+        if (!currentPlayingAudioKey) {
+          bindStoryAudio(storyObj);
+          currentPlayingAudioKey = storyObj && (storyObj.audioKey || storyObj.audio_key) ? String(storyObj.audioKey || storyObj.audio_key) : '';
+        }
         setTimeout(function () {
           if (nativeAudio) {
             nativeAudio.play().then(function () {
@@ -3625,31 +3711,55 @@
       // Re-fetch audio for the new story
       if (nextStory) {
         _playLoadedStory(nextStory);
-      } else if (playlistItem && playlistItem.storyId) {
-        // Story not in local store — fetch from D1 API
+      } else if (playlistItem && playlistItem.storyId && story && String(playlistItem.storyId) !== String(story.id)) {
+        // Different story (playlist) — fetch from D1 API
         fetchStoryFromSupabase(String(playlistItem.storyId)).then(function (freshStory) {
           if (freshStory) {
             _playLoadedStory(freshStory);
           } else {
-            // API returned null — show error instead of replaying wrong audio
-            console.warn('[chapter] Story not found in API:', playlistItem.storyId);
-            showToast('Không tìm thấy audio cho chương này.', 'error');
+            // API returned null — fallback: load chapter audio directly from data-audio-key
+            console.warn('[chapter] Story not found in API:', playlistItem.storyId, '- falling back to chapter audioKey');
+            var _fbKey = link.getAttribute('data-audio-key') || '';
+            if (_fbKey && story) {
+              _userSelectedChapter = true;
+              var _fbStory = Object.assign({}, story, { audioKey: _fbKey });
+              bindStoryAudio(_fbStory);
+              currentPlayingAudioKey = _fbKey;
+              setTimeout(function () { if (nativeAudio) nativeAudio.play().catch(function(){}); }, 300);
+            }
           }
         }).catch(function (err) {
           console.error('[chapter] API fetch failed:', playlistItem.storyId, err);
-          showToast('Lỗi tải audio. Kiểm tra kết nối mạng.', 'error');
+          // Fallback: load chapter audio directly instead of crashing
+          var _fbKey2 = link.getAttribute('data-audio-key') || '';
+          if (_fbKey2 && story) {
+            _userSelectedChapter = true;
+            var _fbStory2 = Object.assign({}, story, { audioKey: _fbKey2 });
+            bindStoryAudio(_fbStory2);
+            currentPlayingAudioKey = _fbKey2;
+            setTimeout(function () { if (nativeAudio) nativeAudio.play().catch(function(){}); }, 300);
+          }
         });
-      } else if (nativeAudio && nativeAudio.getAttribute('src')) {
-        // Same story — check if chapter has its own audioKey
+      } else {
+        // Same story — load chapter's own audioKey from DOM
         var chAudioKey = link.getAttribute('data-audio-key') || '';
         var chReadingText = (window.__chapterReadingTexts && window.__chapterReadingTexts[safeIndex]) || '';
-        var currentAudioKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
 
-        if (chAudioKey && chAudioKey !== currentAudioKey) {
+        // Fallback: look up audioKey from audiohub-chapters-v1 if DOM attribute is empty
+        if (!chAudioKey && story && story.id) {
+          try {
+            var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var _chs = Array.isArray(_cs[String(story.id)]) ? _cs[String(story.id)] : [];
+            if (_chs[safeIndex] && _chs[safeIndex].audioKey) chAudioKey = _chs[safeIndex].audioKey;
+          } catch (e) {}
+        }
+
+        if (chAudioKey && chAudioKey !== currentPlayingAudioKey) {
           // Chapter has different audio — load it
-          console.log('[chapter] Switching to chapter audio:', chAudioKey);
+          _userSelectedChapter = true;
           var chapterStory = Object.assign({}, story, { audioKey: chAudioKey });
           bindStoryAudio(chapterStory);
+          currentPlayingAudioKey = chAudioKey;
           setTimeout(function () {
             if (nativeAudio) {
               nativeAudio.play().then(function () {
@@ -3679,6 +3789,8 @@
             var ct = cleanReadingText(chReadingText);
             var bl = String(ct).split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
             chapterCopy.innerHTML = bl.length ? bl.map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('') : '';
+            // Record rendered text so renderReadingText() won't overwrite it
+            window.__lastRenderedReadingText = chapterCopy.innerHTML;
             chapterCopy.scrollTop = 0;
           }
         }
@@ -3700,6 +3812,36 @@
           playerState.playing = false;
           renderPlayer();
         }
+      });
+      // FIX: Detect audio load errors and reset UI
+      nativeAudio.addEventListener('error', function () {
+        if (nativeAudio.error && nativeAudio.error.code !== MediaError.MEDIA_ERR_ABORTED) {
+          console.warn('[audio-debug] Audio error:', nativeAudio.error.code, nativeAudio.error.message);
+          playerState.playing = false;
+          renderPlayer();
+        }
+      });
+      // FIX: Detect audio stuck at 0:00 (silent failure — common in incognito)
+      var _stuckCheckCount = 0;
+      nativeAudio.addEventListener('playing', function () {
+        _stuckCheckCount = 0;
+        // After play starts, verify time actually advances
+        var stuckInterval = setInterval(function () {
+          if (nativeAudio.paused || nativeAudio.ended || nativeAudio.currentTime > 0) {
+            clearInterval(stuckInterval);
+            return;
+          }
+          _stuckCheckCount++;
+          if (_stuckCheckCount >= 5) {
+            // 5 seconds stuck at 0:00 — audio is silent/broken
+            clearInterval(stuckInterval);
+            console.warn('[audio-debug] Audio stuck at 0:00 — resetting player');
+            nativeAudio.pause();
+            nativeAudio.currentTime = 0;
+            playerState.playing = false;
+            renderPlayer();
+          }
+        }, 1000);
       });
     }
 
