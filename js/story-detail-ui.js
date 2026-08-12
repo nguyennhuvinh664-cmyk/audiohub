@@ -3694,18 +3694,8 @@
         if (!currentPlayingAudioKey) {
           bindStoryAudio(storyObj);
           currentPlayingAudioKey = storyObj && (storyObj.audioKey || storyObj.audio_key) ? String(storyObj.audioKey || storyObj.audio_key) : '';
+          // bindStoryAudio() handles auto-play when audio loads
         }
-        setTimeout(function () {
-          if (nativeAudio) {
-            nativeAudio.play().then(function () {
-              playerState.playing = true;
-              renderPlayer();
-            }).catch(function () {
-              playerState.playing = false;
-              renderPlayer();
-            });
-          }
-        }, 300);
       }
 
       // Re-fetch audio for the new story
