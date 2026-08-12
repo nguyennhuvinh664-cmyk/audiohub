@@ -3725,7 +3725,7 @@
               var _fbStory = Object.assign({}, story, { audioKey: _fbKey });
               bindStoryAudio(_fbStory);
               currentPlayingAudioKey = _fbKey;
-              setTimeout(function () { if (nativeAudio) nativeAudio.play().catch(function(){}); }, 300);
+              // bindStoryAudio() handles auto-play
             }
           }
         }).catch(function (err) {
@@ -3737,7 +3737,7 @@
             var _fbStory2 = Object.assign({}, story, { audioKey: _fbKey2 });
             bindStoryAudio(_fbStory2);
             currentPlayingAudioKey = _fbKey2;
-            setTimeout(function () { if (nativeAudio) nativeAudio.play().catch(function(){}); }, 300);
+            // bindStoryAudio() handles auto-play
           }
         });
       } else {
@@ -3760,17 +3760,9 @@
           var chapterStory = Object.assign({}, story, { audioKey: chAudioKey });
           bindStoryAudio(chapterStory);
           currentPlayingAudioKey = chAudioKey;
-          setTimeout(function () {
-            if (nativeAudio) {
-              nativeAudio.play().then(function () {
-                playerState.playing = true;
-                renderPlayer();
-              }).catch(function () {
-                playerState.playing = false;
-                renderPlayer();
-              });
-            }
-          }, 300);
+          // NOTE: bindStoryAudio() handles auto-play when audio loads (line 1642).
+          // Do NOT use setTimeout(300) here — audio is async and not ready in 300ms,
+          // causing echo of previous chapter's audio or silence in incognito mode.
         } else {
           nativeAudio.currentTime = 0;
           nativeAudio.play().then(function () {
