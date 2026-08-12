@@ -200,6 +200,21 @@
       ? '<a href="upload-story.html" class="auth-menu__link"><i class="fa-solid fa-upload"></i> Đăng truyện</a>'
       : '';
 
+    // Show "Kênh của tôi" for all logged-in users
+    var channelUrl = 'channel.html?author=' + encodeURIComponent(profile.name || '');
+    var channelLink = '<a href="' + channelUrl + '" class="auth-menu__link"><i class="fa-solid fa-broadcast-tower"></i> Kênh của tôi</a>';
+
+    // Check if user is Super Admin
+    var isSuperAdmin = false;
+    try {
+      var superAdminEmail = localStorage.getItem('audiohub-super-admin') || '';
+      isSuperAdmin = superAdminEmail && profile.email && profile.email.toLowerCase() === superAdminEmail.toLowerCase();
+    } catch (e) {}
+
+    var superAdminLink = isSuperAdmin
+      ? '<a href="superadmin.html" class="auth-menu__link auth-menu__link--admin"><i class="fa-solid fa-shield-halved"></i> Super Admin</a>'
+      : '';
+
     var accountUrl = getAccountUrl().replace('/html/', '');
 
     return '<div class="auth-menu">'
@@ -211,7 +226,9 @@
       + '<div class="auth-menu__dropdown" hidden>'
       + '<div class="auth-menu__summary"><strong class="auth-menu__name">' + profile.name + '</strong><span class="auth-menu__tier">' + (profile.tier || 'Thành viên') + '</span></div>'
       + '<a href="' + accountUrl + '" class="auth-menu__link"><i class="fa-regular fa-user"></i> Tài khoản</a>'
+      + channelLink
       + uploadLink
+      + superAdminLink
       + '<a href="change-password.html" class="auth-menu__link"><i class="fa-solid fa-key"></i> Đổi mật khẩu</a>'
       + '<button type="button" class="auth-menu__action" data-auth-switch><i class="fa-solid fa-repeat"></i> Chuyển đổi tài khoản</button>'
       + '<button type="button" class="auth-menu__action auth-menu__action--danger" data-auth-logout><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>'
