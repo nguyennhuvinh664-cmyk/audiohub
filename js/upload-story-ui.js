@@ -1547,6 +1547,14 @@
     try {
       var _cs0 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
       _chaptersForD1_init = Array.isArray(_cs0[story.id]) ? _cs0[story.id] : [];
+      // Fallback: check s_ prefix variants
+      if (!_chaptersForD1_init.length && story.id) {
+        _chaptersForD1_init = Array.isArray(_cs0['s_' + story.id]) ? _cs0['s_' + story.id] : [];
+      }
+      // Last fallback: check story.chapters
+      if (!_chaptersForD1_init.length && story.chapters && story.chapters.length) {
+        _chaptersForD1_init = story.chapters;
+      }
     } catch (e) {}
 
     var _postBody = {
