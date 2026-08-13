@@ -1533,26 +1533,49 @@
       return;
     }
 
-    // Poll for real CUID
-    var attempts = 0;
-    // NFD-normalized title comparison (handles Vietnamese diacritics: ô ≠ ố)
-    function _nfc(s) {
-      return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    }
-    var normalizedTitle = _nfc(story.title);
-    var poll = setInterval(function () {
-      attempts++;
-      if (attempts > 30) { clearInterval(poll); doRedirect(story.id); return; } // 15s timeout
+    // POST to D1 to get CUID immediately (no polling needed)
+    var userId = getMyUserId() || '';
+    var _chaptersForD1_init = [];
+    try {
+      var _cs0 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+      _chaptersForD1_init = Array.isArray(_cs0[story.id]) ? _cs0[story.id] : [];
+    } catch (e) {}
 
-      var stories = window.AudioHubStories && typeof window.AudioHubStories.read === 'function' ? window.AudioHubStories.read() : [];
-      var current = (stories || []).find(function (s) {
-        return s && _nfc(s.title) === normalizedTitle;
-      });
+    var _postBody = {
+      id: story.id,
+      title: story.title,
+      author: story.author || 'Admin AudioHub',
+      genre: story.genre || '',
+      description: story.description || '',
+      visibility: story.visibility || 'Công khai',
+      user_id: userId,
+      reading_text: story.readingText || story.reading_text || '',
+      hashtags: story.hashtags || '',
+      cover_key: story.coverKey || story.cover_key || '',
+      cover_data: state.coverData || '',
+      audio_key: story.id,
+      chapters: _chaptersForD1_init.length ? _chaptersForD1_init : (story.chapters || []),
+      chapter_count: (_chaptersForD1_init.length || (story.chapters || []).length) || 0
+    };
 
-      if (current && current.id && String(current.id).indexOf('s_') !== 0) {
-        clearInterval(poll);
-        var realId = current.id;
-        console.log('[upload] ✅ CUID received:', realId);
+    fetch('/api/stories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_postBody)
+    }).then(function (r) { return r.json(); }).then(function (saved) {
+      var realId = (saved && saved.id) ? saved.id : story.id;
+      console.log('[upload] ✅ CUID received:', realId);
+
+      // Update localStorage with real CUID immediately
+      if (realId !== story.id && window.AudioHubStories && typeof window.AudioHubStories.read === 'function' && typeof window.AudioHubStories.upsert === 'function') {
+        var stories = window.AudioHubStories.read();
+        var current = (stories || []).find(function (s) { return s && s.id === story.id; });
+        if (current) {
+          current.id = realId;
+          window.AudioHubStories.upsert(current);
+          console.log('[upload] ✅ Updated localStorage with CUID:', realId);
+        }
+      }
 
         // --- MIGRATE chapter store from local draft id -> real id (prevent lost chapters) ---
         try {
@@ -1610,47 +1633,7 @@
         // 2. Add playlist entry
         addPlaylistEntry(realId, story);
 
-        // 3. Full PATCH to D1 — metadata + chapters + cover + audio
-        var _chaptersForD1 = [];
-        try {
-          var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-          _chaptersForD1 = Array.isArray(_cs[realId]) ? _cs[realId] : [];
-        } catch (e) {}
-        console.log('[upload] ✅ PATCH full story to D1:', realId, '| chapters:', _chaptersForD1.length);
-
-        // Use realId as audio_key so R2 can find it by story ID
-        // (old code used local key a_xxx which doesn't exist in R2)
-        var _origAudioKey2 = realId;
-
-        var _patchBody = {
-          id: realId,
-          title: story.title,
-          author: story.author || 'Admin AudioHub',
-          genre: story.genre || '',
-          description: story.description || '',
-          visibility: story.visibility || 'Công khai',
-          user_id: getMyUserId() || '',
-          reading_text: story.readingText || story.reading_text || '',
-          hashtags: story.hashtags || '',
-          cover_key: story.coverKey || story.cover_key || '',
-          cover_data: state.coverData || '',
-          audio_key: _origAudioKey2,
-          chapters: _chaptersForD1.length ? _chaptersForD1 : (story.chapters || []),
-          chapter_count: (_chaptersForD1.length || (story.chapters || []).length) || 0
-        };
-
-        fetch('/api/stories/' + encodeURIComponent(realId), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(_patchBody)
-        }).then(function () {
-          console.log('[upload] ✅ Full PATCH to D1 success:', realId);
-        }).catch(function (e) {
-          console.warn('[upload] ⚠ Full PATCH to D1 failed:', e);
-        });
-
-        // 4. Upload audio to cloud (R2/Supabase) using REAL story ID as key
-        // This ensures audio is findable via story ID in incognito/other browsers
+        // 3. Upload audio to cloud (R2/Supabase) using REAL story ID as key
         function _uploadAudioToCloud(blob) {
           if (!blob || !window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.put !== 'function') {
             doRedirect(realId);
@@ -1699,7 +1682,10 @@
           doRedirect(realId);
         }
       }
-    }, 500);
+    }).catch(function (err) {
+      console.warn('[upload] ⚠ POST to D1 failed:', err);
+      doRedirect(story.id);
+    });
   }
 
   /* ── Update playlist entry keys from s_ to real CUID ── */
