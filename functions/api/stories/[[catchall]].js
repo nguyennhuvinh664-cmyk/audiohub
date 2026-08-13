@@ -105,6 +105,11 @@ export async function onRequest(context) {
       return Response.json({ success: true, deleted, duplicates_found: dupes.results?.length || 0 }, { headers: corsHeaders });
     }
 
+    // GET /api/stories/listen-history - Listen history (stub: returns empty for now)
+    if (method === 'GET' && storyId === 'listen-history') {
+      return Response.json([], { headers: corsHeaders });
+    }
+
     // GET /api/stories/public - Public stories (must be before :id catch)
     if (method === 'GET' && storyId === 'public' && !action) {
       const genre = url.searchParams.get('genre');
@@ -238,21 +243,21 @@ export async function onRequest(context) {
         return Response.json({ error: 'No audio file provided' }, { status: 400, headers: corsHeaders });
       }
 
+      // Use chapter-specific audioKey if provided, otherwise fallback to storyId
+      const audioKey = formData.get('audioKey') || storyId;
+
       // Upload to R2 if available
       if (env.AUDIO) {
         try {
-          await r2UploadAudio(env, storyId, file);
-          // Update audio_key in D1
-          await upsertStory(env.DB, { id: storyId, audio_key: storyId + '.mp3', updated_at: new Date().toISOString() });
-          return Response.json({ success: true, audioKey: storyId + '.mp3' }, { headers: corsHeaders });
+          await r2UploadAudio(env, audioKey, file);
+          // Update audio_key in D1 with chapter-specific key
+          return Response.json({ success: true, audioKey: audioKey + '.mp3' }, { headers: corsHeaders });
         } catch (e) {
           console.error('[stories] R2 audio upload failed:', e);
         }
       }
 
-      // R2 not available — just update the audio_key reference in D1
-      await upsertStory(env.DB, { id: storyId, audio_key: storyId, updated_at: new Date().toISOString() });
-      return Response.json({ success: true, audioKey: storyId }, { headers: corsHeaders });
+      return Response.json({ success: true, audioKey: audioKey }, { headers: corsHeaders });
     }
 
     // Unknown endpoint
