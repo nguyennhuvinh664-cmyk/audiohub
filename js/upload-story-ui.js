@@ -316,6 +316,14 @@
     var addBtn = $('[data-story-name-add]');
     if (!selectRoot || !trigger || !menu || !list) return;
 
+    // Prevent <label> click from stealing focus to hidden input (blocks dropdown on some browsers)
+    var parentLabel = selectRoot.closest('label');
+    if (parentLabel) {
+      parentLabel.addEventListener('click', function (e) {
+        if (selectRoot.contains(e.target)) e.preventDefault();
+      });
+    }
+
     var allStories = [];
     var isAddingNew = false;
     var _uid = getMyUserId();
