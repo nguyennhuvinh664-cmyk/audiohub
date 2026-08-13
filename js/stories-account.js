@@ -946,6 +946,12 @@
       fetch('/api/stories/' + encodeURIComponent(id), { method: 'DELETE' })
         .then(function () { console.log('[account] Deleted story from D1:', id); })
         .catch(function (e) { console.warn('[account] Failed to delete story from D1:', id, e); });
+      // Also delete from Supabase (home page loads from Supabase first)
+      if (window.AudioHubSupabase && typeof window.AudioHubSupabase.deleteStory === 'function') {
+        window.AudioHubSupabase.deleteStory(id)
+          .then(function () { console.log('[account] Deleted story from Supabase:', id); })
+          .catch(function (e) { console.warn('[account] Failed to delete story from Supabase:', id, e); });
+      }
     });
   }
 
