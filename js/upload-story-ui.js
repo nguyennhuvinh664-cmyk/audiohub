@@ -1573,6 +1573,14 @@
         if (current) {
           current.id = realId;
           window.AudioHubStories.upsert(current);
+          // CRITICAL: Remove old s_ entry to prevent duplicates
+          // Without this, next publish finds stale s_ entry → loses chapters
+          try {
+            var allStories = window.AudioHubStories.read();
+            var oldEntries = allStories.filter(function (s) { return s && s.id === story.id; });
+            oldEntries.forEach(function (s) { window.AudioHubStories.remove(s.id); });
+            if (oldEntries.length) console.log('[upload] ✅ Removed', oldEntries.length, 'old s_ entries from localStorage');
+          } catch (e) {}
           console.log('[upload] ✅ Updated localStorage with CUID:', realId);
         }
       }
