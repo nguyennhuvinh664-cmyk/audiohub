@@ -1469,14 +1469,14 @@
     showBanner(published ? 'Truyện demo đã được đưa vào trạng thái sẵn sàng xuất bản.' : 'Đã lưu nháp.', published);
 
     if (published && story && story.id) {
-      syncToCloudAndRedirect(story);
+      syncToCloudAndRedirect(story, built.payload.chapters || []);
     }
   }
 
   /* ═══════════════════════════════════════════════════════════════════
      13. CLOUD SYNC (single poll loop)
      ═══════════════════════════════════════════════════════════════════ */
-  function syncToCloudAndRedirect(story) {
+  function syncToCloudAndRedirect(story, mergedChapters) {
     var isLocal = String(story.id).indexOf('s_') === 0;
 
     function doRedirect(realId) {
@@ -1491,13 +1491,9 @@
       addPlaylistEntry(story.id, story);
       if (userId && window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
         console.log('[upload] syncToCloudAndRedirect — PATCH existing CUID story to D1:', story.id, '| userId:', userId);
-        // Build chapters array from local store (authoritative chapter source)
-        var _chaptersForD1 = [];
-        try {
-          var _chapStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-          _chaptersForD1 = Array.isArray(_chapStore[story.id]) ? _chapStore[story.id] : [];
-        } catch (e) {}
-        console.log('[upload] syncToCloudAndRedirect — chapters to sync:', _chaptersForD1.length, '| story.chapters:', (story.chapters || []).length);
+        // Use merged chapters passed from saveStory (already correct, no localStorage re-read needed)
+        var _chaptersForD1 = mergedChapters || story.chapters || [];
+        console.log('[upload] syncToCloudAndRedirect — chapters to sync:', _chaptersForD1.length);
 
         // Preserve original audio_key (chapter 1) — don't let new chapter overwrite it
         var _existingStory = null;
@@ -1543,19 +1539,8 @@
 
     // POST to D1 to get CUID immediately (no polling needed)
     var userId = getMyUserId() || '';
-    var _chaptersForD1_init = [];
-    try {
-      var _cs0 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-      _chaptersForD1_init = Array.isArray(_cs0[story.id]) ? _cs0[story.id] : [];
-      // Fallback: check s_ prefix variants
-      if (!_chaptersForD1_init.length && story.id) {
-        _chaptersForD1_init = Array.isArray(_cs0['s_' + story.id]) ? _cs0['s_' + story.id] : [];
-      }
-      // Last fallback: check story.chapters
-      if (!_chaptersForD1_init.length && story.chapters && story.chapters.length) {
-        _chaptersForD1_init = story.chapters;
-      }
-    } catch (e) {}
+    // Use merged chapters passed from saveStory (already correct)
+    var _chaptersForD1_init = mergedChapters || story.chapters || [];
 
     var _postBody = {
       id: story.id,
