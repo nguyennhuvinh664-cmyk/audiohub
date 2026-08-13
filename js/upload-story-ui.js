@@ -1697,7 +1697,6 @@
         } else {
           doRedirect(realId);
         }
-      }
     }).catch(function (err) {
       console.warn('[upload] ⚠ POST to D1 failed:', err);
       doRedirect(story.id);
