@@ -1651,12 +1651,14 @@
 
         // 4. Upload audio to cloud (R2/Supabase) using REAL story ID as key
         // This ensures audio is findable via story ID in incognito/other browsers
-        if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
-          // FIX: Use realId (not local state.audioKey) so R2 stores as {storyId}.mp3
-          window.AudioHubStoryAudio.put(state.audioFile, realId).then(function () {
+        function _uploadAudioToCloud(blob) {
+          if (!blob || !window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.put !== 'function') {
+            doRedirect(realId);
+            return;
+          }
+          window.AudioHubStoryAudio.put(blob, realId).then(function () {
             console.log('[upload] ✅ Audio uploaded to cloud with story ID:', realId);
             state.audioFile = null;
-            // Update chapter audioKey to use story ID (so bindStoryAudio finds it)
             state.audioKey = realId;
             if (typeof editChapterIndex === 'number' && Array.isArray(current.chapters) && current.chapters[editChapterIndex]) {
               current.chapters[editChapterIndex].audioKey = realId;
@@ -1672,6 +1674,25 @@
             }).then(function () { doRedirect(realId); }).catch(function () { doRedirect(realId); });
           }).catch(function () {
             console.warn('[upload] ⚠ Cloud audio upload failed, redirecting anyway');
+            doRedirect(realId);
+          });
+        }
+
+        if (state.audioFile) {
+          // User selected a new audio file — upload directly
+          _uploadAudioToCloud(state.audioFile);
+        } else if (state.audioKey && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
+          // Edit mode: no new file selected, but audioKey exists — fetch from IndexedDB and re-upload with story ID
+          console.log('[upload] 🔄 Edit mode: fetching audio from IndexedDB with key:', state.audioKey, '→ uploading as:', realId);
+          window.AudioHubStoryAudio.get(state.audioKey).then(function (blob) {
+            if (blob && blob.size > 0) {
+              _uploadAudioToCloud(blob);
+            } else {
+              console.warn('[upload] ⚠ No audio blob found in IndexedDB for key:', state.audioKey);
+              doRedirect(realId);
+            }
+          }).catch(function () {
+            console.warn('[upload] ⚠ Failed to fetch audio from IndexedDB');
             doRedirect(realId);
           });
         } else {
