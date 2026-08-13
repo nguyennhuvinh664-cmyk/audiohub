@@ -3602,8 +3602,24 @@
         return;
       }
 
-      // No audio src — can't play, don't toggle UI
-      renderPlayer();
+      // No audio src — audio still loading from API, wait for canplay then play
+      if (nativeAudio) {
+        var _waitPlayHandler = function () {
+          nativeAudio.removeEventListener('canplay', _waitPlayHandler);
+          nativeAudio.play().then(function () {
+            playerState.playing = true;
+            renderPlayer();
+          }).catch(function () {
+            playerState.playing = false;
+            renderPlayer();
+          });
+        };
+        nativeAudio.addEventListener('canplay', _waitPlayHandler);
+        setTimeout(function () {
+          nativeAudio.removeEventListener('canplay', _waitPlayHandler);
+        }, 15000);
+        renderPlayer(); // show loading state
+      }
     });
 
     function playChapterAtIndex(index) {
