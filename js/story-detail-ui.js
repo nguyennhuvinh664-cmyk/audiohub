@@ -1518,10 +1518,16 @@
         var _url = '/api/audio/' + encodeURIComponent(String(key));
         fetch(_url, { method: 'HEAD' }).then(function (res) {
           _checked++;
-          if (res.ok) {
-            console.log('[audio-sync] ✅ Already on R2:', key);
+          var r2Size = parseInt(res.headers.get('Content-Length') || '0', 10);
+          if (res.ok && r2Size >= 1000) {
+            console.log('[audio-sync] ✅ Already on R2:', key, '(' + r2Size + ' bytes)');
             _checkNext(idx + 1);
             return;
+          }
+          // R2 has corrupt file — delete it
+          if (res.ok && r2Size > 0 && r2Size < 1000) {
+            console.log('[audio-sync] ⚠ R2 has corrupt file (' + r2Size + ' bytes), deleting:', key);
+            fetch(_url, { method: 'DELETE' }).catch(function () {});
           }
           // Not on R2 — get from IndexedDB
           window.AudioHubStoryAudio.get(key).then(function (blob) {
@@ -1731,13 +1737,18 @@
                 if (pb) { pb.classList.add('pulse-play'); }
               });
             }
-            // BACKGROUND: If loaded from local (IndexedDB), check R2 and upload if missing
-            if (_loadedFromLocal && blob.size > 0) {
+            // BACKGROUND: If loaded from local (IndexedDB), check R2 and upload if missing/corrupt
+            if (_loadedFromLocal && blob.size >= 1000) {
               // Single-chapter quick sync (already has the blob)
               var _url0 = '/api/audio/' + encodeURIComponent(String(paths[0]));
               fetch(_url0, { method: 'HEAD' }).then(function (res) {
-                if (!res.ok) {
-                  console.log('[audio-sync] Quick upload current chapter:', paths[0]);
+                var r2Size = parseInt(res.headers.get('Content-Length') || '0', 10);
+                if (!res.ok || r2Size < 1000) {
+                  if (r2Size > 0 && r2Size < 1000) {
+                    console.log('[audio-sync] R2 has corrupt file (' + r2Size + ' bytes), deleting:', paths[0]);
+                    fetch(_url0, { method: 'DELETE' }).catch(function () {});
+                  }
+                  console.log('[audio-sync] Quick upload current chapter:', paths[0], '| size:', blob.size);
                   fetch(_url0, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
                     .then(function (r) { console.log('[audio-sync] PUT:', r.status); })
                     .catch(function () {});
