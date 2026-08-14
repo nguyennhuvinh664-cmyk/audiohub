@@ -3920,13 +3920,33 @@
           // Do NOT use setTimeout(300) here — audio is async and not ready in 300ms,
           // causing echo of previous chapter's audio or silence in incognito mode.
         } else if (!chAudioKey) {
-          // Chapter has NO audio — show message, keep current audio playing
-          var _noteNode = document.querySelector('[data-story-audio-note]');
-          if (_noteNode) {
-            _noteNode.textContent = 'Chương này chưa có file audio.';
-            _noteNode.classList.remove('is-hidden');
+          // Chapter has NO audioKey — fallback to story-level audioKey
+          var _storyFallbackKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
+          if (_storyFallbackKey && _storyFallbackKey !== currentPlayingAudioKey) {
+            _userSelectedChapter = true;
+            var _fallbackStory = Object.assign({}, story, { audioKey: _storyFallbackKey });
+            bindStoryAudio(_fallbackStory);
+            currentPlayingAudioKey = _storyFallbackKey;
+            console.log('[audio] Chapter', safeIndex + 1, 'has no audioKey — using story audioKey:', _storyFallbackKey);
+          } else if (_storyFallbackKey) {
+            // Same story audio already playing — restart from beginning
+            nativeAudio.currentTime = 0;
+            nativeAudio.play().then(function () {
+              playerState.playing = true;
+              renderPlayer();
+            }).catch(function () {
+              playerState.playing = false;
+              renderPlayer();
+            });
+          } else {
+            // No audio at all — show message
+            var _noteNode = document.querySelector('[data-story-audio-note]');
+            if (_noteNode) {
+              _noteNode.textContent = 'Chương này chưa có file audio.';
+              _noteNode.classList.remove('is-hidden');
+            }
+            console.log('[audio] Chapter', safeIndex + 1, 'has no audioKey and story has no audioKey');
           }
-          console.log('[audio] Chapter', safeIndex + 1, 'has no audioKey');
         } else {
           // Same audioKey as currently playing — restart from beginning
           nativeAudio.currentTime = 0;
