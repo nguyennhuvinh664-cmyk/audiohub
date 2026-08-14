@@ -1545,21 +1545,62 @@
           console.log('[upload] ✅ PATCH to D1 success:', story.id);
           // Upload audio to cloud (R2/Supabase) for this chapter
           function _patchUploadDone() { doRedirect(story.id); }
+
+          // Direct R2 upload — bypasses AudioHubStoryAudio.put which may silently fail
+          function _directR2Upload(blob, key) {
+            var url = '/api/audio/' + encodeURIComponent(String(key));
+            console.log('[upload] 🔧 Direct R2 PUT:', url, '| size:', blob.size);
+            return fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+              .then(function (res) {
+                console.log('[upload] R2 PUT response:', res.status, res.statusText);
+                if (!res.ok) throw new Error('R2 PUT failed: ' + res.status);
+                return true;
+              });
+          }
+
+          // Verify R2 has the file
+          function _verifyR2(key) {
+            var url = '/api/audio/' + encodeURIComponent(String(key));
+            return fetch(url, { method: 'HEAD' }).then(function (res) {
+              console.log('[upload] R2 VERIFY:', key, '→', res.status);
+              return res.ok;
+            }).catch(function () { return false; });
+          }
+
           function _doPatchAudioUpload(blob, uploadKey) {
             var _patchAudioKey = uploadKey || state.audioKey || story.id;
-            console.log('[upload] 🎵 Uploading audio to cloud for PATCH story:', story.id, '| audioKey:', _patchAudioKey);
-            window.AudioHubStoryAudio.put(blob, story.id, _patchAudioKey).then(function () {
-              console.log('[upload] ✅ Audio uploaded to cloud (PATCH):', story.id, '| key:', _patchAudioKey);
+            console.log('[upload] 🎵 Uploading audio to cloud for PATCH story:', story.id, '| audioKey:', _patchAudioKey, '| blob.size:', blob ? blob.size : 'NULL');
+
+            if (!blob || blob.size === 0) {
+              console.warn('[upload] ⚠ No audio blob to upload');
+              _patchUploadDone();
+              return;
+            }
+
+            // Try 1: Direct R2 upload with the audioKey
+            _directR2Upload(blob, _patchAudioKey).then(function () {
+              console.log('[upload] ✅ R2 upload OK (PATCH) with key:', _patchAudioKey);
               state.audioFile = null;
               _patchUploadDone();
             }).catch(function (e) {
-              console.warn('[upload] ⚠ Audio upload failed (PATCH), retrying with story.id:', e && e.message);
-              // Retry with story.id as key (most reliable for R2 lookup)
-              window.AudioHubStoryAudio.put(blob, story.id, story.id).then(function () {
-                console.log('[upload] ✅ Audio upload retry OK (PATCH):', story.id);
-              }).catch(function () {
-                console.warn('[upload] ❌ Audio upload retry also failed (PATCH)');
-              }).then(function () { _patchUploadDone(); });
+              console.warn('[upload] ⚠ R2 upload failed with key:', _patchAudioKey, '| trying story.id:', e && e.message);
+              // Try 2: Direct R2 upload with story.id
+              _directR2Upload(blob, story.id).then(function () {
+                console.log('[upload] ✅ R2 upload OK (PATCH) with story.id:', story.id);
+                state.audioFile = null;
+                _patchUploadDone();
+              }).catch(function (e2) {
+                console.warn('[upload] ⚠ R2 upload failed with story.id:', e2 && e.message);
+                // Try 3: AudioHubStoryAudio.put as last resort (includes Supabase fallback)
+                window.AudioHubStoryAudio && window.AudioHubStoryAudio.put
+                  ? window.AudioHubStoryAudio.put(blob, story.id, _patchAudioKey).then(function () {
+                      console.log('[upload] ✅ AudioHubStoryAudio.put OK (PATCH)');
+                      state.audioFile = null;
+                    }).catch(function () {
+                      console.warn('[upload] ❌ All upload methods failed (PATCH)');
+                    }).then(function () { _patchUploadDone(); })
+                  : _patchUploadDone();
+              });
             });
           }
           if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
@@ -1719,35 +1760,63 @@
 
         // 3. Upload audio to cloud (R2/Supabase) using audioKey for R2 + storyId as fallback
         function _uploadAudioToCloud(blob, uploadKey) {
-          if (!blob || !window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.put !== 'function') {
+          if (!blob || blob.size === 0) {
+            console.warn('[upload] ⚠ No audio blob to upload');
             doRedirect(realId);
             return;
           }
           var _uploadAudioKey = uploadKey || state.audioKey || realId;
-          window.AudioHubStoryAudio.put(blob, realId, _uploadAudioKey).then(function () {
-            console.log('[upload] ✅ Audio uploaded to cloud | storyId:', realId, '| audioKey:', _uploadAudioKey);
-            state.audioFile = null;
-            if (!state.audioKey) state.audioKey = realId;
-            if (typeof editChapterIndex === 'number' && Array.isArray(current.chapters) && current.chapters[editChapterIndex]) {
-              current.chapters[editChapterIndex].audioKey = realId;
-            }
-            if (!editChapterIndex || editChapterIndex === 0) {
-              current.audioKey = realId;
-            }
-            window.AudioHubStories.upsert(current);
-            fetch('/api/stories/' + encodeURIComponent(realId), {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: realId, audio_key: realId })
-            }).then(function () { doRedirect(realId); }).catch(function () { doRedirect(realId); });
-          }).catch(function (e) {
-            console.warn('[upload] ⚠ Cloud audio upload failed, retrying with storyId:', e && e.message);
-            window.AudioHubStoryAudio.put(blob, realId, realId).then(function () {
-              console.log('[upload] ✅ Audio upload retry OK | storyId:', realId);
-            }).catch(function () {
-              console.warn('[upload] ❌ Audio upload retry also failed');
-            }).then(function () { doRedirect(realId); });
-          });
+          console.log('[upload] 🎵 Uploading audio | storyId:', realId, '| audioKey:', _uploadAudioKey, '| size:', blob.size);
+
+          // Direct R2 upload — bypasses AudioHubStoryAudio.put which may silently fail
+          var _r2Url = '/api/audio/' + encodeURIComponent(String(_uploadAudioKey));
+          fetch(_r2Url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+            .then(function (res) {
+              console.log('[upload] R2 PUT response:', res.status, res.statusText);
+              if (!res.ok) throw new Error('R2 PUT ' + res.status);
+              // Verify R2 actually has it
+              return fetch(_r2Url, { method: 'HEAD' });
+            })
+            .then(function (verifyRes) {
+              console.log('[upload] R2 VERIFY:', verifyRes.status);
+              if (!verifyRes.ok) throw new Error('R2 VERIFY ' + verifyRes.status);
+              console.log('[upload] ✅ Audio confirmed on R2 | key:', _uploadAudioKey);
+              state.audioFile = null;
+              if (!state.audioKey) state.audioKey = realId;
+              if (typeof editChapterIndex === 'number' && Array.isArray(current.chapters) && current.chapters[editChapterIndex]) {
+                current.chapters[editChapterIndex].audioKey = realId;
+              }
+              if (!editChapterIndex || editChapterIndex === 0) {
+                current.audioKey = realId;
+              }
+              window.AudioHubStories.upsert(current);
+              fetch('/api/stories/' + encodeURIComponent(realId), {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: realId, audio_key: realId })
+              }).then(function () { doRedirect(realId); }).catch(function () { doRedirect(realId); });
+            })
+            .catch(function (e) {
+              console.warn('[upload] ⚠ R2 upload/verify failed:', e && e.message, '| trying story.id as key');
+              // Retry with story.id as key
+              var _r2Url2 = '/api/audio/' + encodeURIComponent(String(realId));
+              fetch(_r2Url2, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+                .then(function (res) {
+                  console.log('[upload] R2 PUT (story.id) response:', res.status);
+                  if (!res.ok) throw new Error('R2 PUT ' + res.status);
+                  return fetch(_r2Url2, { method: 'HEAD' });
+                })
+                .then(function (verifyRes) {
+                  console.log('[upload] R2 VERIFY (story.id):', verifyRes.status);
+                  if (!verifyRes.ok) throw new Error('R2 VERIFY failed');
+                  console.log('[upload] ✅ Audio confirmed on R2 (story.id):', realId);
+                  state.audioFile = null;
+                })
+                .catch(function (e2) {
+                  console.warn('[upload] ❌ All R2 uploads failed:', e2 && e2.message);
+                })
+                .then(function () { doRedirect(realId); });
+            });
         }
 
         if (state.audioFile) {
