@@ -1582,27 +1582,37 @@
       return;
     }
 
-    // Build list of paths to try (most likely first)
+    // Build list of paths to try — CURRENT CHAPTER FIRST (not all chapters!)
     var paths = [];
-    if (audioKey) paths.push(audioKey);
-    // Also try chapter audioKeys (each chapter may have its own key)
+    // Determine current chapter index from DOM (active chapter)
+    var _currentChIdx = 0;
+    try {
+      var _activeCh = document.querySelector('.chapter-item.is-active, .chapter-item.active');
+      if (_activeCh) _currentChIdx = parseInt(_activeCh.getAttribute('data-chapter-index'), 10) || 0;
+    } catch (e) {}
+
+    // Try current chapter's audioKey FIRST (most likely to be correct)
+    var _currentChAudioKey = '';
     try {
       var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
       var _chArr = Array.isArray(_chStore[storyId]) ? _chStore[storyId] : [];
-      _chArr.forEach(function (ch) {
-        if (ch && ch.audioKey && paths.indexOf(ch.audioKey) === -1) paths.push(ch.audioKey);
-      });
+      if (_chArr[_currentChIdx] && _chArr[_currentChIdx].audioKey) {
+        _currentChAudioKey = _chArr[_currentChIdx].audioKey;
+      }
     } catch (e) {}
+
+    // Priority: current chapter audioKey > story audioKey > storyId fallback
+    if (_currentChAudioKey) paths.push(_currentChAudioKey);
+    if (audioKey && paths.indexOf(audioKey) === -1) paths.push(audioKey);
     if (storyId) {
       var storyIdMp3 = storyId + '.mp3';
       if (paths.indexOf(storyIdMp3) === -1) paths.push(storyIdMp3);
     }
-    // Also try s_ prefix (story may have been uploaded with synthetic ID)
     if (storyId && !String(storyId).startsWith('s_')) {
       var syntheticMp3 = 's_' + storyId + '.mp3';
       if (paths.indexOf(syntheticMp3) === -1) paths.push(syntheticMp3);
     }
-    console.log('[audio-debug] paths:', paths);
+    console.log('[audio-debug] paths:', paths, '| currentChIdx:', _currentChIdx);
 
     var RENDER_BACKEND_BASE = '/api/v1';
 
@@ -1626,7 +1636,7 @@
       // Cache-bust to avoid stale CDN cache (old 22-byte files)
       var url = '/api/audio/' + encodeURIComponent(String(key)) + '?v=' + encodeURIComponent('' + Math.floor(Date.now() / 86400000));
       console.log('[audio-debug] trying R2:', url);
-      return fetchWithTimeout(url, 8000);
+      return fetchWithTimeout(url, 5000);
     }
 
     function fetchFromBackend(key) {
@@ -3909,7 +3919,16 @@
           // NOTE: bindStoryAudio() handles auto-play when audio loads (line 1642).
           // Do NOT use setTimeout(300) here — audio is async and not ready in 300ms,
           // causing echo of previous chapter's audio or silence in incognito mode.
+        } else if (!chAudioKey) {
+          // Chapter has NO audio — show message, keep current audio playing
+          var _noteNode = document.querySelector('[data-story-audio-note]');
+          if (_noteNode) {
+            _noteNode.textContent = 'Chương này chưa có file audio.';
+            _noteNode.classList.remove('is-hidden');
+          }
+          console.log('[audio] Chapter', safeIndex + 1, 'has no audioKey');
         } else {
+          // Same audioKey as currently playing — restart from beginning
           nativeAudio.currentTime = 0;
           nativeAudio.play().then(function () {
             playerState.playing = true;
