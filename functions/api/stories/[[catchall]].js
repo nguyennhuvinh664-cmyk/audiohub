@@ -156,7 +156,7 @@ export async function onRequest(context) {
       return Response.json(story, { headers: corsHeaders });
     }
 
-    // POST /api/stories - Create/Update story
+    // POST /api/stories - Create story (ALWAYS create new — never dedup by title)
     if (method === 'POST' && !storyId) {
       const story = await request.json();
 
@@ -166,20 +166,16 @@ export async function onRequest(context) {
         if (tokenUserId) story.user_id = tokenUserId;
       }
 
-      // Dedup: check if story with same title AND user_id exists → update instead of create
-      // Each user can have their own story with the same title
-      const title = (story.title || '').trim();
-      const userId = story.user_id || null;
-      if (title) {
-        let existing;
-        if (userId) {
-          existing = await env.DB.prepare('SELECT id FROM stories WHERE title = ? AND user_id = ?').bind(title, userId).first();
-        } else {
-          existing = await env.DB.prepare('SELECT id FROM stories WHERE title = ? AND (user_id IS NULL OR user_id = ?)').bind(title, '').first();
-        }
+      // Dedup: ONLY match if client sends a REAL CUID (not s_ prefix, not empty)
+      // This handles POST being called twice for the same story (retry).
+      // NEVER dedup by title — different stories can have similar titles,
+      // and title-based dedup causes stories to overwrite each other.
+      const clientId = (story.id || '').trim();
+      const isRealCuid = clientId && !String(clientId).startsWith('s_') && clientId.length > 5;
+      if (isRealCuid) {
+        const existing = await env.DB.prepare('SELECT id FROM stories WHERE id = ?').bind(clientId).first();
         if (existing && existing.id) {
-          // Story with same title+user exists — update it
-          story.id = existing.id;
+          // Same CUID — this is a retry/update of the same story
           story.updated_at = new Date().toISOString();
           await upsertStory(env.DB, story);
           const saved = await getStoryById(env.DB, story.id);
@@ -187,10 +183,8 @@ export async function onRequest(context) {
         }
       }
 
-      // Generate CUID if client sends null OR s_ prefix (local temp ID)
-      if (!story.id || String(story.id).startsWith('s_')) {
-        story.id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-      }
+      // ALWAYS generate fresh CUID — each story gets a unique ID
+      story.id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
       // Set timestamps
       if (!story.created_at) {

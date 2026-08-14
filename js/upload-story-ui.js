@@ -1230,56 +1230,20 @@
       targetId = '';
       editStoryId = '';
     }
-    // Restore from sessionStorage if empty (after SPA redirect)
-    if (!targetId) {
-      try {
-        var savedId = sessionStorage.getItem('audiohub-editStoryId') || '';
-        var savedTitle = sessionStorage.getItem('audiohub-editStoryTitle') || '';
-        if (savedId && !String(savedId).startsWith('pl-') && !String(savedId).startsWith('s_')) {
-          targetId = savedId;
-          editStoryId = savedId;
-          built.payload.id = savedId;
-          console.log('[upload] 🔄 Restored targetId from sessionStorage:', savedId, '|', savedTitle);
-        }
-      } catch (e) {}
-    }
+    // RESTORE DISABLED: sessionStorage restore causes story overwrites
+    // (old editStoryId leaks into new story creation → PATCH overwrites wrong story)
+    // Each new story must get a fresh CUID from the server.
+    // if (!targetId) {
+    //   try {
+    //     var savedId = sessionStorage.getItem('audiohub-editStoryId') || '';
+    //     ...
+    //   } catch (e) {}
+    // }
     console.log('[upload] 📖 CHAPTER APPEND — targetId:', targetId, '| chapterTitle:', built.payload.chapterTitle);
 
-    // Fallback: match by title+author if editStoryId is empty (SPA race / page reload)
-    // Use NFD normalization for Vietnamese diacritics (ô ≠ ố)
-    if (!targetId && built.payload.title && window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
-      var _nfcFallback = function (s) { return String(s || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
-      var normPayloadTitle = _nfcFallback(built.payload.title);
-      var allStories = window.AudioHubStories.read();
-      // Find existing story with matching title (including s_ prefix local stories)
-      var match = (allStories || []).find(function (s) {
-        return s && _nfcFallback(s.title) === normPayloadTitle;
-      });
-      if (match && match.id) {
-        targetId = String(match.id);
-        built.payload.id = targetId;
-        console.log('[upload] ⚠ Fallback matched by title:', targetId, '| match.id:', match.id);
-      }
-      // Also search audiohub-chapters-v1 for any key with matching chapters (including s_ prefix)
-      if (!targetId) {
-        try {
-          var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-          Object.keys(_cs).forEach(function (k) {
-            if (targetId || !Array.isArray(_cs[k]) || !_cs[k].length) return;
-            // Check if this key's story has matching title in audiohub-stories
-            var _rawStories = JSON.parse(localStorage.getItem('audiohub-stories') || '[]');
-            var _match = (_rawStories || []).find(function (s) {
-              return s && s.id === k && _nfcFallback(s.title) === normPayloadTitle;
-            });
-            if (_match) {
-              targetId = k;
-              built.payload.id = k;
-              console.log('[upload] ⚠ Found chapters under key:', k);
-            }
-          });
-        } catch (e) {}
-      }
-    }
+    // TITLE-BASED MATCH DISABLED: caused stories with similar titles to overwrite each other
+    // TITLE-BASED MATCH DISABLED: caused stories with similar titles to overwrite each other.
+    // Each story must use its own CUID — never match by title.
 
     var existingStory = null;
     var existingChapters = [];
