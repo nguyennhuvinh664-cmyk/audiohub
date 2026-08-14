@@ -148,6 +148,12 @@
     if (!blob) return Promise.resolve('');
     console.log('[audio-store] putAudio called | storyId:', storyId, '| audioKey:', audioKey, '| blob.size:', blob.size, '| blob.type:', blob.type);
 
+    // Reject corrupt/empty audio (< 1KB) — don't upload garbage to cloud
+    if (blob.size < 1000) {
+      console.warn('[audio-store] ⚠ Rejecting tiny blob:', blob.size, 'bytes — not uploading to cloud');
+      return Promise.resolve('');
+    }
+
     // Always store locally first (so bindStoryAudio can find it by storyId)
     var localKey = storyId || makeKey();
     putAudioLocal(blob, localKey).catch(function () {});
@@ -215,46 +221,63 @@
   function getAudioFromApi(key) {
     if (!key) return Promise.resolve(null);
 
-    // Retry up to 3 times — _syncAllChaptersToR2 may still be uploading in background
-    var retries = [0, 3000, 6000];
-    var attemptIdx = 0;
+    var MIN_VALID_SIZE = 1000; // Audio files < 1KB are corrupted/empty
+    var attempts = [
+      function () {
+        var url = '/api/audio/' + encodeURIComponent(String(key));
+        console.log('[audio-store] fetch R2:', url);
+        return fetch(url).then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.blob();
+        });
+      },
+      function () {
+        console.log('[audio-store] fetch Supabase:', key);
+        return downloadFromSupabaseStorage(key);
+      },
+      function () {
+        console.log('[audio-store] fetch Render:', key);
+        return downloadFromRenderBackend(key);
+      }
+    ];
 
-    function tryAttempt() {
-      if (attemptIdx >= retries.length) return Promise.resolve(null);
-      var delay = retries[attemptIdx++];
-      return new Promise(function (resolve) {
-        setTimeout(function () {
-          // Try R2 first (same domain, fast, never sleeps)
-          var r2Url = '/api/audio/' + encodeURIComponent(String(key));
-          console.log('[audio-store] Trying R2 (attempt ' + attemptIdx + '):', r2Url);
-          fetch(r2Url).then(function (res) {
-            if (!res.ok) throw new Error('R2 ' + res.status);
-            return res.blob();
-          }).then(function (blob) {
-            if (blob && blob.size > 100) { resolve(blob); return; }
-            resolve(tryAttempt());
-          }).catch(function () {
-            // Fallback: try Supabase Storage (public, no auth)
-            console.log('[audio-store] R2 failed, trying Supabase for:', key);
-            downloadFromSupabaseStorage(key).then(function (blob) {
-              if (blob && blob.size > 100) { resolve(blob); return; }
-              resolve(tryAttempt());
-            }).catch(function () {
-              // Fallback: try Render backend (may be sleeping)
-              console.log('[audio-store] Supabase failed, trying Render for:', key);
-              downloadFromRenderBackend(key).then(function (blob) {
-                if (blob && blob.size > 100) { resolve(blob); return; }
-                resolve(tryAttempt());
-              }).catch(function () {
-                resolve(tryAttempt());
-              });
-            });
-          });
-        }, delay);
+    // Try each source, with retries for timing issues
+    var tryIdx = 0;
+    function tryNext() {
+      if (tryIdx >= attempts.length) return Promise.resolve(null);
+      var attempt = attempts[tryIdx++];
+      return attempt().then(function (blob) {
+        if (blob && blob.size >= MIN_VALID_SIZE) {
+          console.log('[audio-store] OK:', key, blob.size, 'bytes');
+          return blob;
+        }
+        console.log('[audio-store] too small:', key, blob ? blob.size : 0, 'bytes');
+        return tryNext();
+      }).catch(function (err) {
+        console.log('[audio-store] failed:', key, err && err.message);
+        return tryNext();
       });
     }
 
-    return tryAttempt();
+    // Retry entire chain up to3 times with delays (for _syncAllChaptersToR2 timing)
+    var retryCount = 0;
+    var maxRetries = 3;
+    var retryDelays = [0, 3000, 6000];
+
+    return new Promise(function (resolve) {
+      function runWithRetry() {
+        if (retryCount >= maxRetries) { resolve(null); return; }
+        var delay = retryDelays[retryCount++];
+        setTimeout(function () {
+          tryIdx = 0;
+          tryNext().then(function (blob) {
+            if (blob) { resolve(blob); return; }
+            runWithRetry();
+          });
+        }, delay);
+      }
+      runWithRetry();
+    });
   }
 
   function getAudio(key) {

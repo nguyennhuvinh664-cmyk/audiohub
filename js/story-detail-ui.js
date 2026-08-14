@@ -1525,8 +1525,8 @@
           }
           // Not on R2 — get from IndexedDB
           window.AudioHubStoryAudio.get(key).then(function (blob) {
-            if (!blob || blob.size === 0) {
-              console.warn('[audio-sync] No local blob for:', key);
+            if (!blob || blob.size < 1000) {
+              console.warn('[audio-sync] No valid local blob for:', key, '(size:', blob ? blob.size : 0, ')');
               _checkNext(idx + 1);
               return;
             }
@@ -1660,10 +1660,11 @@
         var key = paths[localIdx++];
         console.log('[audio-debug] trying AudioHubStoryAudio.get:', key);
         return window.AudioHubStoryAudio.get(key).then(function (blob) {
-          if (blob && blob.size > 0) {
+          if (blob && blob.size >= 1000) {
             console.log('[audio-debug] AudioHubStoryAudio OK:', key, blob.size);
             return blob;
           }
+          if (blob) console.log('[audio-debug] AudioHubStoryAudio too small:', key, blob.size, '— skipping');
           return tryNextLocal();
         }).catch(function () {
           return tryNextLocal();
