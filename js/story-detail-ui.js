@@ -1485,53 +1485,77 @@
   var audioUrlByNode = new WeakMap();
 
   /* ═══════════════════════════════════════════════════════════════════
-     Background R2 sync — upload audio from IndexedDB to R2 if missing
+     Background R2 sync — upload ALL chapter audio from IndexedDB to R2
+     Runs on page load. In regular browser, IndexedDB has the audio.
+     After sync, incognito users can play from R2.
      ═══════════════════════════════════════════════════════════════════ */
-  function _syncAudioToR2(blob, paths, storyId) {
-    if (!blob || !paths || !paths.length) return;
-    // Check R2 for first path (most likely key) — if already there, skip
-    var _checkKey = paths[0];
-    var _checkUrl = '/api/audio/' + encodeURIComponent(String(_checkKey));
-    fetch(_checkUrl, { method: 'HEAD' }).then(function (res) {
-      if (res.ok) {
-        console.log('[audio-sync] ✅ Audio already on R2:', _checkKey);
-        return; // Already on R2
-      }
-      // Not on R2 — upload with each path key until one works
-      console.log('[audio-sync] Audio not on R2, uploading... | key:', _checkKey, '| size:', blob.size);
-      return _trySyncUpload(blob, paths, 0);
-    }).catch(function () {
-      return _trySyncUpload(blob, paths, 0);
-    });
-  }
+  function _syncAllChaptersToR2(storyId) {
+    if (!storyId || !window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') return;
+    try {
+      var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+      var _chArr = Array.isArray(_chStore[String(storyId)]) ? _chStore[String(storyId)] : [];
+      if (!_chArr.length) return;
 
-  function _trySyncUpload(blob, paths, idx) {
-    if (idx >= paths.length) {
-      console.warn('[audio-sync] ❌ All R2 upload attempts failed');
-      return;
-    }
-    var key = paths[idx];
-    var url = '/api/audio/' + encodeURIComponent(String(key));
-    console.log('[audio-sync] PUT', url);
-    fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
-      .then(function (res) {
-        console.log('[audio-sync] R2 PUT response:', res.status, '| key:', key);
-        if (!res.ok) throw new Error('PUT ' + res.status);
-        // Verify
-        return fetch(url, { method: 'HEAD' });
-      })
-      .then(function (verifyRes) {
-        if (verifyRes.ok) {
-          console.log('[audio-sync] ✅ Audio synced to R2:', key);
-        } else {
-          console.warn('[audio-sync] R2 VERIFY failed:', verifyRes.status, '| trying next key');
-          return _trySyncUpload(blob, paths, idx + 1);
-        }
-      })
-      .catch(function (e) {
-        console.warn('[audio-sync] R2 upload failed:', e && e.message, '| trying next key');
-        _trySyncUpload(blob, paths, idx + 1);
+      // Collect all unique audioKeys
+      var _keys = [];
+      _chArr.forEach(function (ch) {
+        if (ch && ch.audioKey && _keys.indexOf(ch.audioKey) === -1) _keys.push(ch.audioKey);
       });
+      if (!_keys.length) return;
+
+      console.log('[audio-sync] Checking', _keys.length, 'audio keys for R2...');
+
+      // For each key, check R2 HEAD → if missing, get from IndexedDB → PUT to R2
+      var _synced = 0;
+      var _checked = 0;
+      function _checkNext(idx) {
+        if (idx >= _keys.length) {
+          if (_synced > 0) console.log('[audio-sync] ✅ Synced', _synced, 'files to R2');
+          else console.log('[audio-sync] All', _checked, 'files already on R2');
+          return;
+        }
+        var key = _keys[idx];
+        var _url = '/api/audio/' + encodeURIComponent(String(key));
+        fetch(_url, { method: 'HEAD' }).then(function (res) {
+          _checked++;
+          if (res.ok) {
+            console.log('[audio-sync] ✅ Already on R2:', key);
+            _checkNext(idx + 1);
+            return;
+          }
+          // Not on R2 — get from IndexedDB
+          window.AudioHubStoryAudio.get(key).then(function (blob) {
+            if (!blob || blob.size === 0) {
+              console.warn('[audio-sync] No local blob for:', key);
+              _checkNext(idx + 1);
+              return;
+            }
+            console.log('[audio-sync] Uploading to R2:', key, '| size:', blob.size);
+            fetch(_url, {
+              method: 'PUT',
+              headers: { 'Content-Type': blob.type || 'audio/mpeg' },
+              body: blob
+            }).then(function (putRes) {
+              console.log('[audio-sync] PUT response:', putRes.status, '| key:', key);
+              if (putRes.ok) _synced++;
+              _checkNext(idx + 1);
+            }).catch(function (e) {
+              console.warn('[audio-sync] PUT failed:', key, e && e.message);
+              _checkNext(idx + 1);
+            });
+          }).catch(function () {
+            console.warn('[audio-sync] IndexedDB get failed:', key);
+            _checkNext(idx + 1);
+          });
+        }).catch(function () {
+          _checked++;
+          _checkNext(idx + 1);
+        });
+      }
+      _checkNext(0);
+    } catch (e) {
+      console.warn('[audio-sync] Error:', e);
+    }
   }
 
   function bindStoryAudio(story) {
@@ -1708,7 +1732,16 @@
             }
             // BACKGROUND: If loaded from local (IndexedDB), check R2 and upload if missing
             if (_loadedFromLocal && blob.size > 0) {
-              _syncAudioToR2(blob, paths, storyId);
+              // Single-chapter quick sync (already has the blob)
+              var _url0 = '/api/audio/' + encodeURIComponent(String(paths[0]));
+              fetch(_url0, { method: 'HEAD' }).then(function (res) {
+                if (!res.ok) {
+                  console.log('[audio-sync] Quick upload current chapter:', paths[0]);
+                  fetch(_url0, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+                    .then(function (r) { console.log('[audio-sync] PUT:', r.status); })
+                    .catch(function () {});
+                }
+              }).catch(function () {});
             }
           } catch (error) {
             showNote('Không thể tải file audio đã lưu.');
@@ -4195,6 +4228,13 @@
 
   initCommentAccess();
   initPlayer();
+
+  // BACKGROUND: Sync all chapter audio from IndexedDB to R2 (runs once on page load)
+  (function () {
+    var _sid = window.location.search.match(/[?&]id=([^&]+)/);
+    _sid = _sid ? decodeURIComponent(_sid[1]) : '';
+    if (_sid) _syncAllChaptersToR2(_sid);
+  })();
 
   if (window.AudioHubStories && typeof window.AudioHubStories.sync === 'function') {
     window.AudioHubStories.sync();
