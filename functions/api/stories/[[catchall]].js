@@ -39,6 +39,12 @@ export async function onRequest(context) {
     const storyId = pathParts[0];
     const action = pathParts[1]; // e.g., 'listen'
 
+    // POST /api/stories/delete-all - Delete ALL stories (admin reset)
+    if (method === 'POST' && storyId === 'delete-all') {
+      const result = await env.DB.prepare('DELETE FROM stories').run();
+      return Response.json({ success: true, deleted: result.meta?.changes || 0 }, { headers: corsHeaders });
+    }
+
     // POST /api/stories/fix-user-id - Maintenance: find story by title and update user_id
     if (method === 'POST' && storyId === 'fix-user-id') {
       const body = await request.json();
