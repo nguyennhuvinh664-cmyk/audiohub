@@ -151,21 +151,23 @@
     var localKey = storyId || makeKey();
     putAudioLocal(blob, localKey).catch(function () {});
 
-    // Upload to Supabase Storage if we have any story ID
+    // Upload to cloud if we have any story ID
     if (storyId) {
-      var path = storyId + '.mp3';
-      return uploadToSupabaseStorage(blob, path).then(function (uploadedPath) {
-        // Also try Render backend + R2 in parallel (best-effort, for cross-browser)
+      // PRIMARY: R2 via same-domain API (no proxy, no CORS issues)
+      return uploadToR2(blob, storyId).then(function (key) {
+        console.log('[audio-store] ✅ R2 upload OK:', key);
+        // Also try Supabase + Render in parallel (best-effort backup)
+        uploadToSupabaseStorage(blob, storyId + '.mp3').catch(function () {});
         uploadToRenderBackend(blob, storyId).catch(function () {});
-        uploadToR2(blob, storyId).catch(function () {});
-        return uploadedPath || path;
+        return key;
       }).catch(function (err) {
-        console.warn('[audio-store] ⚠ Supabase failed, trying Render:', err && err.message);
-        // Supabase failed — try Render backend (public, works in incognito)
-        return uploadToRenderBackend(blob, storyId).catch(function (err2) {
-          // Try R2 as last cloud option
-          return uploadToR2(blob, storyId).catch(function (err3) {
-            console.warn('[audio-store] ⚠ R2 failed:', err3 && err3.message);
+        console.warn('[audio-store] ⚠ R2 failed, trying Supabase:', err && err.message);
+        // R2 failed — try Supabase Storage
+        return uploadToSupabaseStorage(blob, storyId + '.mp3').catch(function (err2) {
+          console.warn('[audio-store] ⚠ Supabase failed, trying Render:', err2 && err2.message);
+          // Try Render backend as last cloud option
+          return uploadToRenderBackend(blob, storyId).catch(function (err3) {
+            console.warn('[audio-store] ⚠ All cloud uploads failed');
             // All cloud failed — local copy already stored above
             return localKey;
           });
@@ -207,15 +209,19 @@
   function getAudioFromApi(key) {
     if (!key) return Promise.resolve(null);
 
-    // Try Render backend first (public endpoint, no auth needed, fastest)
-    return downloadFromRenderBackend(key).catch(function () {
-      // Fallback: try R2 via Worker API (same domain)
-      var r2Url = '/api/audio/' + encodeURIComponent(String(key));
-      return fetch(r2Url).then(function (res) {
-        return res.ok ? res.blob() : Promise.reject(null);
-      }).catch(function () {
-        // Fallback: try Supabase Storage (may fail if project deleted)
-        return downloadFromSupabaseStorage(key).catch(function () {
+    // Try R2 first (same domain, fast, never sleeps)
+    var r2Url = '/api/audio/' + encodeURIComponent(String(key));
+    console.log('[audio-store] Trying R2:', r2Url);
+    return fetch(r2Url).then(function (res) {
+      if (!res.ok) throw new Error('R2 ' + res.status);
+      return res.blob();
+    }).catch(function () {
+      // Fallback: try Supabase Storage (public, no auth)
+      console.log('[audio-store] R2 failed, trying Supabase for:', key);
+      return downloadFromSupabaseStorage(key).catch(function () {
+        // Fallback: try Render backend (may be sleeping)
+        console.log('[audio-store] Supabase failed, trying Render for:', key);
+        return downloadFromRenderBackend(key).catch(function () {
           // Last resort: try authenticated backend API
           if (!canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
             return null;
