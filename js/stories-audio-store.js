@@ -224,7 +224,7 @@
     var MIN_VALID_SIZE = 1000; // Audio files < 1KB are corrupted/empty
     var attempts = [
       function () {
-        var url = '/api/audio/' + encodeURIComponent(String(key));
+        var url = '/api/audio/' + encodeURIComponent(String(key)) + '?v=' + encodeURIComponent('' + Math.floor(Date.now() / 86400000));
         console.log('[audio-store] fetch R2:', url);
         return fetch(url).then(function (res) {
           if (!res.ok) throw new Error('HTTP ' + res.status);

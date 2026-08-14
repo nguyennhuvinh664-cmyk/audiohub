@@ -1624,7 +1624,8 @@
     function fetchFromR2(key) {
       if (!key) return Promise.reject(null);
       // Cloudflare R2 API — same domain, never sleeps
-      var url = '/api/audio/' + encodeURIComponent(String(key));
+      // Cache-bust to avoid stale CDN cache (old 22-byte files)
+      var url = '/api/audio/' + encodeURIComponent(String(key)) + '?v=' + encodeURIComponent('' + Math.floor(Date.now() / 86400000));
       console.log('[audio-debug] trying R2:', url);
       return fetchWithTimeout(url, 8000);
     }
