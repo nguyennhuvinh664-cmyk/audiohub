@@ -31,6 +31,28 @@ export async function onRequest(context) {
       return Response.json({ error: 'Story ID is required' }, { status: 400, headers: corsHeaders });
     }
 
+    // ── HEAD /api/audio/:storyId — check if audio exists (no body) ──
+    if (method === 'HEAD') {
+      const r2Key = `${storyId}.mp3`;
+      if (env.AUDIO) {
+        try {
+          const head = await env.AUDIO.head(r2Key);
+          if (head) {
+            return new Response(null, {
+              status: 200,
+              headers: {
+                'Content-Type': head.httpMetadata?.contentType || 'audio/mpeg',
+                'Content-Length': String(head.size || 0),
+                'Accept-Ranges': 'bytes',
+                ...corsHeaders
+              }
+            });
+          }
+        } catch (e) { /* fall through */ }
+      }
+      return new Response(null, { status: 404, headers: corsHeaders });
+    }
+
     // ── GET /api/audio/:storyId — R2 first, Supabase fallback ──
     if (method === 'GET') {
       const r2Key = `${storyId}.mp3`;

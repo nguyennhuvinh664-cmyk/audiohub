@@ -30,7 +30,7 @@ export async function onRequest(context) {
   // GET: R2 → Supabase Storage fallback (streaming)
   // PUT: stream directly to R2 (no Worker memory buffering)
   // ══════════════════════════════════════════════════════════════════════
-  if (/^\/api\/audio\/.+/.test(pathname) && (method === 'GET' || method === 'PUT' || method === 'DELETE')) {
+  if (/^\/api\/audio\/.+/.test(pathname) && (method === 'GET' || method === 'HEAD' || method === 'PUT' || method === 'DELETE')) {
     const env = context.env;
     if (!env || !env.AUDIO) {
       // R2 not available — try forwarding to Render as last resort
@@ -40,6 +40,22 @@ export async function onRequest(context) {
       const r2Key = audioKey + '.mp3';
 
       try {
+        // ── HEAD: check if audio exists ──
+        if (method === 'HEAD') {
+          const head = await env.AUDIO.head(r2Key);
+          if (head) {
+            return new Response(null, {
+              status: 200,
+              headers: {
+                'Content-Type': head.httpMetadata?.contentType || 'audio/mpeg',
+                'Content-Length': String(head.size || 0),
+                'Accept-Ranges': 'bytes',
+                'Access-Control-Allow-Origin': '*'
+              }
+            });
+          }
+          return new Response(null, { status: 404, headers: { 'Access-Control-Allow-Origin': '*' } });
+        }
         // ── GET: R2 → Supabase fallback ──
         if (method === 'GET') {
           // 1) Try R2

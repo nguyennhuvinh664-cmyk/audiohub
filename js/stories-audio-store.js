@@ -215,33 +215,46 @@
   function getAudioFromApi(key) {
     if (!key) return Promise.resolve(null);
 
-    // Try R2 first (same domain, fast, never sleeps)
-    var r2Url = '/api/audio/' + encodeURIComponent(String(key));
-    console.log('[audio-store] Trying R2:', r2Url);
-    return fetch(r2Url).then(function (res) {
-      if (!res.ok) throw new Error('R2 ' + res.status);
-      return res.blob();
-    }).catch(function () {
-      // Fallback: try Supabase Storage (public, no auth)
-      console.log('[audio-store] R2 failed, trying Supabase for:', key);
-      return downloadFromSupabaseStorage(key).catch(function () {
-        // Fallback: try Render backend (may be sleeping)
-        console.log('[audio-store] Supabase failed, trying Render for:', key);
-        return downloadFromRenderBackend(key).catch(function () {
-          // Last resort: try authenticated backend API
-          if (!canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
-            return null;
-          }
-          return window.AudioHubApi.requestBlob('/media/audio/' + encodeURIComponent(String(key)), {
-            method: 'GET'
+    // Retry up to 3 times — _syncAllChaptersToR2 may still be uploading in background
+    var retries = [0, 3000, 6000];
+    var attemptIdx = 0;
+
+    function tryAttempt() {
+      if (attemptIdx >= retries.length) return Promise.resolve(null);
+      var delay = retries[attemptIdx++];
+      return new Promise(function (resolve) {
+        setTimeout(function () {
+          // Try R2 first (same domain, fast, never sleeps)
+          var r2Url = '/api/audio/' + encodeURIComponent(String(key));
+          console.log('[audio-store] Trying R2 (attempt ' + attemptIdx + '):', r2Url);
+          fetch(r2Url).then(function (res) {
+            if (!res.ok) throw new Error('R2 ' + res.status);
+            return res.blob();
           }).then(function (blob) {
-            return blob || null;
+            if (blob && blob.size > 100) { resolve(blob); return; }
+            resolve(tryAttempt());
           }).catch(function () {
-            return null;
+            // Fallback: try Supabase Storage (public, no auth)
+            console.log('[audio-store] R2 failed, trying Supabase for:', key);
+            downloadFromSupabaseStorage(key).then(function (blob) {
+              if (blob && blob.size > 100) { resolve(blob); return; }
+              resolve(tryAttempt());
+            }).catch(function () {
+              // Fallback: try Render backend (may be sleeping)
+              console.log('[audio-store] Supabase failed, trying Render for:', key);
+              downloadFromRenderBackend(key).then(function (blob) {
+                if (blob && blob.size > 100) { resolve(blob); return; }
+                resolve(tryAttempt());
+              }).catch(function () {
+                resolve(tryAttempt());
+              });
+            });
           });
-        });
+        }, delay);
       });
-    });
+    }
+
+    return tryAttempt();
   }
 
   function getAudio(key) {
