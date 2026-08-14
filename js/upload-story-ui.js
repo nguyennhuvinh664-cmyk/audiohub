@@ -1526,7 +1526,21 @@
           })
         }).then(function () {
           console.log('[upload] ✅ PATCH to D1 success:', story.id);
-          doRedirect(story.id);
+          // Upload audio to cloud (R2/Supabase) for this chapter
+          function _patchUploadDone() { doRedirect(story.id); }
+          if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
+            console.log('[upload] 🎵 Uploading audio to cloud for PATCH story:', story.id);
+            window.AudioHubStoryAudio.put(state.audioFile, story.id).then(function () {
+              console.log('[upload] ✅ Audio uploaded to cloud (PATCH):', story.id);
+              state.audioFile = null;
+              _patchUploadDone();
+            }).catch(function (e) {
+              console.warn('[upload] ⚠ Audio upload failed (PATCH):', e && e.message);
+              _patchUploadDone();
+            });
+          } else {
+            _patchUploadDone();
+          }
         }).catch(function (err) {
           console.warn('[upload] ⚠ PATCH to D1 failed, redirect anyway:', err);
           doRedirect(story.id);
