@@ -2839,7 +2839,28 @@
             // FIX: Never overwrite local chapters with fewer API chapters
             var _localChCount = Array.isArray(merged.chapters) ? merged.chapters.length : 0;
             if (apiChapters.length >= _localChCount) {
-              merged.chapters = apiChapters;
+              // CRITICAL: Preserve per-chapter audioKeys from localStorage!
+              // API (D1) often returns chapters WITHOUT audioKeys — overwriting would destroy them.
+              try {
+                var _existingStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+                var _existingChapters = Array.isArray(_existingStore[story.id]) ? _existingStore[story.id] : [];
+                merged.chapters = apiChapters.map(function (apiCh, _idx) {
+                  var _localCh = _existingChapters[_idx] || {};
+                  // If API chapter has no audioKey but local has one, preserve local audioKey
+                  var _mergedCh = Object.assign({}, apiCh);
+                  if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && _localCh.audioKey) {
+                    _mergedCh.audioKey = _localCh.audioKey;
+                    console.log('[story-detail] Preserved audioKey for chapter', _idx + 1, ':', _localCh.audioKey);
+                  }
+                  // Same for readingText
+                  if ((!_mergedCh.readingText || _mergedCh.readingText === '') && _localCh.readingText) {
+                    _mergedCh.readingText = _localCh.readingText;
+                  }
+                  return _mergedCh;
+                });
+              } catch (e) {
+                merged.chapters = apiChapters;
+              }
             } else {
               console.log('[story-detail] ⚠ Skipping API chapters (' + apiChapters.length + ') — local has more (' + _localChCount + ')');
             }
@@ -2904,9 +2925,19 @@
                 mergeAndRender(freshStory);
               }
               // Also sync to localStorage so future loads are correct
+              // CRITICAL: Preserve per-chapter audioKeys from localStorage
               if (freshChapters.length >= currentChCount && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
                 try {
-                  var _syncStory = Object.assign({}, story, { chapters: freshChapters, chapterCount: freshChapters.length });
+                  var _existingStore2 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+                  var _existingCh2 = Array.isArray(_existingStore2[story.id]) ? _existingStore2[story.id] : [];
+                  var _syncedChapters = freshChapters.map(function (fCh, _fi) {
+                    var _old = _existingCh2[_fi] || {};
+                    var _m = Object.assign({}, fCh);
+                    if ((!_m.audioKey || _m.audioKey === '') && _old.audioKey) _m.audioKey = _old.audioKey;
+                    if ((!_m.readingText || _m.readingText === '') && _old.readingText) _m.readingText = _old.readingText;
+                    return _m;
+                  });
+                  var _syncStory = Object.assign({}, story, { chapters: _syncedChapters, chapterCount: _syncedChapters.length });
                   delete _syncStory.audioKey;
                   window.AudioHubStories.upsert(_syncStory);
                 } catch (e) {}
