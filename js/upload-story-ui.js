@@ -1543,6 +1543,19 @@
           })
         }).then(function () {
           console.log('[upload] ✅ PATCH to D1 success:', story.id);
+          // Force-sync chapter audioKeys via sync-chapters endpoint (PATCH uses COALESCE which may not overwrite null)
+          try {
+            var _chsForSync = (built.payload.chapters || []).map(function(c) { return { title: c.title || '', audioKey: c.audioKey || '' }; });
+            if (_chsForSync.length) {
+              fetch('/api/stories/' + encodeURIComponent(story.id) + '/sync-chapters', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('audiohub-auth-token') || '') },
+                body: JSON.stringify({ chapters: _chsForSync })
+              }).then(function(r) { return r.json(); }).then(function(d) {
+                if (d && d.success) console.log('[upload] ✅ Synced chapter audioKeys to D1');
+              }).catch(function() {});
+            }
+          } catch(e) {}
           // Upload audio to cloud (R2/Supabase) for this chapter
           function _patchUploadDone() { doRedirect(story.id); }
 

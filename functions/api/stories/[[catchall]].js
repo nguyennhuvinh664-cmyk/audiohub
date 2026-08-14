@@ -221,6 +221,40 @@ export async function onRequest(context) {
       return Response.json({ success: true }, { headers: corsHeaders });
     }
 
+    // POST /api/stories/:id/sync-chapters - Sync chapter audioKeys from client to D1
+    if (method === 'POST' && storyId && action === 'sync-chapters') {
+      const body = await request.json().catch(() => ({}));
+      const chapters = body.chapters;
+      if (!Array.isArray(chapters) || !chapters.length) {
+        return Response.json({ error: 'chapters array required' }, { status: 400, headers: corsHeaders });
+      }
+      // Read existing story to merge chapters
+      const existing = await getStoryById(env.DB, storyId);
+      if (!existing) {
+        return Response.json({ error: 'Story not found' }, { status: 404, headers: corsHeaders });
+      }
+      // Merge: keep existing chapter fields, add/overwrite audioKey from request
+      let existingChapters = [];
+      if (existing.chapters) {
+        try { existingChapters = typeof existing.chapters === 'string' ? JSON.parse(existing.chapters) : existing.chapters; } catch (e) { existingChapters = []; }
+      }
+      const merged = chapters.map((ch, i) => {
+        const old = existingChapters[i] || {};
+        return {
+          id: ch.id || old.id || '',
+          title: ch.title || old.title || '',
+          audioKey: ch.audioKey || old.audioKey || '',
+          coverKey: ch.coverKey || old.coverKey || '',
+          readingText: ch.readingText || old.readingText || ''
+        };
+      });
+      // Save to D1 — use direct SQL UPDATE to bypass COALESCE (force overwrite chapters)
+      await env.DB.prepare('UPDATE stories SET chapters = ?, updated_at = ? WHERE id = ?')
+        .bind(JSON.stringify(merged), new Date().toISOString(), storyId)
+        .run();
+      return Response.json({ success: true, chapters: merged.length }, { headers: corsHeaders });
+    }
+
     // POST /api/stories/:id/listen - Track listen
     if (method === 'POST' && storyId && action === 'listen') {
       const body = await request.json().catch(() => ({}));

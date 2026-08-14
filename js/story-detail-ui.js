@@ -2042,6 +2042,10 @@
 
       // Get chapter-specific audioKey and readingText from storedChapters
       var chAudioKey = (storedChapters[i] && storedChapters[i].audioKey) || (ch && ch.audioKey) || '';
+      // Fallback: use story-level audioKey if chapter has none
+      if (!chAudioKey && currentStory) {
+        chAudioKey = (currentStory.audioKey || currentStory.audio_key) ? String(currentStory.audioKey || currentStory.audio_key) : '';
+      }
       var chReadingText = (storedChapters[i] && storedChapters[i].readingText) || (ch && ch.readingText) || '';
       if (i < 5) console.log('[story-detail] Chapter', i + 1, 'audioKey:', chAudioKey || '(empty)', '| title:', ch.title || chapterTitle);
       // Store full reading text in JS for click handler
@@ -2076,6 +2080,11 @@
     var allCounts = document.querySelectorAll('.detail-sidebar .section-heading span, .mobile-card .mobile-card__heading span');
     for (var _ci2 = 0; _ci2 < allCounts.length; _ci2++) {
       allCounts[_ci2].textContent = total + ' ' + countLabel;
+    }
+
+    // Sync chapter audioKeys to D1 (so incognito/other devices can access them)
+    if (currentStory && currentStory.id) {
+      try { _syncChapterAudioKeysToD1(currentStory.id); } catch (e) {}
     }
 
     // Hide chapter section if no chapters
@@ -2599,6 +2608,32 @@
   var currentPlayingAudioKey = '';
   var _userSelectedChapter = false;
 
+  // Sync per-chapter audioKeys from localStorage to D1 (so incognito/other devices work)
+  function _syncChapterAudioKeysToD1(storyId) {
+    if (!storyId || String(storyId).startsWith('s_')) return;
+    // Only sync if logged in (has auth token)
+    var token = '';
+    try { token = localStorage.getItem('audiohub-auth-token') || ''; } catch (e) {}
+    if (!token) return;
+    try {
+      var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+      var _chs = Array.isArray(_cs[storyId]) ? _cs[storyId] : [];
+      if (!_chs.length) return;
+      // Only sync chapters that HAVE audioKeys (skip empty ones)
+      var _withKeys = _chs.filter(function (c) { return c && c.audioKey; });
+      if (!_withKeys.length) return;
+      // Check if D1 already has these audioKeys (avoid unnecessary writes)
+      // Just send all chapters — server merges
+      fetch('/api/stories/' + encodeURIComponent(storyId) + '/sync-chapters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ chapters: _chs })
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (d && d.success) console.log('[story-detail] ✅ Synced', _withKeys.length, 'chapter audioKeys to D1');
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   function bindStoryData(story) {
     if (!story || !story.id) return;
     trackStoryListen(story.id);
@@ -2844,6 +2879,8 @@
               try {
                 var _existingStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
                 var _existingChapters = Array.isArray(_existingStore[story.id]) ? _existingStore[story.id] : [];
+                // Fallback: use story-level audioKey for chapters without their own
+                var _storyFallbackKey = apiAudioKey || merged.audioKey || '';
                 merged.chapters = apiChapters.map(function (apiCh, _idx) {
                   var _localCh = _existingChapters[_idx] || {};
                   // If API chapter has no audioKey but local has one, preserve local audioKey
@@ -2851,6 +2888,11 @@
                   if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && _localCh.audioKey) {
                     _mergedCh.audioKey = _localCh.audioKey;
                     console.log('[story-detail] Preserved audioKey for chapter', _idx + 1, ':', _localCh.audioKey);
+                  }
+                  // Still no audioKey? Use story-level fallback
+                  if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && _storyFallbackKey) {
+                    _mergedCh.audioKey = _storyFallbackKey;
+                    console.log('[story-detail] Fallback audioKey for chapter', _idx + 1, ':', _storyFallbackKey);
                   }
                   // Same for readingText
                   if ((!_mergedCh.readingText || _mergedCh.readingText === '') && _localCh.readingText) {
@@ -2934,6 +2976,8 @@
                     var _old = _existingCh2[_fi] || {};
                     var _m = Object.assign({}, fCh);
                     if ((!_m.audioKey || _m.audioKey === '') && _old.audioKey) _m.audioKey = _old.audioKey;
+                    // Fallback: use story-level audioKey
+                    if ((!_m.audioKey || _m.audioKey === '') && story.audioKey) _m.audioKey = story.audioKey;
                     if ((!_m.readingText || _m.readingText === '') && _old.readingText) _m.readingText = _old.readingText;
                     return _m;
                   });
