@@ -1529,8 +1529,9 @@
           // Upload audio to cloud (R2/Supabase) for this chapter
           function _patchUploadDone() { doRedirect(story.id); }
           if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
-            console.log('[upload] 🎵 Uploading audio to cloud for PATCH story:', story.id);
-            window.AudioHubStoryAudio.put(state.audioFile, story.id).then(function () {
+            var _patchAudioKey = state.audioKey || story.id;
+            console.log('[upload] 🎵 Uploading audio to cloud for PATCH story:', story.id, '| audioKey:', _patchAudioKey);
+            window.AudioHubStoryAudio.put(state.audioFile, story.id, _patchAudioKey).then(function () {
               console.log('[upload] ✅ Audio uploaded to cloud (PATCH):', story.id);
               state.audioFile = null;
               _patchUploadDone();
@@ -1656,16 +1657,17 @@
         // 2. Add playlist entry
         addPlaylistEntry(realId, story);
 
-        // 3. Upload audio to cloud (R2/Supabase) using REAL story ID as key
+        // 3. Upload audio to cloud (R2/Supabase) using audioKey for R2 + storyId as fallback
         function _uploadAudioToCloud(blob) {
           if (!blob || !window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.put !== 'function') {
             doRedirect(realId);
             return;
           }
-          window.AudioHubStoryAudio.put(blob, realId).then(function () {
-            console.log('[upload] ✅ Audio uploaded to cloud with story ID:', realId);
+          var _uploadAudioKey = state.audioKey || realId;
+          window.AudioHubStoryAudio.put(blob, realId, _uploadAudioKey).then(function () {
+            console.log('[upload] ✅ Audio uploaded to cloud | storyId:', realId, '| audioKey:', _uploadAudioKey);
             state.audioFile = null;
-            state.audioKey = realId;
+            if (!state.audioKey) state.audioKey = realId;
             if (typeof editChapterIndex === 'number' && Array.isArray(current.chapters) && current.chapters[editChapterIndex]) {
               current.chapters[editChapterIndex].audioKey = realId;
             }
