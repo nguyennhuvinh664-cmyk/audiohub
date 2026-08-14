@@ -1503,42 +1503,28 @@
       });
       if (!_keys.length) return;
 
-      console.log('[audio-sync] Checking', _keys.length, 'audio keys for R2...');
+      console.log('[audio-sync] Syncing', _keys.length, 'audio keys to R2...');
 
-      // For each key, check R2 HEAD → if missing, get from IndexedDB → PUT to R2
+      // For each key: get from IndexedDB → if valid (≥1KB) → PUT to R2 (overwrite if needed)
       var _synced = 0;
-      var _checked = 0;
-      function _checkNext(idx) {
+      var _skipped = 0;
+      function _syncNext(idx) {
         if (idx >= _keys.length) {
-          if (_synced > 0) console.log('[audio-sync] ✅ Synced', _synced, 'files to R2');
-          else console.log('[audio-sync] All', _checked, 'files already on R2');
+          console.log('[audio-sync] Done:', _synced, 'synced,', _skipped, 'skipped (no valid local blob)');
           return;
         }
         var key = _keys[idx];
         var _url = '/api/audio/' + encodeURIComponent(String(key));
-        fetch(_url, { method: 'HEAD' }).then(function (res) {
-          _checked++;
-          var r2Size = parseInt(res.headers.get('Content-Length') || '0', 10);
-          if (res.ok && r2Size >= 1000) {
-            console.log('[audio-sync] ✅ Already on R2:', key, '(' + r2Size + ' bytes)');
-            _checkNext(idx + 1);
+        window.AudioHubStoryAudio.get(key).then(function (blob) {
+          if (!blob || blob.size < 1000) {
+            console.warn('[audio-sync] No valid local blob for:', key, '(size:', blob ? blob.size : 0, ')');
+            _skipped++;
+            _syncNext(idx + 1);
             return;
           }
-          // R2 has corrupt file — delete it
-          if (res.ok && r2Size > 0 && r2Size < 1000) {
-            console.log('[audio-sync] ⚠ R2 has corrupt file (' + r2Size + ' bytes), deleting:', key);
-            fetch(_url, { method: 'DELETE' }).catch(function () {});
-          }
-          // Not on R2 — get from IndexedDB
-          window.AudioHubStoryAudio.get(key).then(function (blob) {
-            if (!blob || blob.size < 1000) {
-              console.warn('[audio-sync] No valid local blob for:', key, '(size:', blob ? blob.size : 0, ')');
-              _checkNext(idx + 1);
-              return;
-            }
-            console.log('[audio-sync] Uploading to R2:', key, '| size:', blob.size);
-            fetch(_url, {
-              method: 'PUT',
+          console.log('[audio-sync] Uploading to R2:', key, '| size:', blob.size);
+          fetch(_url, {
+            method: 'PUT',
               headers: { 'Content-Type': blob.type || 'audio/mpeg' },
               body: blob
             }).then(function (putRes) {
@@ -1547,18 +1533,17 @@
               _checkNext(idx + 1);
             }).catch(function (e) {
               console.warn('[audio-sync] PUT failed:', key, e && e.message);
-              _checkNext(idx + 1);
+              _syncNext(idx + 1);
             });
           }).catch(function () {
             console.warn('[audio-sync] IndexedDB get failed:', key);
-            _checkNext(idx + 1);
+            _syncNext(idx + 1);
           });
         }).catch(function () {
-          _checked++;
-          _checkNext(idx + 1);
+          _syncNext(idx + 1);
         });
       }
-      _checkNext(0);
+      _syncNext(0);
     } catch (e) {
       console.warn('[audio-sync] Error:', e);
     }
@@ -1737,23 +1722,13 @@
                 if (pb) { pb.classList.add('pulse-play'); }
               });
             }
-            // BACKGROUND: If loaded from local (IndexedDB), check R2 and upload if missing/corrupt
+            // BACKGROUND: If loaded from local (IndexedDB), always PUT to R2 (overwrites corrupt files)
             if (_loadedFromLocal && blob.size >= 1000) {
-              // Single-chapter quick sync (already has the blob)
               var _url0 = '/api/audio/' + encodeURIComponent(String(paths[0]));
-              fetch(_url0, { method: 'HEAD' }).then(function (res) {
-                var r2Size = parseInt(res.headers.get('Content-Length') || '0', 10);
-                if (!res.ok || r2Size < 1000) {
-                  if (r2Size > 0 && r2Size < 1000) {
-                    console.log('[audio-sync] R2 has corrupt file (' + r2Size + ' bytes), deleting:', paths[0]);
-                    fetch(_url0, { method: 'DELETE' }).catch(function () {});
-                  }
-                  console.log('[audio-sync] Quick upload current chapter:', paths[0], '| size:', blob.size);
-                  fetch(_url0, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
-                    .then(function (r) { console.log('[audio-sync] PUT:', r.status); })
-                    .catch(function () {});
-                }
-              }).catch(function () {});
+              console.log('[audio-sync] Quick upload current chapter:', paths[0], '| size:', blob.size);
+              fetch(_url0, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+                .then(function (r) { console.log('[audio-sync] PUT:', r.status); })
+                .catch(function () {});
             }
           } catch (error) {
             showNote('Không thể tải file audio đã lưu.');
