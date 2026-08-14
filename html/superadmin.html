@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin - AudioHub</title>
+  <link rel="icon" type="image/png" href="/assets/images/favicon.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260811">
+  <link rel="stylesheet" href="/css/auth-state.css?v=20260811">
+  <link rel="stylesheet" href="/css/superadmin.css?v=20260811-1">
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="logo">
+        <span class="logo__icon"><i class="fa-solid fa-headphones"></i></span>
+        <span class="logo__text">AudioHub</span>
+      </a>
+      <nav class="header-nav">
+        <a href="/index.html" class="header-nav__link">Trang chủ</a>
+      </nav>
+      <div data-auth-container data-auth-variant="default"></div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="superadmin">
+    <div class="container">
+      <!-- Page Header -->
+      <div class="superadmin__header">
+        <h1><i class="fa-solid fa-shield-halved"></i> Super Admin</h1>
+        <p>Quản lý quyền hạn người dùng</p>
+      </div>
+
+      <!-- Access Denied Message -->
+      <div class="superadmin__denied is-hidden" data-access-denied>
+        <i class="fa-solid fa-lock"></i>
+        <h2>Truy cập bị từ chối</h2>
+        <p>Bạn không có quyền truy cập trang này.</p>
+        <p>Chỉ Super Admin mới có thể quản lý quyền hạn.</p>
+        <a href="/index.html" class="btn btn--primary">Về trang chủ</a>
+      </div>
+
+      <!-- Stats -->
+      <div class="superadmin__stats" data-admin-panel>
+        <div class="stat-card">
+          <div class="stat-card__icon"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-card__info">
+            <span class="stat-card__value" data-total-users>0</span>
+            <span class="stat-card__label">Tổng người dùng</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--admin"><i class="fa-solid fa-user-shield"></i></div>
+          <div class="stat-card__info">
+            <span class="stat-card__value" data-total-admins>0</span>
+            <span class="stat-card__label">Admin</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--member"><i class="fa-solid fa-user"></i></div>
+          <div class="stat-card__info">
+            <span class="stat-card__value" data-total-members>0</span>
+            <span class="stat-card__label">Thành viên</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add New Admin -->
+      <div class="superadmin__section" data-admin-panel>
+        <h2><i class="fa-solid fa-user-plus"></i> Cấp quyền Admin</h2>
+        <div class="superadmin__add-admin">
+          <input type="email" id="new-admin-email" placeholder="Nhập email người dùng..." class="superadmin__input">
+          <button type="button" class="btn btn--primary" data-add-admin>
+            <i class="fa-solid fa-plus"></i> Cấp Admin
+          </button>
+        </div>
+      </div>
+
+      <!-- Users List -->
+      <div class="superadmin__section" data-admin-panel>
+        <h2><i class="fa-solid fa-list"></i> Danh sách người dùng</h2>
+        <div class="superadmin__search">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" id="search-users" placeholder="Tìm kiếm người dùng..." class="superadmin__input">
+        </div>
+        <div class="superadmin__table-wrapper">
+          <table class="superadmin__table">
+            <thead>
+              <tr>
+                <th>Người dùng</th>
+                <th>Email</th>
+                <th>Vai trò</th>
+                <th>Ngày tham gia</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody data-users-list>
+              <!-- Users will be rendered here -->
+            </tbody>
+          </table>
+        </div>
+        <div class="superadmin__empty is-hidden" data-empty-users>
+          <i class="fa-solid fa-users-slash"></i>
+          <p>Chưa có người dùng nào</p>
+        </div>
+      </div>
+
+      <!-- Pending Admin Requests -->
+      <div class="superadmin__section" data-admin-panel>
+        <h2><i class="fa-solid fa-clock"></i> Yêu cầu Admin đang chờ</h2>
+        <div class="superadmin__requests" data-admin-requests>
+          <!-- Pending requests will be rendered here -->
+        </div>
+        <div class="superadmin__empty is-hidden" data-empty-requests>
+          <i class="fa-solid fa-inbox"></i>
+          <p>Không có yêu cầu nào</p>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="superadmin__section superadmin__section--danger" data-admin-panel>
+        <h2><i class="fa-solid fa-triangle-exclamation"></i> Vùng nguy hiểm</h2>
+        <p class="superadmin__warning">Các thao tác dưới đây không thể hoàn tác!</p>
+        <div class="superadmin__danger-actions">
+          <button type="button" class="btn btn--danger" data-reset-all>
+            <i class="fa-solid fa-trash"></i> Xóa tất cả dữ liệu
+          </button>
+          <button type="button" class="btn btn--danger" data-export-data>
+            <i class="fa-solid fa-download"></i> Xuất dữ liệu
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Confirm Modal -->
+  <div class="modal is-hidden" data-confirm-modal>
+    <div class="modal__backdrop" data-confirm-cancel></div>
+    <div class="modal__panel">
+      <h3 data-confirm-title>Xác nhận</h3>
+      <p data-confirm-message>Bạn có chắc chắn không?</p>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--outline" data-confirm-cancel>Hủy</button>
+        <button type="button" class="btn btn--danger" data-confirm-ok>Xác nhận</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api-client.js?v=20260811"></script>
+  <script src="/js/auth-state.js?v=20260811-2"></script>
+  <script src="/js/superadmin-ui.js?v=20260811-1"></script>
+</body>
+</html>

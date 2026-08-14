@@ -11,11 +11,16 @@ export async function getStoryById(db, storyId) {
 
 /**
  * Get public stories with optional filters
+ * Excludes cover_data and reading_text (large fields) for listing performance
  */
 export async function getPublicStories(db, options = {}) {
   const { genre, status, limit = 50, offset = 0 } = options;
 
-  let query = 'SELECT * FROM stories WHERE visibility = ?';
+  // Exclude large fields for listing: cover_data (base64 images), reading_text, chapters (can be 1MB+ each)
+  let query = `SELECT id, title, author, genre, description, chapter_title, chapter_count,
+    visibility, audio_status, status, is_completed, cover_key, audio_key,
+    youtube_url, youtube_id, listen_count, listen_count2d, listen_count7d,
+    user_id, created_at, updated_at FROM stories WHERE visibility = ?`;
   const params = ['Công khai'];
 
   if (genre) {
@@ -37,12 +42,17 @@ export async function getPublicStories(db, options = {}) {
 
 /**
  * Get stories by user ID (only stories explicitly owned by this user)
+ * Excludes cover_data and reading_text for listing performance
  */
 export async function getStoriesByUser(db, userId, options = {}) {
   const { limit = 50, offset = 0 } = options;
 
   const result = await db.prepare(
-    'SELECT * FROM stories WHERE user_id = ? AND user_id IS NOT NULL AND user_id != ? ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+    `SELECT id, title, author, genre, description, chapter_title, chapter_count,
+    visibility, audio_status, status, is_completed, cover_key, audio_key,
+    youtube_url, youtube_id, listen_count, listen_count2d, listen_count7d,
+    user_id, created_at, updated_at
+    FROM stories WHERE user_id = ? AND user_id IS NOT NULL AND user_id != ? ORDER BY updated_at DESC LIMIT ? OFFSET ?`
   ).bind(userId, '', limit, offset).all();
 
   return result.results || [];

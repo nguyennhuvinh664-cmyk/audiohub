@@ -8,7 +8,8 @@
   <meta name="theme-color" content="#09090f" />
   <title>Tác Giả | AudioHub</title>
   <link rel="stylesheet" href="../css/style-categories.css" />
-  <link rel="stylesheet" href="../css/channel.css" />
+  <link rel="stylesheet" href="../css/channel.css?v=20260811-1" />
+  <link rel="stylesheet" href="../css/channel-mobile.css?v=20260810-6" />
 </head>
 <body class="channel-page">
 <div id="page-content">
@@ -27,11 +28,13 @@
         <div class="ch-info__avatar" data-channel-avatar><span data-channel-initials>AH</span></div>
         <div class="ch-info__text">
           <h1 class="ch-info__name" data-channel-name>Tác giả</h1>
+          <p class="ch-info__handle" data-channel-handle></p>
           <div class="ch-info__badges">
             <span class="ch-badge ch-badge--role"><i class="fa-solid fa-headphones"></i> Tác giả Audio</span>
             <span class="ch-badge ch-badge--verified"><i class="fa-solid fa-circle-check"></i> Verified</span>
           </div>
           <div class="ch-info__stats" data-channel-stats></div>
+          <p class="ch-info__bio" data-channel-bio></p>
         </div>
         <div class="ch-info__actions">
           <button type="button" class="btn btn--primary ch-sub-btn" data-subscribe-btn><i class="fa-solid fa-bell"></i> Đăng ký</button>
@@ -45,8 +48,7 @@
   <nav class="ch-tabs">
     <div class="container">
       <div class="ch-tabs__inner">
-        <button class="ch-tab is-active" data-tab="audios"><i class="fa-solid fa-headphones"></i> Audio</button>
-        <button class="ch-tab" data-tab="playlist"><i class="fa-solid fa-list"></i> Truyện</button>
+        <button class="ch-tab is-active" data-tab="stories"><i class="fa-solid fa-book"></i> Truyện</button>
         <button class="ch-tab" data-tab="about"><i class="fa-solid fa-circle-info"></i> Giới thiệu</button>
       </div>
     </div>
@@ -58,44 +60,36 @@
 
       <!-- Featured -->
       <div class="ch-featured" data-featured-section>
-        <div class="ch-featured__cover">
-          <div class="ch-featured__thumb"><span data-featured-initials>AH</span></div>
-          <div class="ch-featured__play"><i class="fa-solid fa-play"></i></div>
-        </div>
-        <div class="ch-featured__info">
-          <span class="ch-eyebrow"><i class="fa-solid fa-fire"></i> Truyện nổi bật</span>
-          <h2 class="ch-featured__title" data-featured-title>Đang tải...</h2>
-          <p class="ch-featured__meta" data-featured-meta></p>
-          <p class="ch-featured__desc" data-featured-desc></p>
-          <div class="ch-featured__actions">
-            <a href="#" class="btn btn--primary"><i class="fa-solid fa-play"></i> Nghe ngay</a>
-            <button type="button" class="btn btn--outline" data-featured-fav><i class="fa-regular fa-heart"></i> Yêu thích</button>
+        <span class="ch-eyebrow"><i class="fa-solid fa-star"></i> Truyện nổi bật</span>
+        <div class="ch-featured__body">
+          <div class="ch-featured__cover">
+            <div class="ch-featured__thumb"><span data-featured-initials>AH</span></div>
           </div>
+          <div class="ch-featured__info">
+            <h2 class="ch-featured__title" data-featured-title>Đang tải...</h2>
+            <p class="ch-featured__meta" data-featured-meta></p>
+            <p class="ch-featured__desc" data-featured-desc></p>
+            <span class="ch-featured__genre" data-featured-genre></span>
+          </div>
+        </div>
+        <div class="ch-featured__actions">
+          <a href="#" class="btn btn--primary ch-featured__listen"><i class="fa-solid fa-play"></i> Nghe ngay</a>
+          <button type="button" class="btn btn--outline ch-featured__fav" data-featured-fav><i class="fa-regular fa-heart"></i> Yêu thích</button>
         </div>
       </div>
 
-      <!-- Tab: Audios -->
-      <div class="ch-tab-content is-active" data-tab-content="audios">
+      <!-- Tab: Stories -->
+      <div class="ch-tab-content is-active" data-tab-content="stories">
         <div class="ch-section">
           <div class="ch-section__head">
-            <h2><i class="fa-solid fa-headphones"></i> Tất cả Audio</h2>
+            <h2><i class="fa-solid fa-book"></i> Truyện của tác giả</h2>
           </div>
           <div class="ch-sort-bar">
             <button class="ch-sort-btn is-active" data-sort="latest">Mới nhất</button>
             <button class="ch-sort-btn" data-sort="popular">Phổ biến</button>
             <button class="ch-sort-btn" data-sort="oldest">Cũ nhất</button>
           </div>
-          <div class="ch-grid" data-audios-grid></div>
-        </div>
-      </div>
-
-      <!-- Tab: Playlist -->
-      <div class="ch-tab-content" data-tab-content="playlist" hidden>
-        <div class="ch-section">
-          <div class="ch-section__head">
-            <h2><i class="fa-solid fa-list"></i> Playlist</h2>
-          </div>
-          <div class="ch-playlists-grid"></div>
+          <div class="ch-grid" data-stories-grid></div>
         </div>
       </div>
 
@@ -103,21 +97,49 @@
       <div class="ch-tab-content" data-tab-content="about" hidden>
         <div class="ch-about">
           <div class="ch-about__main">
-            <h3>Giới thiệu</h3>
+            <div class="ch-about__header">
+              <h3>Giới thiệu</h3>
+              <button type="button" class="ch-about__edit-btn is-hidden" data-edit-profile-btn title="Chỉnh sửa giới thiệu"><i class="fa-solid fa-pen"></i> Sửa</button>
+            </div>
             <p data-about-desc>Tác giả truyện audio trên AudioHub.</p>
             <h3>Thống kê</h3>
-            <div class="ch-about__socials">
-              <a href="#" class="ch-social-btn"><i class="fa-brands fa-facebook"></i> Facebook</a>
-              <a href="#" class="ch-social-btn"><i class="fa-brands fa-youtube"></i> YouTube</a>
-              <a href="#" class="ch-social-btn"><i class="fa-solid fa-globe"></i> Website</a>
+            <div class="ch-about__socials" data-social-links>
+              <a href="#" class="ch-social-btn" data-social-facebook><i class="fa-brands fa-facebook"></i> <span>Facebook</span></a>
+              <a href="#" class="ch-social-btn" data-social-youtube><i class="fa-brands fa-youtube"></i> <span>YouTube</span></a>
+              <a href="#" class="ch-social-btn" data-social-website><i class="fa-solid fa-globe"></i> <span>Website</span></a>
             </div>
           </div>
           <div class="ch-about__side">
             <div class="ch-about__stat"><i class="fa-solid fa-calendar"></i><div><strong>Tham gia</strong><span data-about-joined>—</span></div></div>
             <div class="ch-about__stat"><i class="fa-solid fa-eye"></i><div><strong>Tổng lượt nghe</strong><span data-about-views>0</span></div></div>
-            <div class="ch-about__stat"><i class="fa-solid fa-headphones"></i><div><strong>Audio</strong><span data-about-audios>0</span></div></div>
-            <div class="ch-about__stat"><i class="fa-solid fa-list"></i><div><strong>Truyện</strong><span data-about-playlists>0</span></div></div>
+            <div class="ch-about__stat"><i class="fa-solid fa-headphones"></i><div><strong>Truyện</strong><span data-about-audios>0</span></div></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Edit Profile Modal -->
+      <div class="ch-edit-modal is-hidden" data-edit-profile-modal>
+        <div class="ch-edit-modal__backdrop" data-edit-profile-close></div>
+        <div class="ch-edit-modal__panel">
+          <button type="button" class="ch-edit-modal__close" data-edit-profile-close><i class="fa-solid fa-xmark"></i></button>
+          <h3><i class="fa-solid fa-pen"></i> Chỉnh sửa giới thiệu</h3>
+          <label class="ch-edit-modal__field">
+            <span>Giới thiệu bản thân</span>
+            <textarea data-edit-profile-desc rows="3" placeholder="Giới thiệu ngắn gọn về bản thân..."></textarea>
+          </label>
+          <label class="ch-edit-modal__field">
+            <span><i class="fa-brands fa-facebook"></i> Facebook URL</span>
+            <input type="url" data-edit-profile-facebook placeholder="https://facebook.com/..." />
+          </label>
+          <label class="ch-edit-modal__field">
+            <span><i class="fa-brands fa-youtube"></i> YouTube URL</span>
+            <input type="url" data-edit-profile-youtube placeholder="https://youtube.com/..." />
+          </label>
+          <label class="ch-edit-modal__field">
+            <span><i class="fa-solid fa-globe"></i> Website URL</span>
+            <input type="url" data-edit-profile-website placeholder="https://..." />
+          </label>
+          <button type="button" class="ch-edit-modal__save" data-edit-profile-save><i class="fa-solid fa-check"></i> Lưu</button>
         </div>
       </div>
 
@@ -129,10 +151,10 @@
 </div>
     <script src="../js/api-client.js"></script>
   <script src="../js/supabase-client.js"></script>
-  <script src="../js/stories-store.js?v=20260808-4"></script>
-  <script src="../js/auth-state.js"></script>
+  <script src="../js/stories-store.js?v=20260810-6"></script>
+  <script src="../js/auth-state.js?v=20260811-2"></script>
 <script src="../js/shell-inject.js"></script>
   <script src="../js/stories-cover-store.js" data-page-script></script>
-  <script src="../js/channel-ui.js" data-page-script></script>
+  <script src="../js/channel-ui.js?v=20260811-1" data-page-script></script>
 </body>
 </html>

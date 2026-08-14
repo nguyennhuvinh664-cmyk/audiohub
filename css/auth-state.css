@@ -135,6 +135,17 @@
   text-align: center;
 }
 
+/* Super Admin link */
+.auth-menu__link--admin {
+  color: #ef4444 !important;
+  font-weight: 600;
+}
+
+.auth-menu__link--admin:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+}
+
 .header__actions .auth-menu__trigger {
   border-radius: 999px;
 }

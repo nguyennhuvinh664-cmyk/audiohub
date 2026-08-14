@@ -265,30 +265,35 @@
     root.querySelectorAll('[data-library-thumb]').forEach(function (node) {
       node.classList.remove('is-cover-ready');
       var coverKey = String(node.getAttribute('data-library-cover-key') || '').trim();
-      if (!coverKey) {
-        var href = node.getAttribute('data-library-href') || node.getAttribute('href') || '';
-        var storyId = storyIdFromHref(href);
-        if (!storyId) return;
-        var story = window.AudioHubStories.getById(storyId);
-        coverKey = story && story.coverKey ? String(story.coverKey) : '';
-        if (!coverKey) return;
-      }
+      var href = node.getAttribute('data-library-href') || node.getAttribute('href') || '';
+      var storyId = storyIdFromHref(href);
 
-      window.AudioHubStoryCover.get(coverKey)
-        .then(function (blob) {
-          if (!blob) return;
-          var prev = libraryCoverUrlByNode.get(node);
-          if (prev) {
-            URL.revokeObjectURL(prev);
-          }
-          var url = URL.createObjectURL(blob);
-          libraryCoverUrlByNode.set(node, url);
-          node.style.backgroundImage = 'url("' + url + '")';
-          node.style.backgroundSize = 'cover';
-          node.style.backgroundPosition = 'center';
-          node.classList.add('is-cover-ready');
-        })
-        .catch(function () {});
+      // Build list of keys to try: coverKey first, then storyId variants
+      var tryKeys = [];
+      if (coverKey) tryKeys.push(coverKey);
+      if (storyId) {
+        tryKeys.push(storyId);
+        if (!String(storyId).startsWith('s_')) tryKeys.push('s_' + storyId);
+      }
+      if (!tryKeys.length) return;
+
+      function tryNext(idx) {
+        if (idx >= tryKeys.length) return;
+        window.AudioHubStoryCover.get(tryKeys[idx])
+          .then(function (blob) {
+            if (!blob) { tryNext(idx + 1); return; }
+            var prev = libraryCoverUrlByNode.get(node);
+            if (prev) URL.revokeObjectURL(prev);
+            var url = URL.createObjectURL(blob);
+            libraryCoverUrlByNode.set(node, url);
+            node.style.backgroundImage = 'url("' + url + '")';
+            node.style.backgroundSize = 'cover';
+            node.style.backgroundPosition = 'center';
+            node.classList.add('is-cover-ready');
+          })
+          .catch(function () { tryNext(idx + 1); });
+      }
+      tryNext(0);
     });
   }
 

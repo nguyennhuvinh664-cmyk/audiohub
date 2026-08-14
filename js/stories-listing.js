@@ -181,14 +181,43 @@
     var cloudNodeMap = {};
 
     nodes.forEach(function (node) {
-      // For playlist cards, try IndexedDB with coverKey
+      // For playlist cards, try IndexedDB with coverKey or story ID
       var isPlaylist = node.closest('[data-playlist-card]');
       if (isPlaylist) {
         var pk = node.getAttribute('data-cover-key');
+        // Try coverKey first
         if (pk && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
           window.AudioHubStoryCover.get(pk).then(function (blob) {
-            if (blob) applyCoverUrl(node, blob);
+            if (blob) {
+              applyCoverUrl(node, blob);
+            } else {
+              // Fallback: try story ID from data attribute
+              var storyId = node.getAttribute('data-story-id') || '';
+              if (storyId && storyId.length > 5) {
+                window.AudioHubStoryCover.get(storyId).then(function (blob2) {
+                  if (blob2) applyCoverUrl(node, blob2);
+                }).catch(function () {});
+              }
+            }
           }).catch(function () {});
+        } else if (!pk) {
+          // No coverKey, try story ID directly
+          var cardNode = node.closest('[data-playlist-card]');
+          var playlistId = cardNode ? cardNode.getAttribute('data-story-id') : '';
+          // Try to get first story ID from playlist entries
+          var firstEntry = container.querySelector('[data-playlist-card] .story-chapters');
+          if (firstEntry) {
+            var storyLink = firstEntry.closest('a');
+            if (storyLink) {
+              var href = storyLink.getAttribute('href') || '';
+              var match = href.match(/id=([^&]+)/);
+              if (match && match[1] && window.AudioHubStoryCover && typeof window.AudioHubStoryCover.get === 'function') {
+                window.AudioHubStoryCover.get(match[1]).then(function (blob3) {
+                  if (blob3) applyCoverUrl(node, blob3);
+                }).catch(function () {});
+              }
+            }
+          }
         }
         return;
       }

@@ -230,6 +230,34 @@ export async function onRequest(context) {
       return Response.json({ success: true }, { headers: corsHeaders });
     }
 
+    // POST /api/stories/:id/cover - Upload cover image for story
+    if (method === 'POST' && storyId && action === 'cover') {
+      const contentType = request.headers.get('content-type') || '';
+      if (!contentType.includes('multipart/form-data')) {
+        return Response.json({ error: 'Expected multipart/form-data' }, { status: 400, headers: corsHeaders });
+      }
+
+      const formData = await request.formData();
+      const file = formData.get('cover');
+      if (!file || file.size === 0) {
+        return Response.json({ error: 'No cover file provided' }, { status: 400, headers: corsHeaders });
+      }
+
+      // Upload to R2 COVERS bucket
+      if (env.COVERS) {
+        try {
+          const key = `${storyId}/cover`;
+          const ct = file.type || 'image/jpeg';
+          await env.COVERS.put(key, file.stream(), { httpMetadata: { contentType: ct } });
+          return Response.json({ success: true, coverKey: key }, { headers: corsHeaders });
+        } catch (e) {
+          console.error('[stories] R2 cover upload failed:', e);
+        }
+      }
+
+      return Response.json({ success: true, coverKey: storyId + '/cover' }, { headers: corsHeaders });
+    }
+
     // POST /api/stories/:id/audio - Upload audio file for story
     if (method === 'POST' && storyId && action === 'audio') {
       const contentType = request.headers.get('content-type') || '';

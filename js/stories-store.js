@@ -108,10 +108,9 @@
     var raw = window.localStorage.getItem(_storiesKey());
     var parsed = safeParse(raw, []);
     var next = dedupeStories(Array.isArray(parsed) ? parsed : []).map(function (story) {
-      // Migration: fix default visibility from old 'Riêng tư' to 'Công khai'
-      // Stories uploaded via UI should be public by default
-      var vis = String(story && story.visibility || '').trim().toLowerCase();
-      if (!vis || vis === 'riêng tư' || vis === 'private' || vis === 'draft') {
+      // Migration: fix missing visibility default
+      var vis = String(story && story.visibility || '').trim();
+      if (!vis) {
         story.visibility = 'Công khai';
       }
       var metrics = computeListenMetrics(story);
@@ -302,6 +301,7 @@
     if (!Array.isArray(chapters) || !chapters.length) {
       chapters = Array.isArray(storedChapters) ? storedChapters : [];
     } else if (Array.isArray(storedChapters) && storedChapters.length > chapters.length) {
+      // SAFETY: Always keep the larger chapter set — never overwrite with fewer
       chapters = storedChapters;
       chapterCount = storedChapters.length;
     }

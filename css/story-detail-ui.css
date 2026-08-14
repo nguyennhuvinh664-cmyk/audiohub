@@ -772,8 +772,6 @@
 
 /* Chapter list — override style-categories */
 .sidebar-panel .chapter-list {
-  max-height: 360px;
-  overflow-y: auto;
   display: grid;
   gap: 2px;
 }

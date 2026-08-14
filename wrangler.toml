@@ -8,15 +8,15 @@ binding = "DB"
 database_name = "audiohub-db"
 database_id = "d15b9b0c-63e6-4bac-a2e8-1f36148b34cd"
 
-# R2 Bucket - Cover Images (enable later when R2 is activated)
-# [[r2_buckets]]
-# binding = "COVERS"
-# bucket_name = "story-covers"
+# R2 Bucket - Cover Images
+[[r2_buckets]]
+binding = "COVERS"
+bucket_name = "story-covers"
 
-# R2 Bucket - Audio Files (enable later when R2 is activated)
-# [[r2_buckets]]
-# binding = "AUDIO"
-# bucket_name = "story-audio"
+# R2 Bucket - Audio Files
+[[r2_buckets]]
+binding = "AUDIO"
+bucket_name = "story-audio"
 
 # Environment variables
 [vars]

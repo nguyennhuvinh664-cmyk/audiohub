@@ -1528,15 +1528,32 @@
           console.log('[upload] ✅ PATCH to D1 success:', story.id);
           // Upload audio to cloud (R2/Supabase) for this chapter
           function _patchUploadDone() { doRedirect(story.id); }
-          if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
+          function _doPatchAudioUpload(blob) {
             var _patchAudioKey = state.audioKey || story.id;
             console.log('[upload] 🎵 Uploading audio to cloud for PATCH story:', story.id, '| audioKey:', _patchAudioKey);
-            window.AudioHubStoryAudio.put(state.audioFile, story.id, _patchAudioKey).then(function () {
+            window.AudioHubStoryAudio.put(blob, story.id, _patchAudioKey).then(function () {
               console.log('[upload] ✅ Audio uploaded to cloud (PATCH):', story.id);
               state.audioFile = null;
               _patchUploadDone();
             }).catch(function (e) {
               console.warn('[upload] ⚠ Audio upload failed (PATCH):', e && e.message);
+              _patchUploadDone();
+            });
+          }
+          if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
+            _doPatchAudioUpload(state.audioFile);
+          } else if (state.audioKey && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
+            // Fallback: audioFile may have been GC'd — fetch from IndexedDB by audioKey
+            console.log('[upload] 🔄 PATCH fallback: fetching audio from IndexedDB, audioKey:', state.audioKey);
+            window.AudioHubStoryAudio.get(state.audioKey).then(function (blob) {
+              if (blob && blob.size > 0) {
+                _doPatchAudioUpload(blob);
+              } else {
+                console.warn('[upload] ⚠ No audio blob in IndexedDB for key:', state.audioKey);
+                _patchUploadDone();
+              }
+            }).catch(function () {
+              console.warn('[upload] ⚠ Failed to fetch audio from IndexedDB');
               _patchUploadDone();
             });
           } else {

@@ -10,6 +10,13 @@
 
   var genreSelect = document.querySelector('[data-home-genre-select]');
 
+  /* ── Infinite scroll state ───────────────────────────── */
+  var INFINITE_SCROLL = {
+    trending: { offset: 0, limit: 6, loading: false, hasMore: true },
+    popular: { offset: 0, limit: 6, loading: false, hasMore: true },
+    newest: { offset: 0, limit: 8, loading: false, hasMore: true }
+  };
+
   /* ── genre colors ───────────────────────────────────── */
   var genreColors = {
     'tiên hiệp': '#7c3aed', 'kiem hiep': '#0891b2', 'kiếm hiệp': '#0891b2',
@@ -585,10 +592,22 @@
       renderCardList(document.querySelector('.cgrid'), newestStories.slice(0, 8));
 
       // Render trending (top by listen count)
-      renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
+      renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 6));
 
       // Render popular (top by listen count)
-      renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
+      renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 6));
+
+      // Update infinite scroll offsets
+      INFINITE_SCROLL.newest.offset = Math.min(newestStories.length, 8);
+      INFINITE_SCROLL.trending.offset = Math.min(publicStories.length, 6);
+      INFINITE_SCROLL.popular.offset = Math.min(publicStories.length, 6);
+
+      // Check if there's more data
+      if (newestStories.length <= 8) INFINITE_SCROLL.newest.hasMore = false;
+      if (publicStories.length <= 6) {
+        INFINITE_SCROLL.trending.hasMore = false;
+        INFINITE_SCROLL.popular.hasMore = false;
+      }
 
       // Load covers for all cards
       loadHomeCovers();
@@ -599,8 +618,8 @@
         form._bound = true;
         form.addEventListener('submit', function (e) {
           e.preventDefault();
-          renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 8));
-          renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 12));
+          renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 6));
+          renderCardList(document.querySelector('[data-home-popular-grid]'), pickPopularStories(publicStories).slice(0, 6));
         });
       }
     });
@@ -774,5 +793,133 @@
     } catch (e) {}
   });
 
+  /* ── Infinite scroll: IntersectionObserver ──────────── */
+  function setupInfiniteScroll() {
+    // Add sentinel elements after each section
+    var sections = [
+      { key: 'trending', selector: '[data-home-trending-list]' },
+      { key: 'popular', selector: '[data-home-popular-grid]' },
+      { key: 'newest', selector: '.cgrid' }
+    ];
+
+    sections.forEach(function (sec) {
+      var container = document.querySelector(sec.selector);
+      if (!container || container.querySelector('.infinite-scroll-sentinel')) return;
+
+      var sentinel = document.createElement('div');
+      sentinel.className = 'infinite-scroll-sentinel';
+      sentinel.style.cssText = 'height:1px;width:100%;';
+      container.parentNode.insertBefore(sentinel, container.nextSibling);
+    });
+
+    // Create observer
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+
+        var sentinel = entry.target;
+        // Find which section this sentinel belongs to
+        var section = null;
+        sections.forEach(function (sec) {
+          var container = document.querySelector(sec.selector);
+          if (container && container.nextElementSibling === sentinel) {
+            section = sec;
+          }
+        });
+
+        if (!section || INFINITE_SCROLL[section.key].loading || !INFINITE_SCROLL[section.key].hasMore) return;
+
+        loadMoreStories(section.key, section.selector);
+      });
+    }, { rootMargin: '200px' }); // Trigger 200px before reaching bottom
+
+    // Observe sentinels
+    document.querySelectorAll('.infinite-scroll-sentinel').forEach(function (sentinel) {
+      observer.observe(sentinel);
+    });
+  }
+
+  function loadMoreStories(sectionKey, containerSelector) {
+    var state = INFINITE_SCROLL[sectionKey];
+    if (state.loading || !state.hasMore) return;
+
+    state.loading = true;
+    console.log('[infinite-scroll] Loading more for', sectionKey, 'offset:', state.offset);
+
+    // Show loading indicator
+    var container = document.querySelector(containerSelector);
+    var sentinel = container ? container.nextElementSibling : null;
+    if (sentinel) {
+      sentinel.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>';
+    }
+
+    fetchPublicStoriesWithPagination(state.offset, state.limit).then(function (newStories) {
+      if (!newStories || newStories.length < state.limit) {
+        state.hasMore = false;
+      }
+
+      if (newStories && newStories.length > 0) {
+        state.offset += newStories.length;
+
+        // Append to container
+        if (container) {
+          var html = newStories.map(buildHomeCardHtml).join('');
+          container.insertAdjacentHTML('beforeend', html);
+
+          // Hydrate new cards
+          var newCards = container.querySelectorAll('a.sc:not(.hydrated)');
+          Array.prototype.forEach.call(newCards, function (card) {
+            var storyId = card.getAttribute('data-story-id');
+            var story = newStories.find(function (s) { return String(s.id) === storyId; });
+            if (story) {
+              setCard(card, story);
+              card.classList.add('hydrated');
+            }
+          });
+        }
+      }
+
+      // Hide loading indicator
+      if (sentinel) {
+        sentinel.innerHTML = state.hasMore ? '' : '<div style="text-align:center;padding:20px;color:var(--t3);">Đã hiển thị hết</div>';
+      }
+
+      state.loading = false;
+    }).catch(function (err) {
+      console.error('[infinite-scroll] Error:', err);
+      state.loading = false;
+      if (sentinel) sentinel.innerHTML = '';
+    });
+  }
+
+  function fetchPublicStoriesWithPagination(offset, limit) {
+    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      return window.AudioHubSupabase.fetchPublicStories({ limit: limit, offset: offset })
+        .then(function (rows) {
+          return Array.isArray(rows) ? rows : [];
+        })
+        .catch(function () {
+          return fetchPublicStoriesFallback(offset, limit);
+        });
+    }
+    return fetchPublicStoriesFallback(offset, limit);
+  }
+
+  function fetchPublicStoriesFallback(offset, limit) {
+    if (!window.AudioHubApi || typeof window.AudioHubApi.request !== 'function') {
+      return Promise.resolve([]);
+    }
+    var url = '/stories/public?limit=' + limit + '&offset=' + offset;
+    return window.AudioHubApi.request(url, { method: 'GET' })
+      .then(function (rows) {
+        return Array.isArray(rows) ? rows : [];
+      })
+      .catch(function () {
+        return [];
+      });
+  }
+
   renderHomeStories();
+  // Setup infinite scroll after initial render
+  setTimeout(setupInfiniteScroll, 100);
 })();

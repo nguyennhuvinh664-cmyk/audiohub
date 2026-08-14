@@ -2734,7 +2734,15 @@
           console.log('[story-detail] mergeAndRender apiStory:', apiStory.id, 'readingText:', apiReadingText ? apiReadingText.length + ' chars' : 'EMPTY', 'audioKey:', apiAudioKey || 'EMPTY', 'chapters:', Array.isArray(apiChapters) ? apiChapters.length : apiChapters);
           if (apiReadingText) merged.readingText = apiReadingText;
           if (apiAudioKey) merged.audioKey = apiAudioKey;
-          if (Array.isArray(apiChapters) && apiChapters.length) merged.chapters = apiChapters;
+          if (Array.isArray(apiChapters) && apiChapters.length) {
+            // FIX: Never overwrite local chapters with fewer API chapters
+            var _localChCount = Array.isArray(merged.chapters) ? merged.chapters.length : 0;
+            if (apiChapters.length >= _localChCount) {
+              merged.chapters = apiChapters;
+            } else {
+              console.log('[story-detail] ⚠ Skipping API chapters (' + apiChapters.length + ') — local has more (' + _localChCount + ')');
+            }
+          }
           if (apiChapterCount) merged.chapterCount = apiChapterCount;
           _mergeRendering = true;
           bindStoryData(merged);
