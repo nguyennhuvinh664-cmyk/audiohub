@@ -2614,23 +2614,35 @@
     // Only sync if logged in (has auth token)
     var token = '';
     try { token = localStorage.getItem('audiohub-auth-token') || ''; } catch (e) {}
-    if (!token) return;
+    if (!token) {
+      console.log('[sync] ⚠ Skipped — not logged in (no auth token)');
+      return;
+    }
     try {
       var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
       var _chs = Array.isArray(_cs[storyId]) ? _cs[storyId] : [];
-      if (!_chs.length) return;
+      if (!_chs.length) {
+        console.log('[sync] ⚠ Skipped — no chapters in localStorage for', storyId);
+        return;
+      }
       // Only sync chapters that HAVE audioKeys (skip empty ones)
       var _withKeys = _chs.filter(function (c) { return c && c.audioKey; });
-      if (!_withKeys.length) return;
-      // Check if D1 already has these audioKeys (avoid unnecessary writes)
-      // Just send all chapters — server merges
+      console.log('[sync] 📤 Syncing chapter audioKeys — total:', _chs.length, 'with keys:', _withKeys.length);
+      _chs.forEach(function (c, i) {
+        console.log('[sync]   ch' + (i+1) + ':', c.audioKey || '(EMPTY)', '| title:', c.title || '(empty)');
+      });
+      if (!_withKeys.length) {
+        console.log('[sync] ⚠ Skipped — no chapters with audioKeys');
+        return;
+      }
       fetch('/api/stories/' + encodeURIComponent(storyId) + '/sync-chapters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ chapters: _chs })
       }).then(function (r) { return r.json(); }).then(function (d) {
-        if (d && d.success) console.log('[story-detail] ✅ Synced', _withKeys.length, 'chapter audioKeys to D1');
-      }).catch(function () {});
+        if (d && d.success) console.log('[sync] ✅ Synced', _withKeys.length, 'chapter audioKeys to D1');
+        else console.log('[sync] ❌ Sync failed:', d);
+      }).catch(function (e) { console.log('[sync] ❌ Sync error:', e.message); });
     } catch (e) {}
   }
 
