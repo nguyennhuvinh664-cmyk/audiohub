@@ -68,7 +68,7 @@ export async function onRequest(context) {
               headers: {
                 'Content-Type': contentType,
                 'Accept-Ranges': 'bytes',
-                'Cache-Control': 'public, max-age=31536000',
+                'Cache-Control': 'private, no-cache, no-store',
                 'Access-Control-Allow-Origin': '*'
               }
             });
@@ -101,7 +101,7 @@ export async function onRequest(context) {
                 headers: {
                   'Content-Type': supaRes.headers.get('Content-Type') || 'audio/mpeg',
                   'Accept-Ranges': 'bytes',
-                  'Cache-Control': 'public, max-age=86400',
+                  'Cache-Control': 'private, no-cache',
                   'Access-Control-Allow-Origin': '*'
                 }
               });

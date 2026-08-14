@@ -68,7 +68,7 @@ export async function onRequest(context) {
               headers: {
                 'Content-Type': contentType,
                 'Accept-Ranges': 'bytes',
-                'Cache-Control': 'public, max-age=31536000',
+                'Cache-Control': 'private, no-cache, no-store',
                 ...corsHeaders
               }
             });
@@ -112,7 +112,7 @@ export async function onRequest(context) {
             headers: {
               'Content-Type': supaRes.headers.get('Content-Type') || 'audio/mpeg',
               'Accept-Ranges': 'bytes',
-              'Cache-Control': 'public, max-age=86400',
+              'Cache-Control': 'private, no-cache',
               ...corsHeaders
             }
           });
@@ -132,16 +132,30 @@ export async function onRequest(context) {
         return Response.json({ error: 'R2 AUDIO binding not configured' }, { status: 500, headers: corsHeaders });
       }
 
-      // Stream request body directly to R2 (no buffering in Worker memory)
+      // Buffer body to validate size (reject < 1KB to prevent corrupt files)
       const r2Key = `${storyId}.mp3`;
       const contentType = request.headers.get('Content-Type') || 'audio/mpeg';
+      const chunks = [];
+      const reader = request.body.getReader();
+      let totalSize = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        totalSize += value.length;
+      }
 
-      await env.AUDIO.put(r2Key, request.body, {
+      if (totalSize < 1000) {
+        console.warn('[audio] ⚠️ R2 PUT rejected:', r2Key, 'size:', totalSize, '(too small)');
+        return Response.json({ ok: false, error: 'File too small (< 1KB)' }, { status: 400, headers: corsHeaders });
+      }
+
+      await env.AUDIO.put(r2Key, new Blob(chunks), {
         httpMetadata: { contentType }
       });
 
-      console.log('[audio] ✅ R2 PUT OK:', r2Key);
-      return Response.json({ success: true, key: storyId }, { headers: corsHeaders });
+      console.log('[audio] ✅ R2 PUT OK:', r2Key, 'size:', totalSize);
+      return Response.json({ success: true, key: storyId, size: totalSize }, { headers: corsHeaders });
     }
 
     // ── DELETE /api/audio/:storyId ──
