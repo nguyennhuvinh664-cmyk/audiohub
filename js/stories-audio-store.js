@@ -50,7 +50,7 @@
     return 'a_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   }
 
-  var SUPABASE_URL = '/supabase';
+  var SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
   var AUDIO_BUCKET = 'story-audio';
   var RENDER_API_BASE = '/api/v1';
@@ -58,15 +58,16 @@
   function uploadToSupabaseStorage(blob, path) {
     var url = SUPABASE_URL + '/storage/v1/object/' + AUDIO_BUCKET + '/' + path;
     console.log('[audio-store] Uploading to Supabase:', path, '| size:', blob.size, '| type:', blob.type);
+    var formData = new FormData();
+    formData.append('file', blob, path);
     return fetch(url, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': blob.type || 'audio/mpeg',
         'x-upsert': 'true'
       },
-      body: blob
+      body: formData
     }).then(function (res) {
       if (!res.ok) {
         return res.text().then(function (txt) {
