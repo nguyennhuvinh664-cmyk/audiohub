@@ -1483,6 +1483,7 @@
   }
 
   var audioUrlByNode = new WeakMap();
+  var _audioLoadGen = 0; // generation counter — prevents stale async loads from overwriting
 
   /* ═══════════════════════════════════════════════════════════════════
      Background R2 sync — upload ALL chapter audio from IndexedDB to R2
@@ -1559,13 +1560,11 @@
       noteNode.classList.remove('is-hidden');
     }
 
-    try {
-      var prevAudio = audioUrlByNode.get(audioNode);
-      if (prevAudio) {
-        URL.revokeObjectURL(prevAudio);
-        audioUrlByNode.delete(audioNode);
-      }
-    } catch (error) {}
+    // Increment generation — any in-flight loads from previous chapters become stale
+    var myGen = ++_audioLoadGen;
+
+    // Save prev audio URL but DON'T revoke yet — only revoke after new audio loads
+    var prevAudio = audioUrlByNode.get(audioNode) || null;
 
     audioNode.classList.add('is-hidden');
     audioNode.removeAttribute('src');
@@ -1690,6 +1689,8 @@
     ];
 
     function attemptLoad(retryIdx) {
+      // Stale retry — chapter was switched, abort
+      if (myGen !== _audioLoadGen) return;
       if (retryIdx >= maxRetries) {
         showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
         return;
@@ -1706,7 +1707,16 @@
       }).then(function (blob) {
         if (blob) {
           try {
+            // Stale load — a newer chapter was requested, discard this result
+            if (myGen !== _audioLoadGen) {
+              console.log('[audio] Stale load discarded (gen', myGen, '≠', _audioLoadGen, ')');
+              return;
+            }
             var audioUrl = URL.createObjectURL(blob);
+            // Now revoke old audio (new one is ready)
+            if (prevAudio) {
+              try { URL.revokeObjectURL(prevAudio); } catch (e) {}
+            }
             audioUrlByNode.set(audioNode, audioUrl);
             audioNode.src = audioUrl;
             audioNode.classList.remove('is-hidden');

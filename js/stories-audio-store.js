@@ -315,7 +315,13 @@
 
           // Wait for real JWT before hitting API (avoids 401 in incognito)
           authReady.then(function () {
-            getAudioFromApi(key).then(resolve);
+            getAudioFromApi(key).then(function (blob) {
+              // Cache in IndexedDB so subsequent plays are instant
+              if (blob && blob.size >= 1000) {
+                putAudioLocal(blob, key).catch(function () {});
+              }
+              resolve(blob);
+            });
           });
         };
 
@@ -329,7 +335,12 @@
       });
     }).catch(function () {
       return authReady.then(function () {
-        return getAudioFromApi(key);
+        return getAudioFromApi(key).then(function (blob) {
+          if (blob && blob.size >= 1000) {
+            putAudioLocal(blob, key).catch(function () {});
+          }
+          return blob;
+        });
       });
     });
   }
