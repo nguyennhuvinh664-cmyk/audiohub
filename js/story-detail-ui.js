@@ -1525,21 +1525,18 @@
           console.log('[audio-sync] Uploading to R2:', key, '| size:', blob.size);
           fetch(_url, {
             method: 'PUT',
-              headers: { 'Content-Type': blob.type || 'audio/mpeg' },
-              body: blob
-            }).then(function (putRes) {
-              console.log('[audio-sync] PUT response:', putRes.status, '| key:', key);
-              if (putRes.ok) _synced++;
-              _checkNext(idx + 1);
-            }).catch(function (e) {
-              console.warn('[audio-sync] PUT failed:', key, e && e.message);
-              _syncNext(idx + 1);
-            });
-          }).catch(function () {
-            console.warn('[audio-sync] IndexedDB get failed:', key);
+            headers: { 'Content-Type': blob.type || 'audio/mpeg' },
+            body: blob
+          }).then(function (putRes) {
+            console.log('[audio-sync] PUT response:', putRes.status, '| key:', key);
+            if (putRes.ok) _synced++;
+            _syncNext(idx + 1);
+          }).catch(function (e) {
+            console.warn('[audio-sync] PUT failed:', key, e && e.message);
             _syncNext(idx + 1);
           });
         }).catch(function () {
+          console.warn('[audio-sync] IndexedDB get failed:', key);
           _syncNext(idx + 1);
         });
       }
