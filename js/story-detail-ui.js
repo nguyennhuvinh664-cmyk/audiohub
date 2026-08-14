@@ -1484,6 +1484,56 @@
 
   var audioUrlByNode = new WeakMap();
 
+  /* ═══════════════════════════════════════════════════════════════════
+     Background R2 sync — upload audio from IndexedDB to R2 if missing
+     ═══════════════════════════════════════════════════════════════════ */
+  function _syncAudioToR2(blob, paths, storyId) {
+    if (!blob || !paths || !paths.length) return;
+    // Check R2 for first path (most likely key) — if already there, skip
+    var _checkKey = paths[0];
+    var _checkUrl = '/api/audio/' + encodeURIComponent(String(_checkKey));
+    fetch(_checkUrl, { method: 'HEAD' }).then(function (res) {
+      if (res.ok) {
+        console.log('[audio-sync] ✅ Audio already on R2:', _checkKey);
+        return; // Already on R2
+      }
+      // Not on R2 — upload with each path key until one works
+      console.log('[audio-sync] Audio not on R2, uploading... | key:', _checkKey, '| size:', blob.size);
+      return _trySyncUpload(blob, paths, 0);
+    }).catch(function () {
+      return _trySyncUpload(blob, paths, 0);
+    });
+  }
+
+  function _trySyncUpload(blob, paths, idx) {
+    if (idx >= paths.length) {
+      console.warn('[audio-sync] ❌ All R2 upload attempts failed');
+      return;
+    }
+    var key = paths[idx];
+    var url = '/api/audio/' + encodeURIComponent(String(key));
+    console.log('[audio-sync] PUT', url);
+    fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+      .then(function (res) {
+        console.log('[audio-sync] R2 PUT response:', res.status, '| key:', key);
+        if (!res.ok) throw new Error('PUT ' + res.status);
+        // Verify
+        return fetch(url, { method: 'HEAD' });
+      })
+      .then(function (verifyRes) {
+        if (verifyRes.ok) {
+          console.log('[audio-sync] ✅ Audio synced to R2:', key);
+        } else {
+          console.warn('[audio-sync] R2 VERIFY failed:', verifyRes.status, '| trying next key');
+          return _trySyncUpload(blob, paths, idx + 1);
+        }
+      })
+      .catch(function (e) {
+        console.warn('[audio-sync] R2 upload failed:', e && e.message, '| trying next key');
+        _trySyncUpload(blob, paths, idx + 1);
+      });
+  }
+
   function bindStoryAudio(story) {
     var audioNode = document.querySelector('[data-story-audio]');
     var noteNode = document.querySelector('[data-story-audio-note]');
@@ -1634,8 +1684,9 @@
         showNote(retryMessages[retryIdx]);
       }
       // Step 1: Try local first (IndexedDB + Supabase Storage) — fast, per-story
+      var _loadedFromLocal = false;
       tryLocalKeys().then(function (blob) {
-        if (blob) return blob;
+        if (blob) { _loadedFromLocal = true; return blob; }
         // Step 2: Try remote (R2, Render) — slower, may share storage
         return tryRemotePaths(0);
       }).then(function (blob) {
@@ -1654,6 +1705,10 @@
                 var pb = document.querySelector('[data-player-toggle]');
                 if (pb) { pb.classList.add('pulse-play'); }
               });
+            }
+            // BACKGROUND: If loaded from local (IndexedDB), check R2 and upload if missing
+            if (_loadedFromLocal && blob.size > 0) {
+              _syncAudioToR2(blob, paths, storyId);
             }
           } catch (error) {
             showNote('Không thể tải file audio đã lưu.');
