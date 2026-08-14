@@ -57,6 +57,7 @@
 
   function uploadToSupabaseStorage(blob, path) {
     var url = SUPABASE_URL + '/storage/v1/object/' + AUDIO_BUCKET + '/' + path;
+    console.log('[audio-store] Uploading to Supabase:', path, '| size:', blob.size, '| type:', blob.type);
     return fetch(url, {
       method: 'POST',
       headers: {
@@ -67,9 +68,15 @@
       },
       body: blob
     }).then(function (res) {
-      if (!res.ok) throw new Error('Upload failed: ' + res.status);
+      if (!res.ok) {
+        return res.text().then(function (txt) {
+          console.error('[audio-store] Supabase upload failed:', res.status, txt);
+          throw new Error('Upload failed: ' + res.status + ' ' + txt);
+        });
+      }
       return res.json();
-    }).then(function () {
+    }).then(function (data) {
+      console.log('[audio-store] ✅ Supabase upload OK:', path);
       return path;
     });
   }
@@ -138,6 +145,7 @@
 
   function putAudio(blob, storyId) {
     if (!blob) return Promise.resolve('');
+    console.log('[audio-store] putAudio called | storyId:', storyId, '| blob.size:', blob.size, '| blob.type:', blob.type);
 
     // Always store locally first (so bindStoryAudio can find it by storyId)
     var localKey = storyId || makeKey();
@@ -151,11 +159,13 @@
         uploadToRenderBackend(blob, storyId).catch(function () {});
         uploadToR2(blob, storyId).catch(function () {});
         return uploadedPath || path;
-      }).catch(function () {
+      }).catch(function (err) {
+        console.warn('[audio-store] ⚠ Supabase failed, trying Render:', err && err.message);
         // Supabase failed — try Render backend (public, works in incognito)
-        return uploadToRenderBackend(blob, storyId).catch(function () {
+        return uploadToRenderBackend(blob, storyId).catch(function (err2) {
           // Try R2 as last cloud option
-          return uploadToR2(blob, storyId).catch(function () {
+          return uploadToR2(blob, storyId).catch(function (err3) {
+            console.warn('[audio-store] ⚠ R2 failed:', err3 && err3.message);
             // All cloud failed — local copy already stored above
             return localKey;
           });
@@ -199,18 +209,24 @@
 
     // Try Render backend first (public endpoint, no auth needed, fastest)
     return downloadFromRenderBackend(key).catch(function () {
-      // Fallback: try Supabase Storage (may fail if project deleted)
-      return downloadFromSupabaseStorage(key).catch(function () {
-        // Last resort: try authenticated backend API
-        if (!canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
-          return null;
-        }
-        return window.AudioHubApi.requestBlob('/media/audio/' + encodeURIComponent(String(key)), {
-          method: 'GET'
-        }).then(function (blob) {
-          return blob || null;
-        }).catch(function () {
-          return null;
+      // Fallback: try R2 via Worker API (same domain)
+      var r2Url = '/api/audio/' + encodeURIComponent(String(key));
+      return fetch(r2Url).then(function (res) {
+        return res.ok ? res.blob() : Promise.reject(null);
+      }).catch(function () {
+        // Fallback: try Supabase Storage (may fail if project deleted)
+        return downloadFromSupabaseStorage(key).catch(function () {
+          // Last resort: try authenticated backend API
+          if (!canUseApi() || !window.AudioHubApi || typeof window.AudioHubApi.requestBlob !== 'function') {
+            return null;
+          }
+          return window.AudioHubApi.requestBlob('/media/audio/' + encodeURIComponent(String(key)), {
+            method: 'GET'
+          }).then(function (blob) {
+            return blob || null;
+          }).catch(function () {
+            return null;
+          });
         });
       });
     });
