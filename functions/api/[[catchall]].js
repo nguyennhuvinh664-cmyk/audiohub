@@ -1,7 +1,13 @@
-// Cloudflare Pages Function: proxy /api/* to Render backend (avoids CORS)
-// Also handles R2 audio/cover uploads directly (bypass proxy for PUT/DELETE)
+// Cloudflare Pages Function: catch-all proxy for /api/*
+// - R2 audio/cover: handled directly (streaming, no buffering)
+// - Everything else: forwarded to Render backend
+
+const BACKEND = 'https://audiohub-276v.onrender.com';
+const SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+const AUDIO_BUCKET = 'story-audio';
+
 export async function onRequest(context) {
-  const BACKEND = 'https://audiohub-276v.onrender.com';
   const url = new URL(context.request.url);
   const method = context.request.method;
   const pathname = url.pathname;
@@ -19,41 +25,89 @@ export async function onRequest(context) {
     });
   }
 
-  // ── R2 audio (GET/PUT/DELETE /api/audio/:key) — handle directly ──
+  // ══════════════════════════════════════════════════════════════════════
+  // R2 AUDIO (GET/PUT/DELETE /api/audio/:key)
+  // GET: R2 → Supabase Storage fallback (streaming)
+  // PUT: stream directly to R2 (no Worker memory buffering)
+  // ══════════════════════════════════════════════════════════════════════
   if (/^\/api\/audio\/.+/.test(pathname) && (method === 'GET' || method === 'PUT' || method === 'DELETE')) {
     const env = context.env;
-    if (env && env.AUDIO) {
+    if (!env || !env.AUDIO) {
+      // R2 not available — try forwarding to Render as last resort
+      // (but Render may not have the audio either)
+    } else {
       const audioKey = decodeURIComponent(pathname.replace(/^\/api\/audio\//, ''));
+      const r2Key = audioKey + '.mp3';
+
       try {
+        // ── GET: R2 → Supabase fallback ──
         if (method === 'GET') {
-          const r2Key = audioKey + '.mp3';
+          // 1) Try R2
           const object = await env.AUDIO.get(r2Key);
-          if (!object) {
-            return new Response(JSON.stringify({ error: 'Audio not found' }), {
-              status: 404,
+          if (object) {
+            const contentType = object.httpMetadata?.contentType || 'audio/mpeg';
+            const body = await object.arrayBuffer();
+            return new Response(body, {
+              status: 200,
               headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': contentType,
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'public, max-age=31536000',
                 'Access-Control-Allow-Origin': '*'
               }
             });
           }
-          const contentType = object.httpMetadata?.contentType || 'audio/mpeg';
-          const body = await object.arrayBuffer();
-          return new Response(body, {
-            status: 200,
+
+          // 2) R2 miss → Supabase Storage (streaming)
+          try {
+            const supaPath = `${audioKey}.mp3`;
+            const supaUrl = `${SUPABASE_URL}/storage/v1/object/public/${AUDIO_BUCKET}/${encodeURIComponent(supaPath)}`;
+            console.log('[proxy] R2 miss, trying Supabase:', audioKey);
+            const supaRes = await fetch(supaUrl, {
+              headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+              }
+            });
+
+            if (supaRes.ok && supaRes.body) {
+              const [clientStream, r2Stream] = supaRes.body.tee();
+
+              // Background: cache to R2
+              env.AUDIO.put(r2Key, r2Stream, {
+                httpMetadata: { contentType: supaRes.headers.get('Content-Type') || 'audio/mpeg' }
+              }).then(() => {
+                console.log('[proxy] ✅ Cached Supabase → R2:', audioKey);
+              }).catch(() => {});
+
+              return new Response(clientStream, {
+                status: 200,
+                headers: {
+                  'Content-Type': supaRes.headers.get('Content-Type') || 'audio/mpeg',
+                  'Accept-Ranges': 'bytes',
+                  'Cache-Control': 'public, max-age=86400',
+                  'Access-Control-Allow-Origin': '*'
+                }
+              });
+            }
+          } catch (e) {
+            console.error('[proxy] Supabase fallback error:', e.message);
+          }
+
+          // 3) Both miss
+          return new Response(JSON.stringify({ error: 'Audio not found' }), {
+            status: 404,
             headers: {
-              'Content-Type': contentType,
-              'Accept-Ranges': 'bytes',
-              'Cache-Control': 'public, max-age=31536000',
+              'Content-Type': 'application/json',
               'Access-Control-Allow-Origin': '*'
             }
           });
         }
+
+        // ── PUT: stream directly to R2 (no buffering) ──
         if (method === 'PUT') {
-          const blob = await context.request.blob();
-          const r2Key = audioKey + '.mp3';
-          await env.AUDIO.put(r2Key, blob.stream(), {
-            httpMetadata: { contentType: blob.type || 'audio/mpeg' }
+          await env.AUDIO.put(r2Key, context.request.body, {
+            httpMetadata: { contentType: context.request.headers.get('Content-Type') || 'audio/mpeg' }
           });
           console.log('[proxy] ✅ R2 audio PUT OK:', r2Key);
           return new Response(JSON.stringify({ success: true, key: audioKey }), {
@@ -64,8 +118,9 @@ export async function onRequest(context) {
             }
           });
         }
+
+        // ── DELETE ──
         if (method === 'DELETE') {
-          const r2Key = audioKey + '.mp3';
           await env.AUDIO.delete(r2Key);
           return new Response(JSON.stringify({ success: true }), {
             status: 200,
@@ -88,7 +143,9 @@ export async function onRequest(context) {
     }
   }
 
-  // ── R2 cover (GET/PUT/POST/DELETE /api/stories/:id/cover) — handle directly ──
+  // ══════════════════════════════════════════════════════════════════════
+  // R2 COVER (GET/PUT/POST/DELETE /api/stories/:id/cover)
+  // ══════════════════════════════════════════════════════════════════════
   if (/^\/api\/stories\/[^/]+\/cover$/.test(pathname) && (method === 'GET' || method === 'PUT' || method === 'POST' || method === 'DELETE')) {
     const env = context.env;
     if (env && env.COVERS) {
@@ -118,10 +175,9 @@ export async function onRequest(context) {
           });
         }
         if (method === 'PUT' || method === 'POST') {
-          const blob = await context.request.blob();
           const r2Key = storyId + '/cover';
-          await env.COVERS.put(r2Key, blob.stream(), {
-            httpMetadata: { contentType: blob.type || 'image/jpeg' }
+          await env.COVERS.put(r2Key, context.request.body, {
+            httpMetadata: { contentType: context.request.headers.get('Content-Type') || 'image/jpeg' }
           });
           console.log('[proxy] ✅ R2 cover PUT OK:', r2Key);
           return new Response(JSON.stringify({ success: true, coverKey: r2Key }), {
@@ -156,18 +212,21 @@ export async function onRequest(context) {
     }
   }
 
-  // ── Forward all other requests to Render backend ──
+  // ══════════════════════════════════════════════════════════════════════
+  // FORWARD ALL OTHER REQUESTS TO RENDER BACKEND
+  // ══════════════════════════════════════════════════════════════════════
   var backendPath = pathname.replace(/^\/api\/v1/, '').replace(/^\/api/, '') || '/';
   const targetUrl = BACKEND + '/api/v1' + backendPath + url.search;
 
   const headers = new Headers(context.request.headers);
   headers.set('Origin', new URL(BACKEND).origin);
 
+  // Stream request body to backend (don't buffer)
   const response = await fetch(targetUrl, {
     method: method,
     headers: headers,
     body: method !== 'GET' && method !== 'HEAD'
-      ? await context.request.arrayBuffer()
+      ? context.request.body
       : undefined,
   });
 
