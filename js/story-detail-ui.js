@@ -1524,6 +1524,14 @@
     // Build list of paths to try (most likely first)
     var paths = [];
     if (audioKey) paths.push(audioKey);
+    // Also try chapter audioKeys (each chapter may have its own key)
+    try {
+      var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+      var _chArr = Array.isArray(_chStore[storyId]) ? _chStore[storyId] : [];
+      _chArr.forEach(function (ch) {
+        if (ch && ch.audioKey && paths.indexOf(ch.audioKey) === -1) paths.push(ch.audioKey);
+      });
+    } catch (e) {}
     if (storyId) {
       var storyIdMp3 = storyId + '.mp3';
       if (paths.indexOf(storyIdMp3) === -1) paths.push(storyIdMp3);
@@ -3645,6 +3653,7 @@
       if (nativeAudio) {
         var _waitPlayHandler = function () {
           nativeAudio.removeEventListener('canplay', _waitPlayHandler);
+          clearTimeout(_waitPlayTimeout);
           nativeAudio.play().then(function () {
             playerState.playing = true;
             renderPlayer();
@@ -3654,8 +3663,17 @@
           });
         };
         nativeAudio.addEventListener('canplay', _waitPlayHandler);
-        setTimeout(function () {
+        var _waitPlayTimeout = setTimeout(function () {
           nativeAudio.removeEventListener('canplay', _waitPlayHandler);
+          if (!nativeAudio.src || nativeAudio.readyState < 2) {
+            playerState.playing = false;
+            renderPlayer();
+            var _note = document.querySelector('[data-story-audio-note]');
+            if (_note) {
+              _note.textContent = 'Audio chưa tải được. Kiểm tra kết nối mạng và tải lại trang.';
+              _note.classList.remove('is-hidden');
+            }
+          }
         }, 15000);
         renderPlayer(); // show loading state
       }

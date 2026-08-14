@@ -1545,34 +1545,60 @@
           console.log('[upload] ✅ PATCH to D1 success:', story.id);
           // Upload audio to cloud (R2/Supabase) for this chapter
           function _patchUploadDone() { doRedirect(story.id); }
-          function _doPatchAudioUpload(blob) {
-            var _patchAudioKey = state.audioKey || story.id;
+          function _doPatchAudioUpload(blob, uploadKey) {
+            var _patchAudioKey = uploadKey || state.audioKey || story.id;
             console.log('[upload] 🎵 Uploading audio to cloud for PATCH story:', story.id, '| audioKey:', _patchAudioKey);
             window.AudioHubStoryAudio.put(blob, story.id, _patchAudioKey).then(function () {
-              console.log('[upload] ✅ Audio uploaded to cloud (PATCH):', story.id);
+              console.log('[upload] ✅ Audio uploaded to cloud (PATCH):', story.id, '| key:', _patchAudioKey);
               state.audioFile = null;
               _patchUploadDone();
             }).catch(function (e) {
-              console.warn('[upload] ⚠ Audio upload failed (PATCH):', e && e.message);
-              _patchUploadDone();
+              console.warn('[upload] ⚠ Audio upload failed (PATCH), retrying with story.id:', e && e.message);
+              // Retry with story.id as key (most reliable for R2 lookup)
+              window.AudioHubStoryAudio.put(blob, story.id, story.id).then(function () {
+                console.log('[upload] ✅ Audio upload retry OK (PATCH):', story.id);
+              }).catch(function () {
+                console.warn('[upload] ❌ Audio upload retry also failed (PATCH)');
+              }).then(function () { _patchUploadDone(); });
             });
           }
           if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
             _doPatchAudioUpload(state.audioFile);
-          } else if (state.audioKey && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
-            // Fallback: audioFile may have been GC'd — fetch from IndexedDB by audioKey
-            console.log('[upload] 🔄 PATCH fallback: fetching audio from IndexedDB, audioKey:', state.audioKey);
-            window.AudioHubStoryAudio.get(state.audioKey).then(function (blob) {
-              if (blob && blob.size > 0) {
-                _doPatchAudioUpload(blob);
-              } else {
-                console.warn('[upload] ⚠ No audio blob in IndexedDB for key:', state.audioKey);
+          } else if (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
+            // Fallback: audioFile may have been GC'd — try all possible audioKeys
+            var _candidateKeys = [];
+            if (state.audioKey) _candidateKeys.push(state.audioKey);
+            // Also try chapter audioKeys (in case state.audioKey is wrong)
+            try {
+              var _chs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+              var _chArr = Array.isArray(_chs[String(story.id)]) ? _chs[String(story.id)] : [];
+              _chArr.forEach(function (ch) {
+                if (ch && ch.audioKey && _candidateKeys.indexOf(ch.audioKey) === -1) _candidateKeys.push(ch.audioKey);
+              });
+            } catch (e) {}
+            // Always include story.id as last resort
+            if (_candidateKeys.indexOf(story.id) === -1) _candidateKeys.push(story.id);
+            console.log('[upload] 🔄 PATCH fallback: trying keys', _candidateKeys);
+
+            function _tryNextKey(idx) {
+              if (idx >= _candidateKeys.length) {
+                console.warn('[upload] ⚠ No audio blob found in any key, redirecting');
                 _patchUploadDone();
+                return;
               }
-            }).catch(function () {
-              console.warn('[upload] ⚠ Failed to fetch audio from IndexedDB');
-              _patchUploadDone();
-            });
+              var key = _candidateKeys[idx];
+              window.AudioHubStoryAudio.get(key).then(function (blob) {
+                if (blob && blob.size > 0) {
+                  console.log('[upload] ✅ Found audio blob for key:', key, '| size:', blob.size);
+                  _doPatchAudioUpload(blob, key);
+                } else {
+                  _tryNextKey(idx + 1);
+                }
+              }).catch(function () {
+                _tryNextKey(idx + 1);
+              });
+            }
+            _tryNextKey(0);
           } else {
             _patchUploadDone();
           }
@@ -1692,12 +1718,12 @@
         addPlaylistEntry(realId, story);
 
         // 3. Upload audio to cloud (R2/Supabase) using audioKey for R2 + storyId as fallback
-        function _uploadAudioToCloud(blob) {
+        function _uploadAudioToCloud(blob, uploadKey) {
           if (!blob || !window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.put !== 'function') {
             doRedirect(realId);
             return;
           }
-          var _uploadAudioKey = state.audioKey || realId;
+          var _uploadAudioKey = uploadKey || state.audioKey || realId;
           window.AudioHubStoryAudio.put(blob, realId, _uploadAudioKey).then(function () {
             console.log('[upload] ✅ Audio uploaded to cloud | storyId:', realId, '| audioKey:', _uploadAudioKey);
             state.audioFile = null;
@@ -1714,29 +1740,53 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ id: realId, audio_key: realId })
             }).then(function () { doRedirect(realId); }).catch(function () { doRedirect(realId); });
-          }).catch(function () {
-            console.warn('[upload] ⚠ Cloud audio upload failed, redirecting anyway');
-            doRedirect(realId);
+          }).catch(function (e) {
+            console.warn('[upload] ⚠ Cloud audio upload failed, retrying with storyId:', e && e.message);
+            window.AudioHubStoryAudio.put(blob, realId, realId).then(function () {
+              console.log('[upload] ✅ Audio upload retry OK | storyId:', realId);
+            }).catch(function () {
+              console.warn('[upload] ❌ Audio upload retry also failed');
+            }).then(function () { doRedirect(realId); });
           });
         }
 
         if (state.audioFile) {
           // User selected a new audio file — upload directly
           _uploadAudioToCloud(state.audioFile);
-        } else if (state.audioKey && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
-          // Edit mode: no new file selected, but audioKey exists — fetch from IndexedDB and re-upload with story ID
-          console.log('[upload] 🔄 Edit mode: fetching audio from IndexedDB with key:', state.audioKey, '→ uploading as:', realId);
-          window.AudioHubStoryAudio.get(state.audioKey).then(function (blob) {
-            if (blob && blob.size > 0) {
-              _uploadAudioToCloud(blob);
-            } else {
-              console.warn('[upload] ⚠ No audio blob found in IndexedDB for key:', state.audioKey);
+        } else if (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
+          // Try all possible audioKeys (state.audioKey, chapter audioKeys, story ID)
+          var _candidateKeys = [];
+          if (state.audioKey) _candidateKeys.push(state.audioKey);
+          try {
+            var _chs2 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var _chArr2 = Array.isArray(_chs2[story.id]) ? _chs2[story.id] : [];
+            _chArr2.forEach(function (ch) {
+              if (ch && ch.audioKey && _candidateKeys.indexOf(ch.audioKey) === -1) _candidateKeys.push(ch.audioKey);
+            });
+          } catch (e) {}
+          if (_candidateKeys.indexOf(realId) === -1) _candidateKeys.push(realId);
+          if (_candidateKeys.indexOf(story.id) === -1) _candidateKeys.push(story.id);
+          console.log('[upload] 🔄 POST fallback: trying keys', _candidateKeys);
+
+          function _tryPostKey(idx) {
+            if (idx >= _candidateKeys.length) {
+              console.warn('[upload] ⚠ No audio blob found in any key');
               doRedirect(realId);
+              return;
             }
-          }).catch(function () {
-            console.warn('[upload] ⚠ Failed to fetch audio from IndexedDB');
-            doRedirect(realId);
-          });
+            var key = _candidateKeys[idx];
+            window.AudioHubStoryAudio.get(key).then(function (blob) {
+              if (blob && blob.size > 0) {
+                console.log('[upload] ✅ Found audio blob for key:', key, '| size:', blob.size);
+                _uploadAudioToCloud(blob, key);
+              } else {
+                _tryPostKey(idx + 1);
+              }
+            }).catch(function () {
+              _tryPostKey(idx + 1);
+            });
+          }
+          _tryPostKey(0);
         } else {
           doRedirect(realId);
         }
