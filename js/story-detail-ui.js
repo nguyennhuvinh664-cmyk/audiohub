@@ -2783,6 +2783,37 @@
           fetchStoryFromApi(storyId).then(mergeAndRender).catch(function () {});
         }
 
+        // DELAYED RE-FETCH: Pick up async PATCH results from upload page
+        // The upload page does PATCH to D1 then immediately redirects.
+        // D1 may not have the latest data when this page first loads.
+        // Re-fetch after 4s to get the updated chapter count.
+        if (apiId) {
+          setTimeout(function () {
+            console.log('[story-detail] 🔄 Delayed re-fetch for fresh chapter data:', apiId);
+            fetchStoryFromApi(apiId).then(function (freshStory) {
+              if (!freshStory || !freshStory.id) return;
+              var freshChapters = freshStory.chapters || [];
+              if (typeof freshChapters === 'string') {
+                try { freshChapters = JSON.parse(freshChapters); } catch (e) { freshChapters = []; }
+              }
+              var currentChCount = Array.isArray(story.chapters) ? story.chapters.length : 0;
+              console.log('[story-detail] Delayed re-fetch: API has', freshChapters.length, 'chapters, current:', currentChCount);
+              if (freshChapters.length > currentChCount) {
+                console.log('[story-detail] ✅ Updating chapters from', currentChCount, '→', freshChapters.length);
+                mergeAndRender(freshStory);
+              }
+              // Also sync to localStorage so future loads are correct
+              if (freshChapters.length >= currentChCount && window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+                try {
+                  var _syncStory = Object.assign({}, story, { chapters: freshChapters, chapterCount: freshChapters.length });
+                  delete _syncStory.audioKey;
+                  window.AudioHubStories.upsert(_syncStory);
+                } catch (e) {}
+              }
+            }).catch(function () {});
+          }, 4000);
+        }
+
         // Try 2: Fetch all public stories from API to find by title (always try, even if Try 1 found a CUID — for robustness)
         if (!apiId || !story.readingText) {
           console.log('[story-detail] Try 2: fetching public stories, apiId:', apiId, 'story.readingText:', !!story.readingText);

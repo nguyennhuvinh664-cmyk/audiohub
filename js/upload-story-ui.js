@@ -1432,10 +1432,27 @@
       try {
         var _verifyStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
         var _verifyChapters = Array.isArray(_verifyStore[story.id]) ? _verifyStore[story.id] : [];
-        console.log('[upload] ✅ VERIFY from localStorage — chapters:', _verifyChapters.length);
+        console.log('[upload] VERIFY from localStorage — chapters:', _verifyChapters.length, '| expected:', built.payload.chapters ? built.payload.chapters.length : '?');
         _verifyChapters.forEach(function (ch, i) {
           console.log('[upload]   ch' + (i+1) + ':', { title: ch.title, audioKey: ch.audioKey || '(EMPTY)' });
         });
+        // AUTO-REPAIR: if localStorage has fewer chapters, try writing slimmed version (no readingText)
+        var _expectedCount = built.payload.chapters ? built.payload.chapters.length : 0;
+        if (_verifyChapters.length < _expectedCount) {
+          console.warn('[upload] ⚠ MISMATCH — localStorage has', _verifyChapters.length, 'chapters, expected', _expectedCount);
+          try {
+            // Slim chapters: strip readingText to reduce size
+            var _slimChapters = built.payload.chapters.map(function (ch) {
+              if (!ch) return ch;
+              return { title: ch.title || '', audioKey: ch.audioKey || '', coverKey: ch.coverKey || '' };
+            });
+            _verifyStore[story.id] = _slimChapters;
+            localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_verifyStore));
+            var _reCheck = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var _reCount = Array.isArray(_reCheck[story.id]) ? _reCheck[story.id].length : 0;
+            console.log('[upload] Repair result:', _reCount, 'chapters (slimmed, no readingText)');
+          } catch (e) { console.error('[upload] ❌ Repair failed — localStorage critically full:', e && e.message); }
+        }
       } catch (e) { console.warn('[upload] Verify failed:', e); }
       // Keep sessionStorage if appending to existing story; clear if creating new
       if (!targetId) {

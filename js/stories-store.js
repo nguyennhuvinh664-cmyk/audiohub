@@ -392,7 +392,31 @@
     try { return JSON.parse(localStorage.getItem(CHAPTERS_KEY) || '{}'); } catch (e) { return {}; }
   }
   function writeChaptersStore(obj) {
-    try { localStorage.setItem(CHAPTERS_KEY, JSON.stringify(obj)); } catch (e) {}
+    try {
+      localStorage.setItem(CHAPTERS_KEY, JSON.stringify(obj));
+    } catch (e) {
+      console.warn('[chapters-store] ⚠ Write failed (likely quota), stripping readingText:', e && e.message);
+      // Retry without readingText (largest field) to fit in localStorage
+      try {
+        var slimmed = {};
+        Object.keys(obj).forEach(function (k) {
+          if (Array.isArray(obj[k])) {
+            slimmed[k] = obj[k].map(function (ch) {
+              if (!ch) return ch;
+              var c = Object.assign({}, ch);
+              delete c.readingText;
+              return c;
+            });
+          } else {
+            slimmed[k] = obj[k];
+          }
+        });
+        localStorage.setItem(CHAPTERS_KEY, JSON.stringify(slimmed));
+        console.log('[chapters-store] ✅ Wrote slimmed chapters (no readingText)');
+      } catch (e2) {
+        console.error('[chapters-store] ❌ EVEN SLIMMED write failed:', e2 && e2.message);
+      }
+    }
   }
   function saveChaptersForStory(sid, chapters) {
     if (!sid || !Array.isArray(chapters)) return;
@@ -438,6 +462,37 @@
       delete store['s_' + sid];
     }
     writeChaptersStore(store);
+    // VERIFY: read back to confirm write succeeded
+    var _verifyStore = readChaptersStore();
+    var _verifyCount = Array.isArray(_verifyStore[sid]) ? _verifyStore[sid].length : 0;
+    if (_verifyCount !== deduped.length) {
+      console.warn('[chapters-store] ⚠ VERIFY MISMATCH — wrote', deduped.length, 'but read back', _verifyCount, '— retrying with slimmed chapters');
+      // Retry: strip readingText from ALL chapters to reduce size
+      try {
+        var _slimStore = {};
+        Object.keys(store).forEach(function (k) {
+          if (Array.isArray(store[k])) {
+            _slimStore[k] = store[k].map(function (ch) {
+              if (!ch) return ch;
+              var c = Object.assign({}, ch);
+              delete c.readingText;
+              return c;
+            });
+          } else {
+            _slimStore[k] = store[k];
+          }
+        });
+        localStorage.setItem(CHAPTERS_KEY, JSON.stringify(_slimStore));
+        var _reVerify = readChaptersStore();
+        var _reCount = Array.isArray(_reVerify[sid]) ? _reVerify[sid].length : 0;
+        console.log('[chapters-store] Retry result:', _reCount, 'chapters');
+        if (_reCount < deduped.length) {
+          console.error('[chapters-store] ❌ STILL MISMATCH after retry — localStorage may be critically full');
+        }
+      } catch (e) {
+        console.error('[chapters-store] ❌ Retry also failed:', e && e.message);
+      }
+    }
     console.log('[chapters-store] ✅ SAVED — final:', deduped.length, '| titles:', deduped.map(function(c) { return c && c.title; }));
   }
   function getChaptersForStory(sid) {
