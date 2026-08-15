@@ -583,6 +583,15 @@
     loadStoriesForHome().then(function (stories) {
       var publicStories = stories.filter(function (story) { return isPublicVisibility(story); });
 
+      // Deduplicate by id (D1 may return duplicate rows)
+      var seen = {};
+      publicStories = publicStories.filter(function (story) {
+        var id = String(story && story.id || '').trim();
+        if (!id || seen[id]) return false;
+        seen[id] = true;
+        return true;
+      });
+
       // Sort newest first for "Truyện Mới Đăng" section
       var newestStories = publicStories.slice().sort(function (a, b) {
         return parseTime(b.createdAt || b.updatedAt) - parseTime(a.createdAt || a.updatedAt);
