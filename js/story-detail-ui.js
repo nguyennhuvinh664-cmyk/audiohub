@@ -674,6 +674,17 @@
     if (typeof apiStory.chapters === 'string') {
       try { apiStory.chapters = JSON.parse(apiStory.chapters); } catch (e) { apiStory.chapters = []; }
     }
+    // SAFETY: Explicitly save chapters to audiohub-chapters-v1 before upsert
+    // (upsert → normalizeStory may read empty store and overwrite)
+    if (Array.isArray(apiStory.chapters) && apiStory.chapters.length && apiStory.id) {
+      try {
+        var _cs4 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        if (!Array.isArray(_cs4[apiStory.id]) || !_cs4[apiStory.id].length) {
+          _cs4[apiStory.id] = apiStory.chapters;
+          localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs4));
+        }
+      } catch (e) {}
+    }
     console.log('[story-detail] Upserting API story:', apiStory.id, '| chapters:', Array.isArray(apiStory.chapters) ? apiStory.chapters.length : 0);
     // Cache in localStorage for next load
     if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
@@ -742,44 +753,10 @@
     if (!story) {
       if (storyId && !isSyntheticStoryId(storyId)) {
         markPendingStorySync(storyId);
-        console.log('[story-detail] Story not in localStorage, trying API fallback:', storyId);
-        // API fallback: fetch story from D1 when not in localStorage
-        if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
-          window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
-            .then(function (apiStory) {
-              console.log('[story-detail] API fallback response:', apiStory ? apiStory.id : 'null');
-              if (!apiStory || !apiStory.id) {
-                // Retry once after short delay (D1 eventual consistency)
-                setTimeout(function () {
-                  console.log('[story-detail] Retrying API fallback for:', storyId);
-                  window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
-                    .then(function (retryStory) {
-                      console.log('[story-detail] Retry response:', retryStory ? retryStory.id : 'null');
-                      if (retryStory && retryStory.id) {
-                        _upsertAndRender(retryStory);
-                      }
-                    })
-                    .catch(function (e) { console.warn('[story-detail] Retry failed:', e); });
-                }, 1000);
-                return;
-              }
-              _upsertAndRender(apiStory);
-            })
-            .catch(function (e) {
-              console.error('[story-detail] API fallback failed:', e);
-              // Retry once after short delay
-              setTimeout(function () {
-                console.log('[story-detail] Retrying API fallback after error for:', storyId);
-                window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
-                  .then(function (retryStory) {
-                    if (retryStory && retryStory.id) {
-                      _upsertAndRender(retryStory);
-                    }
-                  })
-                  .catch(function () {});
-              }, 1500);
-            });
-        }
+        console.log('[story-detail] Story not in localStorage — initPlayer will handle API fetch');
+        // NOTE: Removed duplicate API fetch here. initPlayer's handleCacheMissStory
+        // already fetches from API and handles rendering. This dual-fetch caused
+        // race conditions and slow loading in incognito mode.
       }
       ensureFallbackHashtags(storyNode);
       return null;
@@ -3095,6 +3072,19 @@
           try { apiStory.chapters = JSON.parse(apiStory.chapters); } catch (e) { apiStory.chapters = []; }
         }
         if (!apiStory.chapterCount && apiStory.chapter_count) apiStory.chapterCount = apiStory.chapter_count;
+        // CRITICAL: Save API chapters to audiohub-chapters-v1 so bindStoryAudio can find
+        // per-chapter audioKeys. Without this, incognito mode falls back to story-level
+        // audioKey for ALL chapters → duplicate audio bug.
+        if (Array.isArray(apiStory.chapters) && apiStory.chapters.length && apiStory.id) {
+          try {
+            var _chStore3 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            if (!Array.isArray(_chStore3[apiStory.id]) || !_chStore3[apiStory.id].length) {
+              _chStore3[apiStory.id] = apiStory.chapters;
+              localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_chStore3));
+              console.log('[story-detail] 📖 Saved', apiStory.chapters.length, 'API chapters to audiohub-chapters-v1 for', apiStory.id);
+            }
+          } catch (e) {}
+        }
         console.log('[story-detail] Cache miss: bindStoryData', apiStory.id, 'desc:', apiStory.description ? apiStory.description.length + ' chars' : 'NONE', 'reading:', apiStory.readingText || apiStory.reading_text ? 'YES' : 'NO');
         _mergeRendering = true;
         bindStoryData(apiStory);

@@ -293,16 +293,23 @@
     var coverDataUrl = (story && (story.coverDataUrl || story.cover_data_url)) || '';
     var chapterTitle = (story && (story.chapterTitle || story.chapter_title)) || '';
     var chapterCount = normalizeNumber(story && (story.chapterCount || story.chapter_count));
+    // FIX: Only read stored chapters as fallback when incoming story has NO chapters.
+    // Previously, this read from audiohub-chapters-v1 even when story.chapters existed,
+    // which overwrote API chapters with empty array in incognito (empty localStorage).
     var storedChapters = [];
-    if (story && story.id) {
-      storedChapters = getChaptersForStory(String(story.id));
-    }
     if (!Array.isArray(chapters) || !chapters.length) {
-      chapters = Array.isArray(storedChapters) ? storedChapters : [];
-    } else if (Array.isArray(storedChapters) && storedChapters.length > chapters.length) {
-      // SAFETY: Always keep the larger chapter set — never overwrite with fewer
-      chapters = storedChapters;
-      chapterCount = storedChapters.length;
+      // Only read from localStorage when incoming chapters are truly absent
+      if (story && story.id) {
+        storedChapters = getChaptersForStory(String(story.id));
+      }
+      chapters = Array.isArray(storedChapters) && storedChapters.length ? storedChapters : [];
+    } else if (story && story.id) {
+      // Incoming chapters exist — check if stored has MORE (e.g. local upload added chapters)
+      storedChapters = getChaptersForStory(String(story.id));
+      if (Array.isArray(storedChapters) && storedChapters.length > chapters.length) {
+        chapters = storedChapters;
+        chapterCount = storedChapters.length;
+      }
     }
     var listenCount = normalizeNumber(story && (story.listenCount || story.listen_count));
     var listenCount2d = normalizeNumber(story && (story.listenCount2d || story.listen_count2d));
