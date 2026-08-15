@@ -1671,31 +1671,53 @@
     }
     console.log('[audio-debug] paths:', paths, '| currentChIdx:', _currentChIdx);
 
-    // Audio loading: AudioHubStoryAudio.get() handles IndexedDB → R2 → Supabase → Render
+    // Audio loading: parallel HEAD check → download from best key
 
     function tryLocalKeys() {
-      // Try AudioHubStoryAudio.get() FIRST — fast, local IndexedDB + Supabase Storage fallback
       if (!window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') {
         return Promise.resolve(null);
       }
-      // Try each path via AudioHubStoryAudio (checks IndexedDB then Supabase Storage)
-      var localIdx = 0;
-      function tryNextLocal() {
-        if (localIdx >= paths.length) return Promise.resolve(null);
-        var key = paths[localIdx++];
-        console.log('[audio-debug] trying AudioHubStoryAudio.get:', key);
+
+      // Step 1: Check IndexedDB for all keys in parallel (instant)
+      var idbChecks = paths.map(function (key) {
         return window.AudioHubStoryAudio.get(key).then(function (blob) {
-          if (blob && blob.size >= 1000) {
-            console.log('[audio-debug] AudioHubStoryAudio OK:', key, blob.size);
-            return blob;
-          }
-          if (blob) console.log('[audio-debug] AudioHubStoryAudio too small:', key, blob.size, '— skipping');
-          return tryNextLocal();
+          return { key: key, blob: blob, source: 'idb' };
         }).catch(function () {
-          return tryNextLocal();
+          return { key: key, blob: null, source: 'idb' };
         });
-      }
-      return tryNextLocal();
+      });
+
+      return Promise.all(idbChecks).then(function (results) {
+        // Find first IDB hit
+        var idbHit = results.find(function (r) { return r.blob && r.blob.size >= 1000; });
+        if (idbHit) {
+          console.log('[audio-debug] IDB hit:', idbHit.key, idbHit.blob.size);
+          return idbHit.blob;
+        }
+
+        // Step 2: No IDB hit — do parallel HEAD requests to R2 to find which key exists
+        var headChecks = paths.map(function (key) {
+          var url = '/api/audio/' + encodeURIComponent(key);
+          return fetch(url, { method: 'HEAD', cache: 'no-store' }).then(function (res) {
+            return { key: key, exists: res.ok, status: res.status };
+          }).catch(function () {
+            return { key: key, exists: false, status: 0 };
+          });
+        });
+
+        return Promise.all(headChecks).then(function (headResults) {
+          // Find first key that exists in R2
+          var found = headResults.find(function (r) { return r.exists; });
+          var bestKey = found ? found.key : paths[0];
+          console.log('[audio-debug] HEAD results:', headResults.map(function(r) { return r.key + ':' + r.status; }), '| best:', bestKey);
+
+          // Download from the best key
+          return window.AudioHubStoryAudio.get(bestKey).then(function (blob) {
+            if (blob && blob.size >= 1000) return blob;
+            return null;
+          });
+        });
+      });
     }
 
     // Loading chain: AudioHubStoryAudio.get() (IndexedDB → R2 → Supabase → Render) → retry
@@ -1735,14 +1757,19 @@
             audioNode.src = audioUrl;
             audioNode.classList.remove('is-hidden');
             showNote('');
-            // Auto-play audio (user already clicked story = interaction)
-            var playPromise = audioNode.play();
-            if (playPromise) {
-              playPromise.catch(function () {
-                // Browser blocked auto-play — highlight play button
-                var pb = document.querySelector('[data-player-toggle]');
-                if (pb) { pb.classList.add('pulse-play'); }
-              });
+            // Only auto-play if user explicitly clicked a chapter (not on initial page load)
+            if (_userSelectedChapter) {
+              var playPromise = audioNode.play();
+              if (playPromise) {
+                playPromise.catch(function () {
+                  var pb = document.querySelector('[data-player-toggle]');
+                  if (pb) { pb.classList.add('pulse-play'); }
+                });
+              }
+            } else {
+              // Initial load — show play button, don't auto-play
+              var pb = document.querySelector('[data-player-toggle]');
+              if (pb) { pb.classList.add('pulse-play'); }
             }
             // BACKGROUND: If loaded from local (IndexedDB), always PUT to R2 (overwrites corrupt files)
             if (_loadedFromLocal && blob.size >= 1000) {

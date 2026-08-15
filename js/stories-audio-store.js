@@ -229,26 +229,19 @@
     if (!key) return Promise.resolve(null);
 
     var MIN_VALID_SIZE = 1000; // Audio files < 1KB are corrupted/empty
+    // R2 endpoint already tries Supabase fallback internally — no need for client-side Supabase/Render
     var attempts = [
       function () {
         var url = '/api/audio/' + encodeURIComponent(String(key)) + '?v=' + encodeURIComponent('' + Math.floor(Date.now() / 86400000));
-        console.log('[audio-store] fetch R2:', url);
+        console.log('[audio-store] fetch:', url);
         return fetch(url, { cache: 'no-store' }).then(function (res) {
           if (!res.ok) throw new Error('HTTP ' + res.status);
           return res.blob();
         });
-      },
-      function () {
-        console.log('[audio-store] fetch Supabase:', key);
-        return downloadFromSupabaseStorage(key);
-      },
-      function () {
-        console.log('[audio-store] fetch Render:', key);
-        return downloadFromRenderBackend(key);
       }
     ];
 
-    // Try each source, with retries for timing issues
+    // Try each source, with 1 retry for timing issues
     var tryIdx = 0;
     function tryNext() {
       if (tryIdx >= attempts.length) return Promise.resolve(null);
@@ -266,10 +259,10 @@
       });
     }
 
-    // Retry entire chain up to 2 times with delays
+    // Single retry with 1s delay (reduced from 2 retries with 3s)
     var retryCount = 0;
-    var maxRetries = 2;
-    var retryDelays = [0, 3000];
+    var maxRetries = 1;
+    var retryDelays = [0, 1000];
 
     return new Promise(function (resolve) {
       function runWithRetry() {
