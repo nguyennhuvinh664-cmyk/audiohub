@@ -218,6 +218,9 @@
 
   var pendingStorySyncId = '';
   var HOME_DETAIL_CONTEXT_KEY = 'audiohub-home-detail-context';
+  // CRITICAL: Capture home context IMMEDIATELY before any clearing functions run
+  var _navigatedFromHome = false;
+  try { _navigatedFromHome = !!sessionStorage.getItem(HOME_DETAIL_CONTEXT_KEY); } catch (e) {}
 
   function readHomeDetailContext() {
     try {
@@ -2612,9 +2615,6 @@
   }
 
   // Module-scope flags for audio tracking
-  // CRITICAL: Capture home context BEFORE ensureStoryContext() clears it (line 383)
-  var _navigatedFromHome = false;
-  try { _navigatedFromHome = !!sessionStorage.getItem('audiohub-home-detail-context'); } catch (e) {}
   var _mergeRendering = false;
   var currentPlayingAudioKey = '';
   var _userSelectedChapter = false;
