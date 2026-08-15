@@ -1735,9 +1735,7 @@
             audioNode.classList.remove('is-hidden');
             showNote('');
             // Auto-play if: user clicked a chapter OR navigated from homepage
-            var _cameFromHome = false;
-            try { _cameFromHome = !!sessionStorage.getItem('audiohub-home-detail-context'); } catch (e) {}
-            if (_userSelectedChapter || _cameFromHome) {
+            if (_userSelectedChapter || _navigatedFromHome) {
               var playPromise = audioNode.play();
               if (playPromise) {
                 playPromise.catch(function () {
@@ -2614,6 +2612,9 @@
   }
 
   // Module-scope flags for audio tracking
+  // CRITICAL: Capture home context BEFORE ensureStoryContext() clears it (line 383)
+  var _navigatedFromHome = false;
+  try { _navigatedFromHome = !!sessionStorage.getItem('audiohub-home-detail-context'); } catch (e) {}
   var _mergeRendering = false;
   var currentPlayingAudioKey = '';
   var _userSelectedChapter = false;
