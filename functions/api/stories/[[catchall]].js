@@ -39,6 +39,22 @@ export async function onRequest(context) {
     const storyId = pathParts[0];
     const action = pathParts[1]; // e.g., 'listen'
 
+    // GET /api/stories/batch?ids=id1,id2&fields=id,cover_data - Batch fetch stories
+    if (method === 'GET' && storyId === 'batch') {
+      const idsParam = url.searchParams.get('ids') || '';
+      const fieldsParam = url.searchParams.get('fields') || 'id,title,cover_data';
+      const ids = idsParam.split(',').map(s => s.trim()).filter(Boolean);
+      if (!ids.length) return Response.json([], { headers: corsHeaders });
+      const fields = fieldsParam.split(',').map(s => s.trim()).filter(Boolean);
+      const allowed = ['id', 'title', 'cover_data', 'cover_key', 'audio_key', 'genre', 'author', 'visibility', 'chapter_count', 'listen_count', 'is_completed'];
+      const safeFields = fields.filter(f => allowed.includes(f));
+      if (!safeFields.length) safeFields.push('id');
+      const placeholders = ids.map(() => '?').join(',');
+      const query = `SELECT ${safeFields.join(', ')} FROM stories WHERE id IN (${placeholders})`;
+      const result = await env.DB.prepare(query).bind(...ids).all();
+      return Response.json(result.results || [], { headers: corsHeaders });
+    }
+
     // POST /api/stories/delete-all - Delete ALL stories (admin reset)
     if (method === 'POST' && storyId === 'delete-all') {
       const result = await env.DB.prepare('DELETE FROM stories').run();
