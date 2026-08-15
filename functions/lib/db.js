@@ -75,7 +75,7 @@ export async function upsertStory(db, story) {
     description: story.description || null,
     reading_text: story.reading_text || null,
     chapter_title: story.chapter_title || null,
-    chapters: story.chapters || null,
+    chapters: story.chapters ? (typeof story.chapters === 'string' ? story.chapters : JSON.stringify(story.chapters)) : null,
     chapter_count: story.chapter_count != null ? story.chapter_count : null,
     visibility: story.visibility || null,
     audio_status: story.audio_status || null,
