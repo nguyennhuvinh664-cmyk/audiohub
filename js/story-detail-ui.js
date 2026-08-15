@@ -3056,6 +3056,13 @@
       console.log('[story-detail] Cache miss for storyId:', storyId);
       function handleCacheMissStory(apiStory) {
         if (!apiStory || !apiStory.id) return;
+        // Normalize snake_case D1 fields to camelCase (bindStoryData expects camelCase)
+        if (apiStory.reading_text && !apiStory.readingText) apiStory.readingText = apiStory.reading_text;
+        if (apiStory.audio_key && !apiStory.audioKey) apiStory.audioKey = apiStory.audio_key;
+        if (apiStory.chapter_title && !apiStory.chapterTitle) apiStory.chapterTitle = apiStory.chapter_title;
+        if (apiStory.cover_key && !apiStory.coverKey) apiStory.coverKey = apiStory.cover_key;
+        if (apiStory.cover_data && !apiStory.coverData) apiStory.coverData = apiStory.cover_data;
+        if (apiStory.listen_count != null && apiStory.listenCount == null) apiStory.listenCount = apiStory.listen_count;
         // D1 returns chapters as JSON string — parse it
         if (typeof apiStory.chapters === 'string') {
           try { apiStory.chapters = JSON.parse(apiStory.chapters); } catch (e) { apiStory.chapters = []; }
