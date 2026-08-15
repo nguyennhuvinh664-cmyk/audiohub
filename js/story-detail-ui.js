@@ -399,6 +399,7 @@
         var storyId = resolveStoryId();
         var story = window.AudioHubStories && typeof window.AudioHubStories.getById === 'function'
           ? window.AudioHubStories.getById(storyId) : null;
+        console.log('[story-detail] stories-updated handler — DOM empty, storyId:', storyId, 'found:', !!story);
         if (story && story.id) {
           currentPlayingAudioKey = (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
           bindStoryData(story);
@@ -412,6 +413,28 @@
     if (tryResolvePendingStoryAfterSync()) return;
     ensureStoryContext();
   }, { signal: _signal });
+
+  // SAFETY NET: If DOM still shows "Đang tải..." after 3s, retry API fetch
+  setTimeout(function () {
+    var storyNode = document.querySelector('[data-detail-story]');
+    if (!storyNode) return;
+    var titleEl = storyNode.querySelector('.detail-title');
+    if (!titleEl || (titleEl.textContent || '').trim() !== 'Đang tải...') return; // already loaded
+    var storyId = resolveStoryId();
+    if (!storyId || isSyntheticStoryId(storyId)) return;
+    console.log('[story-detail] ⏰ Safety net: still loading after 3s, retrying API for:', storyId);
+    if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+      window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
+        .then(function (apiStory) {
+          console.log('[story-detail] Safety net response:', apiStory ? apiStory.id : 'null');
+          if (apiStory && apiStory.id) {
+            _upsertAndRender(apiStory);
+          }
+        })
+        .catch(function (e) { console.warn('[story-detail] Safety net failed:', e); });
+    }
+  }, 3000);
+
 
   function formatStoryDate(value) {
     var time = Date.parse(String(value || ''));
@@ -639,6 +662,27 @@
     copy.appendChild(toggle);
   }
 
+  function _upsertAndRender(apiStory) {
+    // Normalize snake_case to camelCase
+    if (apiStory.reading_text && !apiStory.readingText) apiStory.readingText = apiStory.reading_text;
+    if (apiStory.audio_key && !apiStory.audioKey) apiStory.audioKey = apiStory.audio_key;
+    if (apiStory.chapter_title && !apiStory.chapterTitle) apiStory.chapterTitle = apiStory.chapter_title;
+    if (apiStory.chapter_count != null && apiStory.chapterCount == null) apiStory.chapterCount = apiStory.chapter_count;
+    if (apiStory.cover_key && !apiStory.coverKey) apiStory.coverKey = apiStory.cover_key;
+    if (apiStory.cover_data && !apiStory.coverData) apiStory.coverData = apiStory.cover_data;
+    if (apiStory.listen_count != null && apiStory.listenCount == null) apiStory.listenCount = apiStory.listen_count;
+    if (typeof apiStory.chapters === 'string') {
+      try { apiStory.chapters = JSON.parse(apiStory.chapters); } catch (e) { apiStory.chapters = []; }
+    }
+    console.log('[story-detail] Upserting API story:', apiStory.id, '| chapters:', Array.isArray(apiStory.chapters) ? apiStory.chapters.length : 0);
+    // Cache in localStorage for next load
+    if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
+      window.AudioHubStories.upsert(apiStory);
+    }
+    // Re-trigger render
+    window.dispatchEvent(new Event('audiohub:stories-updated'));
+  }
+
   function initStoryDetailFromStore(storyId) {
     var storyNode = document.querySelector('[data-detail-story]');
     if (!storyNode) return null;
@@ -698,30 +742,43 @@
     if (!story) {
       if (storyId && !isSyntheticStoryId(storyId)) {
         markPendingStorySync(storyId);
+        console.log('[story-detail] Story not in localStorage, trying API fallback:', storyId);
         // API fallback: fetch story from D1 when not in localStorage
         if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
           window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
             .then(function (apiStory) {
-              if (!apiStory || !apiStory.id) return;
-              // Normalize snake_case to camelCase
-              if (apiStory.reading_text && !apiStory.readingText) apiStory.readingText = apiStory.reading_text;
-              if (apiStory.audio_key && !apiStory.audioKey) apiStory.audioKey = apiStory.audio_key;
-              if (apiStory.chapter_title && !apiStory.chapterTitle) apiStory.chapterTitle = apiStory.chapter_title;
-              if (apiStory.chapter_count != null && apiStory.chapterCount == null) apiStory.chapterCount = apiStory.chapter_count;
-              if (apiStory.cover_key && !apiStory.coverKey) apiStory.coverKey = apiStory.cover_key;
-              if (apiStory.cover_data && !apiStory.coverData) apiStory.coverData = apiStory.cover_data;
-              if (apiStory.listen_count != null && apiStory.listenCount == null) apiStory.listenCount = apiStory.listen_count;
-              if (typeof apiStory.chapters === 'string') {
-                try { apiStory.chapters = JSON.parse(apiStory.chapters); } catch (e) { apiStory.chapters = []; }
+              console.log('[story-detail] API fallback response:', apiStory ? apiStory.id : 'null');
+              if (!apiStory || !apiStory.id) {
+                // Retry once after short delay (D1 eventual consistency)
+                setTimeout(function () {
+                  console.log('[story-detail] Retrying API fallback for:', storyId);
+                  window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
+                    .then(function (retryStory) {
+                      console.log('[story-detail] Retry response:', retryStory ? retryStory.id : 'null');
+                      if (retryStory && retryStory.id) {
+                        _upsertAndRender(retryStory);
+                      }
+                    })
+                    .catch(function (e) { console.warn('[story-detail] Retry failed:', e); });
+                }, 1000);
+                return;
               }
-              // Cache in localStorage for next load
-              if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
-                window.AudioHubStories.upsert(apiStory);
-              }
-              // Re-trigger render
-              window.dispatchEvent(new Event('audiohub:stories-updated'));
+              _upsertAndRender(apiStory);
             })
-            .catch(function () {});
+            .catch(function (e) {
+              console.error('[story-detail] API fallback failed:', e);
+              // Retry once after short delay
+              setTimeout(function () {
+                console.log('[story-detail] Retrying API fallback after error for:', storyId);
+                window.AudioHubApi.request('/stories/public/' + encodeURIComponent(storyId), { method: 'GET' })
+                  .then(function (retryStory) {
+                    if (retryStory && retryStory.id) {
+                      _upsertAndRender(retryStory);
+                    }
+                  })
+                  .catch(function () {});
+              }, 1500);
+            });
         }
       }
       ensureFallbackHashtags(storyNode);

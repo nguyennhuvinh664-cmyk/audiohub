@@ -107,7 +107,9 @@
   function readLocalStories() {
     var raw = window.localStorage.getItem(_storiesKey());
     var parsed = safeParse(raw, []);
-    var next = dedupeStories(Array.isArray(parsed) ? parsed : []).map(function (story) {
+    var arr = Array.isArray(parsed) ? parsed : [];
+    var deduped = dedupeStories(arr);
+    var next = deduped.map(function (story) {
       // Migration: fix missing visibility default
       var vis = String(story && story.visibility || '').trim();
       if (!vis) {
@@ -121,10 +123,7 @@
       return story;
     });
     // Only write back if dedup or cap changed the data
-    var deduped = dedupeStories(Array.isArray(parsed) ? parsed : []);
-    var needsWrite = deduped.length !== (Array.isArray(parsed) ? parsed : []).length
-      || next.length !== deduped.length;
-    if (needsWrite) {
+    if (deduped.length !== arr.length || next.length !== deduped.length) {
       try {
         window.localStorage.setItem(_storiesKey(), JSON.stringify(next.slice(0, 50)));
       } catch (error) {}

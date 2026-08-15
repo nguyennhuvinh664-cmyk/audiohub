@@ -57,9 +57,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="css/dev-mode.css" />
-  <link rel="stylesheet" href="css/mobile-app.css" />
-  <link rel="stylesheet" href="css/home-mobile.css" />
+  <link rel="preload" href="css/dev-mode.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/mobile-app.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/home-mobile.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="css/dev-mode.css"><link rel="stylesheet" href="css/mobile-app.css"><link rel="stylesheet" href="css/home-mobile.css"></noscript>
 </head>
 <body>
 

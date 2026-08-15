@@ -536,8 +536,12 @@
     });
   }
 
-  // Auto-register guest token on page load (before other scripts run)
-  ensureGuestToken();
+  // Auto-register guest token on page load — deferred for faster page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureGuestToken);
+  } else {
+    ensureGuestToken();
+  }
 
   /* ═══ INIT ═══════════════════════════════════════════════════════════ */
 
@@ -549,9 +553,16 @@
     if (e.key === 'Escape') closeAllMenus();
   });
 
-  // Bind forms + hydrate auth state
-  bindAuthForms();
-  hydrateAuth();
+  // Bind forms + hydrate auth state — deferred for faster page load
+  function _initAuth() {
+    bindAuthForms();
+    hydrateAuth();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initAuth);
+  } else {
+    _initAuth();
+  }
 
   // Re-render header on pageshow (handles back/forward navigation, bfcache)
   window.addEventListener('pageshow', function () {

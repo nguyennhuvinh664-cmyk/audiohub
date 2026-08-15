@@ -587,10 +587,8 @@
         if (story._storyData && story._storyData.id && !String(story._storyData.id).startsWith('pl-')) {
           editStoryId = String(story._storyData.id);
         }
-        // 2. Try entries[0].key if it's a real CUID (not pl- or s_pl-)
-        if (!editStoryId && entryKey && entryKey.indexOf('pl-') !== 0) {
-          editStoryId = entryKey;
-        }
+        // 2. entryKey DISABLED — playlist entryKey can be stale/wrong from previous stories
+        // Each story must match by title, not by blindly trusting entryKey
         // 3. Search audiohub-stories raw localStorage for matching title with real CUID
         if (!editStoryId) {
           try {
@@ -609,27 +607,35 @@
             }
           } catch (e) {}
         }
-        // 4. Search audiohub-chapters-v1 for real CUID key
+        // 4. Search audiohub-chapters-v1 for real CUID key — MATCH by title, not just pick any
         if (!editStoryId) {
           try {
             var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var _normSelTitle = _normTxt(story.title || '');
             var _realKeys = Object.keys(_chStore).filter(function (k) {
               return k && !k.startsWith('pl-') && !k.startsWith('s_pl-') && !k.startsWith('s_') &&
                 Array.isArray(_chStore[k]) && _chStore[k].length > 0;
             });
-            if (_realKeys.length === 1) {
-              editStoryId = _realKeys[0];
-              console.log('[upload] 🔍 Found real CUID from chapters store:', editStoryId);
-            } else if (_realKeys.length > 1) {
-              editStoryId = _realKeys[_realKeys.length - 1];
-              console.log('[upload] 🔍 Using latest real CUID from chapters:', editStoryId);
+            // Try to match by title first — find CUID whose chapters match the selected story title
+            var _matchedCuid = null;
+            for (var _ki = 0; _ki < _realKeys.length; _ki++) {
+              var _chs = _chStore[_realKeys[_ki]] || [];
+              var _chTitles = _chs.map(function (c) { return _normTxt(c && c.title || ''); });
+              // If any chapter title matches the selected story title, or story title is in chapter titles
+              if (_chTitles.some(function (t) { return t && t.indexOf(_normSelTitle) !== -1; }) ||
+                  _normSelTitle && _chTitles.some(function (t) { return t && _normSelTitle.indexOf(t) !== -1; })) {
+                _matchedCuid = _realKeys[_ki];
+                break;
+              }
             }
+            if (_matchedCuid) {
+              editStoryId = _matchedCuid;
+              console.log('[upload] 🔍 Found real CUID from chapters store (title match):', editStoryId);
+            }
+            // DON'T pick any CUID if title doesn't match — let server generate fresh CUID
           } catch (e) {}
         }
-        // 5. Last resort: use entryKey even if it's pl-
-        if (!editStoryId && entryKey) {
-          editStoryId = entryKey;
-        }
+        // 5. Last resort: DISABLED — entryKey can be stale/wrong, never use as editStoryId
         console.log('[upload] 📖 selectStory (PLAYLIST) — playlistId:', story.id, '| resolved editStoryId:', editStoryId, '| entryKey:', entryKey);
       } else {
         // Regular story
@@ -642,18 +648,12 @@
       }
       if (!editChapterIndexFromUrl) editChapterIndex = -1; // Reset only if not explicitly set from URL
 
-      // Persist editStoryId + story meta across page reloads (SPA redirect)
+      // sessionStorage persist DISABLED — causes editStoryId leak on next upload visit
       try {
         if (editStoryId && !String(editStoryId).startsWith('pl-')) {
-          sessionStorage.setItem('audiohub-editStoryId', editStoryId);
-          sessionStorage.setItem('audiohub-editStoryTitle', story.title || '');
-          sessionStorage.setItem('audiohub-editStoryAuthor', story.author || '');
-          // Save hashtags + cover for form restoration
+          // Restore hashtags + cover from story (form restoration only, no sessionStorage)
           var _tags = story.hashtags || story.tags || '';
           if (hashtagsInput && !hashtagsInput.value) hashtagsInput.value = Array.isArray(_tags) ? _tags.join(', ') : (_tags || '');
-          if (hashtagsInput && hashtagsInput.value) sessionStorage.setItem('audiohub-editHashtags', hashtagsInput.value);
-          if (story.coverKey) sessionStorage.setItem('audiohub-editCoverKey', story.coverKey);
-          if (story.coverData && String(story.coverData).indexOf('data:') === 0) sessionStorage.setItem('audiohub-editCoverData', story.coverData);
         }
       } catch (e) {}
 
@@ -783,18 +783,15 @@
       }
     });
 
-    // Auto-select story from sessionStorage (after publish redirect back)
+    // AUTO-SELECT DISABLED: sessionStorage auto-select causes editStoryId leak
+    // User edits "tam quốc" → sessionStorage saves CUID → comes back to upload page
+    // → auto-selects "tam quốc" → changes title to "thủy hử" → publishes →
+    // chapter appended to "tam quốc" instead of creating new story!
+    // Each new upload should start with editStoryId = '' (fresh CUID from server).
     setTimeout(function () {
       try {
-        var savedId = sessionStorage.getItem('audiohub-editStoryId') || '';
-        var savedTitle = sessionStorage.getItem('audiohub-editStoryTitle') || '';
-        if (savedId && savedTitle && allStories.length) {
-          var match = allStories.find(function (s) { return String(s.id) === savedId || (s.title || '').trim().toLowerCase() === savedTitle.trim().toLowerCase(); });
-          if (match) {
-            console.log('[upload] 🔄 Auto-selecting story from sessionStorage:', match.title, '| id:', match.id);
-            selectStory(match);
-          }
-        }
+        sessionStorage.removeItem('audiohub-editStoryId');
+        sessionStorage.removeItem('audiohub-editStoryTitle');
       } catch (e) {}
     }, 800); // wait for API fetch to complete
   })();
@@ -1418,15 +1415,14 @@
           } catch (e) { console.error('[upload] ❌ Repair failed — localStorage critically full:', e && e.message); }
         }
       } catch (e) { console.warn('[upload] Verify failed:', e); }
-      // Keep sessionStorage if appending to existing story; clear if creating new
-      if (!targetId) {
-        try {
-          sessionStorage.removeItem('audiohub-editStoryId');
-          sessionStorage.removeItem('audiohub-editHashtags');
-          sessionStorage.removeItem('audiohub-editCoverData');
-          sessionStorage.removeItem('audiohub-editCoverKey');
-        } catch (e) {}
-      }
+      // Always clear sessionStorage to prevent auto-select leak on next visit
+      try {
+        sessionStorage.removeItem('audiohub-editStoryId');
+        sessionStorage.removeItem('audiohub-editStoryTitle');
+        sessionStorage.removeItem('audiohub-editHashtags');
+        sessionStorage.removeItem('audiohub-editCoverData');
+        sessionStorage.removeItem('audiohub-editCoverKey');
+      } catch (e) {}
     } catch (e) {
       showBanner('Không thể lưu. Bộ nhớ trình duyệt có thể đầy.', false);
       return;
