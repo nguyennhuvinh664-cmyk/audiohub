@@ -24,7 +24,7 @@
   function fetchWithTimeout(url, options, ms) {
     var controller = new AbortController();
     var timer = setTimeout(function () { controller.abort(); }, ms || 8000);
-    var opts = Object.assign({}, options || {}, { signal: controller.signal });
+    var opts = Object.assign({ cache: 'no-store' }, options || {}, { signal: controller.signal });
     return fetch(url, opts).then(function (res) {
       clearTimeout(timer);
       return res;

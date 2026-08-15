@@ -9,7 +9,7 @@
 
   /* ── Config ─────────────────────────────────────────────────────────── */
   var SHELL_ID = 'page-content';
-  var ASSET_VERSION = '20260810-2'; // bump to force cache-bust on CSS/JS loads
+  var ASSET_VERSION = '20260815-1'; // bump to force cache-bust on CSS/JS loads
 
   /** Pages that live in /html/ directory */
   var HTML_PAGES = [
@@ -306,7 +306,7 @@
     // Fetch URL points to actual file (e.g., /story-detail.html?id=xxx)
     var fetchUrl = getRouteUrl(route) + search;
 
-    fetch(fetchUrl)
+    fetch(fetchUrl, { cache: 'no-store' })
       .then(function (res) {
         if (!res.ok) throw new Error('Navigation failed: ' + res.status);
         return res.text();
@@ -482,7 +482,7 @@
     // If this is a subpage (not root index.html), load its content into the shell
     if (isKnownRoute(route) && pageName !== 'index.html') {
       var fetchUrl = getRouteUrl(route);
-      fetch(fetchUrl)
+      fetch(fetchUrl, { cache: 'no-store' })
         .then(function (res) {
           if (!res.ok) throw new Error('Failed to load page');
           return res.text();
