@@ -1734,8 +1734,10 @@
             audioNode.src = audioUrl;
             audioNode.classList.remove('is-hidden');
             showNote('');
-            // Only auto-play if user explicitly clicked a chapter (not on initial page load)
-            if (_userSelectedChapter) {
+            // Auto-play if: user clicked a chapter OR navigated from homepage
+            var _cameFromHome = false;
+            try { _cameFromHome = !!sessionStorage.getItem('audiohub-home-detail-context'); } catch (e) {}
+            if (_userSelectedChapter || _cameFromHome) {
               var playPromise = audioNode.play();
               if (playPromise) {
                 playPromise.catch(function () {
@@ -1744,7 +1746,7 @@
                 });
               }
             } else {
-              // Initial load — show play button, don't auto-play
+              // Initial load (direct URL) — show play button, don't auto-play
               var pb = document.querySelector('[data-player-toggle]');
               if (pb) { pb.classList.add('pulse-play'); }
             }
