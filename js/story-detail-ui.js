@@ -2941,6 +2941,24 @@
             window.AudioHubStories.upsert(merged);
             merged.audioKey = _savedAudioKey;
           }
+          // AUTO-FIX: If logged in and D1 chapters were missing audioKeys, force-sync correct data back to D1
+          // This fixes corrupted data for incognito/other-device users
+          try {
+            if (isMember() && merged.id && Array.isArray(merged.chapters) && merged.chapters.length) {
+              var _d1MissingAudioKeys = apiChapters.some(function(c) { return !c.audioKey; });
+              var _localHasAudioKeys = merged.chapters.some(function(c) { return c.audioKey; });
+              if (_d1MissingAudioKeys && _localHasAudioKeys) {
+                console.log('[story-detail] 🔧 Auto-fixing D1 chapters — missing audioKeys detected, syncing from localStorage');
+                fetch('/api/stories/' + encodeURIComponent(merged.id) + '/fix-chapters', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('audiohub-auth-token') || '') },
+                  body: JSON.stringify({ chapters: merged.chapters.map(function(c) { return { title: c.title || '', audioKey: c.audioKey || '', coverKey: c.coverKey || '', readingText: c.readingText || '' }; }) })
+                }).then(function(r) { return r.json(); }).then(function(d) {
+                  if (d && d.success) console.log('[story-detail] ✅ Auto-fixed D1 chapters:', d.chapters, 'chapters synced');
+                }).catch(function(e) { console.warn('[story-detail] Auto-fix failed:', e); });
+              }
+            }
+          } catch (e) {}
         }
 
         // Try 1: Find CUID in localStorage

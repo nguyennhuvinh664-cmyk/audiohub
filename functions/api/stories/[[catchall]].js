@@ -221,6 +221,21 @@ export async function onRequest(context) {
       return Response.json({ success: true }, { headers: corsHeaders });
     }
 
+    // POST /api/stories/:id/fix-chapters - Force-overwrite chapters in D1 (fix corrupted data)
+    // Unlike sync-chapters which merges, this REPLACES entirely with client-provided data
+    if (method === 'POST' && storyId && action === 'fix-chapters') {
+      const body = await request.json().catch(() => ({}));
+      const chapters = body.chapters;
+      if (!Array.isArray(chapters)) {
+        return Response.json({ error: 'chapters array required' }, { status: 400, headers: corsHeaders });
+      }
+      // Force-overwrite: direct SQL UPDATE, no COALESCE
+      await env.DB.prepare('UPDATE stories SET chapters = ?, updated_at = ? WHERE id = ?')
+        .bind(JSON.stringify(chapters), new Date().toISOString(), storyId)
+        .run();
+      return Response.json({ success: true, chapters: chapters.length }, { headers: corsHeaders });
+    }
+
     // POST /api/stories/:id/sync-chapters - Sync chapter audioKeys from client to D1
     if (method === 'POST' && storyId && action === 'sync-chapters') {
       const body = await request.json().catch(() => ({}));
