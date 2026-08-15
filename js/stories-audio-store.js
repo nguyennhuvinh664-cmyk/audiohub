@@ -294,12 +294,8 @@
 
     key = String(key);
 
-    // Ensure we have a real JWT (not local fallback) before API calls.
-    // In incognito, ensureGuestToken() sets a local fallback instantly,
-    // then fetches a real JWT in background. We must wait for it.
-    var authReady = (window.AudioHubAuth && typeof window.AudioHubAuth.ensureGuestToken === 'function')
-      ? window.AudioHubAuth.ensureGuestToken()
-      : Promise.resolve();
+    // No auth needed for audio playback — R2 and Supabase Storage are public.
+    // Guest token is only needed for tracking listens (fire-and-forget).
 
     return openDb().then(function (db) {
       return new Promise(function (resolve, reject) {
@@ -320,15 +316,13 @@
             return;
           }
 
-          // Wait for real JWT before hitting API (avoids 401 in incognito)
-          authReady.then(function () {
-            getAudioFromApi(key).then(function (blob) {
-              // Cache in IndexedDB so subsequent plays are instant
-              if (blob && blob.size >= 1000) {
-                putAudioLocal(blob, key).catch(function () {});
-              }
-              resolve(blob);
-            });
+          // Fetch directly from API — no auth wait needed
+          getAudioFromApi(key).then(function (blob) {
+            // Cache in IndexedDB so subsequent plays are instant
+            if (blob && blob.size >= 1000) {
+              putAudioLocal(blob, key).catch(function () {});
+            }
+            resolve(blob);
           });
         };
 
@@ -341,13 +335,11 @@
         };
       });
     }).catch(function () {
-      return authReady.then(function () {
-        return getAudioFromApi(key).then(function (blob) {
-          if (blob && blob.size >= 1000) {
-            putAudioLocal(blob, key).catch(function () {});
-          }
-          return blob;
-        });
+      return getAudioFromApi(key).then(function (blob) {
+        if (blob && blob.size >= 1000) {
+          putAudioLocal(blob, key).catch(function () {});
+        }
+        return blob;
       });
     });
   }
