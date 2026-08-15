@@ -1671,37 +1671,7 @@
     }
     console.log('[audio-debug] paths:', paths, '| currentChIdx:', _currentChIdx);
 
-    var RENDER_BACKEND_BASE = '/api/v1';
-
-    function fetchWithTimeout(url, timeoutMs) {
-      var controller = new AbortController();
-      var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
-      return fetch(url, { signal: controller.signal })
-        .then(function (res) {
-          clearTimeout(timer);
-          return res.ok ? res.blob() : Promise.reject(null);
-        })
-        .catch(function (err) {
-          clearTimeout(timer);
-          return Promise.reject(null);
-        });
-    }
-
-    function fetchFromR2(key) {
-      if (!key) return Promise.reject(null);
-      // Cloudflare R2 API — same domain, never sleeps
-      // Cache-bust to avoid stale CDN cache (old 22-byte files)
-      var url = '/api/audio/' + encodeURIComponent(String(key)) + '?v=' + encodeURIComponent('' + Math.floor(Date.now() / 86400000));
-      console.log('[audio-debug] trying R2:', url);
-      return fetchWithTimeout(url, 5000);
-    }
-
-    function fetchFromBackend(key) {
-      if (!key) return Promise.reject(null);
-      var url = RENDER_BACKEND_BASE + '/media/audio/' + encodeURIComponent(String(key));
-      console.log('[audio-debug] trying Render:', url);
-      return fetchWithTimeout(url, 15000); // 15s timeout per attempt
-    }
+    // Audio loading: AudioHubStoryAudio.get() handles IndexedDB → R2 → Supabase → Render
 
     function tryLocalKeys() {
       // Try AudioHubStoryAudio.get() FIRST — fast, local IndexedDB + Supabase Storage fallback
@@ -1728,31 +1698,12 @@
       return tryNextLocal();
     }
 
-    function tryRemotePaths(idx) {
-      if (idx >= paths.length) return Promise.resolve(null);
-      var path = paths[idx];
-      console.log('[audio-debug] tryRemotePaths[' + idx + ']:', path);
-
-      // Try Cloudflare R2 first (same domain, fast, never sleeps)
-      return fetchFromR2(path).catch(function (e) { console.log('[audio-debug] R2 failed:', path, e); return null; })
-      .then(function (blob) {
-        if (blob) { console.log('[audio-debug] R2 OK:', path, blob.size); return blob; }
-        // Try Render backend (may be sleeping)
-        return fetchFromBackend(path).catch(function (e) { console.log('[audio-debug] Render failed:', path, e); return null; });
-      }).then(function (blob) {
-        if (blob) { console.log('[audio-debug] Render OK:', path, blob.size); return blob; }
-        return tryRemotePaths(idx + 1);
-      });
-    }
-
-    // Loading chain: local (IndexedDB/Supabase) → remote (R2/Render) → retry
-    var maxRetries = 4;
-    var retryDelays = [0, 10000, 20000, 40000];
+    // Loading chain: AudioHubStoryAudio.get() (IndexedDB → R2 → Supabase → Render) → retry
+    var maxRetries = 2;
+    var retryDelays = [0, 5000];
     var retryMessages = [
       'Đang tải audio…',
-      'Đang chờ server khởi động… (lần 2)',
-      'Đang chờ server khởi động… (lần 3)',
-      'Đang chờ server khởi động… (lần cuối)'
+      'Đang thử lại…'
     ];
 
     function attemptLoad(retryIdx) {
@@ -1765,13 +1716,9 @@
       if (retryIdx > 0) {
         showNote(retryMessages[retryIdx]);
       }
-      // Step 1: Try local first (IndexedDB + Supabase Storage) — fast, per-story
+      // AudioHubStoryAudio.get() checks IndexedDB → R2 → Supabase → Render (with internal retries)
       var _loadedFromLocal = false;
       tryLocalKeys().then(function (blob) {
-        if (blob) { _loadedFromLocal = true; return blob; }
-        // Step 2: Try remote (R2, Render) — slower, may share storage
-        return tryRemotePaths(0);
-      }).then(function (blob) {
         if (blob) {
           try {
             // Stale load — a newer chapter was requested, discard this result

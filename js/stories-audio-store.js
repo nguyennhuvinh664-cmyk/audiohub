@@ -106,14 +106,21 @@
 
   function downloadFromSupabaseStorage(path) {
     var url = SUPABASE_URL + '/storage/v1/object/public/' + AUDIO_BUCKET + '/' + encodeURIComponent(path);
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 8000);
     return fetch(url, {
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY
-      }
+      },
+      signal: controller.signal
     }).then(function (res) {
+      clearTimeout(timer);
       if (!res.ok) throw new Error('Download failed: ' + res.status);
       return res.blob();
+    }).catch(function (err) {
+      clearTimeout(timer);
+      throw err;
     });
   }
 
@@ -226,7 +233,7 @@
       function () {
         var url = '/api/audio/' + encodeURIComponent(String(key)) + '?v=' + encodeURIComponent('' + Math.floor(Date.now() / 86400000));
         console.log('[audio-store] fetch R2:', url);
-        return fetch(url).then(function (res) {
+        return fetch(url, { cache: 'no-store' }).then(function (res) {
           if (!res.ok) throw new Error('HTTP ' + res.status);
           return res.blob();
         });
@@ -259,10 +266,10 @@
       });
     }
 
-    // Retry entire chain up to3 times with delays (for _syncAllChaptersToR2 timing)
+    // Retry entire chain up to 2 times with delays
     var retryCount = 0;
-    var maxRetries = 3;
-    var retryDelays = [0, 3000, 6000];
+    var maxRetries = 2;
+    var retryDelays = [0, 3000];
 
     return new Promise(function (resolve) {
       function runWithRetry() {
