@@ -56,27 +56,54 @@ export async function onRequest(context) {
     // ── GET /api/audio/:storyId — R2 first, Supabase fallback ──
     if (method === 'GET') {
       const r2Key = `${storyId}.mp3`;
+      const rangeHeader = request.headers.get('Range') || '';
 
       // 1) Try R2 (same-domain, fast, never sleeps)
       if (env.AUDIO) {
         try {
-          const object = await env.AUDIO.get(r2Key);
-          if (object && object.body) {
-            const contentType = object.httpMetadata?.contentType || 'audio/mpeg';
-            const size = object.size || 0;
-            // Stream the R2 object body directly (don't arrayBuffer the whole file
-            // into memory first) — lets the <audio> element start playing
-            // progressively instead of waiting for the full download.
+          // First get the file metadata (size) via HEAD for Range support
+          const headObj = await env.AUDIO.head(r2Key);
+          if (!headObj) { /* fall through to Supabase */ }
+          else {
+            const contentType = headObj.httpMetadata?.contentType || 'audio/mpeg';
+            const size = headObj.size || 0;
+
             const headers = {
               'Content-Type': contentType,
               'Accept-Ranges': 'bytes',
-              // Allow in-session HTTP caching so repeat plays (especially in
-              // incognito, where there's no IndexedDB cache) are instant.
               'Cache-Control': 'private, max-age=3600',
               ...corsHeaders
             };
-            if (size) headers['Content-Length'] = String(size);
-            return new Response(object.body, { headers });
+
+            // Parse Range header for partial content (206)
+            // Browsers ALWAYS send Range for <audio> — without 206 support
+            // the audio element fails with MEDIA_ERR_SRC_NOT_SUPPORTED.
+            if (rangeHeader) {
+              const m = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+              if (m) {
+                const start = m[1] ? parseInt(m[1], 10) : size - 1;
+                const end = m[2] ? parseInt(m[2], 10) : size - 1;
+                const len = end - start + 1;
+                if (start < size && start >= 0 && len > 0) {
+                  const object = await env.AUDIO.get(r2Key, { range: { offset: start, length: len } });
+                  if (object && object.body) {
+                    headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
+                    headers['Content-Length'] = String(len);
+                    return new Response(object.body, { status: 206, headers });
+                  }
+                }
+                // Range out of bounds → 416 Range Not Satisfiable
+                headers['Content-Range'] = `bytes */${size}`;
+                return new Response(null, { status: 416, headers });
+              }
+            }
+
+            // No Range header → full file (200)
+            const object = await env.AUDIO.get(r2Key);
+            if (object && object.body) {
+              if (size) headers['Content-Length'] = String(size);
+              return new Response(object.body, { headers });
+            }
           }
         } catch (e) {
           console.error('[audio] R2 GET error:', e.message);
