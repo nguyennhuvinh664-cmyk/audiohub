@@ -137,30 +137,20 @@ export async function onRequest(context) {
         return Response.json({ error: 'R2 AUDIO binding not configured' }, { status: 500, headers: corsHeaders });
       }
 
-      // Buffer body to validate size (reject < 1KB to prevent corrupt files)
       const r2Key = `${storyId}.mp3`;
       const contentType = request.headers.get('Content-Type') || 'audio/mpeg';
-      const chunks = [];
-      const reader = request.body.getReader();
-      let totalSize = 0;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        totalSize += value.length;
-      }
+      const contentLength = Number(request.headers.get('Content-Length') || 0);
 
-      if (totalSize < 1000) {
-        console.warn('[audio] ⚠️ R2 PUT rejected:', r2Key, 'size:', totalSize, '(too small)');
-        return Response.json({ ok: false, error: 'File too small (< 1KB)' }, { status: 400, headers: corsHeaders });
-      }
-
-      await env.AUDIO.put(r2Key, new Blob(chunks), {
+      // Stream the request body straight into R2 — do NOT buffer large files
+      // (e.g. 91MB audio) into memory; that either exceeds the Worker's CPU/memory
+      // limit and silently drops the PUT, or the buffered Blob becomes corrupt so the
+      // final object is empty/missing. Streaming avoids both.
+      await env.AUDIO.put(r2Key, request.body, {
         httpMetadata: { contentType }
       });
 
-      console.log('[audio] ✅ R2 PUT OK:', r2Key, 'size:', totalSize);
-      return Response.json({ success: true, key: storyId, size: totalSize }, { headers: corsHeaders });
+      console.log('[audio] ✅ R2 PUT OK:', r2Key, '| declared size:', contentLength);
+      return Response.json({ success: true, key: storyId, size: contentLength }, { headers: corsHeaders });
     }
 
     // ── DELETE /api/audio/:storyId ──
