@@ -245,9 +245,23 @@ export async function onRequest(context) {
       if (!Array.isArray(chapters)) {
         return Response.json({ error: 'chapters array required' }, { status: 400, headers: corsHeaders });
       }
+      // SAFETY: Preserve visibility from existing D1 chapters — client may not have it
+      try {
+        const existing = await env.DB.prepare('SELECT chapters FROM stories WHERE id = ?').bind(storyId).first();
+        if (existing && existing.chapters) {
+          const existingArr = JSON.parse(existing.chapters);
+          chapters.forEach(function(ch) {
+            const match = existingArr.find(function(e) { return e.title === ch.title; });
+            if (match && match.visibility && !ch.visibility) {
+              ch.visibility = match.visibility;
+            }
+          });
+        }
+      } catch (e) {}
       // Force-overwrite: direct SQL UPDATE, no COALESCE
-      await env.DB.prepare('UPDATE stories SET chapters = ?, updated_at = ? WHERE id = ?')
-        .bind(JSON.stringify(chapters), new Date().toISOString(), storyId)
+      // Also update chapter_count so it stays in sync with the chapters array
+      await env.DB.prepare('UPDATE stories SET chapters = ?, chapter_count = ?, updated_at = ? WHERE id = ?')
+        .bind(JSON.stringify(chapters), chapters.length, new Date().toISOString(), storyId)
         .run();
       return Response.json({ success: true, chapters: chapters.length }, { headers: corsHeaders });
     }
@@ -271,12 +285,19 @@ export async function onRequest(context) {
       }
       const merged = chapters.map((ch, i) => {
         const old = existingChapters[i] || {};
+        // ROOT CAUSE FIX: Never let a_* temporary IndexedDB keys overwrite a CUID in D1.
+        // a_* keys are local-only identifiers; the authoritative key is the CUID (story.id).
+        // If client sends an a_* key, keep the existing D1 key instead.
+        const incomingKey = ch.audioKey || '';
+        const isTempKey = typeof incomingKey === 'string' && incomingKey.startsWith('a_');
+        const finalAudioKey = isTempKey ? (old.audioKey || incomingKey) : (incomingKey || old.audioKey || '');
         return {
           id: ch.id || old.id || '',
           title: ch.title || old.title || '',
-          audioKey: ch.audioKey || old.audioKey || '',
+          audioKey: finalAudioKey,
           coverKey: ch.coverKey || old.coverKey || '',
-          readingText: ch.readingText || old.readingText || ''
+          readingText: ch.readingText || old.readingText || '',
+          visibility: ch.visibility || old.visibility || 'Công khai'
         };
       });
       // Save to D1 — use direct SQL UPDATE to bypass COALESCE (force overwrite chapters)

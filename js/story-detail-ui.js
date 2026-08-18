@@ -560,9 +560,7 @@
   }
 
   function isMember() {
-    if (window.AudioHubAccess && typeof window.AudioHubAccess.isMember === 'function') {
-      return !!window.AudioHubAccess.isMember();
-    }
+    // Check profile.isLoggedIn — NOT just token (guests have real tokens too)
     try {
       var raw = window.localStorage.getItem('audiohub-auth-profile');
       var parsed = raw ? JSON.parse(raw) : null;
@@ -602,6 +600,20 @@
   function showAuthRequiredModal() {
     var modal = document.querySelector('[data-auth-required-modal]');
     if (!modal) return;
+    var title = modal.querySelector('#auth-required-title');
+    var desc = modal.querySelector('.auth-required-modal__desc');
+    var primary = modal.querySelector('.auth-required-modal__primary');
+    if (isMember()) {
+      // Logged in → ask to buy with linh thạch
+      if (title) title.textContent = 'Nội dung Premium';
+      if (desc) desc.textContent = 'Chương này cần linh thạch để mở khóa. Bạn có muốn mua bằng linh thạch không?';
+      if (primary) { primary.textContent = 'Mua bằng linh thạch'; primary.href = '#'; }
+    } else {
+      // Not logged in → ask to login
+      if (title) title.textContent = 'Yêu cầu đăng nhập';
+      if (desc) desc.textContent = 'Bạn cần đăng nhập tài khoản để nghe chương này.';
+      if (primary) { primary.href = 'login.html'; primary.textContent = 'Đăng nhập ngay'; }
+    }
     modal.classList.remove('is-hidden');
     modal.querySelectorAll('[data-auth-required-close]').forEach(function (button) {
       button.onclick = function () {
@@ -1613,7 +1625,7 @@
 
     var audioKey = story && (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
     var storyId = story && story.id ? String(story.id) : '';
-    console.log('[audio-debug] story:', { id: storyId, audioKey: audioKey, title: story && story.title });
+    // story loaded for audio binding
     if (!audioKey && !storyId) {
       showNote('Chưa có file audio cho truyện này.');
       return;
@@ -1631,10 +1643,19 @@
     // Try current chapter's audioKey FIRST (most likely to be correct)
     var _currentChAudioKey = '';
     try {
+      // Priority 1: Read from localStorage chapters store
       var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
       var _chArr = Array.isArray(_chStore[storyId]) ? _chStore[storyId] : [];
       if (_chArr[_currentChIdx] && _chArr[_currentChIdx].audioKey) {
         _currentChAudioKey = _chArr[_currentChIdx].audioKey;
+      }
+      // Priority 2: If localStorage empty (incognito), read from story.chapters
+      if (!_currentChAudioKey && Array.isArray(story.chapters) && story.chapters[_currentChIdx]) {
+        var _chFromStory = story.chapters[_currentChIdx];
+        if (_chFromStory.audioKey) {
+          _currentChAudioKey = _chFromStory.audioKey;
+          // fallback: using audioKey from story.chapters
+        }
       }
     } catch (e) {}
 
@@ -1649,7 +1670,7 @@
       var syntheticMp3 = 's_' + storyId + '.mp3';
       if (paths.indexOf(syntheticMp3) === -1) paths.push(syntheticMp3);
     }
-    console.log('[audio-debug] paths:', paths, '| currentChIdx:', _currentChIdx);
+    // audio paths resolved
 
     // Audio loading: parallel HEAD check → download from best key
 
@@ -1658,24 +1679,27 @@
         return Promise.resolve(null);
       }
 
-      // Step 1: Check IndexedDB for all keys in parallel (instant)
+      // Step 1: Check IndexedDB ONLY (getLocal never touches the network).
+      // In incognito (empty IndexedDB) this returns instantly instead of
+      // triggering N parallel full-file downloads.
+      var getLocal = window.AudioHubStoryAudio.getLocal || window.AudioHubStoryAudio.get;
       var idbChecks = paths.map(function (key) {
-        return window.AudioHubStoryAudio.get(key).then(function (blob) {
-          return { key: key, blob: blob, source: 'idb' };
+        return getLocal.call(window.AudioHubStoryAudio, key).then(function (blob) {
+          return { key: key, blob: (blob && blob.size >= 1000) ? blob : null };
         }).catch(function () {
-          return { key: key, blob: null, source: 'idb' };
+          return { key: key, blob: null };
         });
       });
 
       return Promise.all(idbChecks).then(function (results) {
-        // Find first IDB hit
-        var idbHit = results.find(function (r) { return r.blob && r.blob.size >= 1000; });
+        // Find first local (IndexedDB) hit
+        var idbHit = results.find(function (r) { return r.blob; });
         if (idbHit) {
-          console.log('[audio-debug] IDB hit:', idbHit.key, idbHit.blob.size);
-          return idbHit.blob;
+          return { type: 'blob', blob: idbHit.blob, key: idbHit.key };
         }
 
-        // Step 2: No IDB hit — do parallel HEAD requests to R2 to find which key exists
+        // Step 2: No local hit — do parallel HEAD requests to find which key exists in R2.
+        // HEAD is cheap (no body) so we avoid downloading a whole MP3 just to probe.
         var headChecks = paths.map(function (key) {
           var url = '/api/audio/' + encodeURIComponent(key);
           return fetch(url, { method: 'HEAD', cache: 'no-store' }).then(function (res) {
@@ -1689,13 +1713,10 @@
           // Find first key that exists in R2
           var found = headResults.find(function (r) { return r.exists; });
           var bestKey = found ? found.key : paths[0];
-          console.log('[audio-debug] HEAD results:', headResults.map(function(r) { return r.key + ':' + r.status; }), '| best:', bestKey);
 
-          // Download from the best key
-          return window.AudioHubStoryAudio.get(bestKey).then(function (blob) {
-            if (blob && blob.size >= 1000) return blob;
-            return null;
-          });
+          // Stream directly from the URL (don't buffer the whole file first).
+          // The <audio> element plays progressively, so playback starts much faster.
+          return { type: 'url', url: '/api/audio/' + encodeURIComponent(bestKey), key: bestKey };
         });
       });
     }
@@ -1711,6 +1732,14 @@
     function attemptLoad(retryIdx) {
       // Stale retry — chapter was switched, abort
       if (myGen !== _audioLoadGen) return;
+      // Skip audio loading for locked chapters — no point loading audio user can't play
+      if (!isMember() && _d1ChaptersGlobal.length > _currentChIdx && _d1ChaptersGlobal[_currentChIdx]) {
+        var _loadVis = String(_d1ChaptersGlobal[_currentChIdx].visibility || '').trim();
+        if (_loadVis === 'Không công khai') {
+          showNote('Chương này cần đăng nhập để nghe.');
+          return;
+        }
+      }
       if (retryIdx >= maxRetries) {
         showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
         return;
@@ -1720,25 +1749,59 @@
       }
       // AudioHubStoryAudio.get() checks IndexedDB → R2 → Supabase → Render (with internal retries)
       var _loadedFromLocal = false;
-      tryLocalKeys().then(function (blob) {
-        if (blob) {
+      tryLocalKeys().then(function (result) {
+        // result: { type: 'blob', blob } from IndexedDB, or { type: 'url', url } from R2
+        if (result && (result.blob || result.url)) {
           try {
             // Stale load — a newer chapter was requested, discard this result
             if (myGen !== _audioLoadGen) {
               console.log('[audio] Stale load discarded (gen', myGen, '≠', _audioLoadGen, ')');
               return;
             }
-            var audioUrl = URL.createObjectURL(blob);
-            // Now revoke old audio (new one is ready)
-            if (prevAudio) {
-              try { URL.revokeObjectURL(prevAudio); } catch (e) {}
+            if (result.type === 'url') {
+              // Stream directly from R2 URL — no full-file buffering.
+              // Point the <audio> element at the URL so playback starts progressively.
+              if (prevAudio) {
+                try { URL.revokeObjectURL(prevAudio); } catch (e) {}
+              }
+              audioUrlByNode.set(audioNode, result.url);
+              audioNode.src = result.url;
+              showNote('');
+            } else {
+              var blob = result.blob;
+              var audioUrl = URL.createObjectURL(blob);
+              // Now revoke old audio (new one is ready)
+              if (prevAudio) {
+                try { URL.revokeObjectURL(prevAudio); } catch (e) {}
+              }
+              audioUrlByNode.set(audioNode, audioUrl);
+              audioNode.src = audioUrl;
+              showNote('');
+              // BACKGROUND: loaded from local IndexedDB → PUT to R2 (overwrites corrupt files).
+              // Upload under BOTH the chapter key AND the story CUID — the CUID is the
+              // authoritative key that D1 and other devices resolve to. Without it the
+              // story 404s on any browser that doesn't have the IndexedDB copy.
+              if (blob.size >= 1000) {
+                var _syncKeys = [String(paths[0])];
+                if (storyId && _syncKeys.indexOf(String(storyId)) === -1) _syncKeys.push(String(storyId));
+                _syncKeys.forEach(function (_sk) {
+                  var _url0 = '/api/audio/' + encodeURIComponent(_sk);
+                  console.log('[audio-sync] Quick upload:', _sk, '| size:', blob.size);
+                  fetch(_url0, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+                    .then(function (r) { console.log('[audio-sync] PUT:', _sk, '→', r.status); })
+                    .catch(function () {});
+                });
+              }
             }
-            audioUrlByNode.set(audioNode, audioUrl);
-            audioNode.src = audioUrl;
             audioNode.classList.remove('is-hidden');
-            showNote('');
             // Auto-play if: user clicked a chapter OR navigated from homepage
-            if (_userSelectedChapter || _navigatedFromHome) {
+            // BUT NOT if chapter is locked (Không công khai) and user is not a member
+            var _autoPlayLocked = false;
+            if (!isMember() && _d1ChaptersGlobal.length > _currentChIdx && _d1ChaptersGlobal[_currentChIdx]) {
+              var _apVis = String(_d1ChaptersGlobal[_currentChIdx].visibility || '').trim();
+              if (_apVis === 'Không công khai') _autoPlayLocked = true;
+            }
+            if ((_userSelectedChapter || _navigatedFromHome) && !_autoPlayLocked) {
               var playPromise = audioNode.play();
               if (playPromise) {
                 playPromise.catch(function () {
@@ -1750,14 +1813,6 @@
               // Initial load (direct URL) — show play button, don't auto-play
               var pb = document.querySelector('[data-player-toggle]');
               if (pb) { pb.classList.add('pulse-play'); }
-            }
-            // BACKGROUND: If loaded from local (IndexedDB), always PUT to R2 (overwrites corrupt files)
-            if (_loadedFromLocal && blob.size >= 1000) {
-              var _url0 = '/api/audio/' + encodeURIComponent(String(paths[0]));
-              console.log('[audio-sync] Quick upload current chapter:', paths[0], '| size:', blob.size);
-              fetch(_url0, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
-                .then(function (r) { console.log('[audio-sync] PUT:', r.status); })
-                .catch(function () {});
             }
           } catch (error) {
             showNote('Không thể tải file audio đã lưu.');
@@ -1774,6 +1829,10 @@
   }
 
   function overrideChapterList(context, currentStory) {
+    // PARSE chapters from JSON string if needed — D1 API returns chapters as string
+    if (currentStory && currentStory.chapters && typeof currentStory.chapters === 'string') {
+      try { currentStory.chapters = JSON.parse(currentStory.chapters); } catch (e) {}
+    }
     var chapterList = document.querySelector('.chapter-list');
     if (!chapterList) return null;
 
@@ -1887,9 +1946,6 @@
       try {
         var _chStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
         storedChapters = Array.isArray(_chStore[String(currentStory.id)]) ? _chStore[String(currentStory.id)] : [];
-        console.log('[story-detail] 📖 READ audiohub-chapters-v1 — storyId:', currentStory.id, '| storedChapters:', storedChapters.length, '| titles:', storedChapters.map(function(c) { return c && c.title; }));
-        console.log('[story-detail]   currentStory.chapters:', storyChapters.length, '| titles:', storyChapters.map(function(c) { return c && c.title; }));
-        console.log('[story-detail]   all keys in store:', Object.keys(_chStore));
       } catch (e) { storedChapters = []; }
     }
 
@@ -1902,15 +1958,38 @@
       }
     } catch (e) {}
 
-    // ALWAYS prefer storedChapters (audiohub-chapters-v1) — it's the authoritative chapter store
-    if (storedChapters.length) {
+    // D1 chapters are authoritative for the NUMBER and IDENTITY of chapters (deletions
+    // happen on the server). Prefer D1 when present so a chapter deleted from D1 is not
+    // resurrected by stale localStorage data. localStorage is used only to enrich each
+    // chapter with fields (readingText, audioKey) that may live only on the client.
+    var _d1ChaptersRaw = Array.isArray(currentStory && currentStory.chapters) ? currentStory.chapters : [];
+    if (_d1ChaptersRaw.length) {
+      storyChapters = _d1ChaptersRaw;
+      // Enrich D1 chapters with client-only fields (readingText) from localStorage
+      if (storedChapters.length) {
+        storyChapters = storyChapters.map(function (_ch, _ci) {
+          var _sc = _ci < storedChapters.length ? storedChapters[_ci] : null;
+          if (_sc) {
+            if (!_ch.readingText && _sc.readingText) _ch.readingText = _sc.readingText;
+          }
+          return _ch;
+        });
+      }
+    } else if (storedChapters.length) {
+      // No D1 chapters → fall back to localStorage as the chapter source
       storyChapters = storedChapters;
     }
-
-    // Debug: show decision summary
-    try {
-      console.log('[story-detail] overrideChapterList: decision: playlistItemsForDisplay=', !!playlistItemsForDisplay, 'playlistLen=', playlistItemsForDisplay ? playlistItemsForDisplay.length : 0, 'storyChaptersLen=', storyChapters.length, 'storedChaptersLen=', storedChapters.length);
-    } catch (e) {}
+    // Restore visibility on enriched chapters (localStorage chapters don't carry visibility)
+    if (_d1ChaptersRaw.length) {
+      storyChapters.forEach(function (_ch, _ci) {
+        if (_ci < _d1ChaptersRaw.length && _d1ChaptersRaw[_ci] && _d1ChaptersRaw[_ci].visibility && !_ch.visibility) {
+          _ch.visibility = _d1ChaptersRaw[_ci].visibility;
+        }
+      });
+    }
+    // Save D1 chapters to module scope for click handler lock check
+    _d1ChaptersGlobal = (currentStory && Array.isArray(currentStory.chapters)) ? currentStory.chapters : [];
+    console.log('[story-detail] 🔒 _d1ChaptersGlobal.length=' + _d1ChaptersGlobal.length);
 
     var total = playlistItemsForDisplay ? playlistItemsForDisplay.length : (storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0);
     // Fallback: count from audiohub-chapters-v1 localStorage when metadata underrates chapter count
@@ -2008,9 +2087,6 @@
       if (!chapterTitle && playlistItemsForDisplay && playlistItemsForDisplay[i]) {
         chapterTitle = playlistItemsForDisplay[i].chapterTitle || playlistItemsForDisplay[i].storyTitle || '';
       }
-      if (i === 0) {
-        console.log('[story-detail] 📖 Chapter', chapterNum, '— ch.title:', ch.title, '| chapterTitle:', chapterTitle, '| ch.readingText:', ch.readingText ? ch.readingText.slice(0, 50) : 'NONE');
-      }
 
       if (playlistItemsForDisplay) {
         // Playlist mode: "Chương X: chapterTitle" (use story's chapter data)
@@ -2025,10 +2101,24 @@
       }
 
       // ── Lock state ──
+      // ALWAYS check lock, even in playlist mode — per-chapter visibility from D1
+      // must be respected regardless of how the user navigated to the story.
       var isLocked = false;
-      if (!playlistItemsForDisplay && storyChapters.length > 0 && storyChapters[i] && storyChapters[i].id) {
-        var playable = storyChapters[i].isFree || storyChapters[i].isUnlocked;
-        isLocked = !playable;
+      if (storyChapters.length > 0 && storyChapters[i]) {
+        // 1) Per-chapter visibility from D1 ("Không công khai" = locked)
+        // Check BOTH storyChapters (may be localStorage) AND currentStory.chapters (D1 data)
+        var _chVis = String(storyChapters[i].visibility || '').trim();
+        if (!_chVis && currentStory && Array.isArray(currentStory.chapters) && currentStory.chapters[i]) {
+          _chVis = String(currentStory.chapters[i].visibility || '').trim();
+        }
+        if (i < 3) console.log('[story-detail] 🔒 Ch' + (i+1) + ' vis="' + _chVis + '" storyChVis="' + (storyChapters[i].visibility||'') + '" member=' + isMember());
+        if (_chVis === 'Không công khai' && !isMember()) {
+          isLocked = true;
+        }
+        // 2) Explicit isFree/isUnlocked fields (from localStorage chapters)
+        else if (storyChapters[i].isFree === false || storyChapters[i].isUnlocked === false) {
+          isLocked = true;
+        }
       }
 
       // ── Dot content ──
@@ -2058,7 +2148,6 @@
         chAudioKey = (currentStory.audioKey || currentStory.audio_key) ? String(currentStory.audioKey || currentStory.audio_key) : '';
       }
       var chReadingText = (storedChapters[i] && storedChapters[i].readingText) || (ch && ch.readingText) || '';
-      if (i < 5) console.log('[story-detail] Chapter', i + 1, 'audioKey:', chAudioKey || '(empty)', '| title:', ch.title || chapterTitle);
       // Store full reading text in JS for click handler
       if (chReadingText) window.__chapterReadingTexts[i] = chReadingText;
       if (i < 5) console.log('[story-detail] Chapter', i + 1, 'readingText:', chReadingText ? chReadingText.substring(0, 60) + '...' : '(empty)');
@@ -2080,6 +2169,39 @@
     var allChapterLists = document.querySelectorAll('.chapter-list');
     for (var _cli = 0; _cli < allChapterLists.length; _cli++) {
       allChapterLists[_cli].innerHTML = chapterRows.join('');
+    }
+
+    // ── POST-RENDER LOCK VERIFICATION (safety net) ──
+    // Force-lock chapters that have "Không công khai" visibility in D1,
+    // even if the initial render didn't set isLocked correctly.
+    if (!loggedIn && storyChapters.length > 0) {
+      var _d1ChForLock = (currentStory && Array.isArray(currentStory.chapters)) ? currentStory.chapters : [];
+      var _allChItems = document.querySelectorAll('.chapter-list .chapter-item');
+      _allChItems.forEach(function (_item, _idx) {
+        if (_idx >= storyChapters.length || !storyChapters[_idx]) return;
+        var _vis = String(storyChapters[_idx].visibility || '').trim();
+        if (!_vis && _d1ChForLock[_idx]) {
+          _vis = String(_d1ChForLock[_idx].visibility || '').trim();
+        }
+        if (_vis === 'Không công khai' && !_item.classList.contains('is-locked')) {
+          _item.classList.add('is-locked');
+          // Add lock icon if missing
+          if (!_item.querySelector('.chapter-lock-icon')) {
+            var _lockSpan = document.createElement('span');
+            _lockSpan.className = 'chapter-lock-icon';
+            _lockSpan.innerHTML = '<i class="fa-solid fa-lock"></i>';
+            _item.appendChild(_lockSpan);
+          }
+          // Add lock hint if missing
+          if (!_item.querySelector('.chapter-lock-hint')) {
+            var _hintSpan = document.createElement('span');
+            _hintSpan.className = 'chapter-lock-hint';
+            _hintSpan.innerHTML = '<i class="fa-solid fa-lock"></i> Đăng nhập để xem lịch mở khóa.';
+            var _body = _item.querySelector('.chapter-item-body');
+            if (_body) _body.appendChild(_hintSpan);
+          }
+        }
+      });
     }
     var countLabel = playlistItemsForDisplay ? 'truyện' : 'chương';
     var playlistName = (context && context.playlist && context.playlist.name) || '';
@@ -2617,9 +2739,14 @@
   // Module-scope flags for audio tracking
   var _mergeRendering = false;
   var currentPlayingAudioKey = '';
+  // Module-scope D1 chapters for click handler lock check
+  var _d1ChaptersGlobal = [];
   var _userSelectedChapter = false;
 
   // Sync per-chapter audioKeys from localStorage to D1 (so incognito/other devices work)
+  // IMPORTANT: Only sync CUID keys (storyId-style), NEVER a_* keys.
+  // a_* keys are temporary IndexedDB identifiers — syncing them to D1 overwrites
+  // the authoritative CUID key and orphans the R2 file, causing 404 on playback.
   function _syncChapterAudioKeysToD1(storyId) {
     if (!storyId || String(storyId).startsWith('s_')) return;
     // Only sync if logged in (has auth token)
@@ -2636,20 +2763,24 @@
         console.log('[sync] ⚠ Skipped — no chapters in localStorage for', storyId);
         return;
       }
-      // Only sync chapters that HAVE audioKeys (skip empty ones)
-      var _withKeys = _chs.filter(function (c) { return c && c.audioKey; });
-      console.log('[sync] 📤 Syncing chapter audioKeys — total:', _chs.length, 'with keys:', _withKeys.length);
+      // Filter: only sync chapters whose audioKey is a CUID (NOT a_* temporary key)
+      var _withKeys = _chs.filter(function (c) {
+        return c && c.audioKey && !String(c.audioKey).startsWith('a_');
+      });
+      console.log('[sync] 📤 Syncing chapter audioKeys — total:', _chs.length, 'CUID keys:', _withKeys.length);
       _chs.forEach(function (c, i) {
-        console.log('[sync]   ch' + (i+1) + ':', c.audioKey || '(EMPTY)', '| title:', c.title || '(empty)');
+        var _k = c.audioKey || '(EMPTY)';
+        var _skip = String(_k).startsWith('a_') ? ' ← SKIP (a_* temp key)' : '';
+        console.log('[sync]   ch' + (i+1) + ':', _k, '| title:', c.title || '(empty)' + _skip);
       });
       if (!_withKeys.length) {
-        console.log('[sync] ⚠ Skipped — no chapters with audioKeys');
+        console.log('[sync] ⚠ Skipped — no CUID keys to sync (all a_* or empty)');
         return;
       }
       fetch('/api/stories/' + encodeURIComponent(storyId) + '/sync-chapters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ chapters: _chs })
+        body: JSON.stringify({ chapters: _withKeys })
       }).then(function (r) { return r.json(); }).then(function (d) {
         if (d && d.success) console.log('[sync] ✅ Synced', _withKeys.length, 'chapter audioKeys to D1');
         else console.log('[sync] ❌ Sync failed:', d);
@@ -2780,6 +2911,10 @@
         if (normalized.cover_data && !normalized.coverData) normalized.coverData = normalized.cover_data;
         if (normalized.is_completed != null && normalized.isCompleted == null) normalized.isCompleted = normalized.is_completed;
         if (normalized.listen_count != null && normalized.listenCount == null) normalized.listenCount = normalized.listen_count;
+        // PARSE chapters from JSON string — D1 API returns chapters as string
+        if (normalized.chapters && typeof normalized.chapters === 'string') {
+          try { normalized.chapters = JSON.parse(normalized.chapters); } catch (e) {}
+        }
         // Cache in localStorage (additive — never overwrites)
         if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
           window.AudioHubStories.upsert(normalized);
@@ -2806,6 +2941,10 @@
           if (normalized.cover_data && !normalized.coverData) normalized.coverData = normalized.cover_data;
           if (normalized.is_completed != null && normalized.isCompleted == null) normalized.isCompleted = normalized.is_completed;
           if (normalized.listen_count != null && normalized.listenCount == null) normalized.listenCount = normalized.listen_count;
+          // PARSE chapters from JSON string — D1 API returns chapters as string
+          if (normalized.chapters && typeof normalized.chapters === 'string') {
+            try { normalized.chapters = JSON.parse(normalized.chapters); } catch (e) {}
+          }
           if (window.AudioHubStories && typeof window.AudioHubStories.upsert === 'function') {
             window.AudioHubStories.upsert(normalized);
           }
@@ -2959,7 +3098,7 @@
                 fetch('/api/stories/' + encodeURIComponent(merged.id) + '/fix-chapters', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('audiohub-auth-token') || '') },
-                  body: JSON.stringify({ chapters: merged.chapters.map(function(c) { return { title: c.title || '', audioKey: c.audioKey || '', coverKey: c.coverKey || '', readingText: c.readingText || '' }; }) })
+                  body: JSON.stringify({ chapters: merged.chapters.map(function(c) { return { title: c.title || '', audioKey: c.audioKey || '', coverKey: c.coverKey || '', readingText: c.readingText || '', visibility: c.visibility || 'Công khai' }; }) })
                 }).then(function(r) { return r.json(); }).then(function(d) {
                   if (d && d.success) console.log('[story-detail] ✅ Auto-fixed D1 chapters:', d.chapters, 'chapters synced');
                 }).catch(function(e) { console.warn('[story-detail] Auto-fix failed:', e); });
@@ -3006,6 +3145,14 @@
               if (freshChapters.length > currentChCount) {
                 console.log('[story-detail] ✅ Updating chapters from', currentChCount, '→', freshChapters.length);
                 mergeAndRender(freshStory);
+              } else {
+                // Same count but re-render anyway — fresh data has visibility from D1
+                // (localStorage chapters don't carry visibility, so lock icons need D1 data)
+                try {
+                  _d1ChaptersGlobal = freshChapters;
+                  var _ctx = resolvePlaylistContext(story.id || '');
+                  overrideChapterList(_ctx, freshStory);
+                } catch (e) {}
               }
               // Also sync to localStorage so future loads are correct
               // CRITICAL: Preserve per-chapter audioKeys from localStorage
@@ -3084,7 +3231,6 @@
             if (!Array.isArray(_chStore3[apiStory.id]) || !_chStore3[apiStory.id].length) {
               _chStore3[apiStory.id] = apiStory.chapters;
               localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_chStore3));
-              console.log('[story-detail] 📖 Saved', apiStory.chapters.length, 'API chapters to audiohub-chapters-v1 for', apiStory.id);
             }
           } catch (e) {}
         }
@@ -3795,6 +3941,27 @@
         var index = Number(link.getAttribute('data-chapter-index'));
         if (isNaN(index) || index < 0) return;
 
+        // Block playback for locked chapters
+        if (link.classList.contains('is-locked')) {
+          if (!isMember()) {
+            showAuthRequiredModal();
+          } else {
+            alert('Chương này chưa được mở khóa.');
+          }
+          return;
+        }
+
+        // SAFETY NET: D1 visibility check — verify lock state from _d1ChaptersGlobal (D1 data)
+        // This catches cases where the DOM render didn't add is-locked class
+        var _clickVis = '';
+        if (_d1ChaptersGlobal.length > index && _d1ChaptersGlobal[index]) {
+          _clickVis = String(_d1ChaptersGlobal[index].visibility || '').trim();
+        }
+        if (_clickVis === 'Không công khai' && !isMember()) {
+          showAuthRequiredModal();
+          return;
+        }
+
         // Stop any currently playing audio immediately
         if (nativeAudio && !nativeAudio.paused) {
           nativeAudio.pause();
@@ -3941,7 +4108,18 @@
         if (nextStory && story && String(nextStory.id) === String(story.id)) {
           nextStory = null;
         }
+        // STORY-level visibility check (different story in playlist)
         if (nextStory && String(nextStory.visibility || '').trim() === 'Không công khai' && !isMember()) {
+          showAuthRequiredModal();
+          renderPlayer();
+          return;
+        }
+        // CHAPTER-level visibility check (same story, per-chapter lock from D1)
+        var _playChVis = '';
+        if (!nextStory && _d1ChaptersGlobal.length > safeIndex && _d1ChaptersGlobal[safeIndex]) {
+          _playChVis = String(_d1ChaptersGlobal[safeIndex].visibility || '').trim();
+        }
+        if (_playChVis === 'Không công khai' && !isMember()) {
           showAuthRequiredModal();
           renderPlayer();
           return;

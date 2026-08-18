@@ -108,6 +108,14 @@
     var raw = window.localStorage.getItem(_storiesKey());
     var parsed = safeParse(raw, []);
     var arr = Array.isArray(parsed) ? parsed : [];
+    // FILTER OUT deleted stories — homepage reads from here and would otherwise
+    // resurrect stories the user already deleted (e.g. duplicate test3 entries)
+    var deletedIds = getDeletedIds();
+    if (deletedIds.length) {
+      var deletedMap = {};
+      deletedIds.forEach(function (id) { if (id) deletedMap[String(id)] = true; });
+      arr = arr.filter(function (s) { return s && s.id && !deletedMap[String(s.id)]; });
+    }
     var deduped = dedupeStories(arr);
     var next = deduped.map(function (story) {
       // Migration: fix missing visibility default
@@ -304,12 +312,11 @@
       }
       chapters = Array.isArray(storedChapters) && storedChapters.length ? storedChapters : [];
     } else if (story && story.id) {
-      // Incoming chapters exist — check if stored has MORE (e.g. local upload added chapters)
+      // Incoming chapters exist (from D1) — D1 is AUTHORITATIVE for the chapter list.
+      // Do NOT override D1 with localStorage when the local copy has MORE entries:
+      // a chapter deleted on the server must never be resurrected by stale local data.
+      // (localStorage is only a fallback when the incoming story has no chapters at all.)
       storedChapters = getChaptersForStory(String(story.id));
-      if (Array.isArray(storedChapters) && storedChapters.length > chapters.length) {
-        chapters = storedChapters;
-        chapterCount = storedChapters.length;
-      }
     }
     var listenCount = normalizeNumber(story && (story.listenCount || story.listen_count));
     var listenCount2d = normalizeNumber(story && (story.listenCount2d || story.listen_count2d));
@@ -840,12 +847,13 @@
     attempt(1);
   }
 
-  function upsertStory(story) {
+  function upsertStory(story, options) {
     var localEntry = upsertLocalStory(story);
 
     // Sync to D1 via Cloudflare Pages Functions
+    // options.skipD1Sync: skip auto-POST when upload-story-ui.js will handle D1 sync itself
     var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
-    if (hasApi) {
+    if (hasApi && !(options && options.skipD1Sync)) {
       var payload = mapStoryPayload(localEntry);
       if (localEntry.id && !String(localEntry.id).startsWith('s_')) {
         // Real CUID — PATCH existing story
@@ -1257,7 +1265,37 @@
     // ALWAYS track deleted ID — even if local removal fails (story may only exist on server)
     // This prevents syncFromApiFallback from re-adding the deleted story
     addDeletedId(id);
+
+    // Capture the story's title BEFORE removing so we can find duplicate variants
+    var _targetTitle = '';
+    try {
+      var _before = readLocalStories();
+      for (var _di = 0; _di < _before.length; _di++) {
+        if (_before[_di] && String(_before[_di].id) === String(id)) { _targetTitle = String(_before[_di].title || '').trim().toLowerCase(); break; }
+      }
+    } catch (e) {}
+
     var removed = removeLocalStory(id);
+
+    // Also remove any duplicate variants of the same story (same title, different id
+    // like s_ draft + CUID) that the first remove didn't catch.
+    if (_targetTitle) {
+      try {
+        var all = readLocalStories();
+        var _dupes = all.filter(function (s) {
+          return s && String(s.title || '').trim().toLowerCase() === _targetTitle && String(s.id) !== String(id);
+        });
+        _dupes.forEach(function (dup) {
+          addDeletedId(dup.id);
+          removeLocalStory(dup.id);
+          if (canUseApi() && dup.id && !String(dup.id).startsWith('s_')) {
+            _retryDelete(dup.id, 0);
+          }
+          console.log('[stories-store] 🧹 Removed duplicate variant:', dup.id, 'for title:', _targetTitle);
+        });
+      } catch (e) {}
+    }
+
     // Backend DELETE with retry (Render free tier sleeps → cold start 30-60s)
     if (canUseApi() && id && !String(id).startsWith('s_')) {
       _retryDelete(id, 0);

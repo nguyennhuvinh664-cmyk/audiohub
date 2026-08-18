@@ -9,7 +9,7 @@
 
   /* ── Config ─────────────────────────────────────────────────────────── */
   var SHELL_ID = 'page-content';
-  var ASSET_VERSION = '20260815-1'; // bump to force cache-bust on CSS/JS loads
+  var ASSET_VERSION = Date.now().toString(); // dynamic — fresh version on every page load, busts all caches
 
   /** Pages that live in /html/ directory */
   var HTML_PAGES = [
@@ -77,7 +77,7 @@
   var PAGE_JS = {
     'index.html':           ['story-filters', 'stories-home'],
     'account.html':         ['stories-cover-store', 'stories-audio-store', 'library-state', 'stories-account', 'content-search'],
-    'story-detail':         ['stories-store', 'library-state', 'stories-cover-store', 'stories-audio-store', 'story-detail-ui'],
+    'story-detail':         ['library-state', 'stories-cover-store', 'stories-audio-store', 'story-detail-ui'],
     'categories.html':      ['categories'],
     'new-posts.html':       ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],
     'popular.html':         ['story-filters', 'library-state', 'stories-cover-store', 'stories-listing'],
@@ -304,7 +304,8 @@
     // Browser URL stays clean (e.g., /story-detail?id=xxx)
     var fullPath = '/' + route + search + hash;
     // Fetch URL points to actual file (e.g., /story-detail.html?id=xxx)
-    var fetchUrl = getRouteUrl(route) + search;
+    // Add _t timestamp to bust Cloudflare edge cache on deployments
+    var fetchUrl = getRouteUrl(route) + search + (search ? '&' : '?') + '_t=' + Date.now();
 
     fetch(fetchUrl, { cache: 'no-store' })
       .then(function (res) {

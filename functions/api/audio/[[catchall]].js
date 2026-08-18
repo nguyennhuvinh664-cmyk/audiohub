@@ -61,17 +61,22 @@ export async function onRequest(context) {
       if (env.AUDIO) {
         try {
           const object = await env.AUDIO.get(r2Key);
-          if (object) {
+          if (object && object.body) {
             const contentType = object.httpMetadata?.contentType || 'audio/mpeg';
-            const body = await object.arrayBuffer();
-            return new Response(body, {
-              headers: {
-                'Content-Type': contentType,
-                'Accept-Ranges': 'bytes',
-                'Cache-Control': 'private, no-cache, no-store',
-                ...corsHeaders
-              }
-            });
+            const size = object.size || 0;
+            // Stream the R2 object body directly (don't arrayBuffer the whole file
+            // into memory first) — lets the <audio> element start playing
+            // progressively instead of waiting for the full download.
+            const headers = {
+              'Content-Type': contentType,
+              'Accept-Ranges': 'bytes',
+              // Allow in-session HTTP caching so repeat plays (especially in
+              // incognito, where there's no IndexedDB cache) are instant.
+              'Cache-Control': 'private, max-age=3600',
+              ...corsHeaders
+            };
+            if (size) headers['Content-Length'] = String(size);
+            return new Response(object.body, { headers });
           }
         } catch (e) {
           console.error('[audio] R2 GET error:', e.message);

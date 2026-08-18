@@ -1,11 +1,11 @@
 /*.html
-  Cache-Control: public, max-age=300, stale-while-revalidate=600
+  Cache-Control: public, max-age=0, must-revalidate
 
 /html/*.html
-  Cache-Control: public, max-age=300, stale-while-revalidate=600
+  Cache-Control: public, max-age=0, must-revalidate
 
 /js/*.js
-  Cache-Control: public, max-age=300, stale-while-revalidate=3600
+  Cache-Control: public, max-age=0, must-revalidate
 
 /css/*.css
-  Cache-Control: public, max-age=300, stale-while-revalidate=3600
+  Cache-Control: public, max-age=0, must-revalidate

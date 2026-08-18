@@ -768,7 +768,61 @@
 .story-hashtag { padding: 4px 10px; border-radius: 999px; background: rgba(6,182,212,.08); color: var(--sd-accent); font-size: .78rem; font-weight: 600; text-decoration: none; }
 
 /* ═══ SIDEBAR ═══ */
-.detail-sidebar { position: static; margin-top: 24px; gap: 22px; }
+.detail-sidebar {
+  align-self: start;
+  margin-top: 24px;
+  gap: 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Each sidebar panel sticks individually while scrolling */
+aside.detail-sidebar section.sidebar-panel {
+  position: sticky;
+  top: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Sidebar panel headings — universal rule for ALL sidebar panels */
+aside.detail-sidebar .section-heading,
+aside.detail-sidebar #sidebar-chapter-heading {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  min-height: 28px;
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  position: relative;
+  z-index: 1;
+}
+aside.detail-sidebar .section-heading h2,
+aside.detail-sidebar #sidebar-chapter-heading h2 {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--t1);
+  margin: 0;
+  white-space: nowrap;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  position: relative;
+  z-index: 1;
+}
+aside.detail-sidebar .section-heading h2 i,
+aside.detail-sidebar #sidebar-chapter-heading h2 i { flex-shrink: 0; }
+aside.detail-sidebar .section-heading span,
+aside.detail-sidebar #sidebar-chapter-heading span { color: var(--t3); font-size: .82rem; }
 
 /* Chapter list — override style-categories */
 .sidebar-panel .chapter-list {
@@ -967,13 +1021,13 @@
 }
 
 /* ═══ AUTH MODAL ═══ */
-.auth-required-modal { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: flex-end; }
+.auth-required-modal { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .auth-required-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
-.auth-required-modal__panel { position: relative; width: 100%; border-radius: 24px 24px 0 0; background: var(--sd-surface); padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px)); text-align: center; z-index: 1; }
+.auth-required-modal__panel { position: relative; width: min(400px, 100%); border-radius: 24px; background: var(--sd-surface); padding: 28px 20px; text-align: center; z-index: 1; }
 .auth-required-modal__icon { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: rgba(245,158,11,.12); display: grid; place-items: center; font-size: 24px; color: var(--sd-primary); }
 .auth-required-modal__panel h3 { font-size: 1.3rem; margin: 0 0 6px; }
 .auth-required-modal__panel p { color: var(--sd-text-2); font-size: .9rem; margin: 0 0 18px; }
-.auth-required-modal__primary, .auth-required-modal__secondary { width: 100%; border: 0; border-radius: 14px; min-height: 48px; font-weight: 700; cursor: pointer; font-size: .95rem; }
+.auth-required-modal__primary, .auth-required-modal__secondary { width: 100%; border: 0; border-radius: 14px; min-height: 48px; font-weight: 700; cursor: pointer; font-size: .95rem; display: flex; align-items: center; justify-content: center; text-align: center; }
 .auth-required-modal__primary { background: var(--sd-primary); color: #000; margin-bottom: 10px; }
 .auth-required-modal__secondary { background: rgba(255,255,255,.06); color: var(--sd-text-2); }
 
@@ -1002,9 +1056,8 @@
   .reading-toolbar__row { display: flex; align-items: flex-start; gap: 20px; }
   .chapter-copy:not(.reading-fullscreen) { max-height: 70vh; }
   .detail-copy { max-height: 420px; }
-  .auth-required-modal { align-items: center; padding: 16px; }
   .auth-required-modal__panel { width: min(480px, 100%); border-radius: 24px; padding: 28px 24px; }
-  .detail-sidebar { position: sticky; top: 82px; }
+  .detail-sidebar { position: sticky; top: 20px; }
 }
 
 /* ═══ DESKTOP ═══ */
@@ -1022,8 +1075,13 @@
   animation: pulse-play 1.2s ease-in-out infinite !important;
 }
 
-/* Hide mobile chapter list on desktop */
-@media (min-width: 769px) {
+/* Hide sidebar on tablet (single-column layout at ≤1080px) */
+@media (max-width: 1080px) {
+  .detail-sidebar { display: none !important; }
+}
+
+/* Mobile chapter list: visible on mobile+tablet, hidden on wide desktop (≥1081px) */
+@media (min-width: 1081px) {
   .mobile-chapter-list {
     display: none !important;
   }

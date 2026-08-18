@@ -997,7 +997,7 @@ button { font:inherit; }
   .site-nav { display: none !important; }
   .hamburger { display: flex; }
 
-  .detail-layout { grid-template-columns: 1fr !important; gap: 14px; }
+  .detail-layout { gap: 14px; }
   .detail-title { font-size: 1.3rem !important; line-height: 1.2; }
   .detail-meta { font-size: .78rem; flex-wrap: wrap; gap: 6px 12px; }
   .breadcrumb { font-size: .72rem; margin-bottom: 10px; }

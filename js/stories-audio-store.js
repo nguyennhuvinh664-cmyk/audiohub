@@ -280,6 +280,33 @@
     });
   }
 
+  // getLocal — IndexedDB ONLY, never touches the network.
+  // Used by the player to probe which candidate key exists locally WITHOUT
+  // triggering a full-file download (getAudio() falls through to the network
+  // on IndexedDB miss, which is very slow in incognito).
+  function getLocal(key) {
+    if (!key) return Promise.resolve(null);
+    key = String(key);
+    return openDb().then(function (db) {
+      return new Promise(function (resolve) {
+        var tx = db.transaction(STORE_NAME, 'readonly');
+        var store = tx.objectStore(STORE_NAME);
+        var req = store.get(key);
+        req.onsuccess = function () {
+          try { db.close(); } catch (error) {}
+          var value = req.result;
+          resolve(value && value.blob ? value.blob : null);
+        };
+        req.onerror = function () {
+          try { db.close(); } catch (error) {}
+          resolve(null);
+        };
+      });
+    }).catch(function () {
+      return null;
+    });
+  }
+
   function getAudio(key) {
     if (!key) {
       return Promise.resolve(null);
@@ -747,6 +774,7 @@
   window.AudioHubStoryAudio = {
     put: putAudio,
     get: getAudio,
+    getLocal: getLocal,
     delete: deleteAudio,
     listKeys: listKeys,
     getAll: getAll,

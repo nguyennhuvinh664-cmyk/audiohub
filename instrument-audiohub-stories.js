@@ -160,7 +160,7 @@
       window.AudioHubStories.upsert = function (story) {
         console.log('%c[AUDIOHUB] upsert() called for:', 'color:cyan;font-weight:bold', story && story.id, story && story.title);
         console.log('Stack:\n    ' + getCallerInfo());
-        return origUpsert.call(window.AudioHubStories, story);
+        return origUpsert.apply(window.AudioHubStories, arguments);
       };
     }
 

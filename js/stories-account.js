@@ -1725,6 +1725,52 @@
       deleted[storyId + '-' + chapterIndex] = Date.now();
       localStorage.setItem(deletedKey, JSON.stringify(deleted));
 
+      // 5. Sync remaining chapters to D1 so the story-detail page
+      //    (which re-fetches from D1) doesn't resurrect the deleted chapter.
+      //    fix-chapters REPLACES the stored chapters entirely with the ones we send.
+      if (storyId && String(storyId).indexOf('s_') !== 0) {
+        try {
+          var remainingChapters = Array.isArray(chaptersStore[storyId]) ? chaptersStore[storyId] : (story && Array.isArray(story.chapters) ? story.chapters : []);
+
+          function pushChaptersToD1(chapters) {
+            fetch('/api/stories/' + encodeURIComponent(storyId) + '/fix-chapters', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chapters: chapters })
+            }).then(function (r) {
+              if (r.ok) console.log('[account] ✅ Synced', chapters.length, 'chapters to D1 for', storyId);
+              else console.warn('[account] fix-chapters failed:', r.status);
+            }).catch(function (e) {
+              console.warn('[account] fix-chapters error:', e && e.message);
+            });
+          }
+
+          if (remainingChapters.length) {
+            pushChaptersToD1(remainingChapters);
+          } else {
+            // No local chapters — fetch current from D1, remove the target index,
+            // then push back. NEVER send an empty array blindly (would wipe all chapters).
+            fetch('/api/stories/' + encodeURIComponent(storyId))
+              .then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (apiStory) {
+                if (!apiStory) return;
+                var d1Chapters = [];
+                try {
+                  d1Chapters = typeof apiStory.chapters === 'string' ? JSON.parse(apiStory.chapters) : (apiStory.chapters || []);
+                } catch (e) { d1Chapters = []; }
+                if (!Array.isArray(d1Chapters) || !d1Chapters.length) return;
+                d1Chapters.splice(chapterIndex, 1);
+                pushChaptersToD1(d1Chapters);
+              })
+              .catch(function (e) {
+                console.warn('[account] fetch-before-fix failed:', e && e.message);
+              });
+          }
+        } catch (e) {
+          console.warn('[account] fix-chapters sync failed:', e);
+        }
+      }
+
       console.log('[account] Deleted chapter', chapterIndex, 'from story', storyId);
     } catch (e) {
       console.error('[account] deleteChapterPermanently error:', e);

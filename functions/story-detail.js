@@ -17,7 +17,7 @@ const STORY_DETAIL_HTML = `<!DOCTYPE html>
   <link rel="stylesheet" href="/css/style-categories.css" />
   <link rel="stylesheet" href="/css/header-enhancements.css" />
   <link rel="stylesheet" href="/css/library-state.css" />
-  <link rel="stylesheet" href="/css/story-detail-ui.css" />
+  <link rel="stylesheet" href="/css/story-detail-ui.css?v=20260816-8" />
   <link rel="stylesheet" href="/css/story-detail-mobile.css" />
 </head>
 <body class="detail-page">
@@ -223,15 +223,24 @@ const STORY_DETAIL_HTML = `<!DOCTYPE html>
           </section>
         </section>
         <aside class="detail-sidebar">
-          <section class="panel sidebar-panel">
-            <div class="section-heading"><h2><i class="fa-solid fa-music"></i> Danh sách chương</h2><span data-sidebar-chapter-count></span><button type="button" class="add-chapter-btn is-hidden" data-add-chapter-btn title="Đăng chương mới vào bộ truyện này"><i class="fa-solid fa-plus"></i></button></div>
+          <section class="panel sidebar-panel" id="sidebar-chapter-panel">
+            <div id="sidebar-chapter-heading" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;"><h2 style="display:flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:#f1f5f9;margin:0;white-space:nowrap;"><i class="fa-solid fa-music" style="color:#f59e0b;"></i> Danh sách chương</h2><span data-sidebar-chapter-count style="color:#64748b;font-size:.82rem;"></span><button type="button" class="add-chapter-btn is-hidden" data-add-chapter-btn title="Đăng chương mới vào bộ truyện này"><i class="fa-solid fa-plus"></i></button></div>
             <div class="chapter-list" data-sidebar-chapter-list></div>
           </section>
           <section class="panel sidebar-panel">
-            <div class="section-heading"><h2><i class="fa-solid fa-arrow-trend-up"></i> Truyện Trending</h2></div>
+            <div class="section-heading" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;"><h2 style="display:flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:#f1f5f9;margin:0;white-space:nowrap;"><i class="fa-solid fa-arrow-trend-up" style="color:#06b6d4;"></i> Truyện Trending</h2></div>
             <div class="mini-list" data-sidebar-trending></div>
           </section>
         </aside>
+        <script>
+        (function(){
+          var h=document.getElementById('sidebar-chapter-heading');
+          if(h){h.style.cssText='display:flex!important;visibility:visible!important;opacity:1!important;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;min-height:28px;height:auto!important;overflow:visible!important;position:relative;z-index:1;';}
+          var h2=h&&h.querySelector('h2');
+          if(h2){h2.style.cssText='display:flex!important;visibility:visible!important;opacity:1!important;align-items:center;gap:8px;font-size:1.05rem;font-weight:700;color:#f1f5f9!important;margin:0;white-space:nowrap;height:auto!important;overflow:visible!important;position:relative;z-index:1;';}
+          console.log('[story-detail] heading forced visible:',h&&h.textContent.substring(0,30));
+        })();
+        </script>
       </div>
     </div>
   </main>
@@ -268,7 +277,7 @@ const STORY_DETAIL_HTML = `<!DOCTYPE html>
   </div>
     <script src="/js/api-client.js"></script>
   <script src="/js/supabase-client.js"></script>
-  <script src="/js/stories-store.js"></script>
+  <script src="/js/stories-store.js?v=20260816-8"></script>
   <script src="/js/auth-state.js"></script>
 <script>
   (function(){
@@ -284,14 +293,22 @@ const STORY_DETAIL_HTML = `<!DOCTYPE html>
   <script src="/js/shell-inject.js"></script>
   <script src="/js/library-state.js" data-page-script></script>
   <script src="/js/stories-cover-store.js" data-page-script></script>
-  <script src="/js/stories-audio-store.js" data-page-script></script>
-  <script src="/js/story-detail-ui.js" data-page-script></script>
+  <script src="/js/stories-audio-store.js?v=20260816-8" data-page-script></script>
+  <script src="/js/story-detail-ui.js?v=20260817-02" data-page-script></script>
 </body>
 </html>`;
 
 export async function onRequest(context) {
-  return new Response(STORY_DETAIL_HTML, {
+  // Dynamic cache-bust: timestamp changes every deploy, CDN cannot serve stale HTML
+  const html = STORY_DETAIL_HTML.replace(
+    /story-detail-ui\.js\?v=[^"]+/,
+    'story-detail-ui.js?v=' + Date.now()
+  );
+  return new Response(html, {
     status: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
   });
 }

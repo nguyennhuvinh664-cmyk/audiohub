@@ -475,15 +475,38 @@
   function fetchPublicStories() {
     // Try Supabase first (direct, no Render dependency)
     if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      console.log('[home-debug] Using Supabase');
       return window.AudioHubSupabase.fetchPublicStories()
         .then(function (rows) {
-          return Array.isArray(rows) ? rows : [];
+          console.log('[home-debug] Supabase returned:', Array.isArray(rows) ? rows.length : 'not array');
+          // If Supabase is empty, fall back to localStorage
+          if (!rows || !rows.length) {
+            console.log('[home-debug] Supabase empty, trying localStorage');
+            return fallbackToLocal();
+          }
+          return rows;
         })
-        .catch(function () {
-          return fetchPublicStoriesFallback();
+        .catch(function (e) {
+          console.log('[home-debug] Supabase failed:', e && e.message);
+          return fallbackToLocal();
         });
     }
-    return fetchPublicStoriesFallback();
+    console.log('[home-debug] Supabase not available, using fallback');
+    return fallbackToLocal();
+  }
+
+  function fallbackToLocal() {
+    // Try API first, then localStorage
+    return fetchPublicStoriesFallback().then(function (rows) {
+      if (rows && rows.length) return rows;
+      // Final fallback: read from localStorage (same browser only)
+      if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+        var local = window.AudioHubStories.read();
+        console.log('[home-debug] localStorage stories:', local.length);
+        return local;
+      }
+      return [];
+    });
   }
 
   function fetchPublicStoriesFallback() {
@@ -581,14 +604,21 @@
   function renderHomeStories() {
     // Fetch stories from API for all sections
     loadStoriesForHome().then(function (stories) {
+      console.log('[home-debug] raw stories:', stories.length, '| first:', stories[0] && stories[0].title);
       var publicStories = stories.filter(function (story) { return isPublicVisibility(story); });
+      console.log('[home-debug] public stories:', publicStories.length);
 
-      // Deduplicate by id (D1 may return duplicate rows)
+      // Deduplicate: by id first, then by title+author fingerprint (s_ draft and
+      // its CUID copy are the same story but have different IDs)
       var seen = {};
+      var seenFp = {};
       publicStories = publicStories.filter(function (story) {
         var id = String(story && story.id || '').trim();
         if (!id || seen[id]) return false;
+        var fp = [String(story.title || '').trim().toLowerCase(), String(story.author || '').trim().toLowerCase()].join('::');
+        if (fp !== '::' && seenFp[fp]) return false;
         seen[id] = true;
+        if (fp !== '::') seenFp[fp] = true;
         return true;
       });
 
@@ -598,7 +628,9 @@
       });
 
       // Render newest stories in main grid (Truyện Mới Đăng)
-      renderCardList(document.querySelector('.cgrid'), newestStories.slice(0, 8));
+      var newestEl = document.querySelector('.cgrid');
+      console.log('[home-debug] .cgrid:', !!newestEl, '| trending:', !!document.querySelector('[data-home-trending-list]'), '| popular:', !!document.querySelector('[data-home-popular-grid]'));
+      renderCardList(newestEl, newestStories.slice(0, 8));
 
       // Render trending (top by listen count)
       renderTrendingList(document.querySelector('[data-home-trending-list]'), publicStories.slice(0, 6));
@@ -905,13 +937,17 @@
     if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
       return window.AudioHubSupabase.fetchPublicStories({ limit: limit, offset: offset })
         .then(function (rows) {
-          return Array.isArray(rows) ? rows : [];
+          if (!rows || !rows.length) {
+            // Supabase empty → localStorage fallback (pagination not needed, return all)
+            return fallbackToLocal();
+          }
+          return rows;
         })
         .catch(function () {
-          return fetchPublicStoriesFallback(offset, limit);
+          return fallbackToLocal();
         });
     }
-    return fetchPublicStoriesFallback(offset, limit);
+    return fallbackToLocal();
   }
 
   function fetchPublicStoriesFallback(offset, limit) {
