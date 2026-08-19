@@ -1663,10 +1663,6 @@
       var realId = (saved && saved.id) ? saved.id : story.id;
       console.log('[upload] ✅ CUID received:', realId);
 
-      // GUARANTEED redirect — D1 saved the story; audio upload is background only.
-      // Don't let a slow/failed R2 upload (e.g. 503) block the user from seeing their story.
-      setTimeout(function () { doRedirect(realId); }, 1500);
-
       // Update localStorage with real CUID immediately
       if (realId !== story.id && window.AudioHubStories && typeof window.AudioHubStories.read === 'function' && typeof window.AudioHubStories.upsert === 'function') {
         var stories = window.AudioHubStories.read();
@@ -1746,10 +1742,22 @@
         // Root-cause fix: D1 and the player both resolve the story's audio to the CUID,
         // so the file MUST exist at `<cuid>.mp3`. We also keep a copy at the a_* key so
         // any legacy lookup path (chapter audioKey) still finds it. Never let the two diverge.
+
+        // Safe redirect: only redirect once, after upload completes or timeout
+        var _redirectDone = false;
+        function _safeRedirect() {
+          if (!_redirectDone) {
+            _redirectDone = true;
+            doRedirect(realId);
+          }
+        }
+        // Fallback timeout: redirect after 10s even if upload hasn't finished
+        setTimeout(_safeRedirect, 10000);
+
         function _uploadAudioToCloud(blob, uploadKey) {
           if (!blob || blob.size === 0) {
             console.warn('[upload] ⚠ No audio blob to upload');
-            doRedirect(realId);
+            _safeRedirect();
             return;
           }
           var _legacyKey = uploadKey || state.audioKey || '';
@@ -1801,7 +1809,7 @@
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: realId, audio_key: realId })
-              }).then(function () { doRedirect(realId); }).catch(function () { doRedirect(realId); });
+              }).then(function () { _safeRedirect(); }).catch(function () { _safeRedirect(); });
             })
             .catch(function (e) {
               console.warn('[upload] ⚠ R2 upload failed for CUID:', e && e.message, '| trying a_* key');
@@ -1811,10 +1819,10 @@
                   state.audioFile = null;
                 }).catch(function (e2) {
                   console.warn('[upload] ❌ All R2 uploads failed:', e2 && e2.message);
-                }).then(function () { doRedirect(realId); });
+                }).then(function () { _safeRedirect(); });
               } else {
                 console.warn('[upload] ❌ No fallback key to try, redirecting.');
-                doRedirect(realId);
+                _safeRedirect();
               }
             });
         }
