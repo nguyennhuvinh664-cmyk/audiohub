@@ -285,12 +285,11 @@ export async function onRequest(context) {
       }
       const merged = chapters.map((ch, i) => {
         const old = existingChapters[i] || {};
-        // ROOT CAUSE FIX: Never let a_* temporary IndexedDB keys overwrite a CUID in D1.
-        // a_* keys are local-only identifiers; the authoritative key is the CUID (story.id).
-        // If client sends an a_* key, keep the existing D1 key instead.
+        // Accept ALL audioKeys from client — including a_* keys.
+        // a_* keys are valid R2 keys (uploaded by upload page with ?key=).
+        // Each chapter has its own R2 file under its own key.
         const incomingKey = ch.audioKey || '';
-        const isTempKey = typeof incomingKey === 'string' && incomingKey.startsWith('a_');
-        const finalAudioKey = isTempKey ? (old.audioKey || incomingKey) : (incomingKey || old.audioKey || '');
+        const finalAudioKey = incomingKey || old.audioKey || '';
         return {
           id: ch.id || old.id || '',
           title: ch.title || old.title || '',

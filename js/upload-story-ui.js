@@ -1488,9 +1488,9 @@
 
         // Story always "Công khai" on homepage — visibility is per-chapter (premium lock)
         var _allChapters = (_chaptersForD1.length ? _chaptersForD1 : (story.chapters || [])).map(function (c) {
-          // Replace a_* temp keys and EMPTY with CUID — R2 only has files under CUID key
-          var _ak = (c && c.audioKey) || '';
-          if (_ak.startsWith('a_') || !_ak) _ak = story.id;
+          // Keep original audioKey — each chapter has its own R2 file under its audioKey
+          // Do NOT replace a_* keys with CUID — that makes all chapters share the same audio
+          var _ak = (c && c.audioKey) || story.id;
           return { title: (c && c.title) || '', audioKey: _ak, visibility: (c && c.visibility) || 'Công khai' };
         });
         console.log('[upload] 📊 Chapters:', _allChapters.map(function(c) { return c.title + ':' + (c.audioKey || 'NO_KEY') + ':' + (c.visibility || 'Công khai'); }));
@@ -1839,25 +1839,18 @@
                 var _csForPatch = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
                 var _chsForPatch = Array.isArray(_csForPatch[realId]) ? _csForPatch[realId] : [];
                 if (_chsForPatch.length) {
-                  // CRITICAL: Update localStorage chapters with CUID audioKey first!
-                  // Without this, story-detail reads stale a_*/EMPTY key from localStorage
-                  // and syncs it back to D1, overwriting the CUID we just set.
-                  var _patchedChapters = _chsForPatch.map(function (c) {
-                    var _newKey = (c && c.audioKey && c.audioKey.startsWith('a_')) ? realId : (c && c.audioKey) || realId;
-                    return { title: (c && c.title) || '', audioKey: _newKey, coverKey: (c && c.coverKey) || '', readingText: (c && c.readingText) || '', visibility: (c && c.visibility) || 'Công khai' };
-                  });
-                  _csForPatch[realId] = _patchedChapters;
-                  localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_csForPatch));
-                  console.log('[upload] ✅ Updated localStorage chapters with CUID audioKey:', realId);
-
+                  // Keep original audioKeys — each chapter has its own R2 file under its own key
+                  // Do NOT replace a_* with CUID — that makes all chapters share the same audio
                   var _tokenForPatch = localStorage.getItem('audiohub-auth-token') || '';
                   if (_tokenForPatch) {
                     fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _tokenForPatch },
-                      body: JSON.stringify({ chapters: _patchedChapters })
+                      body: JSON.stringify({ chapters: _chsForPatch.map(function (c) {
+                        return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', coverKey: (c && c.coverKey) || '', readingText: (c && c.readingText) || '', visibility: (c && c.visibility) || 'Công khai' };
+                      }) })
                     }).then(function () {
-                      console.log('[upload] ✅ Synced', _patchedChapters.length, 'chapters with CUID audioKey to D1');
+                      console.log('[upload] ✅ Synced', _chsForPatch.length, 'chapters with original audioKeys to D1');
                     }).catch(function () {});
                   }
                 }
