@@ -31,9 +31,14 @@ export async function onRequest(context) {
       return Response.json({ error: 'Story ID is required' }, { status: 400, headers: corsHeaders });
     }
 
+    // Support ?key=xxx for chapter-level audio (custom R2 key instead of {storyId}.mp3)
+    const url = new URL(request.url);
+    const customKey = url.searchParams.get('key');
+    const r2Key = customKey || `${storyId}.mp3`;
+
     // ── HEAD /api/audio/:storyId — check if audio exists (no body) ──
     if (method === 'HEAD') {
-      const r2Key = `${storyId}.mp3`;
+      // r2Key already defined above from ?key= param or {storyId}.mp3 default
       if (env.AUDIO) {
         try {
           const head = await env.AUDIO.head(r2Key);
@@ -55,7 +60,7 @@ export async function onRequest(context) {
 
     // ── GET /api/audio/:storyId — R2 first, Supabase fallback ──
     if (method === 'GET') {
-      const r2Key = `${storyId}.mp3`;
+      // r2Key already defined above from ?key= param or {storyId}.mp3 default
       const rangeHeader = request.headers.get('Range') || '';
 
       // 1) Try R2 (same-domain, fast, never sleeps)
@@ -164,7 +169,7 @@ export async function onRequest(context) {
         return Response.json({ error: 'R2 AUDIO binding not configured' }, { status: 500, headers: corsHeaders });
       }
 
-      const r2Key = `${storyId}.mp3`;
+      // r2Key already defined above from ?key= param or {storyId}.mp3 default
       const contentType = request.headers.get('Content-Type') || 'audio/mpeg';
       const contentLength = Number(request.headers.get('Content-Length') || 0);
 
@@ -177,7 +182,7 @@ export async function onRequest(context) {
       });
 
       console.log('[audio] ✅ R2 PUT OK:', r2Key, '| declared size:', contentLength);
-      return Response.json({ success: true, key: storyId, size: contentLength }, { headers: corsHeaders });
+      return Response.json({ success: true, key: r2Key, size: contentLength }, { headers: corsHeaders });
     }
 
     // ── DELETE /api/audio/:storyId ──
@@ -185,7 +190,7 @@ export async function onRequest(context) {
       if (!env.AUDIO) {
         return Response.json({ error: 'R2 AUDIO binding not configured' }, { status: 500, headers: corsHeaders });
       }
-      const r2Key = `${storyId}.mp3`;
+      // r2Key already defined above from ?key= param or {storyId}.mp3 default
       await env.AUDIO.delete(r2Key);
       return Response.json({ success: true }, { headers: corsHeaders });
     }

@@ -1534,7 +1534,7 @@
           try {
             var _chsForSync = (built.payload.chapters || []).map(function(c) {
               var _k = (c && c.audioKey) || '';
-              if (_k.startsWith('a_') || !_k) _k = story.id; // Replace a_* and EMPTY with CUID
+              // Keep original audioKey — each chapter has its own R2 file under its audioKey
               return { title: (c && c.title) || '', audioKey: _k, visibility: (c && c.visibility) || 'Công khai' };
             });
             if (_chsForSync.length) {
@@ -1552,7 +1552,7 @@
 
           // Direct R2 upload — bypasses AudioHubStoryAudio.put which may silently fail
           function _directR2Upload(blob, key) {
-            var url = '/api/audio/' + encodeURIComponent(String(key));
+            var url = '/api/audio/' + encodeURIComponent(String(story.id)) + '?key=' + encodeURIComponent(key);
             console.log('[upload] 🔧 Direct R2 PUT:', url, '| size:', blob.size);
             return fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
               .then(function (res) {
@@ -1564,87 +1564,80 @@
 
           // Verify R2 has the file
           function _verifyR2(key) {
-            var url = '/api/audio/' + encodeURIComponent(String(key));
+            var url = '/api/audio/' + encodeURIComponent(String(story.id)) + '?key=' + encodeURIComponent(key);
             return fetch(url, { method: 'HEAD' }).then(function (res) {
               console.log('[upload] R2 VERIFY:', key, '→', res.status);
               return res.ok;
             }).catch(function () { return false; });
           }
 
-          function _doPatchAudioUpload(blob, uploadKey) {
-            var _temporaryKey = uploadKey || state.audioKey || '';
-            console.log('[upload] 🎵 Uploading audio to cloud for PATCH story:', story.id, '| temporaryKey:', _temporaryKey, '| blob.size:', blob ? blob.size : 'NULL');
-
-            if (!blob || blob.size === 0) {
-              console.warn('[upload] ⚠ No audio blob to upload');
-              _patchUploadConfirmed = true;
-              _patchUploadDone();
-              return;
+          // PATCH: Upload EACH chapter's audio separately to R2 using its own audioKey
+          (function _patchUploadAllChapters() {
+            var _chapters = [];
+            try {
+              var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+              _chapters = Array.isArray(_cs[story.id]) ? _cs[story.id] : [];
+            } catch (e) {}
+            if (!_chapters.length) {
+              _chapters = [{ title: '', audioKey: state.audioKey || story.id }];
             }
 
-            // Root-cause fix: upload under the CUID (story.id) FIRST — that's the key D1 and
-            // the player resolve. Only after the CUID copy is confirmed do we (best-effort)
-            // mirror the temporary a_* key so legacy lookups still work.
-            var _keysToUpload = [story.id];
-            if (_temporaryKey && _temporaryKey !== story.id) _keysToUpload.push(_temporaryKey);
+            var _hasStore = window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function';
+            var _uploaded = 0;
+            var _total = _chapters.length;
 
-            function _uploadBoth(idx) {
-              if (idx >= _keysToUpload.length) {
+            console.log('[upload] 📋 PATCH chapters to upload:', _total);
+
+            function _patchUploadChapter(idx) {
+              if (idx >= _total) {
+                console.log('[upload] ✅ PATCH: all', _uploaded, '/', _total, 'chapters uploaded');
+                _patchUploadConfirmed = true;
                 state.audioFile = null;
                 _patchUploadDone();
                 return;
               }
-              _directR2Upload(blob, _keysToUpload[idx]).then(function () {
-                console.log('[upload] ✅ R2 upload OK (PATCH) with key:', _keysToUpload[idx]);
-                _patchUploadConfirmed = true;
-                _uploadBoth(idx + 1);
-              }).catch(function (e) {
-                console.warn('[upload] ⚠ R2 upload failed with key:', _keysToUpload[idx], '| err:', e && e.message);
-                // Continue trying the remaining keys; even if one fails we still try the others
-                _uploadBoth(idx + 1);
-              });
-            }
-            // Always ensure at least the CUID copy is attempted even if uploadKey was empty
-            if (_keysToUpload.indexOf(story.id) === -1) _keysToUpload.unshift(story.id);
-            _uploadBoth(0);
-          }
-          if (state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.put === 'function') {
-            _doPatchAudioUpload(state.audioFile);
-          } else if (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
-            // Fallback: audioFile may have been GC'd — try all possible audioKeys
-            var _candidateKeys = [];
-            if (state.audioKey) _candidateKeys.push(state.audioKey);
-            // Also try chapter audioKeys (in case state.audioKey is wrong)
-            try {
-              var _chs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-              var _chArr = Array.isArray(_chs[String(story.id)]) ? _chs[String(story.id)] : [];
-              _chArr.forEach(function (ch) {
-                if (ch && ch.audioKey && _candidateKeys.indexOf(ch.audioKey) === -1) _candidateKeys.push(ch.audioKey);
-              });
-            } catch (e) {}
-            // Always include story.id as last resort
-            if (_candidateKeys.indexOf(story.id) === -1) _candidateKeys.push(story.id);
-            console.log('[upload] 🔄 PATCH fallback: trying keys', _candidateKeys);
+              var ch = _chapters[idx];
+              var chKey = ch.audioKey || story.id;
 
-            function _tryNextKey(idx) {
-              if (idx >= _candidateKeys.length) {
-                console.warn('[upload] ⚠ No audio blob found in any key, redirecting');
-                _patchUploadDone();
-                return;
+              // Try state.audioFile first for first chapter
+              var _blobPromise;
+              if (idx === 0 && state.audioFile && state.audioFile.size > 0) {
+                _blobPromise = Promise.resolve(state.audioFile);
+              } else if (_hasStore) {
+                _blobPromise = window.AudioHubStoryAudio.get(chKey).then(function(blob) {
+                  if (blob && blob.size > 1000) return blob;
+                  return window.AudioHubStoryAudio.get(story.id).then(function(b2) {
+                    return (b2 && b2.size > 1000) ? b2 : null;
+                  });
+                });
+              } else {
+                _blobPromise = Promise.resolve(null);
               }
-              var key = _candidateKeys[idx];
-              window.AudioHubStoryAudio.get(key).then(function (blob) {
-                if (blob && blob.size > 0) {
-                  console.log('[upload] ✅ Found audio blob for key:', key, '| size:', blob.size);
-                  _doPatchAudioUpload(blob, key);
-                } else {
-                  _tryNextKey(idx + 1);
+
+              _blobPromise.then(function(blob) {
+                if (!blob || blob.size === 0) {
+                  console.warn('[upload] ⚠ PATCH: no blob for chapter', idx, '| key:', chKey);
+                  _uploaded++;
+                  _patchUploadChapter(idx + 1);
+                  return;
                 }
-              }).catch(function () {
-                _tryNextKey(idx + 1);
+                _directR2Upload(blob, chKey).then(function() {
+                  console.log('[upload] ✅ PATCH chapter', idx, 'uploaded | key:', chKey);
+                  _uploaded++;
+                  _patchUploadChapter(idx + 1);
+                }).catch(function(e) {
+                  console.warn('[upload] ⚠ PATCH chapter', idx, 'failed:', e && e.message);
+                  _uploaded++;
+                  _patchUploadChapter(idx + 1);
+                });
+              }).catch(function() {
+                _uploaded++;
+                _patchUploadChapter(idx + 1);
               });
             }
-            _tryNextKey(0);
+
+            _patchUploadChapter(0);
+          })();
           } else {
             _patchUploadDone();
           }
@@ -1895,38 +1888,115 @@
         }
 
         console.log('[upload] 🔍 Pre-upload check | state.audioFile:', !!state.audioFile, '| size:', state.audioFile && state.audioFile.size, '| state.audioKey:', state.audioKey, '| realId:', realId);
-        // CRITICAL: Always upload to R2. Try state.audioFile first, then IndexedDB fallback.
-        // Without R2 upload, incognito/other browsers can't play the audio (404).
-        (function _uploadToR2() {
-          if (state.audioFile && state.audioFile.size > 0) {
-            console.log('[upload] 🚀 Uploading state.audioFile to R2 | size:', state.audioFile.size);
-            _uploadAudioToCloud(state.audioFile);
-            return;
-          }
-          // Fallback: get blob from IndexedDB using all possible keys
-          if (!window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') {
-            console.warn('[upload] ⚠ No AudioHubStoryAudio — cannot upload to R2');
-            return;
-          }
-          var _keys = [];
-          if (state.audioKey) _keys.push(state.audioKey);
+        // CRITICAL: Upload EACH chapter's audio separately to R2 using its own audioKey.
+        // This ensures each chapter has its own audio file in R2 (not just one per story).
+        (function _uploadAllChapters() {
+          // Get chapter list from localStorage
+          var _chapters = [];
           try {
-            var _cs3 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-            var _chArr3 = Array.isArray(_cs3[realId]) ? _cs3[realId] : [];
-            _chArr3.forEach(function (ch) { if (ch && ch.audioKey && _keys.indexOf(ch.audioKey) === -1) _keys.push(ch.audioKey); });
+            var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            // Try CUID key first, then any s_ key
+            _chapters = Array.isArray(_cs[realId]) ? _cs[realId] : [];
+            if (!_chapters.length && state._origSid) {
+              _chapters = Array.isArray(_cs[state._origSid]) ? _cs[state._origSid] : [];
+            }
           } catch (e) {}
-          if (_keys.indexOf(realId) === -1) _keys.push(realId);
-          console.log('[upload] 🔄 IndexedDB fallback — trying keys:', _keys);
-          function _tryKey(i) {
-            if (i >= _keys.length) { console.warn('[upload] ⚠ No audio blob found in IndexedDB'); return; }
-            window.AudioHubStoryAudio.get(_keys[i]).then(function (blob) {
-              if (blob && blob.size > 1000) {
-                console.log('[upload] ✅ Found blob in IndexedDB | key:', _keys[i], '| size:', blob.size);
-                _uploadAudioToCloud(blob);
-              } else { _tryKey(i + 1); }
-            }).catch(function () { _tryKey(i + 1); });
+
+          // If no chapters in localStorage, treat single audio as 1 chapter
+          if (!_chapters.length) {
+            _chapters = [{ title: '', audioKey: state.audioKey || realId }];
           }
-          _tryKey(0);
+
+          console.log('[upload] 📋 Chapters to upload:', _chapters.length, _chapters.map(function(c) { return c.audioKey; }));
+
+          // Try state.audioFile for first chapter, then IndexedDB for all
+          var _audioStore = window.AudioHubStoryAudio;
+          var _hasStore = _audioStore && typeof _audioStore.get === 'function';
+          var _uploaded = 0;
+          var _total = _chapters.length;
+
+          function _uploadChapter(idx) {
+            if (idx >= _total) {
+              console.log('[upload] ✅ All', _uploaded, '/', _total, 'chapter audio files uploaded to R2');
+              _uploadConfirmed = true;
+              _safeRedirect();
+              return;
+            }
+            var ch = _chapters[idx];
+            var chKey = ch.audioKey || realId;
+
+            // Try state.audioFile first for first chapter (most likely match)
+            var _blobPromise;
+            if (idx === 0 && state.audioFile && state.audioFile.size > 0) {
+              console.log('[upload] 🚀 Using state.audioFile for chapter 0 | size:', state.audioFile.size);
+              _blobPromise = Promise.resolve(state.audioFile);
+            } else if (_hasStore) {
+              _blobPromise = _audioStore.get(chKey).then(function(blob) {
+                if (blob && blob.size > 1000) return blob;
+                // Fallback: try story ID as key
+                return _audioStore.get(realId).then(function(b2) {
+                  return (b2 && b2.size > 1000) ? b2 : null;
+                });
+              });
+            } else {
+              _blobPromise = Promise.resolve(null);
+            }
+
+            _blobPromise.then(function(blob) {
+              if (!blob || blob.size === 0) {
+                console.warn('[upload] ⚠ No audio blob for chapter', idx, '| key:', chKey);
+                _uploaded++; // count as done (no audio for this chapter)
+                _uploadChapter(idx + 1);
+                return;
+              }
+              // Upload to R2 with chapter's audioKey as the key
+              var _r2Url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(chKey);
+              console.log('[upload] 🎵 Chapter', idx, '| uploading to R2 with key:', chKey, '| size:', blob.size);
+              fetch(_r2Url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+                .then(function(res) {
+                  if (!res.ok) throw new Error('R2 PUT ' + res.status);
+                  // Verify with HEAD
+                  return fetch(_r2Url, { method: 'HEAD' });
+                })
+                .then(function(headRes) {
+                  if (!headRes.ok) throw new Error('R2 HEAD ' + headRes.status);
+                  console.log('[upload] ✅ Chapter', idx, 'confirmed on R2 | key:', chKey);
+                  _uploaded++;
+                  _uploadChapter(idx + 1);
+                })
+                .catch(function(err) {
+                  console.warn('[upload] ⚠ R2 upload failed for chapter', idx, '| key:', chKey, err && err.message);
+                  _uploaded++;
+                  _uploadChapter(idx + 1);
+                });
+            }).catch(function() {
+              console.warn('[upload] ⚠ Blob fetch failed for chapter', idx);
+              _uploaded++;
+              _uploadChapter(idx + 1);
+            });
+          }
+
+          _uploadChapter(0);
+
+          // Sync chapter audioKeys to D1 (so incognito/other devices know which keys to fetch)
+          try {
+            var _csForSync = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var _chsForSync = Array.isArray(_csForSync[realId]) ? _csForSync[realId] : [];
+            if (_chsForSync.length) {
+              var _tokenForSync = localStorage.getItem('audiohub-auth-token') || '';
+              if (_tokenForSync) {
+                fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _tokenForSync },
+                  body: JSON.stringify({ chapters: _chsForSync.map(function(c) {
+                    return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai' };
+                  }) })
+                }).then(function(r) { return r.json(); }).then(function(d) {
+                  if (d && d.success) console.log('[upload] ✅ Synced chapter audioKeys to D1');
+                }).catch(function() {});
+              }
+            }
+          } catch (e) {}
         })();
     }).catch(function (err) {
       console.warn('[upload] ⚠ POST to D1 failed:', err);

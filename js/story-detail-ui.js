@@ -1556,6 +1556,7 @@
       console.log('[audio-sync] Syncing', _keys.length, 'audio keys to R2...');
 
       // For each key: get from IndexedDB → if valid (≥1KB) → PUT to R2 (overwrite if needed)
+      // Use ?key= param so each chapter gets its own R2 file
       var _synced = 0;
       var _skipped = 0;
       function _syncNext(idx) {
@@ -1564,7 +1565,7 @@
           return;
         }
         var key = _keys[idx];
-        var _url = '/api/audio/' + encodeURIComponent(String(key));
+        var _url = '/api/audio/' + encodeURIComponent(String(storyId)) + '?key=' + encodeURIComponent(key);
         window.AudioHubStoryAudio.get(key).then(function (blob) {
           if (!blob || blob.size < 1000) {
             console.warn('[audio-sync] No valid local blob for:', key, '(size:', blob ? blob.size : 0, ')');
@@ -1641,6 +1642,7 @@
     } catch (e) {}
 
     // Try current chapter's audioKey FIRST (most likely to be correct)
+    // Each chapter has its own audioKey stored in R2 as {audioKey}.mp3
     var _currentChAudioKey = '';
     try {
       // Priority 1: Read from localStorage chapters store
@@ -1649,35 +1651,19 @@
       if (_chArr[_currentChIdx] && _chArr[_currentChIdx].audioKey) {
         _currentChAudioKey = _chArr[_currentChIdx].audioKey;
       }
-      // Priority 2: If localStorage empty (incognito), read from story.chapters
+      // Priority 2: If localStorage empty (incognito), read from story.chapters (D1)
       if (!_currentChAudioKey && Array.isArray(story.chapters) && story.chapters[_currentChIdx]) {
         var _chFromStory = story.chapters[_currentChIdx];
         if (_chFromStory.audioKey) {
           _currentChAudioKey = _chFromStory.audioKey;
-          // fallback: using audioKey from story.chapters
         }
-      }
-      // CRITICAL: Replace a_* temp keys with storyId (CUID) — R2 only has CUID files
-      if (_currentChAudioKey && _currentChAudioKey.startsWith('a_') && storyId) {
-        _currentChAudioKey = storyId;
-      }
-      // Also: if no audioKey found, use storyId as fallback (R2 stores under CUID)
-      if (!_currentChAudioKey && storyId) {
-        _currentChAudioKey = storyId;
       }
     } catch (e) {}
 
-    // Priority: current chapter audioKey > story audioKey > storyId fallback
+    // Build paths: chapter audioKey (per-chapter R2) > story-level fallback
+    // Chapter audioKeys are stored in R2 as {audioKey}.mp3 (uploaded by upload page)
     if (_currentChAudioKey) paths.push(_currentChAudioKey);
-    if (audioKey && paths.indexOf(audioKey) === -1) paths.push(audioKey);
-    if (storyId) {
-      var storyIdMp3 = storyId + '.mp3';
-      if (paths.indexOf(storyIdMp3) === -1) paths.push(storyIdMp3);
-    }
-    if (storyId && !String(storyId).startsWith('s_')) {
-      var syntheticMp3 = 's_' + storyId + '.mp3';
-      if (paths.indexOf(syntheticMp3) === -1) paths.push(syntheticMp3);
-    }
+    if (storyId) paths.push(storyId);
     // audio paths resolved
 
     // Audio loading: parallel HEAD check → download from best key
@@ -1709,11 +1695,12 @@
         // Step 2: No local hit — do parallel HEAD requests to find which key exists in R2.
         // HEAD is cheap (no body) so we avoid downloading a whole MP3 just to probe.
         var headChecks = paths.map(function (key) {
-          var url = '/api/audio/' + encodeURIComponent(key);
+          // Use ?key= param for chapter audioKeys, bare path for storyId
+          var url = '/api/audio/' + encodeURIComponent(storyId || key) + (key !== storyId ? '?key=' + encodeURIComponent(key) : '');
           return fetch(url, { method: 'HEAD', cache: 'no-store' }).then(function (res) {
-            return { key: key, exists: res.ok, status: res.status };
+            return { key: key, exists: res.ok, status: res.status, url: url };
           }).catch(function () {
-            return { key: key, exists: false, status: 0 };
+            return { key: key, exists: false, status: 0, url: url };
           });
         });
 
@@ -1728,7 +1715,7 @@
 
           // Stream directly from the URL (don't buffer the whole file first).
           // The <audio> element plays progressively, so playback starts much faster.
-          return { type: 'url', url: '/api/audio/' + encodeURIComponent(found.key), key: found.key };
+          return { type: 'url', url: found.url, key: found.key };
         });
       });
     }
@@ -1800,7 +1787,7 @@
                 var _syncKeys = [String(paths[0])];
                 if (storyId && _syncKeys.indexOf(String(storyId)) === -1) _syncKeys.push(String(storyId));
                 _syncKeys.forEach(function (_sk) {
-                  var _url0 = '/api/audio/' + encodeURIComponent(_sk);
+                  var _url0 = '/api/audio/' + encodeURIComponent(storyId || _sk) + (_sk !== storyId ? '?key=' + encodeURIComponent(_sk) : '');
                   console.log('[audio-sync] Quick upload:', _sk, '| size:', blob.size);
                   fetch(_url0, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
                     .then(function (r) { console.log('[audio-sync] PUT:', _sk, '→', r.status); })
