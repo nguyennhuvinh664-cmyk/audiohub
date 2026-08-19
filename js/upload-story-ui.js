@@ -1509,8 +1509,18 @@
           })
         }).then(function () {
           console.log('[upload] ✅ PATCH to D1 success:', story.id);
-          // GUARANTEED redirect — D1 saved the story; audio upload is background only.
-          setTimeout(function () { doRedirect(story.id); }, 1500);
+
+          // Safe redirect: only redirect once, after upload completes or timeout
+          var _patchRedirectDone = false;
+          function _patchSafeRedirect() {
+            if (!_patchRedirectDone) {
+              _patchRedirectDone = true;
+              doRedirect(story.id);
+            }
+          }
+          // Fallback timeout: redirect after 10s even if upload hasn't finished
+          setTimeout(_patchSafeRedirect, 10000);
+
           // Force-sync chapter audioKeys via sync-chapters endpoint (PATCH uses COALESCE which may not overwrite null)
           try {
             var _chsForSync = (built.payload.chapters || []).map(function(c) { return { title: c.title || '', audioKey: c.audioKey || '', visibility: c.visibility || 'Công khai' }; });
@@ -1525,7 +1535,7 @@
             }
           } catch(e) {}
           // Upload audio to cloud (R2/Supabase) for this chapter
-          function _patchUploadDone() { doRedirect(story.id); }
+          function _patchUploadDone() { _patchSafeRedirect(); }
 
           // Direct R2 upload — bypasses AudioHubStoryAudio.put which may silently fail
           function _directR2Upload(blob, key) {
