@@ -1895,50 +1895,39 @@
         }
 
         console.log('[upload] 🔍 Pre-upload check | state.audioFile:', !!state.audioFile, '| size:', state.audioFile && state.audioFile.size, '| state.audioKey:', state.audioKey, '| realId:', realId);
-        if (state.audioFile) {
-          // User selected a new audio file — upload directly
-          console.log('[upload] 🚀 Calling _uploadAudioToCloud with blob size:', state.audioFile.size);
-          _uploadAudioToCloud(state.audioFile);
-        } else {
-          console.warn('[upload] ⚠ state.audioFile is NULL — falling back to IndexedDB lookup');
-        }
-        if (!state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
-          // Try all possible audioKeys (state.audioKey, chapter audioKeys, story ID)
-          var _candidateKeys = [];
-          if (state.audioKey) _candidateKeys.push(state.audioKey);
-          try {
-            var _chs2 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-            var _chArr2 = Array.isArray(_chs2[story.id]) ? _chs2[story.id] : [];
-            _chArr2.forEach(function (ch) {
-              if (ch && ch.audioKey && _candidateKeys.indexOf(ch.audioKey) === -1) _candidateKeys.push(ch.audioKey);
-            });
-          } catch (e) {}
-          if (_candidateKeys.indexOf(realId) === -1) _candidateKeys.push(realId);
-          if (_candidateKeys.indexOf(story.id) === -1) _candidateKeys.push(story.id);
-          console.log('[upload] 🔄 POST fallback: trying keys', _candidateKeys);
-
-          function _tryPostKey(idx) {
-            if (idx >= _candidateKeys.length) {
-              console.warn('[upload] ⚠ No audio blob found in any key');
-              doRedirect(realId);
-              return;
-            }
-            var key = _candidateKeys[idx];
-            window.AudioHubStoryAudio.get(key).then(function (blob) {
-              if (blob && blob.size > 0) {
-                console.log('[upload] ✅ Found audio blob for key:', key, '| size:', blob.size);
-                _uploadAudioToCloud(blob, key);
-              } else {
-                _tryPostKey(idx + 1);
-              }
-            }).catch(function () {
-              _tryPostKey(idx + 1);
-            });
+        // CRITICAL: Always upload to R2. Try state.audioFile first, then IndexedDB fallback.
+        // Without R2 upload, incognito/other browsers can't play the audio (404).
+        (function _uploadToR2() {
+          if (state.audioFile && state.audioFile.size > 0) {
+            console.log('[upload] 🚀 Uploading state.audioFile to R2 | size:', state.audioFile.size);
+            _uploadAudioToCloud(state.audioFile);
+            return;
           }
-          _tryPostKey(0);
-        } else {
-          doRedirect(realId);
-        }
+          // Fallback: get blob from IndexedDB using all possible keys
+          if (!window.AudioHubStoryAudio || typeof window.AudioHubStoryAudio.get !== 'function') {
+            console.warn('[upload] ⚠ No AudioHubStoryAudio — cannot upload to R2');
+            return;
+          }
+          var _keys = [];
+          if (state.audioKey) _keys.push(state.audioKey);
+          try {
+            var _cs3 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+            var _chArr3 = Array.isArray(_cs3[realId]) ? _cs3[realId] : [];
+            _chArr3.forEach(function (ch) { if (ch && ch.audioKey && _keys.indexOf(ch.audioKey) === -1) _keys.push(ch.audioKey); });
+          } catch (e) {}
+          if (_keys.indexOf(realId) === -1) _keys.push(realId);
+          console.log('[upload] 🔄 IndexedDB fallback — trying keys:', _keys);
+          function _tryKey(i) {
+            if (i >= _keys.length) { console.warn('[upload] ⚠ No audio blob found in IndexedDB'); return; }
+            window.AudioHubStoryAudio.get(_keys[i]).then(function (blob) {
+              if (blob && blob.size > 1000) {
+                console.log('[upload] ✅ Found blob in IndexedDB | key:', _keys[i], '| size:', blob.size);
+                _uploadAudioToCloud(blob);
+              } else { _tryKey(i + 1); }
+            }).catch(function () { _tryKey(i + 1); });
+          }
+          _tryKey(0);
+        })();
     }).catch(function (err) {
       console.warn('[upload] ⚠ POST to D1 failed:', err);
       doRedirect(story.id);
