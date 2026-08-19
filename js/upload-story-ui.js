@@ -1771,7 +1771,11 @@
           }
         }
         // Fallback timeout: redirect after 10s even if upload hasn't finished
-        setTimeout(_safeRedirect, 10000);
+        var _uploadStarted = false;
+        setTimeout(function () {
+          if (!_redirectDone) console.warn('[upload] ⚠ 10s timeout fired — upload may not have completed');
+          _safeRedirect();
+        }, 10000);
 
         function _uploadAudioToCloud(blob, uploadKey) {
           if (!blob || blob.size === 0) {
@@ -1879,10 +1883,15 @@
             });
         }
 
+        console.log('[upload] 🔍 Pre-upload check | state.audioFile:', !!state.audioFile, '| size:', state.audioFile && state.audioFile.size, '| state.audioKey:', state.audioKey, '| realId:', realId);
         if (state.audioFile) {
           // User selected a new audio file — upload directly
+          console.log('[upload] 🚀 Calling _uploadAudioToCloud with blob size:', state.audioFile.size);
           _uploadAudioToCloud(state.audioFile);
-        } else if (window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
+        } else {
+          console.warn('[upload] ⚠ state.audioFile is NULL — falling back to IndexedDB lookup');
+        }
+        if (!state.audioFile && window.AudioHubStoryAudio && typeof window.AudioHubStoryAudio.get === 'function') {
           // Try all possible audioKeys (state.audioKey, chapter audioKeys, story ID)
           var _candidateKeys = [];
           if (state.audioKey) _candidateKeys.push(state.audioKey);
