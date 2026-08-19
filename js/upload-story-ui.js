@@ -1481,10 +1481,10 @@
           _existingStory = (_allStories || []).find(function (s) { return s && String(s.id) === String(story.id); });
         } catch (e) {}
         var _origAudioKey = (_existingStory && (_existingStory.audioKey || _existingStory.audio_key)) || story.audioKey || story.audio_key || '';
-        // Keep the a_* audio key as-is. The player resolves audio via several fallbacks
-        // (chapter audioKey → story audioKey → storyId.mp3), and R2 holds the file under
-        // the a_* key. Rewriting it to the CUID here orphans the R2 object → 404.
-        // The authoritative CUID copy is maintained separately by _uploadAudioToCloud.
+        // Always use CUID as audio_key in D1. The upload flow (_uploadAudioToCloud) uploads
+        // audio to R2 under the CUID key, so D1 must reference the CUID, not the a_* temp key.
+        // Using a_* here causes 404 because R2 only has the CUID copy.
+        _origAudioKey = story.id;
 
         // Story always "Công khai" on homepage — visibility is per-chapter (premium lock)
         var _allChapters = _chaptersForD1.length ? _chaptersForD1 : (story.chapters || []);
