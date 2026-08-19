@@ -1720,22 +1720,28 @@
         return Promise.all(headChecks).then(function (headResults) {
           // Find first key that exists in R2
           var found = headResults.find(function (r) { return r.exists; });
-          var bestKey = found ? found.key : paths[0];
+          if (!found) {
+            // R2 has no audio yet — return null so retry chain can try again later
+            console.log('[audio] R2 miss for all paths — will retry');
+            return null;
+          }
 
           // Stream directly from the URL (don't buffer the whole file first).
           // The <audio> element plays progressively, so playback starts much faster.
-          return { type: 'url', url: '/api/audio/' + encodeURIComponent(bestKey), key: bestKey };
+          return { type: 'url', url: '/api/audio/' + encodeURIComponent(found.key), key: found.key };
         });
       });
     }
 
     // Loading chain: AudioHubStoryAudio.get() (IndexedDB → R2 → Supabase → Render) → retry
-    var maxRetries = 3;
-    var retryDelays = [0, 3000, 8000];
+    var maxRetries = 5;
+    var retryDelays = [0, 3000, 8000, 15000, 25000];
     var retryMessages = [
       'Đang tải audio…',
       'Đang thử lại…',
-      'Audio đang được xử lý, thử lần cuối…'
+      'Audio đang được xử lý…',
+      'Đang chờ audio upload lên server…',
+      'Thử lần cuối…'
     ];
 
     function attemptLoad(retryIdx) {
@@ -1750,7 +1756,7 @@
         }
       }
       if (retryIdx >= maxRetries) {
-        showNote('Audio chưa có trên server. Hãy mở trang này trên trình duyệt đã upload story.');
+        showNote('Audio chưa sẵn sàng. Thử lại sau vài phút hoặc mở trang trên trình duyệt đã upload story.');
         return;
       }
       if (retryIdx > 0) {
