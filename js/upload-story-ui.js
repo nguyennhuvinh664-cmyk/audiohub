@@ -1599,11 +1599,9 @@
               var ch = _chapters[idx];
               var chKey = ch.audioKey || story.id;
 
-              // Try state.audioFile first for first chapter
+              // Always use IndexedDB lookup — state.audioFile is only the LAST selected file
               var _blobPromise;
-              if (idx === 0 && state.audioFile && state.audioFile.size > 0) {
-                _blobPromise = Promise.resolve(state.audioFile);
-              } else if (_hasStore) {
+              if (_hasStore) {
                 _blobPromise = window.AudioHubStoryAudio.get(chKey).then(function(blob) {
                   if (blob && blob.size > 1000) return blob;
                   return window.AudioHubStoryAudio.get(story.id).then(function(b2) {
@@ -1906,7 +1904,7 @@
 
           console.log('[upload] 📋 Chapters to upload:', _chapters.length, _chapters.map(function(c) { return c.audioKey; }));
 
-          // Try state.audioFile for first chapter, then IndexedDB for all
+          // Always use IndexedDB lookup per chapter — state.audioFile is only the LAST selected file
           var _audioStore = window.AudioHubStoryAudio;
           var _hasStore = _audioStore && typeof _audioStore.get === 'function';
           var _uploaded = 0;
@@ -1922,15 +1920,12 @@
             var ch = _chapters[idx];
             var chKey = ch.audioKey || realId;
 
-            // Try state.audioFile first for first chapter (most likely match)
+            // Always look up blob from IndexedDB using the chapter's audioKey
             var _blobPromise;
-            if (idx === 0 && state.audioFile && state.audioFile.size > 0) {
-              console.log('[upload] 🚀 Using state.audioFile for chapter 0 | size:', state.audioFile.size);
-              _blobPromise = Promise.resolve(state.audioFile);
-            } else if (_hasStore) {
+            if (_hasStore) {
               _blobPromise = _audioStore.get(chKey).then(function(blob) {
                 if (blob && blob.size > 1000) return blob;
-                // Fallback: try story ID as key
+                // Fallback: try story ID as key (legacy single-audio stories)
                 return _audioStore.get(realId).then(function(b2) {
                   return (b2 && b2.size > 1000) ? b2 : null;
                 });
