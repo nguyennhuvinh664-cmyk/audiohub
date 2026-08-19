@@ -1730,11 +1730,12 @@
     }
 
     // Loading chain: AudioHubStoryAudio.get() (IndexedDB → R2 → Supabase → Render) → retry
-    var maxRetries = 2;
-    var retryDelays = [0, 5000];
+    var maxRetries = 3;
+    var retryDelays = [0, 3000, 8000];
     var retryMessages = [
       'Đang tải audio…',
-      'Đang thử lại…'
+      'Đang thử lại…',
+      'Audio đang được xử lý, thử lần cuối…'
     ];
 
     function attemptLoad(retryIdx) {

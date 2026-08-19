@@ -1515,16 +1515,20 @@
         }).then(function () {
           console.log('[upload] ✅ PATCH to D1 success:', story.id);
 
-          // Safe redirect: only redirect once, after upload completes or timeout
+          // Safe redirect: only redirect once, after upload confirms
           var _patchRedirectDone = false;
+          var _patchUploadConfirmed = false;
           function _patchSafeRedirect() {
             if (!_patchRedirectDone) {
               _patchRedirectDone = true;
               doRedirect(story.id);
             }
           }
-          // Fallback timeout: redirect after 10s even if upload hasn't finished
-          setTimeout(_patchSafeRedirect, 10000);
+          // Safety timeout: 30s fallback (prevent stuck page)
+          setTimeout(function () {
+            if (!_patchUploadConfirmed) console.warn('[upload] ⚠ PATCH 30s timeout');
+            _patchSafeRedirect();
+          }, 30000);
 
           // Force-sync chapter audioKeys via sync-chapters endpoint (PATCH uses COALESCE which may not overwrite null)
           try {
@@ -1573,6 +1577,7 @@
 
             if (!blob || blob.size === 0) {
               console.warn('[upload] ⚠ No audio blob to upload');
+              _patchUploadConfirmed = true;
               _patchUploadDone();
               return;
             }
@@ -1591,6 +1596,7 @@
               }
               _directR2Upload(blob, _keysToUpload[idx]).then(function () {
                 console.log('[upload] ✅ R2 upload OK (PATCH) with key:', _keysToUpload[idx]);
+                _patchUploadConfirmed = true;
                 _uploadBoth(idx + 1);
               }).catch(function (e) {
                 console.warn('[upload] ⚠ R2 upload failed with key:', _keysToUpload[idx], '| err:', e && e.message);
@@ -1762,24 +1768,27 @@
         // so the file MUST exist at `<cuid>.mp3`. We also keep a copy at the a_* key so
         // any legacy lookup path (chapter audioKey) still finds it. Never let the two diverge.
 
-        // Safe redirect: only redirect once, after upload completes or timeout
+        // Safe redirect: only redirect once, AFTER upload confirms or all retries exhausted
         var _redirectDone = false;
+        var _uploadConfirmed = false;
         function _safeRedirect() {
           if (!_redirectDone) {
             _redirectDone = true;
             doRedirect(realId);
           }
         }
-        // Fallback timeout: redirect after 10s even if upload hasn't finished
-        var _uploadStarted = false;
+        // Safety timeout: redirect after 30s ONLY if upload hasn't finished (prevent stuck page)
         setTimeout(function () {
-          if (!_redirectDone) console.warn('[upload] ⚠ 10s timeout fired — upload may not have completed');
+          if (!_uploadConfirmed) {
+            console.warn('[upload] ⚠ 30s safety timeout — upload may not have completed');
+          }
           _safeRedirect();
-        }, 10000);
+        }, 30000);
 
         function _uploadAudioToCloud(blob, uploadKey) {
           if (!blob || blob.size === 0) {
             console.warn('[upload] ⚠ No audio blob to upload');
+            _uploadConfirmed = true;
             _safeRedirect();
             return;
           }
@@ -1809,6 +1818,7 @@
           _putR2(keysToUpload[0])
             .then(function (confirmedKey) {
               console.log('[upload] ✅ Audio confirmed on R2 | key:', confirmedKey);
+              _uploadConfirmed = true;
               state.audioFile = null;
               if (!state.audioKey) state.audioKey = realId;
               if (current) {
@@ -1872,6 +1882,7 @@
               if (keysToUpload[1]) {
                 _putR2(keysToUpload[1]).then(function (confirmedKey) {
                   console.log('[upload] ✅ Audio confirmed on R2 (a_* key):', confirmedKey);
+                  _uploadConfirmed = true;
                   state.audioFile = null;
                 }).catch(function (e2) {
                   console.warn('[upload] ❌ All R2 uploads failed:', e2 && e2.message);
