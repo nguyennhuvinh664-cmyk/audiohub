@@ -1638,9 +1638,6 @@
 
             _patchUploadChapter(0);
           })();
-          } else {
-            _patchUploadDone();
-          }
         }).catch(function (err) {
           console.warn('[upload] ⚠ PATCH to D1 failed, redirect anyway:', err);
           doRedirect(story.id);
