@@ -2143,10 +2143,9 @@
 
       // Get chapter-specific audioKey and readingText from storedChapters
       var chAudioKey = (storedChapters[i] && storedChapters[i].audioKey) || (ch && ch.audioKey) || '';
-      // Fallback: use story-level audioKey if chapter has none
-      if (!chAudioKey && currentStory) {
-        chAudioKey = (currentStory.audioKey || currentStory.audio_key) ? String(currentStory.audioKey || currentStory.audio_key) : '';
-      }
+      // NOTE: Do NOT fallback to story-level audioKey here.
+      // Each chapter must have its own audioKey. Fallback to story audioKey
+      // causes all chapters to play the same audio (duplicate audio bug).
       var chReadingText = (storedChapters[i] && storedChapters[i].readingText) || (ch && ch.readingText) || '';
       // Store full reading text in JS for click handler
       if (chReadingText) window.__chapterReadingTexts[i] = chReadingText;
@@ -2743,10 +2742,12 @@
   var _d1ChaptersGlobal = [];
   var _userSelectedChapter = false;
 
-  // Sync per-chapter audioKeys from localStorage to D1 (so incognito/other devices work)
-  // IMPORTANT: Only sync CUID keys (storyId-style), NEVER a_* keys.
-  // a_* keys are temporary IndexedDB identifiers — syncing them to D1 overwrites
-  // the authoritative CUID key and orphans the R2 file, causing 404 on playback.
+  // Sync per-chapter data (title + audioKey + visibility) from localStorage to D1,
+  // so incognito/other devices render correct chapter order and audio.
+  // The SERVER (`/sync-chapters`) safely merges: it never lets a temporary a_* key
+  // overwrite an existing CUID, but WILL accept an a_* key when the chapter has no
+  // audioKey yet. So we must send the FULL list — filtering out a_* keys here (the
+  // old behavior) left D1 empty and caused the duplicate-audio / wrong-order bug.
   function _syncChapterAudioKeysToD1(storyId) {
     if (!storyId || String(storyId).startsWith('s_')) return;
     // Only sync if logged in (has auth token)
@@ -2763,26 +2764,25 @@
         console.log('[sync] ⚠ Skipped — no chapters in localStorage for', storyId);
         return;
       }
-      // Filter: only sync chapters whose audioKey is a CUID (NOT a_* temporary key)
-      var _withKeys = _chs.filter(function (c) {
-        return c && c.audioKey && !String(c.audioKey).startsWith('a_');
+      // Build the full chapter list to sync: include title + audioKey + visibility
+      // regardless of whether audioKey is a CUID or an a_* temp key. The server
+      // decides the final authoritative key per chapter.
+      var _payload = _chs.map(function (c) {
+        return {
+          title: (c && c.title) || '',
+          audioKey: (c && c.audioKey) || '',
+          visibility: (c && c.visibility) || 'Công khai'
+        };
       });
-      console.log('[sync] 📤 Syncing chapter audioKeys — total:', _chs.length, 'CUID keys:', _withKeys.length);
-      _chs.forEach(function (c, i) {
-        var _k = c.audioKey || '(EMPTY)';
-        var _skip = String(_k).startsWith('a_') ? ' ← SKIP (a_* temp key)' : '';
-        console.log('[sync]   ch' + (i+1) + ':', _k, '| title:', c.title || '(empty)' + _skip);
-      });
-      if (!_withKeys.length) {
-        console.log('[sync] ⚠ Skipped — no CUID keys to sync (all a_* or empty)');
-        return;
-      }
+      console.log('[sync] 📤 Syncing', _payload.length, 'chapters to D1', _payload.map(function (c, i) {
+        return 'ch' + (i + 1) + ':' + (c.audioKey || '(EMPTY)') + ' / ' + (c.title || '(empty)');
+      }));
       fetch('/api/stories/' + encodeURIComponent(storyId) + '/sync-chapters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ chapters: _withKeys })
+        body: JSON.stringify({ chapters: _payload })
       }).then(function (r) { return r.json(); }).then(function (d) {
-        if (d && d.success) console.log('[sync] ✅ Synced', _withKeys.length, 'chapter audioKeys to D1');
+        if (d && d.success) console.log('[sync] ✅ Synced', _payload.length, 'chapters to D1');
         else console.log('[sync] ❌ Sync failed:', d);
       }).catch(function (e) { console.log('[sync] ❌ Sync error:', e.message); });
     } catch (e) {}
