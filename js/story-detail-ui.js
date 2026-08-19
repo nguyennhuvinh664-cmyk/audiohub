@@ -1657,6 +1657,10 @@
           // fallback: using audioKey from story.chapters
         }
       }
+      // CRITICAL: Replace a_* temp keys with storyId (CUID) — R2 only has CUID files
+      if (_currentChAudioKey && _currentChAudioKey.startsWith('a_') && storyId) {
+        _currentChAudioKey = storyId;
+      }
     } catch (e) {}
 
     // Priority: current chapter audioKey > story audioKey > storyId fallback
@@ -2143,6 +2147,8 @@
 
       // Get chapter-specific audioKey and readingText from storedChapters
       var chAudioKey = (storedChapters[i] && storedChapters[i].audioKey) || (ch && ch.audioKey) || '';
+      // CRITICAL: Replace a_* temp keys with story CUID — R2 only has CUID files
+      if (chAudioKey.startsWith('a_') && currentStory && currentStory.id) chAudioKey = currentStory.id;
       // NOTE: Do NOT fallback to story-level audioKey here.
       // Each chapter must have its own audioKey. Fallback to story audioKey
       // causes all chapters to play the same audio (duplicate audio bug).
@@ -2764,13 +2770,15 @@
         console.log('[sync] ⚠ Skipped — no chapters in localStorage for', storyId);
         return;
       }
-      // Build the full chapter list to sync: include title + audioKey + visibility
-      // regardless of whether audioKey is a CUID or an a_* temp key. The server
-      // decides the final authoritative key per chapter.
+      // Build the full chapter list to sync: include title + audioKey + visibility.
+      // CRITICAL: Replace a_* temp keys with CUID (storyId). R2 only stores files
+      // under CUID keys, so D1 must reference CUID — not a_* — or the player gets 404.
       var _payload = _chs.map(function (c) {
+        var _ak = (c && c.audioKey) || '';
+        if (_ak.startsWith('a_')) _ak = storyId;
         return {
           title: (c && c.title) || '',
-          audioKey: (c && c.audioKey) || '',
+          audioKey: _ak,
           visibility: (c && c.visibility) || 'Công khai'
         };
       });
@@ -3048,8 +3056,11 @@
                   // If API chapter has no audioKey but local has one, preserve local audioKey
                   var _mergedCh = Object.assign({}, apiCh);
                   if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && _localCh.audioKey) {
-                    _mergedCh.audioKey = _localCh.audioKey;
-                    console.log('[story-detail] Preserved audioKey for chapter', _idx + 1, ':', _localCh.audioKey);
+                    // CRITICAL: Replace a_* temp keys with CUID — R2 only has CUID files
+                    var _localKey = _localCh.audioKey;
+                    if (_localKey && _localKey.startsWith('a_') && story.id) _localKey = story.id;
+                    _mergedCh.audioKey = _localKey;
+                    console.log('[story-detail] Preserved audioKey for chapter', _idx + 1, ':', _localKey);
                   }
                   // Still no audioKey? Use story-level fallback
                   if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && _storyFallbackKey) {
@@ -3098,7 +3109,7 @@
                 fetch('/api/stories/' + encodeURIComponent(merged.id) + '/fix-chapters', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('audiohub-auth-token') || '') },
-                  body: JSON.stringify({ chapters: merged.chapters.map(function(c) { return { title: c.title || '', audioKey: c.audioKey || '', coverKey: c.coverKey || '', readingText: c.readingText || '', visibility: c.visibility || 'Công khai' }; }) })
+                  body: JSON.stringify({ chapters: merged.chapters.map(function(c) { var _k = c.audioKey || ''; if (_k.startsWith('a_')) _k = merged.id; return { title: c.title || '', audioKey: _k, coverKey: c.coverKey || '', readingText: c.readingText || '', visibility: c.visibility || 'Công khai' }; }) })
                 }).then(function(r) { return r.json(); }).then(function(d) {
                   if (d && d.success) console.log('[story-detail] ✅ Auto-fixed D1 chapters:', d.chapters, 'chapters synced');
                 }).catch(function(e) { console.warn('[story-detail] Auto-fix failed:', e); });
@@ -3163,7 +3174,12 @@
                   var _syncedChapters = freshChapters.map(function (fCh, _fi) {
                     var _old = _existingCh2[_fi] || {};
                     var _m = Object.assign({}, fCh);
-                    if ((!_m.audioKey || _m.audioKey === '') && _old.audioKey) _m.audioKey = _old.audioKey;
+                    if ((!_m.audioKey || _m.audioKey === '') && _old.audioKey) {
+                      // CRITICAL: Replace a_* temp keys with CUID
+                      var _oldKey = _old.audioKey;
+                      if (_oldKey && _oldKey.startsWith('a_') && story.id) _oldKey = story.id;
+                      _m.audioKey = _oldKey;
+                    }
                     // Fallback: use story-level audioKey
                     if ((!_m.audioKey || _m.audioKey === '') && story.audioKey) _m.audioKey = story.audioKey;
                     if ((!_m.readingText || _m.readingText === '') && _old.readingText) _m.readingText = _old.readingText;

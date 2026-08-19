@@ -1487,8 +1487,13 @@
         _origAudioKey = story.id;
 
         // Story always "Công khai" on homepage — visibility is per-chapter (premium lock)
-        var _allChapters = _chaptersForD1.length ? _chaptersForD1 : (story.chapters || []);
-        console.log('[upload] 📊 Chapters:', _allChapters.map(function(c) { return c.title + ':' + (c.visibility || 'Công khai'); }));
+        var _allChapters = (_chaptersForD1.length ? _chaptersForD1 : (story.chapters || [])).map(function (c) {
+          // Replace a_* temp keys with CUID — R2 only has files under CUID key
+          var _ak = (c && c.audioKey) || '';
+          if (_ak.startsWith('a_')) _ak = story.id;
+          return { title: (c && c.title) || '', audioKey: _ak, visibility: (c && c.visibility) || 'Công khai' };
+        });
+        console.log('[upload] 📊 Chapters:', _allChapters.map(function(c) { return c.title + ':' + (c.audioKey || 'NO_KEY') + ':' + (c.visibility || 'Công khai'); }));
 
         window.AudioHubApi.request('/stories/' + encodeURIComponent(story.id), {
           method: 'PATCH',
@@ -1523,7 +1528,11 @@
 
           // Force-sync chapter audioKeys via sync-chapters endpoint (PATCH uses COALESCE which may not overwrite null)
           try {
-            var _chsForSync = (built.payload.chapters || []).map(function(c) { return { title: c.title || '', audioKey: c.audioKey || '', visibility: c.visibility || 'Công khai' }; });
+            var _chsForSync = (built.payload.chapters || []).map(function(c) {
+              var _k = (c && c.audioKey) || '';
+              if (_k.startsWith('a_')) _k = story.id; // Replace a_* with CUID
+              return { title: (c && c.title) || '', audioKey: _k, visibility: (c && c.visibility) || 'Công khai' };
+            });
             if (_chsForSync.length) {
               fetch('/api/stories/' + encodeURIComponent(story.id) + '/sync-chapters', {
                 method: 'POST',
