@@ -1805,11 +1805,38 @@
                   console.warn('[upload] ⚠ Backup R2 write failed:', e2 && e2.message);
                 });
               }
+
+              // PATCH story audio_key to CUID
               fetch('/api/stories/' + encodeURIComponent(realId), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: realId, audio_key: realId })
-              }).then(function () { _safeRedirect(); }).catch(function () { _safeRedirect(); });
+              }).catch(function () {});
+
+              // PATCH chapters with CUID audioKey in D1 (so incognito/private can play)
+              try {
+                var _csForPatch = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+                var _chsForPatch = Array.isArray(_csForPatch[realId]) ? _csForPatch[realId] : [];
+                if (_chsForPatch.length) {
+                  var _tokenForPatch = localStorage.getItem('audiohub-auth-token') || '';
+                  if (_tokenForPatch) {
+                    var _patchedChapters = _chsForPatch.map(function (c) {
+                      // Update audioKey to CUID if it was a_* key
+                      var _newKey = (c && c.audioKey && c.audioKey.startsWith('a_')) ? realId : (c && c.audioKey) || realId;
+                      return { title: (c && c.title) || '', audioKey: _newKey, visibility: (c && c.visibility) || 'Công khai' };
+                    });
+                    fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _tokenForPatch },
+                      body: JSON.stringify({ chapters: _patchedChapters })
+                    }).then(function () {
+                      console.log('[upload] ✅ Synced', _patchedChapters.length, 'chapters with CUID audioKey to D1');
+                    }).catch(function () {});
+                  }
+                }
+              } catch (e) {}
+
+              _safeRedirect();
             })
             .catch(function (e) {
               console.warn('[upload] ⚠ R2 upload failed for CUID:', e && e.message, '| trying a_* key');
