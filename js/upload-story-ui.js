@@ -1907,73 +1907,76 @@
           var _totalChunks = _chunks.length;
           console.log('[upload] Split into', _totalChunks, 'chunks of', (_CHUNK_SIZE / 1024 / 1024), 'MB');
 
-          // Upload chunks sequentially
-          (function _uploadNextChunk(idx) {
-            if (idx >= _totalChunks) {
-              // All chunks uploaded — assemble
-              _updateProgress(92, 'Ghép file audio...');
-              console.log('[upload] All', _totalChunks, 'chunks uploaded. Assembling...');
-              _assembleChunks(realId, _r2Key, _totalChunks, _blob.size, _blob.type || 'audio/mpeg')
-                .then(function() {
-                  console.log('[upload] ✅ Assembled OK:', _r2Key, '| size:', _blob.size);
-                  _uploadConfirmed = true;
-                  state.audioFile = null;
-                  _updateProgress(95, 'Đã upload xong! Đang lưu database...');
+          // Upload chunks in parallel (3 at a time for speed)
+          var _PARALLEL = 3;
+          var _doneCount = 0;
+          var _failed = false;
 
-                  // Sync chapters to D1
-                  try {
-                    var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-                    var _chs = Array.isArray(_cs[realId]) ? _cs[realId] : [];
-                    if (_chs.length) {
-                      if (_chs[0]) _chs[0].audioKey = _r2Key;
-                      _cs[realId] = _chs;
-                      localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs));
-
-                      var _token = localStorage.getItem('audiohub-auth-token') || '';
-                      if (_token) {
-                        fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
-                          body: JSON.stringify({ chapters: _chs.map(function(c) {
-                            return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai' };
-                          }) })
-                        }).then(function(r) { return r.json(); }).then(function(d) {
-                          if (d && d.success) console.log('[upload] ✅ Synced', _chs.length, 'chapters to D1 with audioKey:', _chs[0] && _chs[0].audioKey);
-                        }).catch(function(e3) { console.warn('[upload] ⚠ D1 sync failed:', e3 && e3.message); });
-                      }
-                    }
-                  } catch (e) {}
-
-                  _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
-                  setTimeout(function() { _safeRedirect(); }, 300);
-                })
-                .catch(function(err) {
-                  console.error('[upload] ❌ Assemble failed:', err && err.message);
-                  _updateProgress(0, '❌ Ghép file thất bại! Thử lại.');
-                  var _overlay = document.getElementById('upload-progress-overlay');
-                  if (_overlay) {
-                    var _retryBtn = document.createElement('button');
-                    _retryBtn.textContent = '↻ Thử lại';
-                    _retryBtn.style.cssText = 'margin-top:16px;padding:10px 24px;background:#f59e0b;color:#000;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;';
-                    _retryBtn.onclick = function() { location.reload(); };
-                    _overlay.appendChild(_retryBtn);
-                  }
-                });
-              return;
-            }
-
-            // Progress: 2% to 90% for upload
-            var pct = Math.round((idx / _totalChunks) * 88) + 2;
-            var loadedMB = (((idx + 1) * _CHUNK_SIZE) / 1024 / 1024).toFixed(1);
-            var totalMB2 = (_blob.size / 1024 / 1024).toFixed(1);
-            _updateProgress(pct, 'Chunk ' + (idx + 1) + '/' + _totalChunks + '... ' + loadedMB + ' / ' + totalMB2 + ' MB');
-
-            _uploadChunk(realId, _r2Key, idx, _chunks[idx])
+          function _onAllDone() {
+            // All chunks uploaded — assemble
+            _updateProgress(92, 'Ghép file audio...');
+            console.log('[upload] All', _totalChunks, 'chunks uploaded. Assembling...');
+            _assembleChunks(realId, _r2Key, _totalChunks, _blob.size, _blob.type || 'audio/mpeg')
               .then(function() {
-                console.log('[upload] ✅ Chunk', idx, 'OK');
-                _uploadNextChunk(idx + 1);
+                console.log('[upload] ✅ Assembled OK:', _r2Key, '| size:', _blob.size);
+                _uploadConfirmed = true;
+                state.audioFile = null;
+                _updateProgress(95, 'Đã upload xong! Đang lưu database...');
+
+                // Sync chapters to D1
+                try {
+                  var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+                  var _chs = Array.isArray(_cs[realId]) ? _cs[realId] : [];
+                  if (_chs.length) {
+                    if (_chs[0]) _chs[0].audioKey = _r2Key;
+                    _cs[realId] = _chs;
+                    localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs));
+
+                    var _token = localStorage.getItem('audiohub-auth-token') || '';
+                    if (_token) {
+                      fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+                        body: JSON.stringify({ chapters: _chs.map(function(c) {
+                          return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai' };
+                        }) })
+                      }).then(function(r) { return r.json(); }).then(function(d) {
+                        if (d && d.success) console.log('[upload] ✅ Synced', _chs.length, 'chapters to D1 with audioKey:', _chs[0] && _chs[0].audioKey);
+                      }).catch(function(e3) { console.warn('[upload] ⚠ D1 sync failed:', e3 && e3.message); });
+                    }
+                  }
+                } catch (e) {}
+
+                _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
+                setTimeout(function() { _safeRedirect(); }, 300);
               })
               .catch(function(err) {
+                console.error('[upload] ❌ Assemble failed:', err && err.message);
+                _updateProgress(0, '❌ Ghép file thất bại! Thử lại.');
+                var _overlay = document.getElementById('upload-progress-overlay');
+                if (_overlay) {
+                  var _retryBtn = document.createElement('button');
+                  _retryBtn.textContent = '↻ Thử lại';
+                  _retryBtn.style.cssText = 'margin-top:16px;padding:10px 24px;background:#f59e0b;color:#000;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;';
+                  _retryBtn.onclick = function() { location.reload(); };
+                  _overlay.appendChild(_retryBtn);
+                }
+              });
+          }
+
+          function _uploadOneChunk(idx) {
+            if (_failed) return;
+            _uploadChunk(realId, _r2Key, idx, _chunks[idx])
+              .then(function() {
+                _doneCount++;
+                console.log('[upload] ✅ Chunk', idx, 'OK (' + _doneCount + '/' + _totalChunks + ')');
+                var pct = Math.round((_doneCount / _totalChunks) * 88) + 2;
+                _updateProgress(pct, 'Đã upload ' + _doneCount + '/' + _totalChunks + ' chunks...');
+                if (_doneCount >= _totalChunks) _onAllDone();
+                else if (_doneCount + _PARALLEL <= _totalChunks) _uploadOneChunk(_doneCount + _PARALLEL - 1);
+              })
+              .catch(function(err) {
+                _failed = true;
                 console.error('[upload] ❌ Chunk', idx, 'failed:', err && err.message);
                 _updateProgress(0, '❌ Upload chunk ' + (idx + 1) + ' thất bại! Kiểm tra kết nối.');
                 var _overlay = document.getElementById('upload-progress-overlay');
@@ -1985,7 +1988,12 @@
                   _overlay.appendChild(_retryBtn);
                 }
               });
-          })(0);
+          }
+
+          // Kick off first batch
+          for (var _pi = 0; _pi < Math.min(_PARALLEL, _totalChunks); _pi++) {
+            _uploadOneChunk(_pi);
+          }
         })();
     }).catch(function (err) {
       console.warn('[upload] ⚠ POST to D1 failed:', err);
