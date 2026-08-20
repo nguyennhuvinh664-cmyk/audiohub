@@ -1855,16 +1855,36 @@
           var _r2Key = _aKey || realId;
 
           console.log('[upload] 🎵 Uploading', _blob.size, 'bytes to R2 | key:', _r2Key);
-          _updateProgress(5, 'Đang upload ' + _totalMB + ' MB...');
+          _updateProgress(2, 'Đang upload ' + _totalMB + ' MB...');
 
+          // XHR-based upload with real-time progress (fetch doesn't support upload progress)
           function _putToR2(key, blob) {
-            var url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(key);
-            return fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
-              .then(function(res) {
-                if (!res.ok) throw new Error('R2 PUT ' + res.status);
-                console.log('[upload] ✅ R2 PUT OK:', key);
-                return key;
-              });
+            return new Promise(function(resolve, reject) {
+              var xhr = new XMLHttpRequest();
+              var url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(key);
+              xhr.open('PUT', url, true);
+              xhr.setRequestHeader('Content-Type', blob.type || 'audio/mpeg');
+              xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                  var pct = Math.round((e.loaded / e.total) * 85) + 2; // 2-87%
+                  var loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
+                  var totalMB2 = (e.total / 1024 / 1024).toFixed(1);
+                  _updateProgress(pct, 'Đang upload... ' + loadedMB + ' / ' + totalMB2 + ' MB (' + Math.round(e.loaded / e.total * 100) + '%)');
+                }
+              };
+              xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                  console.log('[upload] ✅ R2 PUT OK:', key);
+                  resolve(key);
+                } else {
+                  reject(new Error('R2 PUT ' + xhr.status));
+                }
+              };
+              xhr.onerror = function() { reject(new Error('R2 PUT network error')); };
+              xhr.ontimeout = function() { reject(new Error('R2 PUT timeout')); };
+              xhr.timeout = 180000; // 3 min for large files
+              xhr.send(blob);
+            });
           }
 
           // Single upload with the chapter's audioKey — this is what the player looks up
