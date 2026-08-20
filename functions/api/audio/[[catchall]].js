@@ -60,11 +60,13 @@ export async function onRequest(context) {
 
     // ── HEAD /api/audio/:storyId — check if audio exists (no body) ──
     if (method === 'HEAD') {
-      // r2Key already defined above from ?key= param or {storyId}.mp3 default
+      console.log('[audio][HEAD] key:', r2Key, '| storyId:', storyId);
+      // 1) Try R2 first
       if (env.AUDIO) {
         try {
           const head = await env.AUDIO.head(r2Key);
           if (head) {
+            console.log('[audio][HEAD] ✅ R2 hit:', r2Key, '| size:', head.size);
             return new Response(null, {
               status: 200,
               headers: {
@@ -75,13 +77,40 @@ export async function onRequest(context) {
               }
             });
           }
-        } catch (e) { /* fall through */ }
+        } catch (e) { /* R2 miss, try Supabase */ }
       }
+      // 2) R2 miss → try Supabase HEAD
+      const headSupaKeys = [r2Key, `${storyId}.mp3`];
+      const triedHeadSupa = new Set();
+      for (const hk of headSupaKeys) {
+        if (triedHeadSupa.has(hk)) continue;
+        triedHeadSupa.add(hk);
+        try {
+          const headUrl = `${SUPABASE_URL}/storage/v1/object/public/${AUDIO_BUCKET}/${encodeURIComponent(hk)}`;
+          console.log('[audio][HEAD] trying Supabase:', hk);
+          const headRes = await fetch(headUrl, { method: 'HEAD', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
+          if (headRes.ok) {
+            console.log('[audio][HEAD] ✅ Supabase hit:', hk, '| size:', headRes.headers.get('content-length'));
+            return new Response(null, {
+              status: 200,
+              headers: {
+                'Content-Type': headRes.headers.get('Content-Type') || 'audio/mpeg',
+                'Content-Length': headRes.headers.get('Content-Length') || '0',
+                'Accept-Ranges': 'bytes',
+                ...corsHeaders
+              }
+            });
+          }
+          console.log('[audio][HEAD] Supabase miss:', hk, headRes.status);
+        } catch (e) { console.error('[audio][HEAD] Supabase error:', hk, e.message); }
+      }
+      console.log('[audio][HEAD] ❌ 404 — not found in R2 or Supabase');
       return new Response(null, { status: 404, headers: corsHeaders });
     }
 
     // ── GET /api/audio/:storyId — R2 first, Supabase fallback ──
     if (method === 'GET') {
+      console.log('[audio][GET] key:', r2Key, '| storyId:', storyId, '| range:', request.headers.get('Range') || 'none');
       // r2Key already defined above from ?key= param or {storyId}.mp3 default
       const rangeHeader = request.headers.get('Range') || '';
 
@@ -136,6 +165,7 @@ export async function onRequest(context) {
           console.error('[audio] R2 GET error:', e.message);
         }
       }
+      console.log('[audio][GET] R2 miss for key:', r2Key, '— trying Supabase');
 
       // 2) R2 miss → try Supabase Storage (public, streaming)
       // Try customKey first (per-chapter audio), then storyId.mp3 fallback
@@ -188,6 +218,7 @@ export async function onRequest(context) {
       }
 
       // 3) Both R2 and Supabase miss
+      console.log('[audio][GET] ❌ 404 — audio not found in R2 or Supabase for key:', r2Key);
       return Response.json({ error: 'Audio not found' }, { status: 404, headers: corsHeaders });
     }
 
