@@ -1399,21 +1399,20 @@
         _verifyChapters.forEach(function (ch, i) {
           console.log('[upload]   ch' + (i+1) + ':', { title: ch.title, audioKey: ch.audioKey || '(EMPTY)' });
         });
-        // AUTO-REPAIR: if localStorage has fewer chapters, try writing slimmed version (no readingText)
+        // AUTO-REPAIR: if localStorage has fewer chapters, rewrite with all fields (including readingText)
         var _expectedCount = built.payload.chapters ? built.payload.chapters.length : 0;
         if (_verifyChapters.length < _expectedCount) {
           console.warn('[upload] ⚠ MISMATCH — localStorage has', _verifyChapters.length, 'chapters, expected', _expectedCount);
           try {
-            // Slim chapters: strip readingText to reduce size
             var _slimChapters = built.payload.chapters.map(function (ch) {
               if (!ch) return ch;
-              return { title: ch.title || '', audioKey: ch.audioKey || '', coverKey: ch.coverKey || '' };
+              return { title: ch.title || '', audioKey: ch.audioKey || '', coverKey: ch.coverKey || '', readingText: ch.readingText || '', visibility: ch.visibility || 'Công khai' };
             });
             _verifyStore[story.id] = _slimChapters;
             localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_verifyStore));
             var _reCheck = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
             var _reCount = Array.isArray(_reCheck[story.id]) ? _reCheck[story.id].length : 0;
-            console.log('[upload] Repair result:', _reCount, 'chapters (slimmed, no readingText)');
+            console.log('[upload] Repair result:', _reCount, 'chapters (with readingText)');
           } catch (e) { console.error('[upload] ❌ Repair failed — localStorage critically full:', e && e.message); }
         }
       } catch (e) { console.warn('[upload] Verify failed:', e); }
@@ -1491,7 +1490,7 @@
           // Keep original audioKey — each chapter has its own R2 file under its audioKey
           // Do NOT replace a_* keys with CUID — that makes all chapters share the same audio
           var _ak = (c && c.audioKey) || story.id;
-          return { title: (c && c.title) || '', audioKey: _ak, visibility: (c && c.visibility) || 'Công khai' };
+          return { title: (c && c.title) || '', audioKey: _ak, visibility: (c && c.visibility) || 'Công khai', readingText: (c && c.readingText) || '' };
         });
         console.log('[upload] 📊 Chapters:', _allChapters.map(function(c) { return c.title + ':' + (c.audioKey || 'NO_KEY') + ':' + (c.visibility || 'Công khai'); }));
 
@@ -1538,7 +1537,7 @@
             var _chsForSync = (built.payload.chapters || []).map(function(c) {
               var _k = (c && c.audioKey) || '';
               // Keep original audioKey — each chapter has its own R2 file under its audioKey
-              return { title: (c && c.title) || '', audioKey: _k, visibility: (c && c.visibility) || 'Công khai' };
+              return { title: (c && c.title) || '', audioKey: _k, visibility: (c && c.visibility) || 'Công khai', readingText: (c && c.readingText) || '' };
             });
             if (_chsForSync.length) {
               fetch('/api/stories/' + encodeURIComponent(story.id) + '/sync-chapters', {
@@ -1938,7 +1937,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
                         body: JSON.stringify({ chapters: _chs.map(function(c) {
-                          return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai' };
+                          return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai', readingText: (c && c.readingText) || '' };
                         }) })
                       }).then(function(r) { return r.json(); }).then(function(d) {
                         if (d && d.success) console.log('[upload] ✅ Synced', _chs.length, 'chapters to D1 with audioKey:', _chs[0] && _chs[0].audioKey);
