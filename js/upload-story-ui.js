@@ -1974,14 +1974,32 @@
             })
             .catch(function(err) {
               console.warn('[upload] ⚠ Supabase upload failed:', err && err.message, '| trying R2 fallback...');
-              // Fallback: try R2 directly (may work for small files)
-              _updateProgress(90, 'Supabase gặp lỗi, đang thử R2...');
-              _putToR2Background(_r2Key, _blob);
-              _putToR2Background(realId, _blob);
-              // Still sync and redirect — audio will be found via Supabase fallback in player
-              _uploadConfirmed = true;
-              _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
-              setTimeout(function() { _safeRedirect(); }, 500);
+              _updateProgress(90, 'Supabase lỗi, đang thử R2...');
+              // Try R2 PUT synchronously (wait for result)
+              var _r2Url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(_r2Key);
+              fetch(_r2Url, { method: 'PUT', headers: { 'Content-Type': _blob.type || 'audio/mpeg' }, body: _blob })
+                .then(function(r2Res) {
+                  if (r2Res.ok) {
+                    console.log('[upload] ✅ R2 PUT OK (fallback):', _r2Key);
+                    _uploadConfirmed = true;
+                    _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
+                    setTimeout(function() { _safeRedirect(); }, 300);
+                  } else {
+                    throw new Error('R2 PUT ' + r2Res.status);
+                  }
+                })
+                .catch(function(r2Err) {
+                  console.error('[upload] ❌ BOTH Supabase AND R2 failed:', err && err.message, '|', r2Err && r2Err.message);
+                  _updateProgress(0, '❌ Upload thất bại! Supabase và R2 đều lỗi. Kiểm tra lại kết nối và thử lại.');
+                  var _overlay = document.getElementById('upload-progress-overlay');
+                  if (_overlay) {
+                    var _retryBtn = document.createElement('button');
+                    _retryBtn.textContent = '↻ Thử lại';
+                    _retryBtn.style.cssText = 'margin-top:16px;padding:10px 24px;background:#f59e0b;color:#000;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;';
+                    _retryBtn.onclick = function() { location.reload(); };
+                    _overlay.appendChild(_retryBtn);
+                  }
+                });
             });
         })();
     }).catch(function (err) {
