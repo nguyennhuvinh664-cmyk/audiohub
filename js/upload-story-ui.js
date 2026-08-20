@@ -1605,11 +1605,19 @@
                 _blobPromise = window.AudioHubStoryAudio.get(chKey).then(function(blob) {
                   if (blob && blob.size > 1000) return blob;
                   return window.AudioHubStoryAudio.get(story.id).then(function(b2) {
-                    return (b2 && b2.size > 1000) ? b2 : null;
+                    if (b2 && b2.size > 1000) return b2;
+                    // Fallback: use state.audioFile (still in memory from file input)
+                    if (state.audioFile && state.audioFile.size > 1000) {
+                      console.log('[upload] ℹ️ PATCH: Using state.audioFile as fallback for chapter', idx);
+                      return state.audioFile;
+                    }
+                    return null;
                   });
                 });
               } else {
-                _blobPromise = Promise.resolve(null);
+                _blobPromise = Promise.resolve(
+                  (state.audioFile && state.audioFile.size > 1000) ? state.audioFile : null
+                );
               }
 
               _blobPromise.then(function(blob) {
@@ -1895,7 +1903,7 @@
             _chapters = [{ title: '', audioKey: state.audioKey || realId }];
           }
 
-          console.log('[upload] 📋 Chapters to upload:', _chapters.length, _chapters.map(function(c) { return c.audioKey; }));
+          console.log('[upload] 📋 Chapters to upload:', _chapters.length, _chapters.map(function(c) { return c.audioKey || '(EMPTY)'; }), '| realId:', realId, '| state.audioKey:', state.audioKey || '(EMPTY)');
 
           // Always use IndexedDB lookup per chapter — state.audioFile is only the LAST selected file
           var _audioStore = window.AudioHubStoryAudio;
@@ -1920,20 +1928,30 @@
                 if (blob && blob.size > 1000) return blob;
                 // Fallback: try story ID as key (legacy single-audio stories)
                 return _audioStore.get(realId).then(function(b2) {
-                  return (b2 && b2.size > 1000) ? b2 : null;
+                  if (b2 && b2.size > 1000) return b2;
+                  // Last resort: use state.audioFile (still in memory from file input)
+                  // File extends Blob, so it works with fetch/putAudioLocal
+                  if (state.audioFile && state.audioFile.size > 1000) {
+                    console.log('[upload] ℹ️ Using state.audioFile as fallback for chapter', idx, '| size:', state.audioFile.size);
+                    return state.audioFile;
+                  }
+                  return null;
                 });
               });
             } else {
-              _blobPromise = Promise.resolve(null);
+              _blobPromise = Promise.resolve(
+                (state.audioFile && state.audioFile.size > 1000) ? state.audioFile : null
+              );
             }
 
             _blobPromise.then(function(blob) {
               if (!blob || blob.size === 0) {
-                console.warn('[upload] ⚠ No audio blob for chapter', idx, '| key:', chKey);
+                console.warn('[upload] ⚠ No audio blob for chapter', idx, '| key:', chKey, '| state.audioFile:', !!state.audioFile, '| size:', state.audioFile && state.audioFile.size, '| hasStore:', _hasStore);
                 _uploaded++; // count as done (no audio for this chapter)
                 _uploadChapter(idx + 1);
                 return;
               }
+              console.log('[upload] 🎵 Chapter', idx, '| blob found | size:', blob.size, '| key:', chKey);
               // Upload to R2 with chapter's audioKey as the key
               var _r2Url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(chKey);
               console.log('[upload] 🎵 Chapter', idx, '| uploading to R2 with key:', chKey, '| size:', blob.size);
