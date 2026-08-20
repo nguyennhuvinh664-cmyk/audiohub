@@ -1519,14 +1519,18 @@
           var _patchRedirectDone = false;
           var _patchUploadConfirmed = false;
           function _patchSafeRedirect() {
+            try { var ov = document.getElementById('upload-progress-overlay'); if (ov) ov.remove(); } catch(e) {}
             if (!_patchRedirectDone) {
               _patchRedirectDone = true;
               doRedirect(story.id);
             }
           }
-          // Safety timeout: 120s — do NOT redirect if upload still in progress (abort = lost audio)
+          // Safety timeout: 120s — warn but do NOT redirect if upload still in progress
           setTimeout(function () {
-            if (!_patchUploadConfirmed) console.warn('[upload] ⚠ PATCH 120s timeout — upload may not have completed');
+            if (!_patchUploadConfirmed) {
+              console.warn('[upload] ⚠ PATCH 120s timeout — upload may not have completed');
+              try { var txt = document.getElementById('upload-progress-text'); if (txt) txt.textContent = 'Đang upload lâu hơn dự kiến...'; } catch(e) {}
+            }
           }, 120000);
 
           // Force-sync chapter audioKeys via sync-chapters endpoint (PATCH uses COALESCE which may not overwrite null)
@@ -1587,14 +1591,40 @@
 
             console.log('[upload] 📋 PATCH chapters to upload:', _total);
 
+            // Show loading overlay for PATCH flow
+            try {
+              var _overlay = document.createElement('div');
+              _overlay.id = 'upload-progress-overlay';
+              _overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:system-ui,sans-serif;';
+              _overlay.innerHTML = '<div style="font-size:48px;margin-bottom:16px">🎵</div>' +
+                '<div style="font-size:20px;font-weight:600;margin-bottom:8px">Đang tải audio lên đám mây...</div>' +
+                '<div id="upload-progress-text" style="font-size:14px;color:#aaa">Chuẩn bị upload ' + _total + ' chương</div>' +
+                '<div style="margin-top:16px;width:300px;height:6px;background:#333;border-radius:3px;overflow:hidden">' +
+                '<div id="upload-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:3px;transition:width 0.3s"></div></div>' +
+                '<div style="margin-top:24px;font-size:12px;color:#666">Không rời khỏi trang này cho đến khi hoàn tất</div>';
+              document.body.appendChild(_overlay);
+            } catch(e) {}
+
+            function _patchUpdateProgress(pct, msg) {
+              try {
+                var bar = document.getElementById('upload-progress-bar');
+                var txt = document.getElementById('upload-progress-text');
+                if (bar) bar.style.width = pct + '%';
+                if (txt) txt.textContent = msg || '';
+              } catch(e) {}
+            }
+
             function _patchUploadChapter(idx) {
               if (idx >= _total) {
                 console.log('[upload] ✅ PATCH: all', _uploaded, '/', _total, 'chapters uploaded');
                 _patchUploadConfirmed = true;
                 state.audioFile = null;
+                _patchUpdateProgress(100, 'Hoàn tất! Đang chuyển trang...');
+                try { var ov = document.getElementById('upload-progress-overlay'); if (ov) ov.remove(); } catch(e) {}
                 _patchUploadDone();
                 return;
               }
+              _patchUpdateProgress(Math.round((idx / _total) * 90), 'Đang upload chương ' + (idx + 1) + '/' + _total + '...');
               var ch = _chapters[idx];
               var chKey = ch.audioKey || story.id;
 
@@ -1758,25 +1788,27 @@
         // 2. Add playlist entry
         addPlaylistEntry(realId, story);
 
-        // 3. Upload audio to cloud (R2) under BOTH the CUID and the temporary a_* key.
-        // Root-cause fix: D1 and the player both resolve the story's audio to the CUID,
-        // so the file MUST exist at `<cuid>.mp3`. We also keep a copy at the a_* key so
-        // any legacy lookup path (chapter audioKey) still finds it. Never let the two diverge.
+        // 3. Upload audio to cloud (R2) under the chapter's audioKey (a_*).
+        // The player reads chapter.audioKey from D1/localStorage, so the R2 file MUST
+        // exist at that key. CUID copy is uploaded in background as backup.
 
         // Safe redirect: only redirect once, AFTER upload confirms or all retries exhausted
         var _redirectDone = false;
         var _uploadConfirmed = false;
         function _safeRedirect() {
+          // Remove loading overlay before redirect
+          try { var ov = document.getElementById('upload-progress-overlay'); if (ov) ov.remove(); } catch(e) {}
           if (!_redirectDone) {
             _redirectDone = true;
             doRedirect(realId);
           }
         }
-        // Safety timeout: 120s — large files (40MB+) need time. Do NOT redirect if upload still in progress.
+
+        // Safety timeout: 120s — warn but do NOT redirect if upload still in progress
         setTimeout(function () {
           if (!_uploadConfirmed) {
             console.warn('[upload] ⚠ 120s safety timeout — upload may not have completed');
-            // Do NOT redirect — let upload finish. User can navigate manually if stuck.
+            try { var txt = document.getElementById('upload-progress-text'); if (txt) txt.textContent = 'Đang upload lâu hơn dự kiến...'; } catch(e) {}
           }
         }, 120000);
 
@@ -1794,17 +1826,40 @@
             return;
           }
 
-          // Upload under BOTH the a_* key (per-chapter) and the CUID (fallback)
+          // Show loading overlay with progress
+          var _totalMB = (_blob.size / 1024 / 1024).toFixed(1);
+          try {
+            var _overlay = document.createElement('div');
+            _overlay.id = 'upload-progress-overlay';
+            _overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:system-ui,sans-serif;';
+            _overlay.innerHTML = '<div style="font-size:48px;margin-bottom:16px">🎵</div>' +
+              '<div style="font-size:20px;font-weight:600;margin-bottom:8px">Đang tải audio lên đám mây...</div>' +
+              '<div id="upload-progress-text" style="font-size:14px;color:#aaa">Chuẩn bị upload ' + _totalMB + ' MB</div>' +
+              '<div style="margin-top:16px;width:300px;height:6px;background:#333;border-radius:3px;overflow:hidden">' +
+              '<div id="upload-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:3px;transition:width 0.3s"></div></div>' +
+              '<div style="margin-top:24px;font-size:12px;color:#666">Không rời khỏi trang này cho đến khi hoàn tất</div>';
+            document.body.appendChild(_overlay);
+          } catch(e) {}
+
+          function _updateProgress(pct, msg) {
+            try {
+              var bar = document.getElementById('upload-progress-bar');
+              var txt = document.getElementById('upload-progress-text');
+              if (bar) bar.style.width = pct + '%';
+              if (txt) txt.textContent = msg || '';
+            } catch(e) {}
+          }
+
+          // Upload under the a_* key (per-chapter audioKey) — player reads this directly
           var _aKey = state.audioKey || '';
-          var _keysToUpload = [];
-          if (_aKey && _aKey !== realId) _keysToUpload.push(_aKey);
-          _keysToUpload.push(realId);
+          var _r2Key = _aKey || realId;
 
-          console.log('[upload] 🎵 Uploading', _blob.size, 'bytes to R2 | keys:', _keysToUpload.join(' + '));
+          console.log('[upload] 🎵 Uploading', _blob.size, 'bytes to R2 | key:', _r2Key);
+          _updateProgress(5, 'Đang upload ' + _totalMB + ' MB...');
 
-          function _putOneKey(key) {
+          function _putToR2(key, blob) {
             var url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(key);
-            return fetch(url, { method: 'PUT', headers: { 'Content-Type': _blob.type || 'audio/mpeg' }, body: _blob })
+            return fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
               .then(function(res) {
                 if (!res.ok) throw new Error('R2 PUT ' + res.status);
                 console.log('[upload] ✅ R2 PUT OK:', key);
@@ -1812,21 +1867,15 @@
               });
           }
 
-          // Upload sequentially — first key must succeed
-          _putOneKey(_keysToUpload[0])
+          // Single upload with the chapter's audioKey — this is what the player looks up
+          _putToR2(_r2Key, _blob)
             .then(function(confirmedKey) {
               console.log('[upload] ✅ Audio confirmed on R2 | key:', confirmedKey);
               _uploadConfirmed = true;
+              _updateProgress(90, 'Đã upload xong! Đang lưu database...');
               state.audioFile = null;
-              // Upload second key in background (non-blocking)
-              if (_keysToUpload[1]) {
-                _putOneKey(_keysToUpload[1]).then(function(k2) {
-                  console.log('[upload] ✅ Backup copy on R2:', k2);
-                }).catch(function(e2) {
-                  console.warn('[upload] ⚠ Backup R2 failed:', e2 && e2.message);
-                });
-              }
-              // Sync chapters to D1 — use the CONFIRMED R2 key, not the old s_ temp key
+
+              // Sync chapters to D1 — use the CONFIRMED R2 key
               try {
                 var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
                 var _chs = Array.isArray(_cs[realId]) ? _cs[realId] : [];
@@ -1851,12 +1900,24 @@
                   }
                 }
               } catch (e) {}
-              _safeRedirect();
+
+              // Also upload under CUID as backup (non-blocking, in background)
+              if (_r2Key !== realId) {
+                _putToR2(realId, _blob).then(function(k2) {
+                  console.log('[upload] ✅ Backup copy on R2:', k2);
+                }).catch(function(e2) {
+                  console.warn('[upload] ⚠ Backup R2 failed:', e2 && e2.message);
+                });
+              }
+
+              _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
+              setTimeout(function() { _safeRedirect(); }, 300);
             })
             .catch(function(err) {
               console.warn('[upload] ⚠ R2 upload failed:', err && err.message, '| redirecting anyway');
+              _updateProgress(100, 'Upload gặp lỗi, đang chuyển trang...');
               _uploadConfirmed = true;
-              _safeRedirect();
+              setTimeout(function() { _safeRedirect(); }, 500);
             });
         })();
     }).catch(function (err) {
