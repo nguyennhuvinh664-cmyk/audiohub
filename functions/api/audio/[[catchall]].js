@@ -1,24 +1,18 @@
 // functions/api/audio/[[catchall]].js
-// Audio API - R2 primary, Supabase Storage fallback (streaming, no buffering)
+// Audio API — R2 primary, chunked upload support for large files
 
 import { uploadAudio, deleteAudio } from '../../lib/r2.js';
-
-const SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-const AUDIO_BUCKET = 'story-audio';
 
 export async function onRequest(context) {
   const { request, env, params } = context;
   const method = request.method;
 
-  // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Chunk-Index, X-Total-Chunks, X-Content-Length'
   };
 
-  // Handle CORS preflight
   if (method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -31,42 +25,80 @@ export async function onRequest(context) {
       return Response.json({ error: 'Story ID is required' }, { status: 400, headers: corsHeaders });
     }
 
-    // Support ?key=xxx for chapter-level audio (custom R2 key instead of {storyId}.mp3)
     const url = new URL(request.url);
     const customKey = url.searchParams.get('key');
     const r2Key = customKey || `${storyId}.mp3`;
+    const action = url.searchParams.get('action');
 
-    // ── PUT /api/audio/:storyId/presign — get presigned URL for direct R2 upload ──
-    // This lets the browser upload directly to R2, bypassing the Worker's30s timeout
-    if (method === 'POST' && pathParts[1] === 'presign') {
-      if (!env.AUDIO) {
-        return Response.json({ error: 'R2 AUDIO binding not configured' }, { status: 500, headers: corsHeaders });
-      }
-      const keyToSign = customKey || `${storyId}.mp3`;
-      const expiresIn = url.searchParams.get('expires') || '3600';
-      try {
-        const presignedUrl = env.AUDIO.createPresignedUrl({
-          key: keyToSign,
-          method: 'PUT',
-          expiresIn: Number(expiresIn)
-        });
-        console.log('[audio] ✅ Presigned URL created for:', keyToSign);
-        return Response.json({ success: true, url: presignedUrl.toString(), key: keyToSign }, { headers: corsHeaders });
-      } catch (e) {
-        console.error('[audio] Presign error:', e.message);
-        return Response.json({ error: 'Failed to create presigned URL: ' + e.message }, { status: 500, headers: corsHeaders });
-      }
+    // ── PUT /api/audio/:storyId?action=chunk&index=N — upload single chunk ──
+    if (method === 'PUT' && action === 'chunk') {
+      if (!env.AUDIO) return Response.json({ error: 'R2 not configured' }, { status: 500, headers: corsHeaders });
+      const idx = Number(url.searchParams.get('index'));
+      if (isNaN(idx)) return Response.json({ error: 'Missing chunk index' }, { status: 400, headers: corsHeaders });
+
+      const chunkKey = `_chunks/${r2Key}/${idx}`;
+      await env.AUDIO.put(chunkKey, request.body, {
+        httpMetadata: { contentType: 'application/octet-stream' }
+      });
+      console.log(`[audio] ✅ Chunk ${idx} stored: ${chunkKey}`);
+      return Response.json({ success: true, index: idx }, { headers: corsHeaders });
     }
 
-    // ── HEAD /api/audio/:storyId — check if audio exists (no body) ──
+    // ── POST /api/audio/:storyId?action=assemble — merge chunks into final file ──
+    if (method === 'POST' && action === 'assemble') {
+      if (!env.AUDIO) return Response.json({ error: 'R2 not configured' }, { status: 500, headers: corsHeaders });
+
+      const body = await request.json().catch(() => ({}));
+      const totalChunks = Number(body.totalChunks);
+      const contentType = body.contentType || 'audio/mpeg';
+      if (!totalChunks || totalChunks < 1) return Response.json({ error: 'Invalid totalChunks' }, { status: 400, headers: corsHeaders });
+
+      console.log(`[audio] Assembling ${totalChunks} chunks → ${r2Key}`);
+
+      // Read all chunks, concatenate into one ReadableStream
+      const readers = [];
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkKey = `_chunks/${r2Key}/${i}`;
+        const obj = await env.AUDIO.get(chunkKey);
+        if (!obj || !obj.body) {
+          return Response.json({ error: `Chunk ${i} missing` }, { status: 400, headers: corsHeaders });
+        }
+        readers.push(obj.body.getReader());
+      }
+
+      const totalSize = Number(body.totalSize) || 0;
+      const stream = new ReadableStream({
+        async pull(controller) {
+          while (readers.length > 0) {
+            const reader = readers[0];
+            const { done, value } = await reader.read();
+            if (!done) { controller.enqueue(value); return; }
+            readers.shift();
+          }
+          controller.close();
+        }
+      });
+
+      await env.AUDIO.put(r2Key, stream, { httpMetadata: { contentType } });
+      console.log(`[audio] ✅ Assembled → ${r2Key} (${totalSize} bytes)`);
+
+      // Cleanup chunks (fire-and-forget)
+      const cleanup = [];
+      for (let i = 0; i < totalChunks; i++) {
+        cleanup.push(env.AUDIO.delete(`_chunks/${r2Key}/${i}`).catch(() => {}));
+      }
+      Promise.all(cleanup).then(() => console.log(`[audio] Cleaned ${totalChunks} chunks`));
+
+      return Response.json({ success: true, key: r2Key, size: totalSize }, { headers: corsHeaders });
+    }
+
+    // ── HEAD — check if audio exists ──
     if (method === 'HEAD') {
-      console.log('[audio][HEAD] key:', r2Key, '| storyId:', storyId);
-      // 1) Try R2 first
       if (env.AUDIO) {
+        // 1) Check assembled file
         try {
           const head = await env.AUDIO.head(r2Key);
           if (head) {
-            console.log('[audio][HEAD] ✅ R2 hit:', r2Key, '| size:', head.size);
             return new Response(null, {
               status: 200,
               headers: {
@@ -77,53 +109,37 @@ export async function onRequest(context) {
               }
             });
           }
-        } catch (e) { /* R2 miss, try Supabase */ }
-      }
-      // 2) R2 miss → try Supabase HEAD
-      const headSupaKeys = [r2Key, `${storyId}.mp3`];
-      const triedHeadSupa = new Set();
-      for (const hk of headSupaKeys) {
-        if (triedHeadSupa.has(hk)) continue;
-        triedHeadSupa.add(hk);
+        } catch (e) { /* fall through */ }
+        // 2) Check chunks (not yet assembled)
         try {
-          const headUrl = `${SUPABASE_URL}/storage/v1/object/public/${AUDIO_BUCKET}/${encodeURIComponent(hk)}`;
-          console.log('[audio][HEAD] trying Supabase:', hk);
-          const headRes = await fetch(headUrl, { method: 'HEAD', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
-          if (headRes.ok) {
-            console.log('[audio][HEAD] ✅ Supabase hit:', hk, '| size:', headRes.headers.get('content-length'));
+          const firstChunk = await env.AUDIO.head(`_chunks/${r2Key}/0`);
+          if (firstChunk) {
+            console.log('[audio][HEAD] chunks exist (not assembled):', r2Key);
             return new Response(null, {
               status: 200,
               headers: {
-                'Content-Type': headRes.headers.get('Content-Type') || 'audio/mpeg',
-                'Content-Length': headRes.headers.get('Content-Length') || '0',
-                'Accept-Ranges': 'bytes',
+                'Content-Type': 'audio/mpeg',
+                'Accept-Ranges': 'no',
                 ...corsHeaders
               }
             });
           }
-          console.log('[audio][HEAD] Supabase miss:', hk, headRes.status);
-        } catch (e) { console.error('[audio][HEAD] Supabase error:', hk, e.message); }
+        } catch (e) { /* fall through */ }
       }
-      console.log('[audio][HEAD] ❌ 404 — not found in R2 or Supabase');
       return new Response(null, { status: 404, headers: corsHeaders });
     }
 
-    // ── GET /api/audio/:storyId — R2 first, Supabase fallback ──
+    // ── GET — serve audio (assembled file, then fallback to chunks) ──
     if (method === 'GET') {
-      console.log('[audio][GET] key:', r2Key, '| storyId:', storyId, '| range:', request.headers.get('Range') || 'none');
-      // r2Key already defined above from ?key= param or {storyId}.mp3 default
       const rangeHeader = request.headers.get('Range') || '';
 
-      // 1) Try R2 (same-domain, fast, never sleeps)
+      // 1) Try assembled file in R2
       if (env.AUDIO) {
         try {
-          // First get the file metadata (size) via HEAD for Range support
           const headObj = await env.AUDIO.head(r2Key);
-          if (!headObj) { /* fall through to Supabase */ }
-          else {
+          if (headObj) {
             const contentType = headObj.httpMetadata?.contentType || 'audio/mpeg';
             const size = headObj.size || 0;
-
             const headers = {
               'Content-Type': contentType,
               'Accept-Ranges': 'bytes',
@@ -131,9 +147,6 @@ export async function onRequest(context) {
               ...corsHeaders
             };
 
-            // Parse Range header for partial content (206)
-            // Browsers ALWAYS send Range for <audio> — without 206 support
-            // the audio element fails with MEDIA_ERR_SRC_NOT_SUPPORTED.
             if (rangeHeader) {
               const m = rangeHeader.match(/bytes=(\d*)-(\d*)/);
               if (m) {
@@ -148,13 +161,11 @@ export async function onRequest(context) {
                     return new Response(object.body, { status: 206, headers });
                   }
                 }
-                // Range out of bounds → 416 Range Not Satisfiable
                 headers['Content-Range'] = `bytes */${size}`;
                 return new Response(null, { status: 416, headers });
               }
             }
 
-            // No Range header → full file (200)
             const object = await env.AUDIO.get(r2Key);
             if (object && object.body) {
               if (size) headers['Content-Length'] = String(size);
@@ -165,96 +176,74 @@ export async function onRequest(context) {
           console.error('[audio] R2 GET error:', e.message);
         }
       }
-      console.log('[audio][GET] R2 miss for key:', r2Key, '— trying Supabase');
 
-      // 2) R2 miss → try Supabase Storage (public, streaming)
-      // Try customKey first (per-chapter audio), then storyId.mp3 fallback
-      const supaKeys = [r2Key, `${storyId}.mp3`];
-      const triedSupa = new Set();
-      for (const supaKey of supaKeys) {
-        if (triedSupa.has(supaKey)) continue;
-        triedSupa.add(supaKey);
+      // 2) Fallback: find and stream chunks (browser hasn't triggered assemble yet)
+      console.log('[audio] Assembled file miss, checking chunks for:', r2Key);
+      const chunkParts = [];
+      for (let i = 0; i < 500; i++) {
         try {
-          const supaUrl = `${SUPABASE_URL}/storage/v1/object/public/${AUDIO_BUCKET}/${encodeURIComponent(supaKey)}`;
-          console.log('[audio] R2 miss, trying Supabase:', supaKey);
-          const supaRes = await fetch(supaUrl, {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
-          });
-
-          if (supaRes.ok && supaRes.body) {
-            // Tee the stream: one branch → client, one branch → R2 cache (background)
-            const [clientStream, r2Stream] = supaRes.body.tee();
-
-            // Background: cache to R2 (don't block response)
-            if (env.AUDIO) {
-              try {
-                await env.AUDIO.put(r2Key, r2Stream, {
-                  httpMetadata: { contentType: supaRes.headers.get('Content-Type') || 'audio/mpeg' }
-                });
-                console.log('[audio] ✅ Cached Supabase → R2:', supaKey);
-              } catch (e) {
-                console.error('[audio] R2 cache write error:', e.message);
-              }
-            }
-
-            // Return Supabase stream to client immediately
-            return new Response(clientStream, {
-              status: 200,
-              headers: {
-                'Content-Type': supaRes.headers.get('Content-Type') || 'audio/mpeg',
-                'Accept-Ranges': 'bytes',
-                'Cache-Control': 'private, no-cache',
-                ...corsHeaders
-              }
-            });
-          }
-          console.log('[audio] Supabase miss:', supaKey, supaRes.status);
-        } catch (e) {
-          console.error('[audio] Supabase fallback error:', e.message);
-        }
+          const obj = await env.AUDIO.get(`_chunks/${r2Key}/${i}`);
+          if (!obj || !obj.body) break;
+          chunkParts.push(obj.body);
+        } catch (e) { break; }
       }
 
-      // 3) Both R2 and Supabase miss
-      console.log('[audio][GET] ❌ 404 — audio not found in R2 or Supabase for key:', r2Key);
+      if (chunkParts.length > 0) {
+        console.log(`[audio] Found ${chunkParts.length} chunks, streaming`);
+        let offset = 0;
+        const ranges = chunkParts.map((body, i) => {
+          const start = offset;
+          offset += body ? 0 : 0; // size unknown per chunk
+          return body;
+        });
+
+        // Concatenate all chunk streams
+        const readers = chunkParts.map(b => b.getReader());
+        const stream = new ReadableStream({
+          async pull(controller) {
+            while (readers.length > 0) {
+              const { done, value } = await readers[0].read();
+              if (!done) { controller.enqueue(value); return; }
+              readers.shift();
+            }
+            controller.close();
+          }
+        });
+
+        return new Response(stream, {
+          status: 200,
+          headers: {
+            'Content-Type': 'audio/mpeg',
+            'Accept-Ranges': 'no',
+            'Cache-Control': 'private, no-cache',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 3) Nothing found
       return Response.json({ error: 'Audio not found' }, { status: 404, headers: corsHeaders });
     }
 
-    // ── PUT /api/audio/:storyId — stream to R2 ──
+    // ── PUT — direct upload to R2 (for small files, kept for backwards compat) ──
     if (method === 'PUT') {
-      if (!env.AUDIO) {
-        return Response.json({ error: 'R2 AUDIO binding not configured' }, { status: 500, headers: corsHeaders });
-      }
+      if (!env.AUDIO) return Response.json({ error: 'R2 not configured' }, { status: 500, headers: corsHeaders });
 
-      // r2Key already defined above from ?key= param or {storyId}.mp3 default
       const contentType = request.headers.get('Content-Type') || 'audio/mpeg';
       const contentLength = Number(request.headers.get('Content-Length') || 0);
 
-      // Stream the request body straight into R2 — do NOT buffer large files
-      // (e.g. 91MB audio) into memory; that either exceeds the Worker's CPU/memory
-      // limit and silently drops the PUT, or the buffered Blob becomes corrupt so the
-      // final object is empty/missing. Streaming avoids both.
-      await env.AUDIO.put(r2Key, request.body, {
-        httpMetadata: { contentType }
-      });
-
-      console.log('[audio] ✅ R2 PUT OK:', r2Key, '| declared size:', contentLength);
+      await env.AUDIO.put(r2Key, request.body, { httpMetadata: { contentType } });
+      console.log('[audio] ✅ R2 PUT OK:', r2Key, '| size:', contentLength);
       return Response.json({ success: true, key: r2Key, size: contentLength }, { headers: corsHeaders });
     }
 
-    // ── DELETE /api/audio/:storyId ──
+    // ── DELETE ──
     if (method === 'DELETE') {
-      if (!env.AUDIO) {
-        return Response.json({ error: 'R2 AUDIO binding not configured' }, { status: 500, headers: corsHeaders });
-      }
-      // r2Key already defined above from ?key= param or {storyId}.mp3 default
+      if (!env.AUDIO) return Response.json({ error: 'R2 not configured' }, { status: 500, headers: corsHeaders });
       await env.AUDIO.delete(r2Key);
       return Response.json({ success: true }, { headers: corsHeaders });
     }
 
-    // Unknown method
     return Response.json({ error: 'Method not allowed' }, { status: 405, headers: corsHeaders });
 
   } catch (error) {

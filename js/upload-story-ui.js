@@ -1553,41 +1553,35 @@
           // Upload audio to cloud (R2/Supabase) for this chapter
           function _patchUploadDone() { _patchSafeRedirect(); }
 
-          // Direct Supabase upload — bypasses Worker timeout on large files
-          var _SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-          var _SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-          var _BUCKET = 'story-audio';
-          function _directR2Upload(blob, key) {
-            console.log('[upload] 🔧 Supabase direct upload:', key, '| size:', blob.size);
-            return new Promise(function(resolve, reject) {
-              var xhr = new XMLHttpRequest();
-              var path = encodeURIComponent(key);
-              var url = _SUPABASE_URL + '/storage/v1/object/' + _BUCKET + '/' + path;
-              xhr.open('POST', url, true);
-              xhr.setRequestHeader('Authorization', 'Bearer ' + _SUPABASE_KEY);
-              xhr.setRequestHeader('apikey', _SUPABASE_KEY);
-              xhr.setRequestHeader('Content-Type', blob.type || 'audio/mpeg');
-              xhr.setRequestHeader('x-upsert', 'true');
-              xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                  var pct = Math.round((e.loaded / e.total) * 100);
-                  console.log('[upload] PATCH upload progress:', pct + '%', '(' + (e.loaded/1024/1024).toFixed(1) + 'MB)');
-                }
-              };
-              xhr.onload = function() {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                  console.log('[upload] ✅ Supabase PATCH upload OK:', key);
-                  resolve(true);
-                } else {
-                  console.warn('[upload] ⚠ Supabase PATCH upload failed:', xhr.status, xhr.responseText);
-                  reject(new Error('Supabase PUT ' + xhr.status));
-                }
-              };
-              xhr.onerror = function() { reject(new Error('Supabase PUT network error')); };
-              xhr.ontimeout = function() { reject(new Error('Supabase PUT timeout')); };
-              xhr.timeout = 300000;
-              xhr.send(blob);
-            });
+          // Chunked upload via Worker → R2 (replaces Supabase direct upload)
+          var _CHUNK_SIZE = 2 * 1024 * 1024; // 2MB
+
+          function _chunkedUpload(blob, key) {
+            console.log('[upload] 🔧 Chunked upload:', key, '| size:', blob.size);
+            var chunks = [];
+            for (var i = 0; i < blob.size; i += _CHUNK_SIZE) {
+              chunks.push(blob.slice(i, i + _CHUNK_SIZE));
+            }
+            var totalChunks = chunks.length;
+            var storyId = String(story.id || window.currentStoryId || window._editStoryId || '');
+
+            function uploadChunk(idx) {
+              if (idx >= totalChunks) {
+                // Assemble
+                var asmUrl = '/api/audio/' + encodeURIComponent(storyId) + '?key=' + encodeURIComponent(key) + '&action=assemble';
+                return fetch(asmUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ totalChunks: totalChunks, totalSize: blob.size, contentType: blob.type || 'audio/mpeg' })
+                }).then(function(r) { if (!r.ok) throw new Error('Assemble ' + r.status); return r.json(); });
+              }
+              var url = '/api/audio/' + encodeURIComponent(storyId) + '?key=' + encodeURIComponent(key) + '&action=chunk&index=' + idx;
+              return fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: chunks[idx] })
+                .then(function(r) { if (!r.ok) throw new Error('Chunk ' + idx + ' ' + r.status); return r.json(); })
+                .then(function() { return uploadChunk(idx + 1); });
+            }
+
+            return uploadChunk(0);
           }
 
           // Verify R2 has the file
@@ -1681,7 +1675,7 @@
                   _patchUploadChapter(idx + 1);
                   return;
                 }
-                _directR2Upload(blob, chKey).then(function() {
+                _chunkedUpload(blob, chKey).then(function() {
                   console.log('[upload] ✅ PATCH chapter', idx, 'uploaded | key:', chKey);
                   _uploaded++;
                   _patchUploadChapter(idx + 1);
@@ -1878,119 +1872,84 @@
           // Upload under the a_* key (per-chapter audioKey) — player reads this directly
           var _aKey = state.audioKey || '';
           var _r2Key = _aKey || realId;
+          var _CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk
 
-          // Supabase Storage direct upload — bypasses Worker timeout entirely
-          var _SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
-          var _SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
-          var _BUCKET = 'story-audio';
-
-          console.log('[upload] 🎵 Uploading', _blob.size, 'bytes to Supabase+R2 | key:', _r2Key);
+          console.log('[upload] 🎵 Chunked upload', _blob.size, 'bytes | key:', _r2Key);
           _updateProgress(2, 'Đang upload ' + _totalMB + ' MB...');
 
-          // Upload to Supabase Storage (direct from browser, no Worker timeout)
-          function _putToSupabase(key, blob) {
-            return new Promise(function(resolve, reject) {
-              var xhr = new XMLHttpRequest();
-              var path = encodeURIComponent(key);
-              var url = _SUPABASE_URL + '/storage/v1/object/' + _BUCKET + '/' + path;
-              xhr.open('POST', url, true);
-              xhr.setRequestHeader('Authorization', 'Bearer ' + _SUPABASE_KEY);
-              xhr.setRequestHeader('apikey', _SUPABASE_KEY);
-              xhr.setRequestHeader('Content-Type', blob.type || 'audio/mpeg');
-              xhr.setRequestHeader('x-upsert', 'true');
-              xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                  var pct = Math.round((e.loaded / e.total) * 85) + 2;
-                  var loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
-                  var totalMB2 = (e.total / 1024 / 1024).toFixed(1);
-                  _updateProgress(pct, 'Đang upload... ' + loadedMB + ' / ' + totalMB2 + ' MB (' + Math.round(e.loaded / e.total * 100) + '%)');
-                }
-              };
-              xhr.onload = function() {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                  console.log('[upload] ✅ Supabase upload OK:', key, '| status:', xhr.status);
-                  resolve(key);
-                } else {
-                  console.warn('[upload] ⚠ Supabase upload failed:', xhr.status, xhr.responseText);
-                  reject(new Error('Supabase PUT ' + xhr.status));
-                }
-              };
-              xhr.onerror = function() { reject(new Error('Supabase PUT network error')); };
-              xhr.ontimeout = function() { reject(new Error('Supabase PUT timeout')); };
-              xhr.timeout = 300000; // 5 min for large files
-              xhr.send(blob);
-            });
+          // Split blob into chunks
+          function _splitChunks(blob, size) {
+            var chunks = [];
+            for (var i = 0; i < blob.size; i += size) {
+              chunks.push(blob.slice(i, i + size));
+            }
+            return chunks;
           }
 
-          // Also upload to R2 via Worker (in background, non-blocking)
-          function _putToR2Background(key, blob) {
-            var url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(key);
-            fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
-              .then(function(res) {
-                if (res.ok) console.log('[upload] ✅ R2 PUT OK (background):', key);
-                else console.warn('[upload] ⚠ R2 PUT failed:', res.status);
-              })
-              .catch(function(e) { console.warn('[upload] ⚠ R2 PUT error:', e && e.message); });
+          // Upload a single chunk via fetch
+          function _uploadChunk(storyId, key, index, chunk) {
+            var url = '/api/audio/' + encodeURIComponent(storyId) + '?key=' + encodeURIComponent(key) + '&action=chunk&index=' + index;
+            return fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: chunk })
+              .then(function(r) { if (!r.ok) throw new Error('Chunk ' + index + ' failed: ' + r.status); return r.json(); });
           }
 
-          // Upload to Supabase (primary) + R2 (background backup)
-          _putToSupabase(_r2Key, _blob)
-            .then(function(confirmedKey) {
-              console.log('[upload] ✅ Audio confirmed on Supabase | key:', confirmedKey);
-              _uploadConfirmed = true;
-              _updateProgress(90, 'Đã upload xong! Đang lưu database...');
-              state.audioFile = null;
+          // Assemble all chunks into final file on R2
+          function _assembleChunks(storyId, key, totalChunks, totalSize, contentType) {
+            var url = '/api/audio/' + encodeURIComponent(storyId) + '?key=' + encodeURIComponent(key) + '&action=assemble';
+            return fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ totalChunks: totalChunks, totalSize: totalSize, contentType: contentType || 'audio/mpeg' })
+            }).then(function(r) { if (!r.ok) throw new Error('Assemble failed: ' + r.status); return r.json(); });
+          }
 
-              // Also push to R2 in background (Worker will cache from Supabase on next GET anyway)
-              _putToR2Background(_r2Key, _blob);
-              if (_r2Key !== realId) _putToR2Background(realId, _blob);
+          var _chunks = _splitChunks(_blob, _CHUNK_SIZE);
+          var _totalChunks = _chunks.length;
+          console.log('[upload] Split into', _totalChunks, 'chunks of', (_CHUNK_SIZE / 1024 / 1024), 'MB');
 
-              // Sync chapters to D1 — use the CONFIRMED key
-              try {
-                var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-                var _chs = Array.isArray(_cs[realId]) ? _cs[realId] : [];
-                if (_chs.length) {
-                  if (_chs[0]) _chs[0].audioKey = confirmedKey;
-                  _cs[realId] = _chs;
-                  localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs));
+          // Upload chunks sequentially
+          (function _uploadNextChunk(idx) {
+            if (idx >= _totalChunks) {
+              // All chunks uploaded — assemble
+              _updateProgress(92, 'Ghép file audio...');
+              console.log('[upload] All', _totalChunks, 'chunks uploaded. Assembling...');
+              _assembleChunks(realId, _r2Key, _totalChunks, _blob.size, _blob.type || 'audio/mpeg')
+                .then(function() {
+                  console.log('[upload] ✅ Assembled OK:', _r2Key, '| size:', _blob.size);
+                  _uploadConfirmed = true;
+                  state.audioFile = null;
+                  _updateProgress(95, 'Đã upload xong! Đang lưu database...');
 
-                  var _token = localStorage.getItem('audiohub-auth-token') || '';
-                  if (_token) {
-                    fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
-                      body: JSON.stringify({ chapters: _chs.map(function(c) {
-                        return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai' };
-                      }) })
-                    }).then(function(r) { return r.json(); }).then(function(d) {
-                      if (d && d.success) console.log('[upload] ✅ Synced', _chs.length, 'chapters to D1 with audioKey:', _chs[0] && _chs[0].audioKey);
-                    }).catch(function(e3) { console.warn('[upload] ⚠ D1 sync failed:', e3 && e3.message); });
-                  }
-                }
-              } catch (e) {}
+                  // Sync chapters to D1
+                  try {
+                    var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+                    var _chs = Array.isArray(_cs[realId]) ? _cs[realId] : [];
+                    if (_chs.length) {
+                      if (_chs[0]) _chs[0].audioKey = _r2Key;
+                      _cs[realId] = _chs;
+                      localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs));
 
-              _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
-              setTimeout(function() { _safeRedirect(); }, 300);
-            })
-            .catch(function(err) {
-              console.warn('[upload] ⚠ Supabase upload failed:', err && err.message, '| trying R2 fallback...');
-              _updateProgress(90, 'Supabase lỗi, đang thử R2...');
-              // Try R2 PUT synchronously (wait for result)
-              var _r2Url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(_r2Key);
-              fetch(_r2Url, { method: 'PUT', headers: { 'Content-Type': _blob.type || 'audio/mpeg' }, body: _blob })
-                .then(function(r2Res) {
-                  if (r2Res.ok) {
-                    console.log('[upload] ✅ R2 PUT OK (fallback):', _r2Key);
-                    _uploadConfirmed = true;
-                    _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
-                    setTimeout(function() { _safeRedirect(); }, 300);
-                  } else {
-                    throw new Error('R2 PUT ' + r2Res.status);
-                  }
+                      var _token = localStorage.getItem('audiohub-auth-token') || '';
+                      if (_token) {
+                        fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+                          body: JSON.stringify({ chapters: _chs.map(function(c) {
+                            return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai' };
+                          }) })
+                        }).then(function(r) { return r.json(); }).then(function(d) {
+                          if (d && d.success) console.log('[upload] ✅ Synced', _chs.length, 'chapters to D1 with audioKey:', _chs[0] && _chs[0].audioKey);
+                        }).catch(function(e3) { console.warn('[upload] ⚠ D1 sync failed:', e3 && e3.message); });
+                      }
+                    }
+                  } catch (e) {}
+
+                  _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
+                  setTimeout(function() { _safeRedirect(); }, 300);
                 })
-                .catch(function(r2Err) {
-                  console.error('[upload] ❌ BOTH Supabase AND R2 failed:', err && err.message, '|', r2Err && r2Err.message);
-                  _updateProgress(0, '❌ Upload thất bại! Supabase và R2 đều lỗi. Kiểm tra lại kết nối và thử lại.');
+                .catch(function(err) {
+                  console.error('[upload] ❌ Assemble failed:', err && err.message);
+                  _updateProgress(0, '❌ Ghép file thất bại! Thử lại.');
                   var _overlay = document.getElementById('upload-progress-overlay');
                   if (_overlay) {
                     var _retryBtn = document.createElement('button');
@@ -2000,6 +1959,33 @@
                     _overlay.appendChild(_retryBtn);
                   }
                 });
+              return;
+            }
+
+            // Progress: 2% to 90% for upload
+            var pct = Math.round((idx / _totalChunks) * 88) + 2;
+            var loadedMB = (((idx + 1) * _CHUNK_SIZE) / 1024 / 1024).toFixed(1);
+            var totalMB2 = (_blob.size / 1024 / 1024).toFixed(1);
+            _updateProgress(pct, 'Chunk ' + (idx + 1) + '/' + _totalChunks + '... ' + loadedMB + ' / ' + totalMB2 + ' MB');
+
+            _uploadChunk(realId, _r2Key, idx, _chunks[idx])
+              .then(function() {
+                console.log('[upload] ✅ Chunk', idx, 'OK');
+                _uploadNextChunk(idx + 1);
+              })
+              .catch(function(err) {
+                console.error('[upload] ❌ Chunk', idx, 'failed:', err && err.message);
+                _updateProgress(0, '❌ Upload chunk ' + (idx + 1) + ' thất bại! Kiểm tra kết nối.');
+                var _overlay = document.getElementById('upload-progress-overlay');
+                if (_overlay) {
+                  var _retryBtn = document.createElement('button');
+                  _retryBtn.textContent = '↻ Thử lại';
+                  _retryBtn.style.cssText = 'margin-top:16px;padding:10px 24px;background:#f59e0b;color:#000;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;';
+                  _retryBtn.onclick = function() { location.reload(); };
+                  _overlay.appendChild(_retryBtn);
+                }
+              });
+          })(0);
             });
         })();
     }).catch(function (err) {
