@@ -2145,10 +2145,8 @@
 
       // Get chapter-specific audioKey and readingText from storedChapters
       var chAudioKey = (storedChapters[i] && storedChapters[i].audioKey) || (ch && ch.audioKey) || '';
-      // CRITICAL: Replace a_* temp keys and empty with story CUID — R2 only has CUID files
-      if (currentStory && currentStory.id) {
-        if (chAudioKey.startsWith('a_') || !chAudioKey) chAudioKey = currentStory.id;
-      }
+      // Each chapter has its own audioKey (a_* key) stored in R2 via ?key=
+      // Do NOT replace a_* with CUID — that makes all chapters share same audio
       // NOTE: Do NOT fallback to story-level audioKey here.
       // Each chapter must have its own audioKey. Fallback to story audioKey
       // causes all chapters to play the same audio (duplicate audio bug).
@@ -2774,8 +2772,8 @@
       // CRITICAL: Replace a_* temp keys AND empty keys with CUID (storyId). R2 only
       // stores files under CUID keys, so D1 must reference CUID — not a_* or empty.
       var _payload = _chs.map(function (c) {
-        var _ak = (c && c.audioKey) || '';
-        if (_ak.startsWith('a_') || !_ak) _ak = storyId;
+        // Keep original audioKey — each chapter has its own R2 file
+        var _ak = (c && c.audioKey) || storyId;
         return {
           title: (c && c.title) || '',
           audioKey: _ak,
@@ -3053,24 +3051,22 @@
                 var _storyFallbackKey = apiAudioKey || merged.audioKey || '';
                 merged.chapters = apiChapters.map(function (apiCh, _idx) {
                   var _localCh = _existingChapters[_idx] || {};
-                  // If API chapter has no audioKey but local has one, preserve local audioKey
+                  // Each chapter has its own audioKey (a_* key) stored in R2
+                  // Do NOT replace a_* with CUID — that makes all chapters share same audio
                   var _mergedCh = Object.assign({}, apiCh);
                   if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && _localCh.audioKey) {
-                    // CRITICAL: Replace a_* temp keys with CUID — R2 only has CUID files
-                    var _localKey = _localCh.audioKey;
-                    if (_localKey && _localKey.startsWith('a_') && story.id) _localKey = story.id;
-                    _mergedCh.audioKey = _localKey;
-                    console.log('[story-detail] Preserved audioKey for chapter', _idx + 1, ':', _localKey);
+                    _mergedCh.audioKey = _localCh.audioKey;
+                    console.log('[story-detail] Preserved audioKey for chapter', _idx + 1, ':', _localCh.audioKey);
                   }
-                  // Still no audioKey? Use story-level fallback, then CUID
+                  // Still no audioKey? Use story-level fallback
                   if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && _storyFallbackKey) {
                     _mergedCh.audioKey = _storyFallbackKey;
                     console.log('[story-detail] Fallback audioKey for chapter', _idx + 1, ':', _storyFallbackKey);
                   }
-                  // Last resort: use CUID (R2 stores under CUID)
+                  // Last resort: use story ID
                   if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && story.id) {
                     _mergedCh.audioKey = story.id;
-                    console.log('[story-detail] CUID fallback audioKey for chapter', _idx + 1, ':', story.id);
+                    console.log('[story-detail] Story ID fallback audioKey for chapter', _idx + 1, ':', story.id);
                   }
                   // Same for readingText
                   if ((!_mergedCh.readingText || _mergedCh.readingText === '') && _localCh.readingText) {
@@ -3114,7 +3110,7 @@
                 fetch('/api/stories/' + encodeURIComponent(merged.id) + '/fix-chapters', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('audiohub-auth-token') || '') },
-                  body: JSON.stringify({ chapters: merged.chapters.map(function(c) { var _k = c.audioKey || ''; if (_k.startsWith('a_') || !_k) _k = merged.id; return { title: c.title || '', audioKey: _k, coverKey: c.coverKey || '', readingText: c.readingText || '', visibility: c.visibility || 'Công khai' }; }) })
+                  body: JSON.stringify({ chapters: merged.chapters.map(function(c) { var _k = c.audioKey || merged.id; return { title: c.title || '', audioKey: _k, coverKey: c.coverKey || '', readingText: c.readingText || '', visibility: c.visibility || 'Công khai' }; }) })
                 }).then(function(r) { return r.json(); }).then(function(d) {
                   if (d && d.success) console.log('[story-detail] ✅ Auto-fixed D1 chapters:', d.chapters, 'chapters synced');
                 }).catch(function(e) { console.warn('[story-detail] Auto-fix failed:', e); });
@@ -3180,10 +3176,8 @@
                     var _old = _existingCh2[_fi] || {};
                     var _m = Object.assign({}, fCh);
                     if ((!_m.audioKey || _m.audioKey === '') && _old.audioKey) {
-                      // CRITICAL: Replace a_* temp keys with CUID
-                      var _oldKey = _old.audioKey;
-                      if (_oldKey && _oldKey.startsWith('a_') && story.id) _oldKey = story.id;
-                      _m.audioKey = _oldKey;
+                      // Keep original audioKey — each chapter has its own R2 file
+                      _m.audioKey = _old.audioKey;
                     }
                     // Fallback: use story-level audioKey
                     if ((!_m.audioKey || _m.audioKey === '') && story.audioKey) _m.audioKey = story.audioKey;
