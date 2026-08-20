@@ -36,6 +36,28 @@ export async function onRequest(context) {
     const customKey = url.searchParams.get('key');
     const r2Key = customKey || `${storyId}.mp3`;
 
+    // ── PUT /api/audio/:storyId/presign — get presigned URL for direct R2 upload ──
+    // This lets the browser upload directly to R2, bypassing the Worker's30s timeout
+    if (method === 'POST' && pathParts[1] === 'presign') {
+      if (!env.AUDIO) {
+        return Response.json({ error: 'R2 AUDIO binding not configured' }, { status: 500, headers: corsHeaders });
+      }
+      const keyToSign = customKey || `${storyId}.mp3`;
+      const expiresIn = url.searchParams.get('expires') || '3600';
+      try {
+        const presignedUrl = env.AUDIO.createPresignedUrl({
+          key: keyToSign,
+          method: 'PUT',
+          expiresIn: Number(expiresIn)
+        });
+        console.log('[audio] ✅ Presigned URL created for:', keyToSign);
+        return Response.json({ success: true, url: presignedUrl.toString(), key: keyToSign }, { headers: corsHeaders });
+      } catch (e) {
+        console.error('[audio] Presign error:', e.message);
+        return Response.json({ error: 'Failed to create presigned URL: ' + e.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+
     // ── HEAD /api/audio/:storyId — check if audio exists (no body) ──
     if (method === 'HEAD') {
       // r2Key already defined above from ?key= param or {storyId}.mp3 default
@@ -116,47 +138,53 @@ export async function onRequest(context) {
       }
 
       // 2) R2 miss → try Supabase Storage (public, streaming)
-      try {
-        const supaPath = `${storyId}.mp3`;
-        const supaUrl = `${SUPABASE_URL}/storage/v1/object/public/${AUDIO_BUCKET}/${encodeURIComponent(supaPath)}`;
-        console.log('[audio] R2 miss, trying Supabase:', storyId);
-        const supaRes = await fetch(supaUrl, {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        });
-
-        if (supaRes.ok && supaRes.body) {
-          // Tee the stream: one branch → client, one branch → R2 cache (background)
-          const [clientStream, r2Stream] = supaRes.body.tee();
-
-          // Background: cache to R2 (don't block response)
-          if (env.AUDIO) {
-            try {
-              await env.AUDIO.put(r2Key, r2Stream, {
-                httpMetadata: { contentType: supaRes.headers.get('Content-Type') || 'audio/mpeg' }
-              });
-              console.log('[audio] ✅ Cached Supabase → R2:', storyId);
-            } catch (e) {
-              console.error('[audio] R2 cache write error:', e.message);
-            }
-          }
-
-          // Return Supabase stream to client immediately
-          return new Response(clientStream, {
-            status: 200,
+      // Try customKey first (per-chapter audio), then storyId.mp3 fallback
+      const supaKeys = [r2Key, `${storyId}.mp3`];
+      const triedSupa = new Set();
+      for (const supaKey of supaKeys) {
+        if (triedSupa.has(supaKey)) continue;
+        triedSupa.add(supaKey);
+        try {
+          const supaUrl = `${SUPABASE_URL}/storage/v1/object/public/${AUDIO_BUCKET}/${encodeURIComponent(supaKey)}`;
+          console.log('[audio] R2 miss, trying Supabase:', supaKey);
+          const supaRes = await fetch(supaUrl, {
             headers: {
-              'Content-Type': supaRes.headers.get('Content-Type') || 'audio/mpeg',
-              'Accept-Ranges': 'bytes',
-              'Cache-Control': 'private, no-cache',
-              ...corsHeaders
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
             }
           });
+
+          if (supaRes.ok && supaRes.body) {
+            // Tee the stream: one branch → client, one branch → R2 cache (background)
+            const [clientStream, r2Stream] = supaRes.body.tee();
+
+            // Background: cache to R2 (don't block response)
+            if (env.AUDIO) {
+              try {
+                await env.AUDIO.put(r2Key, r2Stream, {
+                  httpMetadata: { contentType: supaRes.headers.get('Content-Type') || 'audio/mpeg' }
+                });
+                console.log('[audio] ✅ Cached Supabase → R2:', supaKey);
+              } catch (e) {
+                console.error('[audio] R2 cache write error:', e.message);
+              }
+            }
+
+            // Return Supabase stream to client immediately
+            return new Response(clientStream, {
+              status: 200,
+              headers: {
+                'Content-Type': supaRes.headers.get('Content-Type') || 'audio/mpeg',
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'private, no-cache',
+                ...corsHeaders
+              }
+            });
+          }
+          console.log('[audio] Supabase miss:', supaKey, supaRes.status);
+        } catch (e) {
+          console.error('[audio] Supabase fallback error:', e.message);
         }
-        console.log('[audio] Supabase also miss:', storyId, supaRes.status);
-      } catch (e) {
-        console.error('[audio] Supabase fallback error:', e.message);
       }
 
       // 3) Both R2 and Supabase miss

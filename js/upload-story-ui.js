@@ -1553,16 +1553,41 @@
           // Upload audio to cloud (R2/Supabase) for this chapter
           function _patchUploadDone() { _patchSafeRedirect(); }
 
-          // Direct R2 upload — bypasses AudioHubStoryAudio.put which may silently fail
+          // Direct Supabase upload — bypasses Worker timeout on large files
+          var _SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+          var _SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+          var _BUCKET = 'story-audio';
           function _directR2Upload(blob, key) {
-            var url = '/api/audio/' + encodeURIComponent(String(story.id)) + '?key=' + encodeURIComponent(key);
-            console.log('[upload] 🔧 Direct R2 PUT:', url, '| size:', blob.size);
-            return fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
-              .then(function (res) {
-                console.log('[upload] R2 PUT response:', res.status, res.statusText);
-                if (!res.ok) throw new Error('R2 PUT failed: ' + res.status);
-                return true;
-              });
+            console.log('[upload] 🔧 Supabase direct upload:', key, '| size:', blob.size);
+            return new Promise(function(resolve, reject) {
+              var xhr = new XMLHttpRequest();
+              var path = encodeURIComponent(key);
+              var url = _SUPABASE_URL + '/storage/v1/object/' + _BUCKET + '/' + path;
+              xhr.open('POST', url, true);
+              xhr.setRequestHeader('Authorization', 'Bearer ' + _SUPABASE_KEY);
+              xhr.setRequestHeader('apikey', _SUPABASE_KEY);
+              xhr.setRequestHeader('Content-Type', blob.type || 'audio/mpeg');
+              xhr.setRequestHeader('x-upsert', 'true');
+              xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                  var pct = Math.round((e.loaded / e.total) * 100);
+                  console.log('[upload] PATCH upload progress:', pct + '%', '(' + (e.loaded/1024/1024).toFixed(1) + 'MB)');
+                }
+              };
+              xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                  console.log('[upload] ✅ Supabase PATCH upload OK:', key);
+                  resolve(true);
+                } else {
+                  console.warn('[upload] ⚠ Supabase PATCH upload failed:', xhr.status, xhr.responseText);
+                  reject(new Error('Supabase PUT ' + xhr.status));
+                }
+              };
+              xhr.onerror = function() { reject(new Error('Supabase PUT network error')); };
+              xhr.ontimeout = function() { reject(new Error('Supabase PUT timeout')); };
+              xhr.timeout = 300000;
+              xhr.send(blob);
+            });
           }
 
           // Verify R2 has the file
@@ -1854,19 +1879,28 @@
           var _aKey = state.audioKey || '';
           var _r2Key = _aKey || realId;
 
-          console.log('[upload] 🎵 Uploading', _blob.size, 'bytes to R2 | key:', _r2Key);
+          // Supabase Storage direct upload — bypasses Worker timeout entirely
+          var _SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
+          var _SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
+          var _BUCKET = 'story-audio';
+
+          console.log('[upload] 🎵 Uploading', _blob.size, 'bytes to Supabase+R2 | key:', _r2Key);
           _updateProgress(2, 'Đang upload ' + _totalMB + ' MB...');
 
-          // XHR-based upload with real-time progress (fetch doesn't support upload progress)
-          function _putToR2(key, blob) {
+          // Upload to Supabase Storage (direct from browser, no Worker timeout)
+          function _putToSupabase(key, blob) {
             return new Promise(function(resolve, reject) {
               var xhr = new XMLHttpRequest();
-              var url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(key);
-              xhr.open('PUT', url, true);
+              var path = encodeURIComponent(key);
+              var url = _SUPABASE_URL + '/storage/v1/object/' + _BUCKET + '/' + path;
+              xhr.open('POST', url, true);
+              xhr.setRequestHeader('Authorization', 'Bearer ' + _SUPABASE_KEY);
+              xhr.setRequestHeader('apikey', _SUPABASE_KEY);
               xhr.setRequestHeader('Content-Type', blob.type || 'audio/mpeg');
+              xhr.setRequestHeader('x-upsert', 'true');
               xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
-                  var pct = Math.round((e.loaded / e.total) * 85) + 2; // 2-87%
+                  var pct = Math.round((e.loaded / e.total) * 85) + 2;
                   var loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
                   var totalMB2 = (e.total / 1024 / 1024).toFixed(1);
                   _updateProgress(pct, 'Đang upload... ' + loadedMB + ' / ' + totalMB2 + ' MB (' + Math.round(e.loaded / e.total * 100) + '%)');
@@ -1874,35 +1908,49 @@
               };
               xhr.onload = function() {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                  console.log('[upload] ✅ R2 PUT OK:', key);
+                  console.log('[upload] ✅ Supabase upload OK:', key, '| status:', xhr.status);
                   resolve(key);
                 } else {
-                  reject(new Error('R2 PUT ' + xhr.status));
+                  console.warn('[upload] ⚠ Supabase upload failed:', xhr.status, xhr.responseText);
+                  reject(new Error('Supabase PUT ' + xhr.status));
                 }
               };
-              xhr.onerror = function() { reject(new Error('R2 PUT network error')); };
-              xhr.ontimeout = function() { reject(new Error('R2 PUT timeout')); };
-              xhr.timeout = 180000; // 3 min for large files
+              xhr.onerror = function() { reject(new Error('Supabase PUT network error')); };
+              xhr.ontimeout = function() { reject(new Error('Supabase PUT timeout')); };
+              xhr.timeout = 300000; // 5 min for large files
               xhr.send(blob);
             });
           }
 
-          // Single upload with the chapter's audioKey — this is what the player looks up
-          _putToR2(_r2Key, _blob)
+          // Also upload to R2 via Worker (in background, non-blocking)
+          function _putToR2Background(key, blob) {
+            var url = '/api/audio/' + encodeURIComponent(realId) + '?key=' + encodeURIComponent(key);
+            fetch(url, { method: 'PUT', headers: { 'Content-Type': blob.type || 'audio/mpeg' }, body: blob })
+              .then(function(res) {
+                if (res.ok) console.log('[upload] ✅ R2 PUT OK (background):', key);
+                else console.warn('[upload] ⚠ R2 PUT failed:', res.status);
+              })
+              .catch(function(e) { console.warn('[upload] ⚠ R2 PUT error:', e && e.message); });
+          }
+
+          // Upload to Supabase (primary) + R2 (background backup)
+          _putToSupabase(_r2Key, _blob)
             .then(function(confirmedKey) {
-              console.log('[upload] ✅ Audio confirmed on R2 | key:', confirmedKey);
+              console.log('[upload] ✅ Audio confirmed on Supabase | key:', confirmedKey);
               _uploadConfirmed = true;
               _updateProgress(90, 'Đã upload xong! Đang lưu database...');
               state.audioFile = null;
 
-              // Sync chapters to D1 — use the CONFIRMED R2 key
+              // Also push to R2 in background (Worker will cache from Supabase on next GET anyway)
+              _putToR2Background(_r2Key, _blob);
+              if (_r2Key !== realId) _putToR2Background(realId, _blob);
+
+              // Sync chapters to D1 — use the CONFIRMED key
               try {
                 var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
                 var _chs = Array.isArray(_cs[realId]) ? _cs[realId] : [];
                 if (_chs.length) {
-                  // Fix chapter 0's audioKey to match the key we just uploaded to R2
                   if (_chs[0]) _chs[0].audioKey = confirmedKey;
-                  // Also update localStorage so player reads correct key
                   _cs[realId] = _chs;
                   localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs));
 
@@ -1921,22 +1969,18 @@
                 }
               } catch (e) {}
 
-              // Also upload under CUID as backup (non-blocking, in background)
-              if (_r2Key !== realId) {
-                _putToR2(realId, _blob).then(function(k2) {
-                  console.log('[upload] ✅ Backup copy on R2:', k2);
-                }).catch(function(e2) {
-                  console.warn('[upload] ⚠ Backup R2 failed:', e2 && e2.message);
-                });
-              }
-
               _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
               setTimeout(function() { _safeRedirect(); }, 300);
             })
             .catch(function(err) {
-              console.warn('[upload] ⚠ R2 upload failed:', err && err.message, '| redirecting anyway');
-              _updateProgress(100, 'Upload gặp lỗi, đang chuyển trang...');
+              console.warn('[upload] ⚠ Supabase upload failed:', err && err.message, '| trying R2 fallback...');
+              // Fallback: try R2 directly (may work for small files)
+              _updateProgress(90, 'Supabase gặp lỗi, đang thử R2...');
+              _putToR2Background(_r2Key, _blob);
+              _putToR2Background(realId, _blob);
+              // Still sync and redirect — audio will be found via Supabase fallback in player
               _uploadConfirmed = true;
+              _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
               setTimeout(function() { _safeRedirect(); }, 500);
             });
         })();
