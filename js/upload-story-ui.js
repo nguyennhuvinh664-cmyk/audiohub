@@ -1524,11 +1524,10 @@
               doRedirect(story.id);
             }
           }
-          // Safety timeout: 30s fallback (prevent stuck page)
+          // Safety timeout: 120s — do NOT redirect if upload still in progress (abort = lost audio)
           setTimeout(function () {
-            if (!_patchUploadConfirmed) console.warn('[upload] ⚠ PATCH 30s timeout');
-            _patchSafeRedirect();
-          }, 30000);
+            if (!_patchUploadConfirmed) console.warn('[upload] ⚠ PATCH 120s timeout — upload may not have completed');
+          }, 120000);
 
           // Force-sync chapter audioKeys via sync-chapters endpoint (PATCH uses COALESCE which may not overwrite null)
           try {
