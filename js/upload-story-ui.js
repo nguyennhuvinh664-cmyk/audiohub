@@ -1554,7 +1554,7 @@
           function _patchUploadDone() { _patchSafeRedirect(); }
 
           // Chunked upload via Worker → R2 (replaces Supabase direct upload)
-          var _CHUNK_SIZE = 2 * 1024 * 1024; // 2MB
+          var _CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
 
           function _chunkedUpload(blob, key) {
             console.log('[upload] 🔧 Chunked upload:', key, '| size:', blob.size);
@@ -1872,7 +1872,7 @@
           // Upload under the a_* key (per-chapter audioKey) — player reads this directly
           var _aKey = state.audioKey || '';
           var _r2Key = _aKey || realId;
-          var _CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk
+          var _CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk
 
           console.log('[upload] 🎵 Chunked upload', _blob.size, 'bytes | key:', _r2Key);
           _updateProgress(2, 'Đang upload ' + _totalMB + ' MB...');
