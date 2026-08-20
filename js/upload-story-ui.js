@@ -1986,7 +1986,6 @@
                 }
               });
           })(0);
-            });
         })();
     }).catch(function (err) {
       console.warn('[upload] ⚠ POST to D1 failed:', err);
