@@ -1884,6 +1884,7 @@
         }
 
         console.log('[upload] 🔍 Pre-upload check | state.audioFile:', !!state.audioFile, '| size:', state.audioFile && state.audioFile.size, '| state.audioKey:', state.audioKey, '| realId:', realId);
+        console.log('[upload] 🚀 _uploadAllChapters starting NOW');
         // CRITICAL: Upload EACH chapter's audio separately to R2 using its own audioKey.
         // This ensures each chapter has its own audio file in R2 (not just one per story).
         (function _uploadAllChapters() {
@@ -1924,21 +1925,25 @@
             // Always look up blob from IndexedDB using the chapter's audioKey
             var _blobPromise;
             if (_hasStore) {
+              console.log('[upload] 🔍 Chapter', idx, '| looking up blob in IndexedDB | key:', chKey);
               _blobPromise = _audioStore.get(chKey).then(function(blob) {
+                console.log('[upload] 🔍 Chapter', idx, '| IndexedDB result for', chKey, '→', blob ? ('size:' + blob.size) : 'null');
                 if (blob && blob.size > 1000) return blob;
                 // Fallback: try story ID as key (legacy single-audio stories)
                 return _audioStore.get(realId).then(function(b2) {
+                  console.log('[upload] 🔍 Chapter', idx, '| IndexedDB result for', realId, '→', b2 ? ('size:' + b2.size) : 'null');
                   if (b2 && b2.size > 1000) return b2;
                   // Last resort: use state.audioFile (still in memory from file input)
-                  // File extends Blob, so it works with fetch/putAudioLocal
                   if (state.audioFile && state.audioFile.size > 1000) {
                     console.log('[upload] ℹ️ Using state.audioFile as fallback for chapter', idx, '| size:', state.audioFile.size);
                     return state.audioFile;
                   }
+                  console.warn('[upload] ⚠ Chapter', idx, '| ALL blob sources failed');
                   return null;
                 });
               });
             } else {
+              console.warn('[upload] ⚠ No AudioHubStoryAudio store available');
               _blobPromise = Promise.resolve(
                 (state.audioFile && state.audioFile.size > 1000) ? state.audioFile : null
               );
