@@ -1563,24 +1563,33 @@
             }
             var totalChunks = chunks.length;
             var storyId = String(story.id || window.currentStoryId || window._editStoryId || '');
+            var _PAR = 3, _done = 0, _fail = false;
 
-            function uploadChunk(idx) {
-              if (idx >= totalChunks) {
-                // Assemble
-                var asmUrl = '/api/audio/' + encodeURIComponent(storyId) + '?key=' + encodeURIComponent(key) + '&action=assemble';
-                return fetch(asmUrl, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ totalChunks: totalChunks, totalSize: blob.size, contentType: blob.type || 'audio/mpeg' })
-                }).then(function(r) { if (!r.ok) throw new Error('Assemble ' + r.status); return r.json(); });
+            return new Promise(function(resolve, reject) {
+              function _uploadOne(idx) {
+                if (_fail) return;
+                var url = '/api/audio/' + encodeURIComponent(storyId) + '?key=' + encodeURIComponent(key) + '&action=chunk&index=' + idx;
+                fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: chunks[idx] })
+                  .then(function(r) { if (!r.ok) throw new Error('Chunk ' + idx + ' ' + r.status); return r.json(); })
+                  .then(function() {
+                    _done++;
+                    console.log('[upload] ✅ Chunk', idx, 'OK (' + _done + '/' + totalChunks + ')');
+                    if (_done >= totalChunks) {
+                      var asmUrl = '/api/audio/' + encodeURIComponent(storyId) + '?key=' + encodeURIComponent(key) + '&action=assemble';
+                      fetch(asmUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ totalChunks: totalChunks, totalSize: blob.size, contentType: blob.type || 'audio/mpeg' })
+                      }).then(function(r) { if (!r.ok) throw new Error('Assemble ' + r.status); return r.json(); })
+                        .then(resolve).catch(reject);
+                    } else if (_done + _PAR <= totalChunks) {
+                      _uploadOne(_done + _PAR - 1);
+                    }
+                  })
+                  .catch(function(err) { _fail = true; reject(err); });
               }
-              var url = '/api/audio/' + encodeURIComponent(storyId) + '?key=' + encodeURIComponent(key) + '&action=chunk&index=' + idx;
-              return fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: chunks[idx] })
-                .then(function(r) { if (!r.ok) throw new Error('Chunk ' + idx + ' ' + r.status); return r.json(); })
-                .then(function() { return uploadChunk(idx + 1); });
-            }
-
-            return uploadChunk(0);
+              for (var p = 0; p < Math.min(_PAR, totalChunks); p++) _uploadOne(p);
+            });
           }
 
           // Verify R2 has the file
