@@ -198,8 +198,8 @@
 
   /* ═══ RENDER HISTORY ═══ */
   function renderHistory() {
-    var container = $('[data-ua-history-list]');
-    if (!container) return;
+    var containers = $$('[data-ua-history-list]');
+    if (!containers.length) return;
 
     var lib = getLibrary();
     var stories = getStories();
@@ -226,7 +226,8 @@
     });
 
     if (!history.length) {
-      container.innerHTML = '<div class="ua-empty"><i class="fa-solid fa-headphones"></i><p>Chưa có lịch sử nghe</p></div>';
+      var emptyHtml = '<div class="ua-empty"><i class="fa-solid fa-headphones"></i><p>Chưa có lịch sử nghe</p></div>';
+      containers.forEach(function(c) { c.innerHTML = emptyHtml; });
       return;
     }
 
@@ -258,7 +259,8 @@
         + '</a>';
     });
 
-    container.innerHTML = html || '<div class="ua-empty"><i class="fa-solid fa-headphones"></i><p>Chưa có lịch sử nghe</p></div>';
+    var finalHtml = html || '<div class="ua-empty"><i class="fa-solid fa-headphones"></i><p>Chưa có lịch sử nghe</p></div>';
+    containers.forEach(function(c) { c.innerHTML = finalHtml; });
   }
 
   /* ═══ RENDER FAVORITES ═══ */
@@ -809,6 +811,20 @@
         savedAt: Date.now()
       }));
     } catch (e) {}
+  });
+
+  /* ═══ MOBILE TAB RENDER ═══ */
+  // Listen for mobile menu clicks and render content
+  $$('.m-menu-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var tab = item.getAttribute('data-m-tab');
+      if (tab === 'history') renderHistory();
+      else if (tab === 'favorites') renderFavorites();
+      else if (tab === 'playlists') renderPlaylists();
+      else if (tab === 'chapters') renderChapters();
+      else if (tab === 'wallet') renderWallet();
+      else if (tab === 'notifications') renderNotifications();
+    });
   });
 
 })();

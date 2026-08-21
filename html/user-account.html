@@ -201,6 +201,11 @@
         <span>Yêu thích</span>
         <i class="fa-solid fa-chevron-right m-menu-arrow"></i>
       </button>
+      <button type="button" class="m-menu-item" data-m-tab="history">
+        <i class="fa-solid fa-headphones" style="color:var(--m-accent,#F5A623)"></i>
+        <span>Lịch sử nghe</span>
+        <i class="fa-solid fa-chevron-right m-menu-arrow"></i>
+      </button>
       <button type="button" class="m-menu-item is-active" data-m-tab="playlists">
         <i class="fa-solid fa-list" style="color:var(--m-accent,#F5A623)"></i>
         <span>Truyện</span>
@@ -290,6 +295,16 @@
           <div class="m-empty"><i class="fa-solid fa-heart"></i><p>Chưa có truyện yêu thích</p></div>
         </div>
         <div class="m-pagination" data-ua-pagination="favorites"></div>
+      </div>
+
+      <!-- History view -->
+      <div class="m-content-section" data-m-panel="history" hidden>
+        <h2 class="m-content-title"><i class="fa-solid fa-headphones"></i> Lịch sử nghe</h2>
+        <input type="text" class="m-search-input" data-ua-search="history" placeholder="Tìm kiếm lịch sử..." />
+        <div class="m-list" data-ua-history-list>
+          <div class="m-empty"><i class="fa-solid fa-headphones"></i><p>Chưa có lịch sử nghe</p></div>
+        </div>
+        <div class="m-pagination" data-ua-pagination="history"></div>
       </div>
 
       <!-- Chapters view -->
