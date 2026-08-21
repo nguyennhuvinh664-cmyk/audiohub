@@ -2829,11 +2829,11 @@
       descNode.innerHTML = '<p>' + escapeHtml(story.description).replace(/\n/g, '</p><p>') + '</p>';
     }
 
-    // Author
+    // Author — wrap in <a> so it's clickable → channel.html
     var authorNode = detailStoryNode ? detailStoryNode.querySelector('[data-detail-author]') : null;
     if (authorNode) {
       var authorName = story.author || 'Ẩn danh';
-      authorNode.innerHTML = '<i class="fa-regular fa-user"></i> ' + escapeHtml(authorName);
+      authorNode.innerHTML = '<a href="channel.html?author=' + encodeURIComponent(authorName) + '" style="color:inherit;text-decoration:none"><i class="fa-regular fa-user"></i> ' + escapeHtml(authorName) + '</a>';
     }
 
     // Mobile info
