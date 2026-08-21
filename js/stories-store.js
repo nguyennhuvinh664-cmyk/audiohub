@@ -1542,6 +1542,7 @@
           if (!created || !created.id) return;
 
           // ── Migrate chapters from old s_ ID to new real CUID ──
+          var oldStoryId = story.id;
           try {
             var _chapKey = 'audiohub-chapters-v1';
             var _chapStore = JSON.parse(localStorage.getItem(_chapKey) || '{}');
@@ -1565,7 +1566,6 @@
           }
 
           var savedChapters = Array.isArray(story.chapters) ? story.chapters : [];
-          var oldStoryId = story.id;
           removeLocalStory(oldStoryId); // Remove old s_ entry
           upsertLocalStory({
             id: created.id,

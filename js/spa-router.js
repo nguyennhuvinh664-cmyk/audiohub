@@ -19,7 +19,7 @@
     'hall-of-fame.html', 'hall-of-hearts.html', 'login.html',
     'new-posts.html', 'popular.html', 'privacy.html', 'register.html',
     'terms.html', 'trending.html',
-    'upload-story.html', 'user-account.html'
+    'upload-story.html', 'user-account.html', 'about.html'
   ];
 
   /** Pages that live in root directory */
@@ -87,7 +87,8 @@
     'edit-profile.html':    ['edit-profile-ui'],
     'channel.html':         ['stories-cover-store', 'channel-ui'],
     'user-account.html':    ['stories-cover-store', 'library-state', 'user-account', 'user-account-mobile'],
-    'drafts.html':          ['stories-cover-store', 'stories-audio-store', 'drafts-ui']
+    'drafts.html':          ['stories-cover-store', 'stories-audio-store', 'drafts-ui'],
+    'about.html':           []
   };
 
   /* ── State ──────────────────────────────────────────────────────────── */
