@@ -272,8 +272,11 @@ button { font:inherit; }
 .story-meta i,
 .story-footer i { font-size:.78rem; }
 .story-title {
-  margin:6px 0 8px; font-size:1rem; line-height:1.3; font-weight:800; color:var(--t1);
+  margin:6px 0 2px; font-size:1rem; line-height:1.3; font-weight:800; color:var(--t1);
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.6em;
+}
+.story-card__chapters {
+  margin:0 0 4px; font-size:.72rem; color:var(--t3); font-weight:500;
 }
 .story-footer span { display:inline-flex; align-items:center; gap:4px; }
 .story-rating { color:var(--primary); font-weight:800; flex-shrink:0; }
