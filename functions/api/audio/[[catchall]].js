@@ -55,15 +55,23 @@ export async function onRequest(context) {
 
       console.log(`[audio] Assembling ${totalChunks} chunks → ${r2Key}`);
 
-      // Read all chunks, concatenate into one ReadableStream
-      const readers = [];
+      // Read all chunks in parallel for speed, then concatenate in order
+      const chunkPromises = [];
       for (let i = 0; i < totalChunks; i++) {
         const chunkKey = `_chunks/${r2Key}/${i}`;
-        const obj = await env.AUDIO.get(chunkKey);
-        if (!obj || !obj.body) {
-          return Response.json({ error: `Chunk ${i} missing` }, { status: 400, headers: corsHeaders });
-        }
-        readers.push(obj.body.getReader());
+        chunkPromises.push(
+          env.AUDIO.get(chunkKey).then(obj => {
+            if (!obj || !obj.body) throw new Error(`Chunk ${i} missing`);
+            return obj.body.getReader();
+          })
+        );
+      }
+
+      let readers;
+      try {
+        readers = await Promise.all(chunkPromises);
+      } catch (e) {
+        return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
       }
 
       const totalSize = Number(body.totalSize) || 0;

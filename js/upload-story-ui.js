@@ -1921,55 +1921,55 @@
           var _failed = false;
 
           function _onAllDone() {
-            // All chunks uploaded — assemble
-            _updateProgress(92, 'Ghép file audio...');
-            console.log('[upload] All', _totalChunks, 'chunks uploaded. Assembling...');
-            _assembleChunks(realId, _r2Key, _totalChunks, _blob.size, _blob.type || 'audio/mpeg')
-              .then(function() {
-                console.log('[upload] ✅ Assembled OK:', _r2Key, '| size:', _blob.size);
-                _uploadConfirmed = true;
-                state.audioFile = null;
-                _updateProgress(95, 'Đã upload xong! Đang lưu database...');
+            // All chunks uploaded — fire-and-forget assembly with retry (audio plays via chunk fallback while assembling)
+            _uploadConfirmed = true;
+            state.audioFile = null;
+            _updateProgress(92, 'Đã upload xong! Đang ghép file...');
+            console.log('[upload] All', _totalChunks, 'chunks uploaded. Firing assembly...');
 
-                // Sync chapters to D1
-                try {
-                  var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-                  var _chs = Array.isArray(_cs[realId]) ? _cs[realId] : [];
-                  if (_chs.length) {
-                    if (_chs[0]) _chs[0].audioKey = _r2Key;
-                    _cs[realId] = _chs;
-                    localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs));
-
-                    var _token = localStorage.getItem('audiohub-auth-token') || '';
-                    if (_token) {
-                      fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
-                        body: JSON.stringify({ chapters: _chs.map(function(c) {
-                          return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai', readingText: (c && c.readingText) || '' };
-                        }) })
-                      }).then(function(r) { return r.json(); }).then(function(d) {
-                        if (d && d.success) console.log('[upload] ✅ Synced', _chs.length, 'chapters to D1 with audioKey:', _chs[0] && _chs[0].audioKey);
-                      }).catch(function(e3) { console.warn('[upload] ⚠ D1 sync failed:', e3 && e3.message); });
-                    }
+            // Fire assembly in background — don't block redirect
+            function _tryAssembly(retries) {
+              _assembleChunks(realId, _r2Key, _totalChunks, _blob.size, _blob.type || 'audio/mpeg')
+                .then(function() {
+                  console.log('[upload] ✅ Assembled OK:', _r2Key, '| size:', _blob.size);
+                })
+                .catch(function(err) {
+                  console.warn('[upload] ⚠ Assemble attempt failed (retries left:', retries, '):', err && err.message);
+                  if (retries > 0) {
+                    setTimeout(function() { _tryAssembly(retries - 1); }, 5000);
+                  } else {
+                    console.log('[upload] Assembly skipped — audio plays via chunk streaming fallback');
                   }
-                } catch (e) {}
+                });
+            }
+            _tryAssembly(3);
 
-                _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
-                setTimeout(function() { _safeRedirect(); }, 300);
-              })
-              .catch(function(err) {
-                console.error('[upload] ❌ Assemble failed:', err && err.message);
-                _updateProgress(0, '❌ Ghép file thất bại! Thử lại.');
-                var _overlay = document.getElementById('upload-progress-overlay');
-                if (_overlay) {
-                  var _retryBtn = document.createElement('button');
-                  _retryBtn.textContent = '↻ Thử lại';
-                  _retryBtn.style.cssText = 'margin-top:16px;padding:10px 24px;background:#f59e0b;color:#000;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;';
-                  _retryBtn.onclick = function() { location.reload(); };
-                  _overlay.appendChild(_retryBtn);
+            // Sync chapters to D1
+            try {
+              var _cs = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+              var _chs = Array.isArray(_cs[realId]) ? _cs[realId] : [];
+              if (_chs.length) {
+                if (_chs[0]) _chs[0].audioKey = _r2Key;
+                _cs[realId] = _chs;
+                localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs));
+
+                var _token = localStorage.getItem('audiohub-auth-token') || '';
+                if (_token) {
+                  fetch('/api/stories/' + encodeURIComponent(realId) + '/sync-chapters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+                    body: JSON.stringify({ chapters: _chs.map(function(c) {
+                      return { title: (c && c.title) || '', audioKey: (c && c.audioKey) || '', visibility: (c && c.visibility) || 'Công khai', readingText: (c && c.readingText) || '' };
+                    }) })
+                  }).then(function(r) { return r.json(); }).then(function(d) {
+                    if (d && d.success) console.log('[upload] ✅ Synced', _chs.length, 'chapters to D1 with audioKey:', _chs[0] && _chs[0].audioKey);
+                  }).catch(function(e3) { console.warn('[upload] ⚠ D1 sync failed:', e3 && e3.message); });
                 }
-              });
+              }
+            } catch (e) {}
+
+            _updateProgress(100, 'Hoàn tất! Đang chuyển trang...');
+            setTimeout(function() { _safeRedirect(); }, 300);
           }
 
           function _uploadOneChunk(idx) {
