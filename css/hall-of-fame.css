@@ -108,19 +108,31 @@
   padding: 12px 20px 36px;
 }
 
+.hall-podium-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
 .hall-crown {
   text-align: center;
   font-size: 2.2rem;
-  margin-bottom: 10px;
+  margin-bottom: -8px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Crown positioned above center card */
+.hall-crown-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 0 25%;
 }
 
 .hall-podium {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
+  display: flex;
   gap: 16px;
-  max-width: 760px;
-  margin: 0 auto;
-  align-items: end;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 /* ── Podium Card Base ── */
@@ -138,13 +150,12 @@
   transform: translateY(-4px);
 }
 
-/* ── First Place ── */
+/* ── First Place — taller + gold border ── */
 .member-podium--first {
-  grid-column: 2;
-  grid-row: 1 / 3;
+  flex: 0 0 220px;
+  min-height: 340px;
   border-color: rgba(245,158,11,.25);
   background: linear-gradient(180deg, rgba(245,158,11,.04) 0%, var(--hall-surface) 50%);
-  align-self: stretch;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -158,22 +169,22 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 5px;
   background: var(--hall-gold);
   border-radius: 0 0 var(--hall-r) var(--hall-r);
 }
 
-/* ── Second Place ── */
+/* ── Second Place — shorter ── */
 .member-podium--second {
-  grid-column: 1;
-  grid-row: 1;
+  flex: 0 0 190px;
+  min-height: 270px;
   border-color: rgba(148,163,184,.12);
 }
 
-/* ── Third Place ── */
+/* ── Third Place — shorter ── */
 .member-podium--third {
-  grid-column: 3;
-  grid-row: 1;
+  flex: 0 0 190px;
+  min-height: 270px;
   border-color: rgba(194,136,78,.12);
 }
 
@@ -565,8 +576,18 @@
   .hall-title { font-size: 2.1rem; }
 
   .hall-podium {
-    max-width: 600px;
     gap: 12px;
+  }
+
+  .member-podium--first {
+    flex: 0 0 200px;
+    min-height: 300px;
+  }
+
+  .member-podium--second,
+  .member-podium--third {
+    flex: 0 0 170px;
+    min-height: 250px;
   }
 
   .member-podium { padding: 26px 12px 20px; }
@@ -629,16 +650,17 @@
     padding: 4px 10px 24px;
   }
 
+  .hall-crown-wrap {
+    padding: 0 20%;
+  }
+
   .hall-crown {
     font-size: 1.8rem;
-    margin-bottom: 6px;
+    margin-bottom: -6px;
   }
 
   .hall-podium {
-    display: grid;
-    grid-template-columns: 1fr 1.15fr 1fr;
     gap: 8px;
-    max-width: none;
   }
 
   .member-podium {
@@ -648,8 +670,8 @@
   }
 
   .member-podium--first {
-    grid-column: auto;
-    grid-row: auto;
+    flex: 0 0 140px;
+    min-height: 220px;
     padding-bottom: 0;
   }
 
@@ -659,8 +681,8 @@
 
   .member-podium--second,
   .member-podium--third {
-    grid-column: auto;
-    grid-row: auto;
+    flex: 0 0 115px;
+    min-height: 190px;
   }
 
   .member-rank {
