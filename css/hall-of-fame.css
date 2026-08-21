@@ -1,20 +1,18 @@
-/* ═══ Vinh Danh Hội Viên — Premium Leaderboard ═══ */
+/* ═══ Vinh Danh Hội Viên — Clean Dark Leaderboard ═══ */
 
 /* ── Design Tokens ── */
 .hall-page {
-  --hall-bg: var(--bg, #09090f);
-  --hall-surface: rgba(17,17,32,.85);
-  --hall-surface-solid: #111120;
-  --hall-border: var(--border, rgba(255,255,255,.07));
+  --hall-bg: var(--bg, #08090d);
+  --hall-surface: #111827;
+  --hall-surface-hover: #1a2035;
+  --hall-border: rgba(255,255,255,.06);
+  --hall-border-light: rgba(255,255,255,.04);
   --hall-gold: var(--primary, #f59e0b);
-  --hall-gold-glow: rgba(245,158,11,.25);
-  --hall-silver: #a78bfa;
-  --hall-silver-glow: rgba(167,139,250,.2);
-  --hall-bronze: #f97316;
-  --hall-bronze-glow: rgba(249,115,22,.2);
+  --hall-silver: #94a3b8;
+  --hall-bronze: #c2884e;
   --hall-cyan: var(--accent, #06b6d4);
-  --hall-r: 20px;
-  --hall-r-sm: 14px;
+  --hall-r: 16px;
+  --hall-r-sm: 12px;
   --hall-ease: cubic-bezier(.4,0,.2,1);
   background: var(--hall-bg);
   -webkit-font-smoothing: antialiased;
@@ -25,29 +23,12 @@
    HERO
    ══════════════════════════════════════ */
 .hall-hero {
-  position: relative;
-  padding: 80px 20px 40px;
+  padding: 72px 20px 28px;
   text-align: center;
-  overflow: hidden;
-}
-
-/* Animated gradient backdrop */
-.hall-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(245,158,11,.12) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 30% 20%, rgba(99,102,241,.08) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 70% 30%, rgba(6,182,212,.06) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .hall-hero__inner {
-  position: relative;
-  z-index: 1;
-  max-width: 700px;
+  max-width: 640px;
   margin: 0 auto;
 }
 
@@ -55,36 +36,33 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 20px;
+  padding: 6px 18px;
   border-radius: 999px;
-  background: rgba(245,158,11,.1);
-  border: 1px solid rgba(245,158,11,.2);
+  background: rgba(245,158,11,.08);
+  border: 1px solid rgba(245,158,11,.15);
   color: var(--hall-gold);
-  font-size: .78rem;
-  font-weight: 800;
+  font-size: .75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .08em;
-  margin-bottom: 20px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  letter-spacing: .06em;
+  margin-bottom: 16px;
 }
 
 .hall-title {
   font-family: var(--font-d);
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(1.75rem, 4.5vw, 2.6rem);
   font-weight: 900;
   color: #fff;
-  margin-bottom: 12px;
-  line-height: 1.1;
-  text-shadow: 0 0 40px rgba(245,158,11,.15);
+  margin-bottom: 10px;
+  line-height: 1.15;
 }
 
 .hall-subtitle {
-  color: var(--t2, #94a3b8);
-  font-size: .95rem;
-  margin-bottom: 28px;
-  line-height: 1.7;
-  max-width: 520px;
+  color: var(--t2, #8896ab);
+  font-size: .9rem;
+  margin-bottom: 24px;
+  line-height: 1.6;
+  max-width: 480px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -93,27 +71,24 @@
 .hall-tabs {
   display: inline-flex;
   gap: 4px;
-  padding: 5px;
+  padding: 4px;
   border-radius: 999px;
   background: rgba(255,255,255,.04);
   border: 1px solid var(--hall-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .hall-tab {
-  height: 44px;
-  padding: 0 24px;
+  height: 42px;
+  padding: 0 22px;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: var(--t3, #64748b);
+  color: var(--t3, #6b7a90);
   font-weight: 700;
-  font-size: .88rem;
+  font-size: .85rem;
   font-family: var(--font-b, 'Nunito', sans-serif);
   cursor: pointer;
-  transition: all .25s var(--hall-ease);
-  position: relative;
+  transition: all .2s var(--hall-ease);
 }
 
 .hall-tab:hover {
@@ -124,189 +99,159 @@
 .hall-tab.is-active {
   background: var(--hall-gold);
   color: #000;
-  box-shadow: 0 2px 12px rgba(245,158,11,.3);
 }
 
 /* ══════════════════════════════════════
    PODIUM (Top 3)
    ══════════════════════════════════════ */
 .hall-podium-section {
-  padding: 20px 20px 48px;
-  position: relative;
-}
-
-/* Decorative glow behind podium */
-.hall-podium-section::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 500px;
-  height: 300px;
-  background: radial-gradient(ellipse, rgba(245,158,11,.08) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
+  padding: 12px 20px 36px;
 }
 
 .hall-crown {
   text-align: center;
-  font-size: 2.6rem;
-  margin-bottom: 12px;
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 4px 12px rgba(245,158,11,.3));
+  font-size: 2.2rem;
+  margin-bottom: 10px;
 }
 
 .hall-podium {
   display: grid;
   grid-template-columns: 1fr 1.2fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 20px;
-  max-width: 800px;
+  gap: 16px;
+  max-width: 760px;
   margin: 0 auto;
   align-items: end;
-  position: relative;
-  z-index: 1;
 }
 
-/* ── Podium Card ── */
+/* ── Podium Card Base ── */
 .member-podium {
   position: relative;
   text-align: center;
-  padding: 36px 20px 28px;
+  padding: 32px 16px 24px;
   border-radius: var(--hall-r);
   border: 1px solid var(--hall-border);
   background: var(--hall-surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  transition: transform .3s var(--hall-ease), box-shadow .3s var(--hall-ease);
-  overflow: hidden;
-}
-
-.member-podium::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent);
+  transition: transform .25s var(--hall-ease);
 }
 
 .member-podium:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
 }
 
-/* ── First Place (center, tall) ── */
+/* ── First Place ── */
 .member-podium--first {
   grid-column: 2;
   grid-row: 1 / 3;
-  border-color: rgba(245,158,11,.3);
-  background: linear-gradient(180deg, rgba(245,158,11,.06) 0%, var(--hall-surface) 40%);
-  box-shadow:
-    0 0 0 1px rgba(245,158,11,.15),
-    0 8px 32px rgba(245,158,11,.1),
-    0 0 80px rgba(245,158,11,.06);
+  border-color: rgba(245,158,11,.25);
+  background: linear-gradient(180deg, rgba(245,158,11,.04) 0%, var(--hall-surface) 50%);
   align-self: stretch;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
+  padding-bottom: 0;
 }
 
-.member-podium--first:hover {
-  box-shadow:
-    0 0 0 1px rgba(245,158,11,.25),
-    0 12px 40px rgba(245,158,11,.15),
-    0 0 100px rgba(245,158,11,.1);
+.member-podium--first::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--hall-gold);
+  border-radius: 0 0 var(--hall-r) var(--hall-r);
 }
 
 /* ── Second Place ── */
 .member-podium--second {
   grid-column: 1;
   grid-row: 1;
-  border-color: rgba(167,139,250,.2);
-  background: linear-gradient(180deg, rgba(167,139,250,.05) 0%, var(--hall-surface) 50%);
-  box-shadow:
-    0 0 0 1px rgba(167,139,250,.1),
-    0 4px 24px rgba(167,139,250,.06);
-}
-
-.member-podium--second:hover {
-  box-shadow:
-    0 0 0 1px rgba(167,139,250,.2),
-    0 8px 32px rgba(167,139,250,.12);
+  border-color: rgba(148,163,184,.12);
 }
 
 /* ── Third Place ── */
 .member-podium--third {
   grid-column: 3;
   grid-row: 1;
-  border-color: rgba(249,115,22,.2);
-  background: linear-gradient(180deg, rgba(249,115,22,.05) 0%, var(--hall-surface) 50%);
-  box-shadow:
-    0 0 0 1px rgba(249,115,22,.1),
-    0 4px 24px rgba(249,115,22,.06);
-}
-
-.member-podium--third:hover {
-  box-shadow:
-    0 0 0 1px rgba(249,115,22,.2),
-    0 8px 32px rgba(249,115,22,.12);
+  border-color: rgba(194,136,78,.12);
 }
 
 /* ── Rank Badge ── */
 .member-rank {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  font-size: .78rem;
+  font-size: .75rem;
   font-weight: 800;
-  background: rgba(255,255,255,.06);
-  color: var(--t2, #94a3b8);
-  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.05);
+  color: var(--t3, #6b7a90);
+  border: 1px solid rgba(255,255,255,.06);
 }
 
 .member-podium--first .member-rank {
+  background: rgba(245,158,11,.1);
+  color: var(--hall-gold);
+  border-color: rgba(245,158,11,.2);
+}
+
+/* ── Podium Base (gold bar) ── */
+.member-podium__base {
+  width: 100%;
+  height: 8px;
+  border-radius: 0 0 var(--hall-r) var(--hall-r);
+  background: rgba(255,255,255,.04);
+  margin-top: 12px;
+}
+
+.member-podium--first .member-podium__base {
   background: var(--hall-gold);
-  color: #000;
-  width: 36px;
-  height: 36px;
-  font-size: .85rem;
-  box-shadow: 0 2px 12px rgba(245,158,11,.4);
+  height: 6px;
+}
+
+.member-podium--second .member-podium__base {
+  background: rgba(148,163,184,.15);
+  height: 5px;
+}
+
+.member-podium--third .member-podium__base {
+  background: rgba(194,136,78,.15);
+  height: 5px;
 }
 
 /* ── Avatar ── */
 .member-avatar {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 14px;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 12px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: #fff;
-  position: relative;
-  border: 3px solid rgba(255,255,255,.1);
-  background: linear-gradient(135deg, rgba(99,102,241,.3), rgba(6,182,212,.2));
+  border: 2px solid rgba(255,255,255,.08);
+  background: linear-gradient(135deg, rgba(99,102,241,.25), rgba(6,182,212,.15));
 }
 
-/* Glowing ring for 1st place */
 .member-podium--first .member-avatar {
-  width: 100px;
-  height: 100px;
-  font-size: 1.8rem;
-  border: 3px solid rgba(245,158,11,.4);
-  box-shadow:
-    0 0 0 4px rgba(245,158,11,.1),
-    0 0 24px rgba(245,158,11,.15);
+  width: 96px;
+  height: 96px;
+  font-size: 1.7rem;
+  border-color: rgba(245,158,11,.3);
+}
+
+.member-podium--second .member-avatar {
+  border-color: rgba(148,163,184,.15);
+}
+
+.member-podium--third .member-avatar {
+  border-color: rgba(194,136,78,.15);
 }
 
 .member-avatar--image {
@@ -323,9 +268,9 @@
 }
 
 .member-podium h2 {
-  font-size: .95rem;
+  font-size: .9rem;
   color: #fff;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -334,45 +279,81 @@
 }
 
 .member-podium--first h2 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
+}
+
+/* ── Badge QUÁN QUÂN ── */
+.member-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 8px;
+  border: 1px solid;
+}
+
+.member-badge--gold {
+  background: rgba(245,158,11,.1);
+  border-color: rgba(245,158,11,.2);
+  color: var(--hall-gold);
 }
 
 .member-title {
   display: block;
-  font-size: .78rem;
-  font-weight: 700;
+  font-size: .75rem;
+  font-weight: 600;
   margin-bottom: 8px;
-  letter-spacing: .02em;
+  letter-spacing: .01em;
+  color: var(--t2, #8896ab);
 }
 
-.member-podium--first .member-title { color: var(--hall-gold); }
-.member-podium--second .member-title { color: var(--hall-silver); }
-.member-podium--third .member-title { color: var(--hall-bronze); }
-
 .member-title i {
-  font-size: .7rem;
+  font-size: .65rem;
   margin-right: 3px;
+}
+
+.member-podium--first .member-title {
+  color: var(--hall-gold);
+  font-weight: 700;
+}
+
+.member-podium--second .member-title {
+  color: var(--hall-silver);
+}
+
+.member-podium--third .member-title {
+  color: var(--hall-bronze);
 }
 
 .member-score {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: .82rem;
-  color: var(--t2, #94a3b8);
+  gap: 5px;
+  font-size: .78rem;
+  color: var(--t3, #6b7a90);
   font-weight: 600;
+  margin-bottom: 16px;
 }
 
 .member-score i {
   color: var(--hall-cyan);
-  font-size: .72rem;
+  font-size: .68rem;
 }
 
 .member-score span {
   color: #fff;
   font-weight: 800;
-  font-size: .9rem;
+  font-size: .88rem;
+}
+
+.member-podium--first .member-score span {
+  font-size: 1rem;
 }
 
 /* ══════════════════════════════════════
@@ -383,27 +364,25 @@
 }
 
 .hall-board {
-  max-width: 800px;
+  max-width: 760px;
   margin: 0 auto;
   background: var(--hall-surface);
   border: 1px solid var(--hall-border);
   border-radius: var(--hall-r);
   overflow: hidden;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .hall-board__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--hall-border);
 }
 
 .hall-board__title {
   color: #fff;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
 }
 
@@ -413,8 +392,8 @@
 }
 
 .hall-board__header span {
-  color: var(--t3, #64748b);
-  font-size: .78rem;
+  color: var(--t3, #6b7a90);
+  font-size: .75rem;
 }
 
 /* ── Table ── */
@@ -429,12 +408,12 @@
 
 .hall-table th {
   text-align: left;
-  color: var(--t3, #64748b);
-  font-size: .72rem;
+  color: var(--t3, #6b7a90);
+  font-size: .7rem;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: .05em;
   font-weight: 700;
-  padding: 14px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--hall-border);
 }
 
@@ -443,12 +422,11 @@
 }
 
 .hall-table td {
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(255,255,255,.03);
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--hall-border-light);
   vertical-align: middle;
 }
 
-/* Hide title column on desktop too — cleaner look */
 .hall-table th:nth-child(3),
 .hall-table td:nth-child(3) {
   display: none;
@@ -464,15 +442,7 @@
 }
 
 .hall-table tbody tr:hover {
-  background: rgba(255,255,255,.03);
-}
-
-.hall-table tbody tr:nth-child(even) {
-  background: rgba(255,255,255,.015);
-}
-
-.hall-table tbody tr:nth-child(even):hover {
-  background: rgba(255,255,255,.04);
+  background: rgba(255,255,255,.02);
 }
 
 .hall-table tbody tr:last-child td {
@@ -483,30 +453,30 @@
 .hall-user {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .hall-user__rank {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   display: grid;
   place-items: center;
-  font-size: .75rem;
+  font-size: .72rem;
   font-weight: 800;
-  color: var(--t3, #64748b);
+  color: var(--t3, #6b7a90);
   background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.05);
   flex-shrink: 0;
 }
 
 .hall-user__avatar {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: .82rem;
+  font-size: .78rem;
   font-weight: 800;
   color: #fff;
   flex-shrink: 0;
@@ -529,7 +499,7 @@
 }
 
 .hall-user__info strong {
-  font-size: .9rem;
+  font-size: .88rem;
   color: #fff;
   font-weight: 700;
   white-space: nowrap;
@@ -538,7 +508,7 @@
 }
 
 .hall-user__info .hall-user__title {
-  font-size: .72rem;
+  font-size: .7rem;
   font-weight: 600;
 }
 
@@ -549,36 +519,36 @@
   gap: 4px;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: .7rem;
+  font-size: .68rem;
   font-weight: 700;
   border: 1px solid;
   letter-spacing: .01em;
 }
 
-.rank-chip--blue { background: rgba(59,130,246,.08); border-color: rgba(59,130,246,.2); color: #60a5fa; }
-.rank-chip--cyan { background: rgba(6,182,212,.08); border-color: rgba(6,182,212,.2); color: #22d3ee; }
-.rank-chip--green { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.2); color: #4ade80; }
-.rank-chip--emerald { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.2); color: #34d399; }
-.rank-chip--indigo { background: rgba(99,102,241,.08); border-color: rgba(99,102,241,.2); color: #a5b4fc; }
-.rank-chip--slate { background: rgba(100,116,139,.08); border-color: rgba(100,116,139,.2); color: #94a3b8; }
-.rank-chip--dark { background: rgba(71,85,105,.08); border-color: rgba(71,85,105,.2); color: #94a3b8; }
+.rank-chip--blue { background: rgba(59,130,246,.06); border-color: rgba(59,130,246,.15); color: #60a5fa; }
+.rank-chip--cyan { background: rgba(6,182,212,.06); border-color: rgba(6,182,212,.15); color: #22d3ee; }
+.rank-chip--green { background: rgba(34,197,94,.06); border-color: rgba(34,197,94,.15); color: #4ade80; }
+.rank-chip--emerald { background: rgba(16,185,129,.06); border-color: rgba(16,185,129,.15); color: #34d399; }
+.rank-chip--indigo { background: rgba(99,102,241,.06); border-color: rgba(99,102,241,.15); color: #a5b4fc; }
+.rank-chip--slate { background: rgba(100,116,139,.06); border-color: rgba(100,116,139,.15); color: #94a3b8; }
+.rank-chip--dark { background: rgba(71,85,105,.06); border-color: rgba(71,85,105,.15); color: #94a3b8; }
 
 .hall-points {
-  color: var(--hall-gold);
-  font-weight: 800;
-  font-size: .92rem;
+  color: #fff;
+  font-weight: 700;
+  font-size: .88rem;
   white-space: nowrap;
 }
 
 .hall-points span {
-  color: var(--t3, #64748b);
+  color: var(--t3, #6b7a90);
   font-weight: 600;
-  font-size: .78rem;
+  font-size: .75rem;
 }
 
 /* ── Footer ── */
 .hall-board__footer {
-  padding: 16px 24px;
+  padding: 14px 24px;
   border-top: 1px solid var(--hall-border);
 }
 
@@ -591,38 +561,38 @@
    TABLET (768px – 1199px)
    ══════════════════════════════════════ */
 @media (min-width: 768px) and (max-width: 1199px) {
-  .hall-hero { padding: 60px 20px 30px; }
-  .hall-title { font-size: 2.2rem; }
+  .hall-hero { padding: 60px 20px 24px; }
+  .hall-title { font-size: 2.1rem; }
 
   .hall-podium {
-    max-width: 640px;
-    gap: 14px;
+    max-width: 600px;
+    gap: 12px;
   }
 
-  .member-podium { padding: 28px 14px 22px; }
+  .member-podium { padding: 26px 12px 20px; }
 
   .member-avatar {
-    width: 68px;
-    height: 68px;
-    font-size: 1.3rem;
+    width: 62px;
+    height: 62px;
+    font-size: 1.2rem;
   }
 
   .member-podium--first .member-avatar {
-    width: 86px;
-    height: 86px;
+    width: 80px;
+    height: 80px;
     font-size: 1.5rem;
   }
 
-  .member-podium h2 { font-size: .88rem; }
-  .member-podium--first h2 { font-size: 1rem; }
+  .member-podium h2 { font-size: .85rem; }
+  .member-podium--first h2 { font-size: .95rem; }
 
-  .hall-board { max-width: 640px; }
+  .hall-board { max-width: 600px; }
 
   .hall-board__header,
   .hall-table th,
   .hall-table td {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 
@@ -630,18 +600,17 @@
    MOBILE (≤ 767px)
    ══════════════════════════════════════ */
 @media (max-width: 767px) {
-  /* ── Hero ── */
   .hall-hero {
-    padding: 52px 16px 20px;
+    padding: 52px 16px 18px;
   }
 
   .hall-title {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
   }
 
   .hall-subtitle {
-    font-size: .85rem;
-    margin-bottom: 18px;
+    font-size: .82rem;
+    margin-bottom: 16px;
   }
 
   .hall-tabs {
@@ -650,103 +619,119 @@
 
   .hall-tab {
     flex: 1 1 0;
-    height: 44px;
-    font-size: .82rem;
-    padding: 0 12px;
+    height: 40px;
+    font-size: .78rem;
+    padding: 0 10px;
   }
 
   /* ── Podium — Horizontal row ── */
   .hall-podium-section {
-    padding: 8px 12px 28px;
-  }
-
-  .hall-podium-section::before {
-    width: 300px;
-    height: 200px;
+    padding: 4px 10px 24px;
   }
 
   .hall-crown {
-    font-size: 2rem;
-    margin-bottom: 8px;
+    font-size: 1.8rem;
+    margin-bottom: 6px;
   }
 
   .hall-podium {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 8px;
     max-width: none;
   }
 
   .member-podium {
     text-align: center;
-    padding: 18px 8px 16px;
+    padding: 16px 6px 14px;
     border-radius: var(--hall-r-sm);
   }
 
   .member-podium--first {
     grid-column: auto;
     grid-row: auto;
+    padding-bottom: 0;
   }
 
-  .member-podium--second {
-    grid-column: auto;
-    grid-row: auto;
+  .member-podium--first::after {
+    border-radius: 0 0 var(--hall-r-sm) var(--hall-r-sm);
   }
 
+  .member-podium--second,
   .member-podium--third {
     grid-column: auto;
     grid-row: auto;
   }
 
   .member-rank {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    font-size: .68rem;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    font-size: .65rem;
+    border-radius: 6px;
   }
 
   .member-podium--first .member-rank {
-    width: 28px;
-    height: 28px;
-    font-size: .75rem;
+    width: 26px;
+    height: 26px;
+    font-size: .72rem;
   }
 
   .member-avatar {
-    width: 54px;
-    height: 54px;
-    font-size: 1.1rem;
-    margin: 0 auto 10px;
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+    margin: 0 auto 8px;
   }
 
   .member-podium--first .member-avatar {
-    width: 64px;
-    height: 64px;
-    font-size: 1.25rem;
+    width: 60px;
+    height: 60px;
+    font-size: 1.2rem;
   }
 
   .member-podium h2 {
-    font-size: .78rem;
-    margin-bottom: 3px;
+    font-size: .72rem;
+    margin-bottom: 2px;
   }
 
   .member-podium--first h2 {
-    font-size: .85rem;
+    font-size: .82rem;
   }
 
-  .member-title {
-    font-size: .68rem;
+  .member-badge {
+    font-size: .6rem;
+    padding: 3px 10px;
     margin-bottom: 4px;
   }
 
+  .member-title {
+    font-size: .62rem;
+    margin-bottom: 3px;
+  }
+
   .member-score {
-    font-size: .72rem;
+    font-size: .68rem;
+    margin-bottom: 12px;
+  }
+
+  .member-score span {
+    font-size: .82rem;
+  }
+
+  .member-podium__base {
+    height: 5px;
+    border-radius: 0 0 var(--hall-r-sm) var(--hall-r-sm);
+  }
+
+  .member-podium--first .member-podium__base {
+    height: 4px;
   }
 
   /* ── Board — Mobile card list ── */
   .hall-board-section {
-    padding: 0 16px 100px;
+    padding: 0 10px 100px;
   }
 
   .hall-board {
@@ -755,11 +740,11 @@
   }
 
   .hall-board__header {
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
 
   .hall-board__title {
-    font-size: .92rem;
+    font-size: .88rem;
   }
 
   .hall-table thead {
@@ -778,9 +763,9 @@
   .hall-table tbody tr {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    border-bottom: 1px solid rgba(255,255,255,.04);
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--hall-border-light);
     background: transparent !important;
   }
 
@@ -805,24 +790,24 @@
   }
 
   .hall-user {
-    gap: 10px;
+    gap: 8px;
   }
 
   .hall-user__rank {
-    width: 24px;
-    height: 24px;
-    font-size: .68rem;
+    width: 22px;
+    height: 22px;
+    font-size: .65rem;
     border-radius: 6px;
   }
 
   .hall-user__avatar {
-    width: 40px;
-    height: 40px;
-    font-size: .82rem;
+    width: 36px;
+    height: 36px;
+    font-size: .75rem;
   }
 
   .hall-user__info strong {
-    font-size: .88rem;
+    font-size: .82rem;
   }
 
   .hall-user__info .hall-user__title {
@@ -838,10 +823,10 @@
   }
 
   .hall-points {
-    font-size: .88rem;
+    font-size: .82rem;
   }
 
   .hall-board__footer {
-    padding: 12px 16px;
+    padding: 10px 14px;
   }
 }
