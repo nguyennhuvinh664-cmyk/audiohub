@@ -1280,121 +1280,119 @@
     return (stories || []).filter(function (item) {
       return String(item && item.visibility || '').trim() === 'Công khai';
     }).sort(function (a, b) {
-      var diff = Number(b.listenCount2d || 0) - Number(a.listenCount2d || 0);
+      var diff = Number(b.listenCount7d || b.listen_count7d || 0) - Number(a.listenCount7d || a.listen_count7d || 0);
       if (diff !== 0) return diff;
-      var ta = Date.parse(String(a.updatedAt || a.createdAt || '')) || 0;
-      var tb = Date.parse(String(b.updatedAt || b.createdAt || '')) || 0;
+      var ta = Date.parse(String(a.updatedAt || a.updated_at || a.createdAt || '')) || 0;
+      var tb = Date.parse(String(b.updatedAt || b.updated_at || b.createdAt || '')) || 0;
       return tb - ta;
     });
   }
 
   function renderSidebarTrending(currentStory) {
-    var list = document.querySelector('.mini-list');
-    if (!list || !window.AudioHubStories || typeof window.AudioHubStories.read !== 'function') return;
+    var list = document.querySelector('[data-sidebar-trending]');
+    if (!list) return;
 
-    var allStories = window.AudioHubStories.read() || [];
-    // If localStorage is sparse, fetch from Supabase to fill in
-    if (allStories.length < 4 && window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
-      window.AudioHubSupabase.fetchPublicStories().then(function (remote) {
-        if (remote && remote.length) {
-          // Write directly to localStorage — DO NOT call upsert() (triggers API PATCH calls)
-          var existing = window.AudioHubStories.read() || [];
-          var existingIds = {};
-          existing.forEach(function(s) { if (s && s.id) existingIds[s.id] = true; });
-          remote.forEach(function (s) {
-            if (!existingIds[s.id]) {
-              existing.push(s);
-            }
-          });
-          try { localStorage.setItem('audiohub-library', JSON.stringify(existing)); } catch(e) {}
-          renderSidebarTrending(currentStory);
-          fetchMissingCoversFromD1();
-          loadCardCoversFromIndexedDB();
+    // Fetch top 6 trending stories from API (sorted by listen_count7d)
+    fetch('/api/stories/public?order=trending&limit=6')
+      .then(function(r) { return r.ok ? r.json() : []; })
+      .then(function(stories) {
+        if (!Array.isArray(stories) || !stories.length) {
+          list.innerHTML = '';
+          return;
         }
-      }).catch(function () {});
-      return;
-    }
+        // Exclude current story
+        var currentId = currentStory ? String(currentStory.id || '') : '';
+        stories = stories.filter(function(s) { return s && String(s.id || '') !== currentId; });
 
-    // Check if current story is ACTUALLY in the playlist (not just URL has playlistId)
-    var inPlaylist = false;
-    var playlistIdParam = new URLSearchParams(window.location.search).get('playlistId');
-    if (playlistIdParam && currentStory) {
-      try {
-        var plRaw = localStorage.getItem('audiohub-playlists-v1');
-        var allPlaylists = plRaw ? JSON.parse(plRaw) : [];
-        if (Array.isArray(allPlaylists)) {
-          var matchedPl = allPlaylists.find(function(p) { return String(p.id) === String(playlistIdParam); });
-          if (matchedPl) {
-            var entries = matchedPl.entries || matchedPl.items || [];
-            inPlaylist = entries.some(function(e) {
-              return String(e.storyId || e.key || '') === String(currentStory.id || '');
-            });
+        list.innerHTML = stories.map(function (item) {
+          var title = escapeHtml(String(item.title || 'Truyện'));
+          var listens7d = Number(item.listen_count7d || item.listenCount7d || 0);
+          var href = '/story-detail?id=' + encodeURIComponent(String(item.id || ''));
+          var storyId = escapeHtml(String(item.id || ''));
+          var coverKey = item.cover_key || item.coverKey || '';
+          var coverStyle = '';
+          if (coverKey) {
+            coverStyle = 'background-image:url(/api/cover/' + encodeURIComponent(coverKey) + ');background-size:cover;background-position:center;';
           }
+          if (!coverStyle) {
+            var hash = 0;
+            for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
+            var hue1 = Math.abs(hash) % 360;
+            var hue2 = (hue1 + 40) % 360;
+            coverStyle = 'background:linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;';
+          }
+          var initials = title.slice(0, 2).toUpperCase();
+          return '<a href="' + href + '" class="mini-story">'
+            + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="' + coverStyle + '">' + (coverKey ? '' : initials) + '</div>'
+            + '<div><h3>' + title + '</h3><p><i class="fa-solid fa-fire" style="color:#f97316;"></i> ' + listens7d + ' lượt nghe (7 ngày)</p></div></a>';
+        }).join('');
+      }).catch(function() { list.innerHTML = ''; });
+  }
+
+  function renderSidebarRelated(currentStory) {
+    var list = document.querySelector('[data-sidebar-related]');
+    if (!list || !currentStory) return;
+
+    var author = String(currentStory.author || '').trim();
+    var genre = String(currentStory.genre || '').trim();
+    var currentId = String(currentStory.id || '');
+
+    if (!author && !genre) { list.innerHTML = ''; return; }
+
+    // Fetch stories by same author + same genre from API
+    var url = '/api/stories/public?limit=6';
+    if (author) url += '&author=' + encodeURIComponent(author);
+    if (genre) url += '&genre=' + encodeURIComponent(genre);
+
+    fetch(url)
+      .then(function(r) { return r.ok ? r.json() : []; })
+      .then(function(stories) {
+        if (!Array.isArray(stories) || !stories.length) {
+          // If no exact match, try author only
+          if (author && genre) {
+            return fetch('/api/stories/public?author=' + encodeURIComponent(author) + '&limit=6')
+              .then(function(r2) { return r2.ok ? r2.json() : []; });
+          }
+          return [];
         }
-      } catch (e) {}
-    }
+        return stories;
+      })
+      .then(function(stories) {
+        if (!Array.isArray(stories) || !stories.length) {
+          list.innerHTML = '';
+          // Hide the entire section if no related stories
+          var panel = list.closest('.sidebar-panel');
+          if (panel) panel.style.display = 'none';
+          return;
+        }
+        // Exclude current story
+        stories = stories.filter(function(s) { return s && String(s.id || '') !== currentId; });
+        // Show the section
+        var panel = list.closest('.sidebar-panel');
+        if (panel) panel.style.display = '';
 
-    var stories;
-
-    if (!inPlaylist && currentStory) {
-      // Not in playlist: show same author + same genre stories
-      var author = String(currentStory.author || '').trim().toLowerCase();
-      var genre = String(currentStory.genre || '').trim().toLowerCase();
-      var currentId = String(currentStory.id || '');
-      stories = allStories.filter(function (s) {
-        if (!s || !s.id || String(s.id) === currentId) return false;
-        if (String(s.visibility || '').trim() !== 'Công khai') return false;
-        var sAuthor = String(s.author || '').trim().toLowerCase();
-        var sGenre = String(s.genre || '').trim().toLowerCase();
-        return (author && sAuthor === author) || (genre && sGenre === genre);
-      }).sort(function (a, b) {
-        return (b.listenCount || b.views || 0) - (a.listenCount || a.views || 0);
-      });
-    } else {
-      // In playlist: show trending
-      stories = pickTrendingStories(allStories);
-    }
-
-    stories = stories.slice(0, 8);
-
-    // Update heading based on context
-    var heading = list.closest('.sidebar-panel') ? list.closest('.sidebar-panel').querySelector('.section-heading h2') : null;
-    if (heading) {
-      if (!inPlaylist && currentStory) {
-        heading.innerHTML = '<i class="fa-solid fa-book-open"></i> Có thể bạn thích';
-      } else {
-        heading.innerHTML = '<i class="fa-solid fa-arrow-trend-up"></i> Truyện Trending';
-      }
-    }
-
-    if (!stories.length) {
-      list.innerHTML = '';
-      return;
-    }
-
-    list.innerHTML = stories.map(function (item) {
-      var title = escapeHtml(String(item.title || 'Truyện'));
-      var views2d = Number(item.listenCount2d || 0);
-      var href = '/story-detail?id=' + encodeURIComponent(String(item.id || ''));
-      var storyId = escapeHtml(String(item.id || ''));
-      var coverData = item.coverData ? escapeHtml(String(item.coverData)) : '';
-      var initials = title.slice(0, 2).toUpperCase();
-      // Generate default canvas cover
-      var coverStyle = '';
-      if (coverData) {
-        coverStyle = 'background-image:url("' + coverData + '");background-size:cover;background-position:center;';
-      }
-      if (!coverStyle) {
-        var hash = 0;
-        for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
-        var hue1 = Math.abs(hash) % 360;
-        var hue2 = (hue1 + 40) % 360;
-        coverStyle = 'background:linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;';
-      }
-      return '<a href="' + href + '" class="mini-story">'
-        + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="' + coverStyle + '">' + (coverData ? '' : initials) + '</div>'
-        + '<div><h3>' + title + '</h3><p><i class="fa-regular fa-eye"></i> ' + views2d + ' lượt nghe (2 ngày)</p></div></a>';
-    }).join('');
+        list.innerHTML = stories.map(function (item) {
+          var title = escapeHtml(String(item.title || 'Truyện'));
+          var href = '/story-detail?id=' + encodeURIComponent(String(item.id || ''));
+          var storyId = escapeHtml(String(item.id || ''));
+          var coverKey = item.cover_key || item.coverKey || '';
+          var coverStyle = '';
+          if (coverKey) {
+            coverStyle = 'background-image:url(/api/cover/' + encodeURIComponent(coverKey) + ');background-size:cover;background-position:center;';
+          }
+          if (!coverStyle) {
+            var hash = 0;
+            for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
+            var hue1 = Math.abs(hash) % 360;
+            var hue2 = (hue1 + 40) % 360;
+            coverStyle = 'background:linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;';
+          }
+          var initials = title.slice(0, 2).toUpperCase();
+          return '<a href="' + href + '" class="mini-story">'
+            + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="' + coverStyle + '">' + (coverKey ? '' : initials) + '</div>'
+            + '<div><h3>' + title + '</h3><p style="color:#94a3b8;font-size:.75rem;">' + escapeHtml(item.genre || '') + '</p></div></a>';
+        }).join('');
+      }).catch(function() { list.innerHTML = ''; });
   }
 
   function renderRelatedStories(story, forcedTag) {
@@ -2906,6 +2904,7 @@
     }
     updateAudioHeadingStoryTitle(story);
     renderSidebarTrending(story);
+    renderSidebarRelated(story);
     fetchMissingCoversFromD1();
     loadCardCoversFromIndexedDB();
   }

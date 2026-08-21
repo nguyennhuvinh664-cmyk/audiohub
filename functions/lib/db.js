@@ -14,7 +14,7 @@ export async function getStoryById(db, storyId) {
  * Excludes cover_data and reading_text (large fields) for listing performance
  */
 export async function getPublicStories(db, options = {}) {
-  const { genre, status, author, limit = 50, offset = 0 } = options;
+  const { genre, status, author, limit = 50, offset = 0, order } = options;
 
   // Exclude large fields for listing: cover_data (base64 images), reading_text, chapters (can be 1MB+ each)
   let query = `SELECT id, title, author, genre, description, chapter_title, chapter_count,
@@ -38,7 +38,13 @@ export async function getPublicStories(db, options = {}) {
     params.push(author);
   }
 
-  query += ' ORDER BY updated_at DESC LIMIT ? OFFSET ?';
+  if (order === 'trending') {
+    query += ' ORDER BY listen_count7d DESC, updated_at DESC';
+  } else {
+    query += ' ORDER BY updated_at DESC';
+  }
+
+  query += ' LIMIT ? OFFSET ?';
   params.push(limit, offset);
 
   const result = await db.prepare(query).bind(...params).all();

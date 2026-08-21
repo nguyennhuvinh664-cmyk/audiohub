@@ -137,9 +137,10 @@ export async function onRequest(context) {
       const genre = url.searchParams.get('genre');
       const status = url.searchParams.get('status');
       const author = url.searchParams.get('author');
+      const order = url.searchParams.get('order');
       const limit = parseInt(url.searchParams.get('limit') || '50');
       const offset = parseInt(url.searchParams.get('offset') || '0');
-      const stories = await getPublicStories(env.DB, { genre, status, author, limit, offset });
+      const stories = await getPublicStories(env.DB, { genre, status, author, limit, offset, order });
       return Response.json(stories, { headers: corsHeaders });
     }
 
