@@ -59,6 +59,22 @@
     return s.author && s.author.toLowerCase() === authorName.toLowerCase();
   });
 
+  // ── API fallback: fetch stories by author if localStorage is empty ──
+  if (!stories.length && authorName) {
+    fetch('/api/stories/public?author=' + encodeURIComponent(authorName) + '&limit=50')
+      .then(function(r) { return r.ok ? r.json() : []; })
+      .then(function(apiStories) {
+        if (Array.isArray(apiStories) && apiStories.length) {
+          stories = apiStories;
+          // Re-render all sections with API data
+          renderAll();
+        }
+      })
+      .catch(function() {});
+  }
+
+  // ── Render all sections (called initially and after API fallback) ──
+  function renderAll() {
   var totalViews = stories.reduce(function(sum, s) { return sum + (s.listenCount || s.views || 0); }, 0);
 
   // ── Channel info ──
@@ -507,5 +523,10 @@
       closeEditModal();
     });
   }
+
+  } // end renderAll()
+
+  // Initial render
+  renderAll();
 
 })();
