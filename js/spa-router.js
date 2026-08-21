@@ -598,8 +598,8 @@
   document.addEventListener('mouseover', function (event) {
     var anchor = event.target.closest('a');
     if (!anchor || !shouldIntercept(anchor)) return;
-    // Skip prefetch inside account/playlist sections to avoid flicker
-    if (anchor.closest('[data-playlist-detail]') || anchor.closest('[data-story-item]') || anchor.closest('.playlist-entry')) return;
+    // Skip prefetch inside account/playlist/sidebar sections to avoid flicker & audio interruption
+    if (anchor.closest('[data-playlist-detail]') || anchor.closest('[data-story-item]') || anchor.closest('.playlist-entry') || anchor.closest('.mini-list') || anchor.closest('[data-sidebar-trending]') || anchor.closest('[data-sidebar-related]')) return;
     if (prefetchTimeout) clearTimeout(prefetchTimeout);
     prefetchTimeout = setTimeout(function () {
       window.AudioHubRouter.prefetch(anchor.href);
