@@ -1309,21 +1309,17 @@
           var listens7d = Number(item.listen_count7d || item.listenCount7d || 0);
           var href = '/story-detail?id=' + encodeURIComponent(String(item.id || ''));
           var storyId = escapeHtml(String(item.id || ''));
-          var coverKey = item.cover_key || item.coverKey || '';
-          var coverStyle = '';
-          if (coverKey) {
-            coverStyle = 'background-image:url(/api/cover/' + encodeURIComponent(coverKey) + ');background-size:cover;background-position:center;';
-          }
-          if (!coverStyle) {
-            var hash = 0;
-            for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
-            var hue1 = Math.abs(hash) % 360;
-            var hue2 = (hue1 + 40) % 360;
-            coverStyle = 'background:linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;';
-          }
           var initials = title.slice(0, 2).toUpperCase();
+          var hash = 0;
+          for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
+          var hue1 = Math.abs(hash) % 360;
+          var hue2 = (hue1 + 40) % 360;
+          var coverUrl = '/api/covers/' + encodeURIComponent(item.id || '');
           return '<a href="' + href + '" class="mini-story">'
-            + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="' + coverStyle + '">' + (coverKey ? '' : initials) + '</div>'
+            + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="background:linear-gradient(135deg,hsl(' + hue1 + ',60%,30%),hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;position:relative;overflow:hidden;">'
+            + '<img src="' + coverUrl + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.remove()">'
+            + '<span style="position:relative;z-index:1;">' + initials + '</span>'
+            + '</div>'
             + '<div><h3>' + title + '</h3><p><i class="fa-solid fa-fire" style="color:#f97316;"></i> ' + listens7d + ' lượt nghe (7 ngày)</p></div></a>';
         }).join('');
       }).catch(function() { list.innerHTML = ''; });
@@ -1375,21 +1371,17 @@
           var title = escapeHtml(String(item.title || 'Truyện'));
           var href = '/story-detail?id=' + encodeURIComponent(String(item.id || ''));
           var storyId = escapeHtml(String(item.id || ''));
-          var coverKey = item.cover_key || item.coverKey || '';
-          var coverStyle = '';
-          if (coverKey) {
-            coverStyle = 'background-image:url(/api/cover/' + encodeURIComponent(coverKey) + ');background-size:cover;background-position:center;';
-          }
-          if (!coverStyle) {
-            var hash = 0;
-            for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
-            var hue1 = Math.abs(hash) % 360;
-            var hue2 = (hue1 + 40) % 360;
-            coverStyle = 'background:linear-gradient(135deg, hsl(' + hue1 + ',60%,30%), hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;';
-          }
           var initials = title.slice(0, 2).toUpperCase();
+          var hash = 0;
+          for (var hi = 0; hi < title.length; hi++) hash = title.charCodeAt(hi) + ((hash << 5) - hash);
+          var hue1 = Math.abs(hash) % 360;
+          var hue2 = (hue1 + 40) % 360;
+          var coverUrl = '/api/covers/' + encodeURIComponent(item.id || '');
           return '<a href="' + href + '" class="mini-story">'
-            + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="' + coverStyle + '">' + (coverKey ? '' : initials) + '</div>'
+            + '<div class="mini-thumb" data-cover-story-id="' + storyId + '" style="background:linear-gradient(135deg,hsl(' + hue1 + ',60%,30%),hsl(' + hue2 + ',50%,20%));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-weight:700;font-size:14px;position:relative;overflow:hidden;">'
+            + '<img src="' + coverUrl + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.remove()">'
+            + '<span style="position:relative;z-index:1;">' + initials + '</span>'
+            + '</div>'
             + '<div><h3>' + title + '</h3><p style="color:#94a3b8;font-size:.75rem;">' + escapeHtml(item.genre || '') + '</p></div></a>';
         }).join('');
       }).catch(function() { list.innerHTML = ''; });
