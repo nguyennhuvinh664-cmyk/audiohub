@@ -212,7 +212,7 @@
     } catch (e) {}
 
     var superAdminLink = isSuperAdmin
-      ? '<a href="superadmin.html" class="auth-menu__link auth-menu__link--admin"><i class="fa-solid fa-shield-halved"></i> Super Admin</a>'
+      ? '<a href="html/superadmin.html" class="auth-menu__link auth-menu__link--admin"><i class="fa-solid fa-shield-halved"></i> Super Admin</a>'
       : '';
 
     var accountUrl = getAccountUrl().replace('/html/', '');
