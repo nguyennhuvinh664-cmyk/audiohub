@@ -104,7 +104,7 @@
     var chapStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
     stories.forEach(function(s) {
       var chs = Array.isArray(chapStore[s.id]) ? chapStore[s.id] : [];
-      totalChapters += chs.length || s.chapterCount || 0;
+      totalChapters += chs.length || s.chapter_count || s.chapterCount || 0;
     });
   } catch (e) {}
 
@@ -163,7 +163,7 @@
     var featChapters = 0;
     try {
       var _csFeat = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-      featChapters = Array.isArray(_csFeat[featured.id]) ? _csFeat[featured.id].length : (featured.chapterCount || 0);
+      featChapters = Array.isArray(_csFeat[featured.id]) ? _csFeat[featured.id].length : (featured.chapter_count || featured.chapterCount || 0);
     } catch (e) {}
     var metaParts = [fmt(featured.listenCount || featured.views) + ' lượt nghe'];
     if (featChapters) metaParts.push(featChapters + ' chương');
@@ -250,6 +250,16 @@
     var color = genreColor(genre);
     var listens = fmt(story.listenCount || story.views || 0);
 
+    // Chapter count
+    var chapCount = story.chapter_count || story.chapterCount || 0;
+    if (!chapCount) {
+      try {
+        var _csB = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
+        chapCount = Array.isArray(_csB[storyId]) ? _csB[storyId].length : 0;
+      } catch (e) {}
+    }
+    var chapText = chapCount > 0 ? (chapCount + ' chương') : '';
+
     // data-cover: always include storyId so hydrateCovers can find it
     var coverVal = story.coverKey || storyId || '';
 
@@ -259,6 +269,7 @@
       + '</div>'
       + '<div class="story-card__body">'
       + '<h2 class="story-title">' + esc(title) + '</h2>'
+      + (chapText ? '<p class="story-card__chapters">' + esc(chapText) + '</p>' : '')
       + '<div class="story-footer"><span><i class="fa-solid fa-headphones"></i> ' + listens + ' lượt nghe</span></div>'
       + '</div></a>'
       + '<div class="story-card__actions">'
