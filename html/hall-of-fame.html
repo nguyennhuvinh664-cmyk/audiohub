@@ -17,50 +17,6 @@
   <script src="../js/supabase-client.js"></script>
   <script src="../js/stories-store.js?v=20260810-6"></script>
   <script src="../js/auth-state.js"></script>
-<script>
-/* Seed fake hall data for testing — write directly to localStorage */
-(function(){
-  var key = 'audiohub-hall-contributions-v1';
-  try {
-    var raw = localStorage.getItem(key);
-    var existing = raw ? JSON.parse(raw) : {};
-    if (Object.keys(existing).length >= 8) return;
-  } catch(e) {}
-  var now = new Date().toISOString();
-  var store = {
-    'ngo-nhu': { id:'ngo-nhu', name:'Ngo Nhu', avatar:'P', week:30000, month:112000, all:1280000, updatedAt:now },
-    'kimthi0206': { id:'kimthi0206', name:'Kimthi0206', avatar:'K', week:30000, month:120000, all:1194000, updatedAt:now },
-    'nguyen-manh-tao': { id:'nguyen-manh-tao', name:'Nguyễn Mạnh Tảo', avatar:'M2', week:4100, month:76800, all:986000, updatedAt:now },
-    'my-duyen': { id:'my-duyen', name:'MỸ DUYÊN', avatar:'MD', week:2500, month:59000, all:944000, updatedAt:now },
-    'hong-linh': { id:'hong-linh', name:'Hồng Linh', avatar:'HL', week:2500, month:70000, all:902000, updatedAt:now },
-    'ngoc-oanh': { id:'ngoc-oanh', name:'Ngọc Oanh', avatar:'N1', week:3500, month:71500, all:871500, updatedAt:now },
-    'le-lan': { id:'le-lan', name:'Lê Lan', avatar:'LL', week:2300, month:66500, all:860000, updatedAt:now },
-    'huyen2409': { id:'huyen2409', name:'Huyền2409', avatar:'H9', week:2200, month:62000, all:829000, updatedAt:now },
-    'minh-tuan': { id:'minh-tuan', name:'Minh Tuấn', avatar:'MT', week:2000, month:58000, all:810000, updatedAt:now },
-    'thu-hang': { id:'thu-hang', name:'Thu Hằng', avatar:'TH', week:1800, month:55000, all:790000, updatedAt:now },
-    'duc-anh': { id:'duc-anh', name:'Đức Anh', avatar:'DA', week:1600, month:50000, all:750000, updatedAt:now },
-    'phuong-anh': { id:'phuong-anh', name:'Phương Anh', avatar:'PA', week:1500, month:48000, all:720000, updatedAt:now },
-    'quoc-bao': { id:'quoc-bao', name:'Quốc Bảo', avatar:'QB', week:1400, month:45000, all:690000, updatedAt:now },
-    'thu-trang': { id:'thu-trang', name:'Thu Trang', avatar:'TT', week:1300, month:42000, all:660000, updatedAt:now },
-    'hoang-nam': { id:'hoang-nam', name:'Hoàng Nam', avatar:'HN', week:1200, month:40000, all:630000, updatedAt:now },
-    'ngoc-tram': { id:'ngoc-tram', name:'Ngọc Trâm', avatar:'NT', week:1100, month:38000, all:600000, updatedAt:now },
-    'van-huong': { id:'van-huong', name:'Vân Hương', avatar:'VH', week:1000, month:35000, all:570000, updatedAt:now },
-    'duc-long': { id:'duc-long', name:'Đức Long', avatar:'DL', week:900, month:32000, all:540000, updatedAt:now },
-    'thi-ngan': { id:'thi-ngan', name:'Thị Ngân', avatar:'TN', week:800, month:30000, all:510000, updatedAt:now },
-    'quoc-khanh': { id:'quoc-khanh', name:'Quốc Khánh', avatar:'QK', week:700, month:28000, all:480000, updatedAt:now },
-    'thu-uyen': { id:'thu-uyen', name:'Thu Uyên', avatar:'TU', week:600, month:25000, all:450000, updatedAt:now },
-    'minh-chau': { id:'minh-chau', name:'Minh Châu', avatar:'MC', week:500, month:22000, all:420000, updatedAt:now },
-    'duc-hieu': { id:'duc-hieu', name:'Đức Hiếu', avatar:'DH', week:400, month:20000, all:390000, updatedAt:now },
-    'ngoc-ly': { id:'ngoc-ly', name:'Ngọc Ly', avatar:'NL', week:300, month:18000, all:360000, updatedAt:now }
-  };
-  try { localStorage.setItem(key, JSON.stringify(store)); } catch(e) {}
-})();
-</script>
-
-
-
-
-
 
 <div id="page-content">
 
@@ -85,25 +41,25 @@
         <article class="member-podium member-podium--second">
           <span class="member-rank">2</span>
           <div class="member-avatar member-avatar--image"></div>
-          <h2>Kimthi0206</h2>
+          <h2>—</h2>
           <span class="member-title"><i class="fa-solid fa-trophy"></i> Thiên Cương Tinh</span>
-          <div class="member-score"><i class="fa-solid fa-gem"></i> <span>30,000</span> Linh Thạch</div>
+          <div class="member-score"><i class="fa-solid fa-gem"></i> <span>0</span> Linh Thạch</div>
         </article>
 
         <article class="member-podium member-podium--first">
-          <div class="member-avatar member-avatar--primary">P</div>
           <span class="member-rank member-rank--first">1</span>
-          <h2>Ngo Nhu</h2>
+          <div class="member-avatar member-avatar--primary">?</div>
+          <h2>—</h2>
           <span class="member-title"><i class="fa-solid fa-trophy"></i> Thiên Khôi Tinh</span>
-          <div class="member-score"><i class="fa-solid fa-gem"></i> <span>30,000</span> Linh Thạch</div>
+          <div class="member-score"><i class="fa-solid fa-gem"></i> <span>0</span> Linh Thạch</div>
         </article>
 
         <article class="member-podium member-podium--third">
           <span class="member-rank">3</span>
-          <div class="member-avatar member-avatar--bronze">M2</div>
-          <h2>Nguyễn Mạnh Tảo</h2>
+          <div class="member-avatar member-avatar--bronze">?</div>
+          <h2>—</h2>
           <span class="member-title"><i class="fa-solid fa-trophy"></i> Thiên Cơ Tinh</span>
-          <div class="member-score"><i class="fa-solid fa-gem"></i> <span>4,100</span> Linh Thạch</div>
+          <div class="member-score"><i class="fa-solid fa-gem"></i> <span>0</span> Linh Thạch</div>
         </article>
       </div>
     </section>
@@ -228,7 +184,7 @@
         return list.slice(0, (toRank - fromRank + 1));
       }
 
-      function renderPodiumCard(node, data) {
+      function renderPodiumCard(node, data, colorClass) {
         var avatarNode = node.querySelector('.member-avatar');
         var nameNode = node.querySelector('h2');
         var titleNode = node.querySelector('.member-title');
@@ -245,16 +201,22 @@
         }
         if (nameNode) nameNode.textContent = data.name || 'Ẩn danh';
         if (titleNode) titleNode.innerHTML = '<i class="fa-solid fa-trophy"></i> ' + (data.title || 'Thiên Binh Tinh');
-        if (scoreNode) scoreNode.innerHTML = '<i class="fa-solid fa-gem"></i> ' + formatPoints(data.points) + ' linh thạch';
+        if (scoreNode) scoreNode.innerHTML = '<i class="fa-solid fa-gem"></i> <span>' + formatPoints(data.points) + '</span> Linh Thạch';
       }
 
       function renderBoard(rows) {
         var normalizedRows = ensureMinRows(rows, 4, 22, activeKey);
         tableBody.innerHTML = normalizedRows.map(function (row, index) {
           var rankClass = rankPalette[index % rankPalette.length];
+          var rankNum = index + 4;
           return '<tr>'
-            + '<td>' + (index + 4) + '</td>'
-            + '<td><div class="hall-user"><span class="hall-user__avatar hall-user__avatar--' + rankClass + '">' + (row.avatar || 'AH') + '</span><strong>' + row.name + '</strong></div></td>'
+            + '<td>' + rankNum + '</td>'
+            + '<td><div class="hall-user">'
+            + '<span class="hall-user__rank">' + rankNum + '</span>'
+            + '<span class="hall-user__avatar hall-user__avatar--' + rankClass + '">' + (row.avatar || 'AH') + '</span>'
+            + '<div class="hall-user__info"><strong>' + row.name + '</strong>'
+            + '<span class="hall-user__title rank-chip rank-chip--' + rankClass + '">' + (row.title || rankTitleByIndex(index + 3)) + '</span>'
+            + '</div></div></td>'
             + '<td><span class="rank-chip rank-chip--' + rankClass + '">' + (row.title || rankTitleByIndex(index + 3)) + '</span></td>'
             + '<td class="hall-points">' + formatPoints(row.points) + ' <span>LT</span></td>'
             + '</tr>';
@@ -294,9 +256,9 @@
         updatedNode.textContent = getPeriodLabel(key);
 
         var top3 = ensureMinRows(leaderboard.slice(0, 3), 1, 3, scoreKey);
-        renderPodiumCard(podiumFirst, top3[0]);
-        renderPodiumCard(podiumSecond, top3[1]);
-        renderPodiumCard(podiumThird, top3[2]);
+        renderPodiumCard(podiumFirst, top3[0], 'gold');
+        renderPodiumCard(podiumSecond, top3[1], 'silver');
+        renderPodiumCard(podiumThird, top3[2], 'bronze');
 
         var boardRows = leaderboard.slice(3).map(function (item) {
           return { name: item.name, avatar: item.avatar, title: item.title, points: item.points };
