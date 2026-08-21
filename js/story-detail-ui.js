@@ -689,15 +689,28 @@
     if (typeof apiStory.chapters === 'string') {
       try { apiStory.chapters = JSON.parse(apiStory.chapters); } catch (e) { apiStory.chapters = []; }
     }
-    // SAFETY: Explicitly save chapters to audiohub-chapters-v1 before upsert
-    // (upsert → normalizeStory may read empty store and overwrite)
+    // SAFETY: Merge API chapters into audiohub-chapters-v1 before upsert.
+    // Always merge — don't skip when localStorage already has data.
+    // Preserve existing a_* audioKeys from localStorage (source of truth).
     if (Array.isArray(apiStory.chapters) && apiStory.chapters.length && apiStory.id) {
       try {
         var _cs4 = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-        if (!Array.isArray(_cs4[apiStory.id]) || !_cs4[apiStory.id].length) {
-          _cs4[apiStory.id] = apiStory.chapters;
-          localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs4));
-        }
+        var _existing4 = Array.isArray(_cs4[apiStory.id]) ? _cs4[apiStory.id] : [];
+        var _merged4 = apiStory.chapters.map(function (apiCh, _m4i) {
+          var _loc = _existing4[_m4i] || {};
+          var _m4 = Object.assign({}, apiCh);
+          // Preserve localStorage audioKey if API chapter has none
+          if ((!_m4.audioKey || _m4.audioKey === '') && _loc.audioKey) {
+            _m4.audioKey = _loc.audioKey;
+          }
+          // Preserve localStorage readingText if API chapter has none
+          if ((!_m4.readingText || _m4.readingText === '') && _loc.readingText) {
+            _m4.readingText = _loc.readingText;
+          }
+          return _m4;
+        });
+        _cs4[apiStory.id] = _merged4;
+        localStorage.setItem('audiohub-chapters-v1', JSON.stringify(_cs4));
       } catch (e) {}
     }
     console.log('[story-detail] Upserting API story:', apiStory.id, '| chapters:', Array.isArray(apiStory.chapters) ? apiStory.chapters.length : 0);
@@ -2769,11 +2782,10 @@
         return;
       }
       // Build the full chapter list to sync: include title + audioKey + visibility.
-      // CRITICAL: Replace a_* temp keys AND empty keys with CUID (storyId). R2 only
-      // stores files under CUID keys, so D1 must reference CUID — not a_* or empty.
+      // CRITICAL: Preserve each chapter's own a_* audioKey. Do NOT fallback to
+      // storyId (CUID) — that causes all chapters to share the same audio file.
       var _payload = _chs.map(function (c) {
-        // Keep original audioKey — each chapter has its own R2 file
-        var _ak = (c && c.audioKey) || storyId;
+        var _ak = (c && c.audioKey) || '';
         return {
           title: (c && c.title) || '',
           audioKey: _ak,
@@ -3047,8 +3059,6 @@
               try {
                 var _existingStore = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
                 var _existingChapters = Array.isArray(_existingStore[story.id]) ? _existingStore[story.id] : [];
-                // Fallback: use story-level audioKey for chapters without their own
-                var _storyFallbackKey = apiAudioKey || merged.audioKey || '';
                 merged.chapters = apiChapters.map(function (apiCh, _idx) {
                   var _localCh = _existingChapters[_idx] || {};
                   // Each chapter has its own audioKey (a_* key) stored in R2
@@ -3058,16 +3068,9 @@
                     _mergedCh.audioKey = _localCh.audioKey;
                     console.log('[story-detail] Preserved audioKey for chapter', _idx + 1, ':', _localCh.audioKey);
                   }
-                  // Still no audioKey? Use story-level fallback
-                  if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && _storyFallbackKey) {
-                    _mergedCh.audioKey = _storyFallbackKey;
-                    console.log('[story-detail] Fallback audioKey for chapter', _idx + 1, ':', _storyFallbackKey);
-                  }
-                  // Last resort: use story ID
-                  if ((!_mergedCh.audioKey || _mergedCh.audioKey === '') && story.id) {
-                    _mergedCh.audioKey = story.id;
-                    console.log('[story-detail] Story ID fallback audioKey for chapter', _idx + 1, ':', story.id);
-                  }
+                  // Do NOT fallback to story-level audioKey or CUID here.
+                  // Each chapter MUST have its own a_* audioKey. Fallback causes
+                  // multiple chapters to share the same audio file.
                   // Same for readingText
                   if ((!_mergedCh.readingText || _mergedCh.readingText === '') && _localCh.readingText) {
                     _mergedCh.readingText = _localCh.readingText;
@@ -3179,8 +3182,7 @@
                       // Keep original audioKey — each chapter has its own R2 file
                       _m.audioKey = _old.audioKey;
                     }
-                    // Fallback: use story-level audioKey
-                    if ((!_m.audioKey || _m.audioKey === '') && story.audioKey) _m.audioKey = story.audioKey;
+                    // Do NOT fallback to story.audioKey — causes chapters to share same audio
                     if ((!_m.readingText || _m.readingText === '') && _old.readingText) _m.readingText = _old.readingText;
                     return _m;
                   });
@@ -4249,29 +4251,13 @@
           // Do NOT use setTimeout(300) here — audio is async and not ready in 300ms,
           // causing echo of previous chapter's audio or silence in incognito mode.
         } else if (!chAudioKey) {
-          // Chapter has NO audioKey — fallback to story-level or current audioKey
-          var _storyFallbackKey = currentPlayingAudioKey || '';
-          if (!_storyFallbackKey && story) {
-            _storyFallbackKey = (story.audioKey || story.audio_key) ? String(story.audioKey || story.audio_key) : '';
-          }
-          console.log('[audio] Chapter', safeIndex + 1, 'has no audioKey — fallback:', _storyFallbackKey || '(none)');
-          if (_storyFallbackKey) {
-            // Restart audio from beginning (story-level audio)
-            nativeAudio.currentTime = 0;
-            nativeAudio.play().then(function () {
-              playerState.playing = true;
-              renderPlayer();
-            }).catch(function () {
-              playerState.playing = false;
-              renderPlayer();
-            });
-          } else {
-            // No audio at all — show message
-            var _noteNode = document.querySelector('[data-story-audio-note]');
-            if (_noteNode) {
-              _noteNode.textContent = 'Chương này chưa có file audio.';
-              _noteNode.classList.remove('is-hidden');
-            }
+          // Chapter has NO audioKey — do NOT fallback to story-level audio
+          // (fallback causes multiple chapters to share the same audio file)
+          console.log('[audio] Chapter', safeIndex + 1, 'has no audioKey — showing message');
+          var _noteNode = document.querySelector('[data-story-audio-note]');
+          if (_noteNode) {
+            _noteNode.textContent = 'Chương này chưa có file audio.';
+            _noteNode.classList.remove('is-hidden');
           }
         } else {
           // Same audioKey as currently playing — restart from beginning

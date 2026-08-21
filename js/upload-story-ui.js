@@ -1653,7 +1653,15 @@
               }
               _patchUpdateProgress(Math.round((idx / _total) * 90), 'Đang upload chương ' + (idx + 1) + '/' + _total + '...');
               var ch = _chapters[idx];
-              var chKey = ch.audioKey || story.id;
+              // Skip chapters without audioKey — do NOT fallback to story.id (CUID)
+              // Fallback causes multiple chapters to share the same audio file
+              if (!ch.audioKey) {
+                console.log('[upload] ⚠ PATCH: Skipping chapter', idx + 1, '— no audioKey');
+                _uploaded++;
+                _patchUploadChapter(idx + 1);
+                return;
+              }
+              var chKey = ch.audioKey;
 
               // Always use IndexedDB lookup — state.audioFile is only the LAST selected file
               var _blobPromise;
