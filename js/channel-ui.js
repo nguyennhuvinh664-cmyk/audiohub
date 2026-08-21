@@ -250,25 +250,15 @@
     var color = genreColor(genre);
     var listens = fmt(story.listenCount || story.views || 0);
 
-    // Chapter count from localStorage
-    var chapCount = 0;
-    try {
-      var _csB = JSON.parse(localStorage.getItem('audiohub-chapters-v1') || '{}');
-      chapCount = Array.isArray(_csB[storyId]) ? _csB[storyId].length : (story.chapterCount || 0);
-    } catch (e) {}
-    var chapLabel = chapCount > 0 ? ('Chương 1 - Chương ' + chapCount) : 'Demo';
-
     // data-cover: always include storyId so hydrateCovers can find it
     var coverVal = story.coverKey || storyId || '';
 
     return '<div class="story-card" data-story-id="' + storyId + '" data-story-visibility="' + visibility + '">'
       + '<a href="' + href + '" class="story-card__link">'
       + '<div class="story-card__thumb" data-cover="' + coverVal + '" style="background:linear-gradient(135deg,' + color + ',' + color + 'aa)">'
-      + '<span class="story-card__chapters">' + esc(chapLabel) + '</span>'
       + '</div>'
       + '<div class="story-card__body">'
       + '<h2 class="story-title">' + esc(title) + '</h2>'
-      + '<p class="story-card__chapters">' + esc(chapLabel) + '</p>'
       + '<div class="story-footer"><span><i class="fa-solid fa-headphones"></i> ' + listens + ' lượt nghe</span></div>'
       + '</div></a>'
       + '<div class="story-card__actions">'
