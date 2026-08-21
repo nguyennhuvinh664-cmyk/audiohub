@@ -1489,7 +1489,7 @@
         var _allChapters = (_chaptersForD1.length ? _chaptersForD1 : (story.chapters || [])).map(function (c) {
           // Keep original audioKey — each chapter has its own R2 file under its audioKey
           // Do NOT replace a_* keys with CUID — that makes all chapters share the same audio
-          var _ak = (c && c.audioKey) || story.id;
+          var _ak = (c && c.audioKey) || '';
           return { title: (c && c.title) || '', audioKey: _ak, visibility: (c && c.visibility) || 'Công khai', readingText: (c && c.readingText) || '' };
         });
         console.log('[upload] 📊 Chapters:', _allChapters.map(function(c) { return c.title + ':' + (c.audioKey || 'NO_KEY') + ':' + (c.visibility || 'Công khai'); }));
