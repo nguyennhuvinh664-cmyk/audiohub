@@ -204,12 +204,8 @@
     var channelUrl = 'channel.html?author=' + encodeURIComponent(profile.name || '');
     var channelLink = '<a href="' + channelUrl + '" class="auth-menu__link"><i class="fa-solid fa-broadcast-tower"></i> Kênh của tôi</a>';
 
-    // Check if user is Super Admin
-    var isSuperAdmin = false;
-    try {
-      var superAdminEmail = localStorage.getItem('audiohub-super-admin') || '';
-      isSuperAdmin = superAdminEmail && profile.email && profile.email.toLowerCase() === superAdminEmail.toLowerCase();
-    } catch (e) {}
+    // Check if user is Super Admin (from backend isAdmin flag)
+    var isSuperAdmin = !!(profile && profile.isAdmin);
 
     var superAdminLink = isSuperAdmin
       ? '<a href="html/superadmin.html" class="auth-menu__link auth-menu__link--admin"><i class="fa-solid fa-shield-halved"></i> Super Admin</a>'
