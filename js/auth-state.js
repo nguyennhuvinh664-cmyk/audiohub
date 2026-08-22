@@ -326,6 +326,28 @@
     try { window.dispatchEvent(new CustomEvent('audiohub:auth-updated')); } catch (e) {}
   }
 
+  /* ── Sync user to Super Admin list ────────────────────────────────── */
+  function syncUserToAdminList(profile) {
+    if (!profile || !profile.email) return;
+    var USERS_KEY = 'audiohub-users-list';
+    try {
+      var users = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+      // Check if user already exists
+      var exists = users.some(function(u) { return u.email === profile.email; });
+      if (!exists) {
+        users.push({
+          id: profile.id || 'user-' + Date.now(),
+          name: profile.name,
+          email: profile.email,
+          role: profile.isAdmin ? 'admin' : 'member',
+          joinedAt: new Date().toISOString(),
+          status: 'active'
+        });
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      }
+    } catch (e) {}
+  }
+
   /* ═══ LOGIN / REGISTER / LOGOUT ══════════════════════════════════════ */
 
   function handleLoginSuccess(token, user) {
@@ -335,6 +357,7 @@
     // 2. If API returned user, save directly
     if (user && (user.displayName || user.email)) {
       saveProfileFromUser(user);
+      syncUserToAdminList(readProfile());  // Sync to Super Admin list
       renderHeaderAuth();
       renderAccountProfile();
       notifyAuthUpdated();
@@ -356,6 +379,7 @@
           isAdmin: false
         });
       }
+      syncUserToAdminList(readProfile());  // Sync to Super Admin list
       renderHeaderAuth();
       renderAccountProfile();
       notifyAuthUpdated();
