@@ -129,4 +129,31 @@ router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
   return ok(res, { id: updated.id, email: updated.email, displayName: updated.displayName, avatarDataUrl: updated.avatarDataUrl || '', isAdmin: updated.isAdmin });
 });
 
+// Admin: Get all users
+router.get('/admin/users', requireAuth, async (req: AuthRequest, res) => {
+  const userId = req.auth?.userId;
+  if (!userId) {
+    return fail(res, 'Unauthorized', 401);
+  }
+
+  // Check if user is admin
+  const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+  if (!currentUser || !currentUser.isAdmin) {
+    return fail(res, 'Forbidden: Admin access required', 403);
+  }
+
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      displayName: true,
+      isAdmin: true,
+      createdAt: true
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  return ok(res, users);
+});
+
 export default router;
