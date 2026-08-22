@@ -35,7 +35,38 @@
 
   /* ═══ HELPERS ═════════════════════════════════════════════════════════ */
 
-  function readUsers() {
+  // Fetch users from API (production PostgreSQL)
+  async function fetchUsersFromAPI() {
+    try {
+      var profile = null;
+      try {
+        var raw = localStorage.getItem('audiohub-auth-profile');
+        profile = raw ? JSON.parse(raw) : null;
+      } catch (e) {}
+
+      if (!profile || !profile.isLoggedIn || !profile.token) {
+        return null;
+      }
+
+      var response = await fetch('/api/v1/auth/admin/users', {
+        headers: {
+          'Authorization': 'Bearer ' + profile.token
+        }
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      var data = await response.json();
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Read users from localStorage (fallback)
+  function readUsersLocal() {
     try {
       var raw = localStorage.getItem(USERS_KEY);
       var parsed = raw ? JSON.parse(raw) : null;
@@ -43,10 +74,36 @@
     } catch (e) { return []; }
   }
 
+  // Write users to localStorage
   function writeUsers(users) {
     try {
       localStorage.setItem(USERS_KEY, JSON.stringify(users));
     } catch (e) {}
+  }
+
+  // Main readUsers function - tries API first, falls back to localStorage
+  async function readUsers() {
+    // Try fetching from API first
+    var apiUsers = await fetchUsersFromAPI();
+    if (apiUsers && Array.isArray(apiUsers)) {
+      // Transform API data to match expected format
+      var users = apiUsers.map(function(u) {
+        return {
+          id: u.id,
+          name: u.displayName,
+          email: u.email,
+          role: u.isAdmin ? 'admin' : 'member',
+          createdAt: u.createdAt,
+          status: 'active'
+        };
+      });
+      // Update localStorage with fresh data
+      writeUsers(users);
+      return users;
+    }
+
+    // Fallback to localStorage
+    return readUsersLocal();
   }
 
   function getSuperAdmin() {
@@ -139,14 +196,14 @@
 
   /* ═══ RENDER ══════════════════════════════════════════════════════════ */
 
-  function renderAll() {
-    renderStats();
-    renderUsersList();
+  async function renderAll() {
+    await renderStats();
+    await renderUsersList();
     renderAdminRequests();
   }
 
-  function renderStats() {
-    var users = readUsers();
+  async function renderStats() {
+    var users = await readUsers();
     var admins = users.filter(function (u) { return u.role === 'admin'; });
 
     if (els.totalUsers) els.totalUsers.textContent = users.length;
@@ -154,8 +211,8 @@
     if (els.totalMembers) els.totalMembers.textContent = users.length - admins.length;
   }
 
-  function renderUsersList(filter) {
-    var users = readUsers();
+  async function renderUsersList(filter) {
+    var users = await readUsers();
     var tbody = els.usersList;
     if (!tbody) return;
 
@@ -273,11 +330,11 @@
 
   /* ═══ ACTIONS ═════════════════════════════════════════════════════════ */
 
-  function grantAdmin(email) {
+  async function grantAdmin(email) {
     email = (email || '').toLowerCase().trim();
     if (!email) return;
 
-    var users = readUsers();
+    var users = await readUsers();
     var user = users.find(function (u) { return u.email.toLowerCase() === email; });
 
     if (user) {
@@ -298,10 +355,10 @@
     updateCurrentProfile(email, true);
 
     showNotification('Đã cấp quyền Admin cho ' + email, 'success');
-    renderAll();
+    await renderAll();
   }
 
-  function revokeAdmin(email) {
+  async function revokeAdmin(email) {
     email = (email || '').toLowerCase().trim();
     if (!email) return;
 
@@ -311,7 +368,7 @@
       return;
     }
 
-    var users = readUsers();
+    var users = await readUsers();
     var user = users.find(function (u) { return u.email.toLowerCase() === email; });
     if (user) {
       user.role = 'member';
@@ -322,7 +379,7 @@
     updateCurrentProfile(email, false);
 
     showNotification('Đã thu hồi quyền Admin của ' + email, 'success');
-    renderAll();
+    await renderAll();
   }
 
   function addAdminByEmail(email) {
@@ -399,9 +456,10 @@
 
   /* ═══ EXPORT DATA ═════════════════════════════════════════════════════ */
 
-  function exportAllData() {
+  async function exportAllData() {
+    var users = await readUsers();
     var data = {
-      users: readUsers(),
+      users: users,
       superAdmin: getSuperAdmin(),
       adminRequests: readAdminRequests(),
       exportedAt: new Date().toISOString()
@@ -489,8 +547,8 @@
 
   /* ═══ SEED DEMO DATA ═════════════════════════════════════════════════ */
 
-  function seedDemoData() {
-    var users = readUsers();
+  async function seedDemoData() {
+    var users = await readUsers();
     if (users.length > 0) return; // Already has data
 
     // Add current user if logged in
@@ -538,6 +596,9 @@
   ].join('\n');
   document.head.appendChild(style);
 
-  seedDemoData();
-  checkAccess();
+  // Initialize async
+  (async function() {
+    await seedDemoData();
+    checkAccess();
+  })();
 })();
