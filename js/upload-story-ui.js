@@ -202,7 +202,7 @@
     return parseHashtags(manual.concat(fromDesc).join(' '));
   }
 
-  /* ── Image compression ── */
+  /* ── Image compression (WebP with JPEG fallback) ── */
   function compressImage(file, maxWidth, quality) {
     return new Promise(function (resolve) {
       var reader = new FileReader();
@@ -215,7 +215,13 @@
           canvas.width = w;
           canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', quality));
+          // Try WebP first, fallback to JPEG for older browsers
+          var webpDataUrl = canvas.toDataURL('image/webp', quality);
+          if (webpDataUrl && webpDataUrl.indexOf('data:image/webp') === 0 && webpDataUrl.length > 22) {
+            resolve(webpDataUrl);
+          } else {
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          }
         };
         img.src = reader.result;
       };
