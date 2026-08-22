@@ -38,28 +38,15 @@
   // Fetch users from API (production PostgreSQL)
   async function fetchUsersFromAPI() {
     try {
-      var profile = null;
-      try {
-        var raw = localStorage.getItem('audiohub-auth-profile');
-        profile = raw ? JSON.parse(raw) : null;
-      } catch (e) {}
-
-      if (!profile || !profile.isLoggedIn || !profile.token) {
+      if (!window.AudioHubApi || typeof window.AudioHubApi.request !== 'function') {
         return null;
       }
 
-      var response = await fetch('/api/v1/auth/admin/users', {
-        headers: {
-          'Authorization': 'Bearer ' + profile.token
-        }
-      });
+      var token = window.AudioHubApi.getToken();
+      if (!token || token === 'demo-local-token') return null;
 
-      if (!response.ok) {
-        return null;
-      }
-
-      var data = await response.json();
-      return data;
+      var result = await window.AudioHubApi.request('/auth/admin/users', { method: 'GET' });
+      return result || null;
     } catch (e) {
       return null;
     }
@@ -190,24 +177,13 @@
       profile = raw ? JSON.parse(raw) : null;
     } catch (e) {}
 
-    var superAdmin = getSuperAdmin();
-    var userEmail = (profile && profile.email || '').toLowerCase();
     var isLoggedIn = profile && profile.isLoggedIn;
+    var isAdmin = profile && profile.isAdmin;
 
-    // First time setup: if no super admin exists and user is logged in
-    if (!superAdmin && isLoggedIn && userEmail) {
-      // Try to initialize first admin via API
-      var initSuccess = await initFirstAdmin();
-      if (initSuccess) {
-        setSuperAdmin(userEmail);
-        showAdminPanel();
-        showNotification('Chào mừng Super Admin! Bạn là quản trị viên đầu tiên.', 'success');
-        return;
-      }
-    }
-
-    // Check if current user is super admin
-    if (isLoggedIn && userEmail === superAdmin) {
+    // Check if current user is admin (from backend isAdmin field)
+    if (isLoggedIn && isAdmin) {
+      // Sync superadmin localStorage for display purposes
+      if (profile.email) setSuperAdmin(profile.email);
       showAdminPanel();
       return;
     }
@@ -370,26 +346,19 @@
   // Update user's admin status via API
   async function updateUserAdminStatus(userId, isAdmin) {
     try {
-      var profile = null;
-      try {
-        var raw = localStorage.getItem('audiohub-auth-profile');
-        profile = raw ? JSON.parse(raw) : null;
-      } catch (e) {}
-
-      if (!profile || !profile.isLoggedIn || !profile.token) {
+      if (!window.AudioHubApi || typeof window.AudioHubApi.request !== 'function') {
         return false;
       }
 
-      var response = await fetch('/api/v1/auth/admin/users/' + userId, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + profile.token
-        },
-        body: JSON.stringify({ isAdmin })
-      });
+      var token = window.AudioHubApi.getToken();
+      if (!token || token === 'demo-local-token') return false;
 
-      return response.ok;
+      await window.AudioHubApi.request('/auth/admin/users/' + userId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isAdmin: isAdmin })
+      });
+      return true;
     } catch (e) {
       return false;
     }
