@@ -579,6 +579,11 @@
   function _initAuth() {
     bindAuthForms();
     hydrateAuth();
+    // Migration: sync existing logged-in user to Super Admin list
+    var profile = readProfile();
+    if (profile && profile.isLoggedIn && profile.email) {
+      syncUserToAdminList(profile);
+    }
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _initAuth);
