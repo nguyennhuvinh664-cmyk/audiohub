@@ -40,8 +40,9 @@ router.post('/register', async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
+  const isSuperAdmin = env.SUPER_ADMIN_EMAIL && email.toLowerCase() === env.SUPER_ADMIN_EMAIL.toLowerCase();
   const user = await prisma.user.create({
-    data: { email, passwordHash, displayName }
+    data: { email, passwordHash, displayName, isAdmin: isSuperAdmin }
   });
 
   const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '7d' });
@@ -63,6 +64,12 @@ router.post('/login', async (req, res) => {
   const matched = await bcrypt.compare(password, user.passwordHash);
   if (!matched) {
     return fail(res, 'Invalid credentials', 401);
+  }
+
+  // Auto-promote SUPER_ADMIN_EMAIL to admin on login
+  if (env.SUPER_ADMIN_EMAIL && email.toLowerCase() === env.SUPER_ADMIN_EMAIL.toLowerCase() && !user.isAdmin) {
+    await prisma.user.update({ where: { id: user.id }, data: { isAdmin: true } });
+    user.isAdmin = true;
   }
 
   const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '7d' });

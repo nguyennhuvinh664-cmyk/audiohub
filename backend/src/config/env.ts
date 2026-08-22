@@ -14,7 +14,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(8),
   STORAGE_ROOT: z.string().default('./storage'),
-  CORS_ORIGIN: z.string().default('*')
+  CORS_ORIGIN: z.string().default('*'),
+  SUPER_ADMIN_EMAIL: z.string().email().optional()
 });
 
 const parsed = envSchema.safeParse(process.env);
