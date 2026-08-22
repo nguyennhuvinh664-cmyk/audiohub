@@ -156,4 +156,44 @@ router.get('/admin/users', requireAuth, async (req: AuthRequest, res) => {
   return ok(res, users);
 });
 
+// Admin: Update user's admin status (grant/revoke)
+router.patch('/admin/users/:id', requireAuth, async (req: AuthRequest, res) => {
+  const userId = req.auth?.userId;
+  if (!userId) {
+    return fail(res, 'Unauthorized', 401);
+  }
+
+  // Check if current user is admin
+  const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+  if (!currentUser || !currentUser.isAdmin) {
+    return fail(res, 'Forbidden: Admin access required', 403);
+  }
+
+  const targetUserId = req.params.id;
+  const { isAdmin } = req.body;
+
+  if (typeof isAdmin !== 'boolean') {
+    return fail(res, 'isAdmin must be a boolean', 400);
+  }
+
+  // Prevent removing own admin status
+  if (targetUserId === userId && !isAdmin) {
+    return fail(res, 'Cannot remove your own admin status', 400);
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: targetUserId },
+    data: { isAdmin },
+    select: {
+      id: true,
+      email: true,
+      displayName: true,
+      isAdmin: true,
+      createdAt: true
+    }
+  });
+
+  return ok(res, updatedUser);
+});
+
 export default router;
