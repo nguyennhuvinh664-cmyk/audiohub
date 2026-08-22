@@ -420,9 +420,8 @@
           var acctUrl = getAccountUrl();
           spaNavigate(acctUrl);
         }).catch(function () {
-          handleLoginError(email);
-          spaNavigate(getAccountUrl());
-        }).then(function () {
+          // Show error instead of demo fallback
+          alert('Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.');
           loginBtn.textContent = prev;
         });
       });
@@ -452,9 +451,8 @@
           handleLoginSuccess(result && result.token, result && result.user || { displayName: displayName, email: email });
           spaNavigate(getAccountUrl());
         }).catch(function () {
-          handleLoginError(email);
-          spaNavigate(getAccountUrl());
-        }).then(function () {
+          // Show error instead of demo fallback
+          alert('Đăng ký thất bại. Vui lòng thử lại.');
           registerBtn.textContent = prev;
         });
       });
