@@ -330,6 +330,34 @@
 
   /* ═══ ACTIONS ═════════════════════════════════════════════════════════ */
 
+  // Update user's admin status via API
+  async function updateUserAdminStatus(userId, isAdmin) {
+    try {
+      var profile = null;
+      try {
+        var raw = localStorage.getItem('audiohub-auth-profile');
+        profile = raw ? JSON.parse(raw) : null;
+      } catch (e) {}
+
+      if (!profile || !profile.isLoggedIn || !profile.token) {
+        return false;
+      }
+
+      var response = await fetch('/api/v1/auth/admin/users/' + userId, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + profile.token
+        },
+        body: JSON.stringify({ isAdmin })
+      });
+
+      return response.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
   async function grantAdmin(email) {
     email = (email || '').toLowerCase().trim();
     if (!email) return;
@@ -338,23 +366,20 @@
     var user = users.find(function (u) { return u.email.toLowerCase() === email; });
 
     if (user) {
-      user.role = 'admin';
-      writeUsers(users);
+      // Update via API
+      var success = await updateUserAdminStatus(user.id, true);
+      if (success) {
+        user.role = 'admin';
+        writeUsers(users);
+        updateCurrentProfile(email, true);
+        showNotification('Đã cấp quyền Admin cho ' + email, 'success');
+      } else {
+        showNotification('Lỗi khi cấp quyền Admin!', 'error');
+      }
     } else {
-      // Create new user entry
-      users.push({
-        name: email.split('@')[0],
-        email: email,
-        role: 'admin',
-        createdAt: new Date().toISOString()
-      });
-      writeUsers(users);
+      showNotification('Không tìm thấy user!', 'error');
     }
 
-    // Update profile if it's the current user
-    updateCurrentProfile(email, true);
-
-    showNotification('Đã cấp quyền Admin cho ' + email, 'success');
     await renderAll();
   }
 
@@ -370,15 +395,20 @@
 
     var users = await readUsers();
     var user = users.find(function (u) { return u.email.toLowerCase() === email; });
+
     if (user) {
-      user.role = 'member';
-      writeUsers(users);
+      // Update via API
+      var success = await updateUserAdminStatus(user.id, false);
+      if (success) {
+        user.role = 'member';
+        writeUsers(users);
+        updateCurrentProfile(email, false);
+        showNotification('Đã thu hồi quyền Admin của ' + email, 'success');
+      } else {
+        showNotification('Lỗi khi thu hồi quyền Admin!', 'error');
+      }
     }
 
-    // Update profile if it's the current user
-    updateCurrentProfile(email, false);
-
-    showNotification('Đã thu hồi quyền Admin của ' + email, 'success');
     await renderAll();
   }
 
