@@ -156,6 +156,38 @@ router.get('/admin/users', requireAuth, async (req: AuthRequest, res) => {
   return ok(res, users);
 });
 
+// Initialize first admin (only works when no admin exists)
+router.post('/admin/init', requireAuth, async (req: AuthRequest, res) => {
+  const userId = req.auth?.userId;
+  if (!userId) {
+    return fail(res, 'Unauthorized', 401);
+  }
+
+  // Check if any admin already exists
+  const existingAdmin = await prisma.user.findFirst({
+    where: { isAdmin: true }
+  });
+
+  if (existingAdmin) {
+    return fail(res, 'Admin already exists', 400);
+  }
+
+  // Make this user admin
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { isAdmin: true },
+    select: {
+      id: true,
+      email: true,
+      displayName: true,
+      isAdmin: true,
+      createdAt: true
+    }
+  });
+
+  return ok(res, updatedUser);
+});
+
 // Admin: Update user's admin status (grant/revoke)
 router.patch('/admin/users/:id', requireAuth, async (req: AuthRequest, res) => {
   const userId = req.auth?.userId;
