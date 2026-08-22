@@ -150,7 +150,40 @@
 
   /* ═══ AUTH CHECK ══════════════════════════════════════════════════════ */
 
-  function checkAccess() {
+  async function initFirstAdmin() {
+    try {
+      var profile = null;
+      try {
+        var raw = localStorage.getItem('audiohub-auth-profile');
+        profile = raw ? JSON.parse(raw) : null;
+      } catch (e) {}
+
+      if (!profile || !profile.isLoggedIn || !profile.token) {
+        return false;
+      }
+
+      var response = await fetch('/api/v1/auth/admin/init', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + profile.token
+        }
+      });
+
+      if (response.ok) {
+        var data = await response.json();
+        // Update local profile
+        profile.isAdmin = true;
+        localStorage.setItem('audiohub-auth-profile', JSON.stringify(profile));
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function checkAccess() {
     var profile = null;
     try {
       var raw = localStorage.getItem('audiohub-auth-profile');
@@ -163,10 +196,14 @@
 
     // First time setup: if no super admin exists and user is logged in
     if (!superAdmin && isLoggedIn && userEmail) {
-      setSuperAdmin(userEmail);
-      showAdminPanel();
-      showNotification('Chào mừng Super Admin! Bạn là quản trị viên đầu tiên.', 'success');
-      return;
+      // Try to initialize first admin via API
+      var initSuccess = await initFirstAdmin();
+      if (initSuccess) {
+        setSuperAdmin(userEmail);
+        showAdminPanel();
+        showNotification('Chào mừng Super Admin! Bạn là quản trị viên đầu tiên.', 'success');
+        return;
+      }
     }
 
     // Check if current user is super admin
@@ -629,6 +666,6 @@
   // Initialize async
   (async function() {
     await seedDemoData();
-    checkAccess();
+    await checkAccess();
   })();
 })();
