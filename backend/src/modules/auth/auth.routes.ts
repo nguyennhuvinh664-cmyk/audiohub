@@ -70,6 +70,22 @@ router.post('/login', async (req, res) => {
   return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } });
 });
 
+router.post('/make-super-admin', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !env.SUPER_ADMIN_EMAIL || email.toLowerCase() !== env.SUPER_ADMIN_EMAIL.toLowerCase()) {
+    return fail(res, 'Not authorized', 403);
+  }
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    return fail(res, 'User not found', 404);
+  }
+  if (user.isAdmin) {
+    return ok(res, { message: 'Already admin', isAdmin: true });
+  }
+  await prisma.user.update({ where: { id: user.id }, data: { isAdmin: true } });
+  return ok(res, { message: 'Promoted to admin', isAdmin: true });
+});
+
 router.get('/me', requireAuth, async (req: AuthRequest, res) => {
   const userId = req.auth?.userId;
   if (!userId) {
