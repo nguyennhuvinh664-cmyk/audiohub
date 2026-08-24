@@ -85,14 +85,14 @@
         };
       });
       // Sort: Super Admin first, then Admin, then Member; within same role sort by name
-      var superAdminEmail = getSuperAdmin();
-      var roleOrder = { 'superadmin': 0, 'admin': 1, 'member': 2 };
+      var superAdminEmail = (getSuperAdmin() || '').toLowerCase();
+      var roleOrder = { 'admin': 0, 'member': 1 };
       users.sort(function (a, b) {
-        var aIsSuper = a.email === superAdminEmail;
-        var bIsSuper = b.email === superAdminEmail;
-        var aRole = aIsSuper ? 'superadmin' : a.role;
-        var bRole = bIsSuper ? 'superadmin' : b.role;
-        var diff = (roleOrder[aRole] || 2) - (roleOrder[bRole] || 2);
+        // Super Admin always first
+        if (a.email.toLowerCase() === superAdminEmail) return -1;
+        if (b.email.toLowerCase() === superAdminEmail) return 1;
+        // Then Admin, then Member
+        var diff = (roleOrder[a.role] || 1) - (roleOrder[b.role] || 1);
         if (diff !== 0) return diff;
         return (a.name || '').localeCompare(b.name || '');
       });
@@ -259,10 +259,10 @@
 
     if (els.emptyUsers) els.emptyUsers.classList.add('is-hidden');
 
-    var superAdmin = getSuperAdmin();
+    var superAdmin = (getSuperAdmin() || '').toLowerCase();
 
     tbody.innerHTML = users.map(function (user) {
-      var isSuperAdmin = user.email === superAdmin;
+      var isSuperAdmin = (user.email || '').toLowerCase() === superAdmin;
       var isAdmin = user.role === 'admin' || isSuperAdmin;
       var roleClass = isSuperAdmin ? 'super-admin' : (isAdmin ? 'admin' : 'member');
       var roleName = isSuperAdmin ? 'Super Admin' : (isAdmin ? 'Admin' : 'Thành viên');
