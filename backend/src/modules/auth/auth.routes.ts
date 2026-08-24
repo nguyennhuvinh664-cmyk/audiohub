@@ -46,7 +46,7 @@ router.post('/register', async (req, res) => {
   });
 
   const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '7d' });
-  return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } }, 201);
+  return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName, isAdmin: user.isAdmin, isSuperAdmin } }, 201);
 });
 
 router.post('/login', async (req, res) => {
@@ -66,8 +66,9 @@ router.post('/login', async (req, res) => {
     return fail(res, 'Invalid credentials', 401);
   }
 
+  const isSuperAdmin = !!(env.SUPER_ADMIN_EMAIL && user.email.toLowerCase() === env.SUPER_ADMIN_EMAIL.toLowerCase());
   const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '7d' });
-  return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName, isAdmin: user.isAdmin } });
+  return ok(res, { token, user: { id: user.id, email: user.email, displayName: user.displayName, isAdmin: user.isAdmin, isSuperAdmin } });
 });
 
 router.post('/make-super-admin', async (req, res) => {
@@ -97,7 +98,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
     return fail(res, 'User not found', 404);
   }
 
-  return ok(res, { id: user.id, email: user.email, displayName: user.displayName, avatarDataUrl: user.avatarDataUrl || '', isAdmin: user.isAdmin });
+  const isSuperAdmin = !!(env.SUPER_ADMIN_EMAIL && user.email.toLowerCase() === env.SUPER_ADMIN_EMAIL.toLowerCase());
+  return ok(res, { id: user.id, email: user.email, displayName: user.displayName, avatarDataUrl: user.avatarDataUrl || '', isAdmin: user.isAdmin, isSuperAdmin });
 });
 
 router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
