@@ -222,7 +222,14 @@
       return;
     }
 
-    // Verify with backend that this user is Super Admin (not just regular admin)
+    // 1) Quick check: profile already has isSuperAdmin (from /me endpoint)
+    if (profile.isSuperAdmin) {
+      if (profile.email) setSuperAdmin(profile.email);
+      showAdminPanel();
+      return;
+    }
+
+    // 2) Verify with backend that this user is Super Admin (not just regular admin)
     try {
       var token = window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function'
         ? window.AudioHubApi.getToken() : (profile.token || '');
@@ -231,15 +238,21 @@
       var resp = await fetch('/api/v1/auth/admin/check-superadmin', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
-      if (!resp.ok) { showAccessDenied(); return; }
-      var data = await resp.json();
-      if (data.isSuperAdmin) {
+      // Backend ok() wraps as { success: true, data: { isSuperAdmin } }
+      var json = resp.ok ? await resp.json().catch(function () { return null; }) : null;
+      var result = json && json.data && json.data.isSuperAdmin;
+
+      if (result) {
+        // Update profile so next page load doesn't need API call
+        profile.isSuperAdmin = true;
+        try { localStorage.setItem('audiohub-auth-profile', JSON.stringify(profile)); } catch (e) {}
         if (profile.email) setSuperAdmin(profile.email);
         showAdminPanel();
       } else {
         showAccessDenied();
       }
     } catch (e) {
+      // API unavailable (Render deploying) — deny for safety
       showAccessDenied();
     }
   }
