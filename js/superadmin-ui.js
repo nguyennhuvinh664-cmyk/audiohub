@@ -242,6 +242,15 @@
     var tbody = els.usersList;
     if (!tbody) return;
 
+    // Ensure sort: Super Admin first, then Admin, then Member
+    var _sa = (getSuperAdmin() || '').toLowerCase();
+    var _ro = { 'admin': 0, 'member': 1 };
+    users.sort(function (a, b) {
+      if ((a.email || '').toLowerCase() === _sa) return -1;
+      if ((b.email || '').toLowerCase() === _sa) return 1;
+      return (_ro[a.role] || 1) - (_ro[b.role] || 1);
+    });
+
     // Apply filter
     if (filter) {
       var f = filter.toLowerCase();
