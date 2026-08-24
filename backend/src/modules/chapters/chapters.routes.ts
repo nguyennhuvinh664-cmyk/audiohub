@@ -46,6 +46,27 @@ router.get('/unlocked', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /api/v1/chapters/check?storyId=X&chapterIdx=Y — check if a chapter is unlocked
+router.get('/check', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth!.userId;
+    const storyId = String(req.query.storyId || '');
+    const chapterIdx = Number(req.query.chapterIdx);
+
+    if (!storyId || isNaN(chapterIdx)) {
+      return fail(res, 'Thiếu storyId hoặc chapterIdx');
+    }
+
+    const existing = await prisma.unlockedChapter.findUnique({
+      where: { userId_storyId_chapterIdx: { userId, storyId, chapterIdx } }
+    });
+
+    return ok(res, { unlocked: !!existing });
+  } catch (err) {
+    return fail(res, 'Lỗi kiểm tra quyền', 500);
+  }
+});
+
 // POST /api/v1/chapters/unlock — unlock a chapter
 const unlockSchema = z.object({
   storyId: z.string().min(1),

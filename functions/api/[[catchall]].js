@@ -7,6 +7,27 @@ const SUPABASE_URL = 'https://oatwyxkzonhjfdzapjyb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
 const AUDIO_BUCKET = 'story-audio';
 
+// ═══ AUTH HELPERS ════════════════════════════════════════════════════════
+function decodeJwtPayload(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(payload);
+    return JSON.parse(decoded);
+  } catch (e) { return null; }
+}
+
+function getUserIdFromRequest(request) {
+  try {
+    const auth = request.headers.get('Authorization') || '';
+    if (!auth.startsWith('Bearer ')) return null;
+    const token = auth.slice(7);
+    const payload = decodeJwtPayload(token);
+    return payload && payload.sub ? payload.sub : null;
+  } catch (e) { return null; }
+}
+
 export async function onRequest(context) {
   const url = new URL(context.request.url);
   const method = context.request.method;
@@ -58,6 +79,64 @@ export async function onRequest(context) {
         }
         // ── GET: R2 → Supabase fallback ──
         if (method === 'GET') {
+          // ── ACCESS CHECK: verify chapter unlock status ──
+          try {
+            const userId = getUserIdFromRequest(context.request);
+            const storyId = audioKey; // audioKey in path is the storyId
+
+            if (env.DB && storyId) {
+              const story = await env.DB.prepare('SELECT chapters FROM stories WHERE id = ?').bind(storyId).first();
+              if (story && story.chapters) {
+                let chapters = [];
+                try { chapters = JSON.parse(story.chapters); } catch (e) {}
+                // Find which chapter index has this audioKey
+                const customKey = url.searchParams.get('key');
+                const targetKey = customKey || storyId;
+                let lockedChapterIdx = -1;
+                for (let ci = 0; ci < chapters.length; ci++) {
+                  const ch = chapters[ci];
+                  if (ch && ch.audioKey && ch.audioKey === targetKey) {
+                    if (String(ch.visibility || '').trim() === 'Không công khai') {
+                      lockedChapterIdx = ci;
+                    }
+                    break;
+                  }
+                }
+                // If chapter is locked, verify user has unlocked it
+                if (lockedChapterIdx >= 0) {
+                  if (!userId) {
+                    return new Response(JSON.stringify({ error: 'Chương này cần đăng nhập để nghe' }), {
+                      status: 403,
+                      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+                    });
+                  }
+                  // Check unlock status via backend API
+                  const checkUrl = `${BACKEND}/api/v1/chapters/check?storyId=${encodeURIComponent(storyId)}&chapterIdx=${lockedChapterIdx}`;
+                  const checkRes = await fetch(checkUrl, {
+                    headers: { 'Authorization': `Bearer ${context.request.headers.get('Authorization')?.slice(7) || ''}` }
+                  });
+                  if (checkRes.ok) {
+                    const checkData = await checkRes.json();
+                    if (!checkData.unlocked) {
+                      return new Response(JSON.stringify({ error: 'Chương này chưa được mở khóa' }), {
+                        status: 403,
+                        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+                      });
+                    }
+                  } else {
+                    return new Response(JSON.stringify({ error: 'Không thể kiểm tra quyền truy cập' }), {
+                      status: 403,
+                      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+                    });
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.error('[audio] Access check error:', e.message);
+            // On error, allow access (fail-open for availability)
+          }
+
           // 1) Try R2
           const object = await env.AUDIO.get(r2Key);
           if (object) {

@@ -68,42 +68,66 @@
     } catch (e) {}
   }
 
+  // Normalize API response: handle array, {data:[...]}, {users:[...]}, etc.
+  function normalizeUsersResponse(res) {
+    if (!res) return null;
+    if (Array.isArray(res)) return res;
+    if (res.data && Array.isArray(res.data)) return res.data;
+    if (res.users && Array.isArray(res.users)) return res.users;
+    return null;
+  }
+
   // Main readUsers function - tries API first, falls back to localStorage
   async function readUsers() {
     // Try fetching from API first
-    var apiUsers = await fetchUsersFromAPI();
-    if (apiUsers && Array.isArray(apiUsers)) {
-      // Transform API data to match expected format
-      var users = apiUsers.map(function(u) {
-        return {
-          id: u.id,
-          name: u.displayName,
-          email: u.email,
-          role: u.isAdmin ? 'admin' : 'member',
-          createdAt: u.createdAt,
-          status: 'active'
-        };
-      });
-      // Sort: Super Admin first, then Admin, then Member; within same role sort by name
-      var superAdminEmail = (getSuperAdmin() || '').toLowerCase();
-      var roleOrder = { 'admin': 0, 'member': 1 };
-      users.sort(function (a, b) {
-        // Super Admin always first
-        if (a.email.toLowerCase() === superAdminEmail) return -1;
-        if (b.email.toLowerCase() === superAdminEmail) return 1;
-        // Then Admin, then Member
-        var diff = (roleOrder[a.role] || 1) - (roleOrder[b.role] || 1);
-        if (diff !== 0) return diff;
-        return (a.name || '').localeCompare(b.name || '');
-      });
+    try {
+      var apiRaw = await fetchUsersFromAPI();
+      var apiUsers = normalizeUsersResponse(apiRaw);
+      if (apiUsers && apiUsers.length > 0) {
+        // Transform API data to match expected format
+        var users = apiUsers.map(function(u) {
+          return {
+            id: u.id,
+            name: u.displayName || u.name || u.email,
+            email: u.email,
+            role: u.isAdmin === true || u.isAdmin === 'true' ? 'admin' : 'member',
+            createdAt: u.createdAt,
+            status: 'active'
+          };
+        });
+        // Sort: Super Admin first, then Admin, then Member; within same role sort by name
+        var superAdminEmail = (getSuperAdmin() || '').toLowerCase();
+        users.sort(function (a, b) {
+          var aEmail = (a.email || '').toLowerCase();
+          var bEmail = (b.email || '').toLowerCase();
+          if (aEmail === superAdminEmail && bEmail !== superAdminEmail) return -1;
+          if (bEmail === superAdminEmail && aEmail !== superAdminEmail) return 1;
+          var aOrder = a.role === 'admin' ? 0 : 1;
+          var bOrder = b.role === 'admin' ? 0 : 1;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return (a.name || '').localeCompare(b.name || '');
+        });
 
-      // Update localStorage with fresh data
-      writeUsers(users);
-      return users;
-    }
+        // Update localStorage with fresh data
+        writeUsers(users);
+        return users;
+      }
+    } catch (e) {}
 
-    // Fallback to localStorage
-    return readUsersLocal();
+    // Fallback to localStorage (sorted)
+    var local = readUsersLocal();
+    var superAdminEmail2 = (getSuperAdmin() || '').toLowerCase();
+    local.sort(function (a, b) {
+      var aEmail = (a.email || '').toLowerCase();
+      var bEmail = (b.email || '').toLowerCase();
+      if (aEmail === superAdminEmail2 && bEmail !== superAdminEmail2) return -1;
+      if (bEmail === superAdminEmail2 && aEmail !== superAdminEmail2) return 1;
+      var aOrder = a.role === 'admin' ? 0 : 1;
+      var bOrder = b.role === 'admin' ? 0 : 1;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    return local;
   }
 
   function getSuperAdmin() {
@@ -242,15 +266,6 @@
     var tbody = els.usersList;
     if (!tbody) return;
 
-    // Ensure sort: Super Admin first, then Admin, then Member
-    var _sa = (getSuperAdmin() || '').toLowerCase();
-    var _ro = { 'admin': 0, 'member': 1 };
-    users.sort(function (a, b) {
-      if ((a.email || '').toLowerCase() === _sa) return -1;
-      if ((b.email || '').toLowerCase() === _sa) return 1;
-      return (_ro[a.role] || 1) - (_ro[b.role] || 1);
-    });
-
     // Apply filter
     if (filter) {
       var f = filter.toLowerCase();
@@ -269,6 +284,21 @@
     if (els.emptyUsers) els.emptyUsers.classList.add('is-hidden');
 
     var superAdmin = (getSuperAdmin() || '').toLowerCase();
+
+    // Sort: Super Admin first, then Admin, then Member; within same role sort by name
+    users.sort(function (a, b) {
+      var aEmail = (a.email || '').toLowerCase();
+      var bEmail = (b.email || '').toLowerCase();
+      // Super Admin always first
+      if (aEmail === superAdmin && bEmail !== superAdmin) return -1;
+      if (bEmail === superAdmin && aEmail !== superAdmin) return 1;
+      // Then by role: admin=0, member=1
+      var aOrder = a.role === 'admin' ? 0 : 1;
+      var bOrder = b.role === 'admin' ? 0 : 1;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      // Within same role sort by name
+      return (a.name || '').localeCompare(b.name || '');
+    });
 
     tbody.innerHTML = users.map(function (user) {
       var isSuperAdmin = (user.email || '').toLowerCase() === superAdmin;

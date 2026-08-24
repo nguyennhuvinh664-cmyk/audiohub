@@ -570,6 +570,92 @@
     }
   }
 
+  // ═══ CHAPTER ACCESS CONTROL ═══════════════════════════════════════════
+  // Cache of unlocked chapters: Set of "storyId:chapterIdx" strings
+  var _unlockedChaptersCache = null; // null = not loaded yet
+  var _unlockedChaptersStoryId = ''; // which story the cache is for
+
+  function _getProfile() {
+    try {
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function _getStoryOwnerId() {
+    try {
+      var _s = window.__currentStoryData || window.currentStory || null;
+      return (_s && _s.userId) ? String(_s.userId) : '';
+    } catch (e) { return ''; }
+  }
+
+  // Fetch unlocked chapters for the current user from backend API
+  async function fetchUnlockedChapters(storyId) {
+    if (!storyId) return;
+    // Already loaded for this story
+    if (_unlockedChaptersCache && _unlockedChaptersStoryId === storyId) return;
+    try {
+      var profile = _getProfile();
+      var token = profile && profile.token ? profile.token : (window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function' ? window.AudioHubApi.getToken() : '');
+      if (!token) { _unlockedChaptersCache = new Set(); return; }
+      var res = await fetch('/api/v1/chapters/unlocked', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) { _unlockedChaptersCache = new Set(); return; }
+      var data = await res.json();
+      var set = new Set();
+      // data.stories is an array of { story: {id}, chapters: [{chapterIdx}] }
+      var stories = data && data.stories ? data.stories : (Array.isArray(data) ? data : []);
+      stories.forEach(function (s) {
+        var sid = s.story && s.story.id ? String(s.story.id) : '';
+        var chs = s.chapters || [];
+        chs.forEach(function (ch) {
+          if (sid) set.add(sid + ':' + ch.chapterIdx);
+        });
+      });
+      _unlockedChaptersCache = set;
+      _unlockedChaptersStoryId = storyId;
+      console.log('[access] Loaded', set.size, 'unlocked chapters for story', storyId);
+    } catch (e) {
+      console.warn('[access] Failed to load unlocked chapters:', e);
+      _unlockedChaptersCache = new Set();
+    }
+  }
+
+  // Check if current user has access to a specific chapter
+  function hasChapterAccess(storyId, chapterIdx) {
+    // 1) Check chapter visibility from D1 data
+    if (_d1ChaptersGlobal.length > chapterIdx && _d1ChaptersGlobal[chapterIdx]) {
+      var vis = String(_d1ChaptersGlobal[chapterIdx].visibility || '').trim();
+      if (vis === 'Công khai') return true;
+    }
+    // Also check story chapters array
+    try {
+      var _s = window.__currentStoryData || window.currentStory || null;
+      if (_s && Array.isArray(_s.chapters) && _s.chapters[chapterIdx]) {
+        var vis2 = String(_s.chapters[chapterIdx].visibility || '').trim();
+        if (vis2 === 'Công khai') return true;
+      }
+    } catch (e) {}
+
+    // 2) Must be logged in
+    if (!isMember()) return false;
+
+    // 3) Story owner always has access
+    var ownerId = _getStoryOwnerId();
+    var profile = _getProfile();
+    if (ownerId && profile && profile.id && String(profile.id) === ownerId) return true;
+
+    // 4) Check unlock cache
+    if (_unlockedChaptersCache) {
+      var key = (storyId || '') + ':' + chapterIdx;
+      if (_unlockedChaptersCache.has(key)) return true;
+    }
+
+    // 5) Not unlocked
+    return false;
+  }
+
   function renderLockedChapterList(story) {
     var chapterList = document.querySelector('.chapter-list');
     if (!chapterList) return;
@@ -1738,10 +1824,10 @@
       // Stale retry — chapter was switched, abort
       if (myGen !== _audioLoadGen) return;
       // Skip audio loading for locked chapters — no point loading audio user can't play
-      if (!isMember() && _d1ChaptersGlobal.length > _currentChIdx && _d1ChaptersGlobal[_currentChIdx]) {
-        var _loadVis = String(_d1ChaptersGlobal[_currentChIdx].visibility || '').trim();
+      if (!hasChapterAccess(story && story.id, _currentChIdx)) {
+        var _loadVis = String(_d1ChaptersGlobal[_currentChIdx] ? _d1ChaptersGlobal[_currentChIdx].visibility : '').trim();
         if (_loadVis === 'Không công khai') {
-          showNote('Chương này cần đăng nhập để nghe.');
+          showNote('Chương này cần đăng nhập hoặc mua để nghe.');
           return;
         }
       }
@@ -1802,8 +1888,8 @@
             // Auto-play if: user clicked a chapter OR navigated from homepage
             // BUT NOT if chapter is locked (Không công khai) and user is not a member
             var _autoPlayLocked = false;
-            if (!isMember() && _d1ChaptersGlobal.length > _currentChIdx && _d1ChaptersGlobal[_currentChIdx]) {
-              var _apVis = String(_d1ChaptersGlobal[_currentChIdx].visibility || '').trim();
+            if (!hasChapterAccess(story && story.id, _currentChIdx)) {
+              var _apVis = String(_d1ChaptersGlobal[_currentChIdx] ? _d1ChaptersGlobal[_currentChIdx].visibility : '').trim();
               if (_apVis === 'Không công khai') _autoPlayLocked = true;
             }
             if ((_userSelectedChapter || _navigatedFromHome) && !_autoPlayLocked) {
@@ -1996,6 +2082,11 @@
     _d1ChaptersGlobal = (currentStory && Array.isArray(currentStory.chapters)) ? currentStory.chapters : [];
     console.log('[story-detail] 🔒 _d1ChaptersGlobal.length=' + _d1ChaptersGlobal.length);
 
+    // Fetch unlocked chapters for access control (fire-and-forget)
+    if (currentStory && currentStory.id && isMember()) {
+      fetchUnlockedChapters(currentStory.id);
+    }
+
     var total = playlistItemsForDisplay ? playlistItemsForDisplay.length : (storyChapters.length || Number(currentStory && currentStory.chapterCount) || 0);
     // Fallback: count from audiohub-chapters-v1 localStorage when metadata underrates chapter count
     if (!total && storedChapters.length) {
@@ -2117,7 +2208,7 @@
           _chVis = String(currentStory.chapters[i].visibility || '').trim();
         }
         if (i < 3) console.log('[story-detail] 🔒 Ch' + (i+1) + ' vis="' + _chVis + '" storyChVis="' + (storyChapters[i].visibility||'') + '" member=' + isMember());
-        if (_chVis === 'Không công khai' && !isMember()) {
+        if (_chVis === 'Không công khai' && !hasChapterAccess(currentStory && currentStory.id, i)) {
           isLocked = true;
         }
         // 2) Explicit isFree/isUnlocked fields (from localStorage chapters)
@@ -3965,7 +4056,7 @@
         if (_d1ChaptersGlobal.length > index && _d1ChaptersGlobal[index]) {
           _clickVis = String(_d1ChaptersGlobal[index].visibility || '').trim();
         }
-        if (_clickVis === 'Không công khai' && !isMember()) {
+        if (_clickVis === 'Không công khai' && !hasChapterAccess(story && story.id, index)) {
           showAuthRequiredModal();
           return;
         }
@@ -4127,7 +4218,7 @@
         if (!nextStory && _d1ChaptersGlobal.length > safeIndex && _d1ChaptersGlobal[safeIndex]) {
           _playChVis = String(_d1ChaptersGlobal[safeIndex].visibility || '').trim();
         }
-        if (_playChVis === 'Không công khai' && !isMember()) {
+        if (_playChVis === 'Không công khai' && !hasChapterAccess(story && story.id, safeIndex)) {
           showAuthRequiredModal();
           renderPlayer();
           return;
