@@ -217,16 +217,31 @@
     var isLoggedIn = profile && profile.isLoggedIn;
     var isAdmin = profile && profile.isAdmin;
 
-    // Check if current user is admin (from backend isAdmin field)
-    if (isLoggedIn && isAdmin) {
-      // Sync superadmin localStorage for display purposes
-      if (profile.email) setSuperAdmin(profile.email);
-      showAdminPanel();
+    if (!isLoggedIn || !isAdmin) {
+      showAccessDenied();
       return;
     }
 
-    // Access denied
-    showAccessDenied();
+    // Verify with backend that this user is Super Admin (not just regular admin)
+    try {
+      var token = window.AudioHubApi && typeof window.AudioHubApi.getToken === 'function'
+        ? window.AudioHubApi.getToken() : (profile.token || '');
+      if (!token) { showAccessDenied(); return; }
+
+      var resp = await fetch('/api/v1/auth/admin/check-superadmin', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!resp.ok) { showAccessDenied(); return; }
+      var data = await resp.json();
+      if (data.isSuperAdmin) {
+        if (profile.email) setSuperAdmin(profile.email);
+        showAdminPanel();
+      } else {
+        showAccessDenied();
+      }
+    } catch (e) {
+      showAccessDenied();
+    }
   }
 
   function showAdminPanel() {

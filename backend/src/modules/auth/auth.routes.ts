@@ -146,6 +146,20 @@ router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
   return ok(res, { id: updated.id, email: updated.email, displayName: updated.displayName, avatarDataUrl: updated.avatarDataUrl || '', isAdmin: updated.isAdmin });
 });
 
+// Admin: Check if current user is Super Admin
+router.get('/admin/check-superadmin', requireAuth, async (req: AuthRequest, res) => {
+  const userId = req.auth?.userId;
+  if (!userId) return fail(res, 'Unauthorized', 401);
+
+  const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+  if (!currentUser) return fail(res, 'User not found', 404);
+
+  const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase();
+  const isSuperAdmin = currentUser.email.toLowerCase() === superAdminEmail;
+
+  return ok(res, { isSuperAdmin });
+});
+
 // Admin: Get all users
 router.get('/admin/users', requireAuth, async (req: AuthRequest, res) => {
   const userId = req.auth?.userId;
