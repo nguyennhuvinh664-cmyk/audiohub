@@ -1206,12 +1206,18 @@
           return mergeStoryWithLocal(entry, local);
         }).filter(Boolean).filter(function (s) { return !isDeleted(s.id); });
 
-        // PRESERVE local stories not in remote response (e.g. public stories from other users)
+        // PRESERVE local stories not in remote response, but only own stories
+        // (avoids keeping other users' public stories that were synced before auth was ready)
         var localOnly = localStories.filter(function (item) {
           if (!item || !item.id) return false;
           if (remoteIds[String(item.id)]) return false;
-          // Remove stale s_ drafts when backend is available
-          if (canUseApi() && String(item.id).startsWith('s_')) return false;
+          // When logged in, only keep own stories (by userId match) or s_ local drafts
+          if (_syncUserId) {
+            var itemUserId = String(item.userId || item.user_id || '').trim().toLowerCase();
+            if (String(item.id).startsWith('s_')) return true; // always keep local drafts
+            if (itemUserId && itemUserId === _syncUserId) return true; // own cloud story
+            return false; // discard other users' stories
+          }
           return true;
         });
 

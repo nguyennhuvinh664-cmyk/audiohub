@@ -387,15 +387,15 @@
           }
           // Filter out deleted stories from API response
           var filtered = apiStories.filter(function (s) { return s && s.id && !deletedMap[s.id]; });
-          // Merge with local stories (don't let API response replace entire list)
+          // When logged in, API is authoritative (already filtered by userId on backend).
+          // Only add back local s_ drafts that haven't been synced to backend yet.
           var localStories = getStories();
-          var localById = {};
-          localStories.forEach(function (s) { if (s && s.id) localById[s.id] = s; });
           var apiById = {};
-          filtered.forEach(function (s) { apiById[s.id] = s; });
-          // Local stories NOT in API response (e.g. s_ drafts, or API missed them)
-          var localOnly = localStories.filter(function (s) { return s && s.id && !apiById[s.id]; });
-          var merged = filtered.concat(localOnly);
+          filtered.forEach(function (s) { apiById[s.id] = true; });
+          var unsyncedDrafts = localStories.filter(function (s) {
+            return s && s.id && String(s.id).indexOf('s_') === 0 && !apiById[s.id];
+          });
+          var merged = filtered.concat(unsyncedDrafts);
           // Always render (even if empty — clears stale list when all stories deleted)
           renderStoriesFromList(merged);
         })
