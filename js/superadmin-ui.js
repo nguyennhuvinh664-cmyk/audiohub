@@ -84,6 +84,19 @@
           status: 'active'
         };
       });
+      // Sort: Super Admin first, then Admin, then Member; within same role sort by name
+      var superAdminEmail = getSuperAdmin();
+      var roleOrder = { 'superadmin': 0, 'admin': 1, 'member': 2 };
+      users.sort(function (a, b) {
+        var aIsSuper = a.email === superAdminEmail;
+        var bIsSuper = b.email === superAdminEmail;
+        var aRole = aIsSuper ? 'superadmin' : a.role;
+        var bRole = bIsSuper ? 'superadmin' : b.role;
+        var diff = (roleOrder[aRole] || 2) - (roleOrder[bRole] || 2);
+        if (diff !== 0) return diff;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
       // Update localStorage with fresh data
       writeUsers(users);
       return users;
