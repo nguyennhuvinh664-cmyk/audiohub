@@ -100,27 +100,10 @@
                   </div>
                 </div>
                 <div class="account-tabs account-tabs--row" role="tablist" aria-label="Nội dung của tôi">
-                  <button type="button" class="account-tab is-active" data-content-tab="published" aria-selected="true">Đã đăng</button>
+                  <button type="button" class="account-tab is-active" data-content-tab="playlist" aria-selected="true">Truyện đã đăng</button>
                   <button type="button" class="account-tab" data-content-tab="draft" aria-selected="false">Bản nháp</button>
-                  <button type="button" class="account-tab" data-content-tab="playlist" aria-selected="false">Truyện đã lưu</button>
                 </div>
                 <div class="account-content-panels">
-                  <section class="account-content-panel is-active" data-content-panel="published">
-                    <div class="content-search-wrap">
-                      <div class="content-search-bar">
-                        <input type="text" class="content-search-input" placeholder="Tìm kiếm trong truyện đã đăng..." data-search-published />
-                        <i class="fa-solid fa-magnifying-glass content-search-icon"></i>
-                        <button type="button" class="content-search-clear" data-search-clear="published" style="display: none;">
-                          <i class="fa-solid fa-xmark"></i>
-                        </button>
-                      </div>
-                    </div>
-                    <div class="library-empty is-hidden" data-stories-published-note></div>
-                    <div class="account-list-wrap">
-                      <div class="account-scroll-list" data-stories-published></div>
-                      <div class="account-pagination-wrap" data-pagination-wrap="published"></div>
-                    </div>
-                  </section>
                   <section class="account-content-panel" data-content-panel="draft" hidden>
                     <div class="content-search-wrap">
                       <div class="content-search-bar">
@@ -137,7 +120,7 @@
                       <div class="account-pagination-wrap" data-pagination-wrap="draft"></div>
                     </div>
                   </section>
-                  <section class="account-content-panel" data-content-panel="playlist" hidden>
+                  <section class="account-content-panel is-active" data-content-panel="playlist">
                     <div class="library-empty is-hidden" data-playlist-note></div>
                     <div class="playlist-root" data-playlist-root>
                       <div class="playlist-create">
@@ -191,7 +174,7 @@
   <!-- Role guard: only Admin can access this page -->
     <script src="../js/api-client.js"></script>
   <script src="../js/supabase-client.js"></script>
-  <script src="../js/stories-store.js?v=20260824-1"></script>
+  <script src="../js/stories-store.js?v=20260824-2"></script>
   <script src="../js/auth-state.js?v=20260824-1"></script>
 <script>
   (function() {
@@ -211,7 +194,7 @@
   <script src="../js/stories-cover-store.js" data-page-script></script>
   <script src="../js/stories-audio-store.js?v=20260803-2" data-page-script></script>
   <script src="../js/library-state.js" data-page-script></script>
-  <script src="../js/stories-account.js?v=20" data-page-script></script>
+  <script src="../js/stories-account.js?v=23" data-page-script></script>
   <script src="../js/content-search.js" data-page-script></script>
 </body>
 </html>

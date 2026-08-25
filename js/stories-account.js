@@ -199,12 +199,16 @@
   }
 
   // Get current user's ID from auth profile (for API filtering)
+  // Always lowercase for consistent comparison
   function getMyUserId() {
     try {
       var raw = localStorage.getItem('audiohub-auth-profile');
       var p = raw ? JSON.parse(raw) : null;
       if (!p || !p.isLoggedIn) return null;
-      return (p.id && String(p.id).trim()) || (p.email && String(p.email).trim().toLowerCase()) || null;
+      var uid = (p.id && String(p.id).trim())
+        || (p.email && String(p.email).trim().toLowerCase())
+        || null;
+      return uid ? String(uid).trim().toLowerCase() : null;
     } catch (e) { return null; }
   }
 
@@ -228,17 +232,12 @@
       // (localStorage may contain public stories from other users merged by syncFromApiFallback)
       if (userId) {
         var storyUserId = String(s.userId || s.user_id || '').trim().toLowerCase();
-        var storyAuthor = String(s.author || '').trim().toLowerCase();
         // Local-only drafts (s_ prefix) always belong to current user
         if (String(s.id).startsWith('s_')) return true;
-        // Match by userId if available
+        // Match by userId — strict match, no author name fallback
+        // (author name fallback caused cross-user story leaking when display names matched)
         if (storyUserId && storyUserId === userId) return true;
-        // Fallback: match by author name === logged-in user's name
-        var myName = String(localStorage.getItem('audiohub-auth-profile'));
-        try { myName = JSON.parse(myName); myName = String(myName && myName.name || '').trim().toLowerCase(); } catch (e) { myName = ''; }
-        if (myName && storyAuthor === myName) return true;
-        // If no userId and author doesn't match, exclude (foreign story)
-        if (!storyUserId) return false;
+        // Story has no user_id and doesn't belong to us — exclude
         return false;
       }
       // Not logged in — show all (demo mode)
@@ -348,7 +347,7 @@
       storiesDraftsNote.textContent = drafts.length ? '' : 'Chưa có nháp nào.';
     }
     if (document.querySelector('[data-content-tab="playlist"]')) {
-      document.querySelector('[data-content-tab="playlist"]').textContent = 'Truyện đã lưu';
+      document.querySelector('[data-content-tab="playlist"]').textContent = 'Truyện đã đăng';
     }
   }
 
@@ -675,7 +674,7 @@
         if (existing) existing.remove();
 
         if (!playlists.length) {
-          showToast('Bạn chưa có bộ truyện nào. Hãy tạo trong tab "Truyện đã lưu".');
+          showToast('Bạn chưa có bộ truyện nào. Hãy tạo trong tab "Truyện đã đăng".');
           return;
         }
 
@@ -1255,7 +1254,7 @@
   }
 
   function setContentPanel(name) {
-    var next = String(name || 'published');
+    var next = String(name || 'playlist');
     var found = false;
 
     contentButtons.forEach(function (button) {
@@ -1284,7 +1283,7 @@
     } else if (!contentButtons.some(function (button) {
       return String(button.getAttribute('data-content-tab') || '') === initial;
     })) {
-      initial = 'published';
+      initial = 'playlist';
     }
 
     contentButtons.forEach(function (button) {
@@ -1340,15 +1339,57 @@
 
   // ── Playlist ─────────────────────────────────────────────────────────────
 
-  var PLAYLIST_STORAGE_KEY = 'audiohub-playlists-v1';
+  function _playlistKey() {
+    var uid = getMyUserId();
+    return uid ? 'audiohub-playlists-v1-' + uid : 'audiohub-playlists-v1';
+  }
+  // Legacy shared key for migration
+  var PLAYLIST_LEGACY_KEY = 'audiohub-playlists-v1';
+
   var activePlaylistId = null;
   var playlistNote = document.querySelector('[data-playlist-note]');
 
   function readPlaylists() {
     try {
-      var raw = window.localStorage.getItem(PLAYLIST_STORAGE_KEY);
+      var key = _playlistKey();
+      var raw = window.localStorage.getItem(key);
+      // Migration: if per-user key is empty, try legacy shared key (filter by userId)
+      if (!raw && key !== PLAYLIST_LEGACY_KEY) {
+        var legacyRaw = window.localStorage.getItem(PLAYLIST_LEGACY_KEY);
+        if (legacyRaw) {
+          try {
+            var legacy = JSON.parse(legacyRaw);
+            if (Array.isArray(legacy)) {
+              var uid = getMyUserId();
+              // Only keep playlists that belong to this user (strict userId match)
+              var owned = legacy.filter(function (pl) {
+                if (!pl) return false;
+                var plUserId = String(pl.userId || '').trim().toLowerCase();
+                if (!plUserId) return false; // no userId — can't determine owner, exclude
+                if (uid && plUserId === uid) return true; // belongs to current user
+                return false; // belongs to another user — exclude
+              });
+              if (owned.length) {
+                raw = JSON.stringify(owned);
+                window.localStorage.setItem(key, raw);
+              }
+            }
+          } catch (e) {}
+        }
+      }
       var parsed = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(parsed)) return [];
+      // Defense-in-depth: filter out playlists that don't belong to current user
+      var _filterUid = getMyUserId();
+      if (_filterUid) {
+        parsed = parsed.filter(function (pl) {
+          if (!pl || !pl.id) return false;
+          var plUid = String(pl.userId || pl.user_id || '').trim().toLowerCase();
+          // If playlist has no userId, it's legacy — only keep if it's truly orphaned
+          if (!plUid) return false;
+          return plUid === _filterUid;
+        });
+      }
       // Migration: fix playlists with empty names (deep clone to detect changes)
       var original = JSON.parse(JSON.stringify(parsed));
       var migrated = parsed.map(function (pl) {
@@ -1360,7 +1401,7 @@
       // Write back if any names were fixed
       var changed = migrated.some(function (pl, i) { return pl.name !== original[i].name; });
       if (changed) {
-        window.localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(migrated));
+        window.localStorage.setItem(key, JSON.stringify(migrated));
       }
       return migrated;
     } catch (e) {
@@ -1368,10 +1409,15 @@
     }
   }
 
-  /** Fetch playlists from D1 and merge with localStorage */
+  /** Fetch playlists from backend and merge with localStorage */
   function syncPlaylistsFromD1() {
-    return fetch('/api/playlists')
-      .then(function (r) { return r.ok ? r.json() : []; })
+    // NOTE: Backend playlists API uses Prisma schema (different field names).
+    // This is a best-effort merge — localStorage is the source of truth.
+    var hasApi = !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function' && window.AudioHubApi.isEnabled && window.AudioHubApi.isEnabled());
+    var fetchPromise = hasApi
+      ? window.AudioHubApi.request('/playlists', { method: 'GET' }).catch(function () { return []; })
+      : Promise.resolve([]);
+    return fetchPromise
       .then(function (d1Playlists) {
         if (!Array.isArray(d1Playlists) || !d1Playlists.length) return readPlaylists();
 
@@ -1402,6 +1448,7 @@
             name: pl.name || 'Truyện mới',
             entries: Array.isArray(entries) ? entries : [],
             createdBy: pl.created_by || pl.createdBy || 'admin',
+            userId: pl.user_id || pl.userId || getMyUserId() || '',
             state: pl.state || 'ongoing',
             createdAt: pl.created_at || pl.createdAt || '',
             updatedAt: pl.updated_at || pl.updatedAt || ''
@@ -1498,7 +1545,7 @@
         }
 
         // Save merged to localStorage
-        try { localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
+        try { localStorage.setItem(_playlistKey(), JSON.stringify(merged)); } catch (e) {}
 
         return merged;
         } catch (mergeErr) {
@@ -1513,7 +1560,7 @@
 
   function writePlaylists(list) {
     try {
-      window.localStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(list));
+      window.localStorage.setItem(_playlistKey(), JSON.stringify(list));
     } catch (e) {}
     // Sync each playlist to D1 with correct field mapping
     try {
@@ -1528,11 +1575,20 @@
           updated_at: new Date().toISOString(),
           items: pl.entries || pl.items || []
         };
-        fetch('/api/playlists', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(plForApi)
-        }).catch(function () {});
+        // Use AudioHubApi.request to send auth token
+        if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+          window.AudioHubApi.request('/playlists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(plForApi)
+          }).catch(function () {});
+        } else {
+          fetch('/api/playlists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(plForApi)
+          }).catch(function () {});
+        }
       });
     } catch (e) {}
   }
@@ -1819,13 +1875,14 @@
       try {
       var _plUserId = getMyUserId();
       var list = (allPlaylists || readPlaylists() || []).filter(function (p) {
-        // Filter by userId when logged in
+        if (!p || !p.id) return false;
+        // When logged in, only show playlists belonging to current user
         if (_plUserId) {
           var pUserId = String(p.userId || p.user_id || '').trim().toLowerCase();
-          if (pUserId && pUserId !== _plUserId) return false;
+          // Must match userId exactly — no fallback for legacy playlists
+          return pUserId === _plUserId;
         }
-        var cb = String(p.createdBy || p.created_by || 'admin').toLowerCase();
-        return cb === 'admin' || cb === 'user' || !cb;
+        return true; // not logged in — show all
       });
 
       if (!list.length) {
