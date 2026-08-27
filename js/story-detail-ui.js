@@ -4013,11 +4013,7 @@
 
         // Block playback for locked chapters
         if (link.classList.contains('is-locked')) {
-          if (!isMember()) {
-            showAuthRequiredModal();
-          } else {
-            _showToast('Chương này chưa được mở khóa.', 'lock');
-          }
+          showAuthRequiredModal();
           return;
         }
 
