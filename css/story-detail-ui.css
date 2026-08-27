@@ -1189,3 +1189,36 @@ aside.detail-sidebar #sidebar-chapter-heading span { color: var(--t3); font-size
 .add-chapter-modal__status.is-error {
   background: rgba(239,68,68,.1); color: #ef4444;
 }
+
+/* ═══ Toast notification ═══ */
+.sd-toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 9999;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+}
+.sd-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.sd-toast i {
+  font-size: 1rem;
+  flex-shrink: 0;
+}

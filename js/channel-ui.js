@@ -36,6 +36,43 @@
     return genreColors[key] || '#334155';
   }
 
+  // ── Deleted IDs filter (reads both global + per-user keys) ──
+  function _chGetUserId() {
+    try {
+      var raw = localStorage.getItem('audiohub-auth-profile');
+      var p = raw ? JSON.parse(raw) : null;
+      if (!p || !p.isLoggedIn) return null;
+      var uid = (p.id && String(p.id).trim()) || (p.email && String(p.email).trim().toLowerCase()) || null;
+      return uid ? String(uid).trim().toLowerCase() : null;
+    } catch (e) { return null; }
+  }
+  function getDeletedIds() {
+    var ids = [];
+    try {
+      var raw = localStorage.getItem('audiohub-deleted-ids');
+      ids = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(ids)) ids = [];
+    } catch (e) { ids = []; }
+    // Also read per-user key (written by AudioHubStories.remove → addDeletedId)
+    try {
+      var uid = _chGetUserId();
+      if (uid) {
+        var raw2 = localStorage.getItem('audiohub-deleted-stories-' + uid);
+        var perUser = raw2 ? JSON.parse(raw2) : [];
+        if (Array.isArray(perUser)) {
+          perUser.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+        }
+      }
+    } catch (e2) {}
+    return ids;
+  }
+  function filterDeleted(stories) {
+    var ids = getDeletedIds();
+    if (!ids.length) return stories;
+    var set = {}; ids.forEach(function (id) { set[id] = true; });
+    return stories.filter(function (s) { return !s || !s.id || !set[s.id]; });
+  }
+
   // ── Load stories ──
   var allStories = [];
   try {
@@ -55,7 +92,7 @@
     }
   } catch (e) { allStories = []; }
 
-  var stories = allStories.filter(function(s) {
+  var stories = filterDeleted(allStories).filter(function(s) {
     return s.author && s.author.toLowerCase() === authorName.toLowerCase();
   });
 
@@ -65,7 +102,7 @@
       .then(function(r) { return r.ok ? r.json() : []; })
       .then(function(apiStories) {
         if (Array.isArray(apiStories) && apiStories.length) {
-          stories = apiStories;
+          stories = filterDeleted(apiStories);
           // Re-render all sections with API data
           renderAll();
         }
@@ -146,6 +183,17 @@
   if (subBtn) subBtn.addEventListener('click', function() { toggleSub(authorName); updateSubUI(); });
   if (subBtnActive) subBtnActive.addEventListener('click', function() { toggleSub(authorName); updateSubUI(); });
   updateSubUI();
+
+  // ── Hide featured + sort when no stories ──
+  var featSection = document.querySelector('[data-featured-section]');
+  var sortBar = document.querySelector('.ch-sort-bar');
+  if (!stories.length) {
+    if (featSection) featSection.style.display = 'none';
+    if (sortBar) sortBar.style.display = 'none';
+  } else {
+    if (featSection) featSection.style.display = '';
+    if (sortBar) sortBar.style.display = '';
+  }
 
   // ── Featured (most listened) ──
   if (stories.length) {
@@ -356,7 +404,7 @@
   function renderGrid(items) {
     if (!grid) return;
     if (!items.length) {
-      grid.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book"></i><p>Không có audio</p></div>';
+      grid.innerHTML = '<div class="ch-empty"><i class="fa-solid fa-book-open"></i><p>Kênh này chưa có truyện nào.</p><p style="font-size:0.85rem;color:#94a3b8;margin-top:6px;">Hãy quay lại sau nhé!</p></div>';
       return;
     }
     grid.innerHTML = items.map(buildCard).join('');

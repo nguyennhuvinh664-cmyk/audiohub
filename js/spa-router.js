@@ -9,7 +9,7 @@
 
   /* ── Config ─────────────────────────────────────────────────────────── */
   var SHELL_ID = 'page-content';
-  var ASSET_VERSION = Date.now().toString(); // dynamic — fresh version on every page load, busts all caches
+  var ASSET_VERSION = '20260827-3'; // Deploy version — only bust cache on new deploy, NOT every navigation
 
   /** Pages that live in /html/ directory */
   var HTML_PAGES = [
