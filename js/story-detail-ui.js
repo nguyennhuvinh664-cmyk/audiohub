@@ -744,7 +744,7 @@
       // Logged in → ask to buy with linh thạch
       if (title) title.textContent = 'Nội dung Premium';
       if (desc) desc.textContent = 'Chương này cần linh thạch để mở khóa. Bạn có muốn mua bằng linh thạch không?';
-      if (primary) { primary.textContent = 'Mua bằng linh thạch'; primary.href = '#'; }
+      if (primary) { primary.textContent = 'Mở khóa bằng linh thạch'; primary.href = '#'; }
     } else {
       // Not logged in → ask to login
       if (title) title.textContent = 'Yêu cầu đăng nhập';
