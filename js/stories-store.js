@@ -6,10 +6,12 @@
       var parsed = raw ? JSON.parse(raw) : null;
       if (!parsed || !parsed.isLoggedIn) return null;
       // Use id, or fallback to email, or fallback to name
-      return (parsed.id && String(parsed.id).trim())
+      // Always lowercase for consistent comparison with story user_id
+      var uid = (parsed.id && String(parsed.id).trim())
         || (parsed.email && String(parsed.email).trim().toLowerCase())
         || (parsed.name && String(parsed.name).trim().toLowerCase())
         || null;
+      return uid ? String(uid).trim().toLowerCase() : null;
     } catch (e) { return null; }
   }
   function _storiesKey() {
@@ -22,11 +24,23 @@
   }
 
   function getDeletedIds() {
+    var ids = [];
     try {
-      return JSON.parse(localStorage.getItem(_deletedKey()) || '[]');
+      ids = JSON.parse(localStorage.getItem(_deletedKey()) || '[]');
+      if (!Array.isArray(ids)) ids = [];
     } catch (e) {
-      return [];
+      ids = [];
     }
+    // Also read global key — deleteStoriesByIds writes to audiohub-deleted-ids
+    // and other pages (channel, upload, home) read this key for filtering
+    try {
+      var raw2 = localStorage.getItem('audiohub-deleted-ids');
+      var globalIds = raw2 ? JSON.parse(raw2) : [];
+      if (Array.isArray(globalIds)) {
+        globalIds.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+      }
+    } catch (e2) {}
+    return ids;
   }
 
   function addDeletedId(id) {
@@ -35,10 +49,89 @@
       deleted.push(id);
       try { localStorage.setItem(_deletedKey(), JSON.stringify(deleted)); } catch (e) {}
     }
+    // Also write to global key so filterDeleted on other pages can see it
+    try {
+      var raw2 = localStorage.getItem('audiohub-deleted-ids');
+      var globalDeleted = raw2 ? JSON.parse(raw2) : [];
+      if (!Array.isArray(globalDeleted)) globalDeleted = [];
+      if (globalDeleted.indexOf(id) === -1) globalDeleted.push(id);
+      if (globalDeleted.length > 500) globalDeleted = globalDeleted.slice(-500);
+      localStorage.setItem('audiohub-deleted-ids', JSON.stringify(globalDeleted));
+    } catch (e2) {}
   }
 
   function isDeleted(id) {
     return getDeletedIds().indexOf(id) !== -1;
+  }
+
+  // ── Deleted titles tracking (prevents sync from re-adding deleted stories with new IDs) ──
+  function _deletedTitlesKey() {
+    var uid = _getUserId();
+    return uid ? 'audiohub-deleted-titles-' + uid : 'audiohub-deleted-titles';
+  }
+  function getDeletedTitles() {
+    var titles = [];
+    try {
+      titles = JSON.parse(localStorage.getItem(_deletedTitlesKey()) || '[]');
+      if (!Array.isArray(titles)) titles = [];
+    } catch (e) { titles = []; }
+    return titles;
+  }
+  function addDeletedTitle(title) {
+    if (!title) return;
+    var t = String(title).trim().toLowerCase();
+    if (!t) return;
+    var titles = getDeletedTitles();
+    if (titles.indexOf(t) === -1) {
+      titles.push(t);
+      if (titles.length > 200) titles = titles.slice(-200);
+      try { localStorage.setItem(_deletedTitlesKey(), JSON.stringify(titles)); } catch (e) {}
+    }
+  }
+  function isDeletedTitle(title) {
+    if (!title) return false;
+    var t = String(title).trim().toLowerCase();
+    return getDeletedTitles().indexOf(t) !== -1;
+  }
+  // Remove a title from the deleted-titles list (used after successful upload
+  // so a previously-deleted title can be re-published)
+  function clearDeletedTitle(title) {
+    if (!title) return;
+    var t = String(title).trim().toLowerCase();
+    var titles = getDeletedTitles();
+    var idx = titles.indexOf(t);
+    if (idx !== -1) {
+      titles.splice(idx, 1);
+      try { localStorage.setItem(_deletedTitlesKey(), JSON.stringify(titles)); } catch (e) {}
+    }
+  }
+
+  // ── Page-load cleanup: remove story variants matching deleted titles ──
+  function _cleanupDeletedVariants() {
+    try {
+      var raw = localStorage.getItem(_storiesKey());
+      var arr = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(arr) || !arr.length) return;
+      var deletedTitles = getDeletedTitles();
+      if (!deletedTitles.length) return;
+      var changed = false;
+      var cleaned = arr.filter(function (s) {
+        if (!s || !s.id) return true;
+        if (isDeleted(s.id)) { changed = true; return false; }
+        var t = String(s.title || '').trim().toLowerCase();
+        if (t && deletedTitles.indexOf(t) !== -1) {
+          changed = true;
+          _cleanupCoverForStory(s.id);
+          console.log('[stories-store] 🧹 Cleanup: removed variant', s.id, 'matched deleted title:', t);
+          return false;
+        }
+        return true;
+      });
+      if (changed) {
+        writeLocalStories(cleaned);
+        notifyStoriesUpdated();
+      }
+    } catch (e) {}
   }
 
   function safeParse(raw, fallback) {
@@ -759,7 +852,8 @@
 
             // Update playlist entries: replace local ID with cloud ID
             try {
-              var PLAYLIST_KEY = 'audiohub-playlists-v1';
+              var _plUid = _getUserId();
+              var PLAYLIST_KEY = _plUid ? 'audiohub-playlists-v1-' + _plUid : 'audiohub-playlists-v1';
               var plRaw = localStorage.getItem(PLAYLIST_KEY) || '';
               var playlists = plRaw ? JSON.parse(plRaw) : [];
               if (Array.isArray(playlists)) {
@@ -778,14 +872,15 @@
                 });
                 if (plChanged) {
                   localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
-                  // Sync to D1 playlists
+                  // Sync to D1 playlists (with auth token)
                   try {
                     playlists.forEach(function (pl) {
-                      fetch('/api/playlists', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries || []) })
-                      }).catch(function () {});
+                      if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+                        window.AudioHubApi.request('/playlists', {
+                          method: 'POST',
+                          body: { id: pl.id, name: pl.name, items: pl.entries || [] }
+                        }).catch(function () {});
+                      }
                     });
                   } catch (e) {}
                   console.log('[stories] Updated playlist entries with cloud ID:', newStoryId);
@@ -1122,6 +1217,44 @@
     });
   }
 
+  // ── Ghost story cleanup: remove local stories that don't exist in D1 ──
+  // After sync, verify non-draft stories against D1 via batch endpoint.
+  // Any story in localStorage that doesn't exist in D1 is a "ghost" and gets removed.
+  function _cleanupGhostStories(localStories) {
+    var cloudIds = localStories.filter(function (s) {
+      return s && s.id && !String(s.id).startsWith('s_');
+    }).map(function (s) { return String(s.id); });
+    if (!cloudIds.length) return Promise.resolve();
+
+    return fetch('/api/stories/batch?ids=' + encodeURIComponent(cloudIds.join(',')))
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (remoteStories) {
+        if (!Array.isArray(remoteStories)) remoteStories = [];
+        var remoteIdSet = {};
+        remoteStories.forEach(function (s) { if (s && s.id) remoteIdSet[String(s.id)] = true; });
+
+        var ghostIds = cloudIds.filter(function (id) { return !remoteIdSet[id]; });
+        if (!ghostIds.length) return;
+
+        console.log('[stories-store] 👻 Found', ghostIds.length, 'ghost stories not in D1:', ghostIds);
+        var raw = localStorage.getItem(_storiesKey());
+        var arr = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(arr)) arr = [];
+        var cleaned = arr.filter(function (s) {
+          if (!s || !s.id) return true;
+          if (ghostIds.indexOf(String(s.id)) !== -1) {
+            addDeletedId(s.id);
+            _cleanupCoverForStory(s.id);
+            return false;
+          }
+          return true;
+        });
+        writeLocalStories(cleaned);
+        notifyStoriesUpdated();
+      })
+      .catch(function () {});
+  }
+
   function syncFromApi() {
     // Fetch from D1 via Cloudflare Pages Functions (Supabase deprecated)
     return syncFromApiFallback();
@@ -1129,10 +1262,23 @@
 
   function syncFromApiFallback() {
     if (!canUseApi()) {
-      return window.AudioHubApi.request('/stories/public', { method: 'GET' })
+      // When logged in (profile exists but token not ready), only keep own stories
+      // to avoid polluting per-user localStorage with other users' public stories
+      var _offlineUserId = _getUserId();
+      return fetch('/api/stories/public').then(function (r) { return r.ok ? r.json() : []; })
         .then(function (publicStories) {
           var localStories = readLocalStories();
           if (!Array.isArray(publicStories) || !publicStories.length) {
+            // API returned empty — keep ONLY s_ drafts (not yet uploaded), remove all ghosts
+            if (canUseApi()) {
+              var _draftsOnly = localStories.filter(function (s) {
+                return s && s.id && String(s.id).startsWith('s_');
+              });
+              if (_draftsOnly.length !== localStories.length) {
+                console.log('[stories-store] 🧹 Sync empty API: removed', (localStories.length - _draftsOnly.length), 'ghost stories');
+                writeLocalStories(_draftsOnly);
+              }
+            }
             notifyStoriesSynced();
             return localStories;
           }
@@ -1154,20 +1300,36 @@
               }
             }
             return entry;
-          }).filter(Boolean).filter(function (s) { return !isDeleted(s.id); });
+          }).filter(Boolean).filter(function (s) { return !isDeleted(s.id) && !isDeletedTitle(s.title); });
 
           // Build index of API stories by ID
           var apiIds = {};
           normalized.forEach(function (s) { apiIds[String(s.id)] = true; });
 
           // Keep local stories that are NOT in the API (e.g. s_ drafts not yet synced)
+          // When logged in, only keep own stories (by userId match) or s_ local drafts
           var localOnly = localStories.filter(function (item) {
             if (!item || !item.id) return false;
             if (apiIds[String(item.id)]) return false;
+            if (_offlineUserId) {
+              var itemUserId = String(item.userId || item.user_id || '').trim().toLowerCase();
+              if (String(item.id).startsWith('s_')) return true;
+              if (itemUserId && itemUserId === _offlineUserId) return true;
+              return false; // discard other users' stories
+            }
             return true;
           });
 
-          var merged = normalized.concat(localOnly).slice(0, 50);
+          // When logged in, filter out other users' public stories from normalized
+          var filteredNormalized = _offlineUserId ? normalized.filter(function (s) {
+            var storyUserId = String(s.userId || s.user_id || '').trim().toLowerCase();
+            // Keep s_ drafts and own stories
+            if (String(s.id).startsWith('s_')) return true;
+            if (storyUserId && storyUserId === _offlineUserId) return true;
+            return false;
+          }) : normalized;
+
+          var merged = filteredNormalized.concat(localOnly).slice(0, 50);
           writeLocalStories(merged);
           notifyStoriesUpdated();
           notifyStoriesSynced();
@@ -1183,7 +1345,8 @@
     // When logged in, fetch only THIS user's stories (avoids polluting per-user localStorage with other users' public stories)
     var _syncUserId = _getUserId();
     var _storiesUrl = _syncUserId ? '/stories?user_id=' + encodeURIComponent(_syncUserId) : '/stories';
-    return window.AudioHubApi.request(_storiesUrl, { method: 'GET' })
+    var _fetchUrl = '/api' + _storiesUrl;
+    return fetch(_fetchUrl).then(function (r) { return r.ok ? r.json() : []; })
       .then(function (remoteStories) {
         if (!Array.isArray(remoteStories)) {
           return readLocalStories();
@@ -1204,21 +1367,17 @@
           remoteIds[String(entry.id)] = true;
           var local = localById[String(entry.id)] || null;
           return mergeStoryWithLocal(entry, local);
-        }).filter(Boolean).filter(function (s) { return !isDeleted(s.id); });
+        }).filter(Boolean).filter(function (s) { return !isDeleted(s.id) && !isDeletedTitle(s.title); });
 
-        // PRESERVE local stories not in remote response, but only own stories
-        // (avoids keeping other users' public stories that were synced before auth was ready)
+        // PRESERVE local stories not in remote response, but only s_ drafts
+        // When logged in, D1 is source of truth — if it's not in D1, it's a ghost
         var localOnly = localStories.filter(function (item) {
           if (!item || !item.id) return false;
           if (remoteIds[String(item.id)]) return false;
-          // When logged in, only keep own stories (by userId match) or s_ local drafts
-          if (_syncUserId) {
-            var itemUserId = String(item.userId || item.user_id || '').trim().toLowerCase();
-            if (String(item.id).startsWith('s_')) return true; // always keep local drafts
-            if (itemUserId && itemUserId === _syncUserId) return true; // own cloud story
-            return false; // discard other users' stories
-          }
-          return true;
+          if (isDeletedTitle(item.title)) return false; // title was deleted
+          // Only keep s_ drafts (not yet uploaded to D1)
+          if (String(item.id).startsWith('s_')) return true;
+          return false;
         });
 
         // Khi real login (canUseApi), bỏ local s_ drafts vì đó là demo data chưa upload thật
@@ -1267,46 +1426,141 @@
     }
   }
 
-  function removeStory(id) {
-    // ALWAYS track deleted ID — even if local removal fails (story may only exist on server)
-    // This prevents syncFromApiFallback from re-adding the deleted story
-    addDeletedId(id);
+  function removeStory(id, opts) {
+    opts = opts || {};
+    // opts.localOnly = true → only remove from localStorage (used by upload flow
+    // to clean up old s_ draft after successful upload — must NOT tombstone or
+    // delete the CUID from D1 because that's the newly uploaded story!)
+    var _localOnly = !!opts.localOnly;
 
-    // Capture the story's title BEFORE removing so we can find duplicate variants
+    // CRITICAL: Capture title BEFORE addDeletedId — addDeletedId writes to the global
+    // deleted list, and readLocalStories() filters by that list, so after addDeletedId
+    // the story would be invisible and _targetTitle would always be empty.
     var _targetTitle = '';
+    var _originalTitle = '';
     try {
-      var _before = readLocalStories();
-      for (var _di = 0; _di < _before.length; _di++) {
-        if (_before[_di] && String(_before[_di].id) === String(id)) { _targetTitle = String(_before[_di].title || '').trim().toLowerCase(); break; }
+      var raw = localStorage.getItem(_storiesKey());
+      var arr = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(arr)) arr = [];
+      for (var _di = 0; _di < arr.length; _di++) {
+        if (arr[_di] && String(arr[_di].id) === String(id)) {
+          _originalTitle = String(arr[_di].title || '').trim();
+          _targetTitle = _originalTitle.toLowerCase();
+          break;
+        }
       }
     } catch (e) {}
 
+    // Only track deleted title when NOT localOnly — localOnly means upload cleanup,
+    // not user-initiated delete
+    if (_targetTitle && !_localOnly) addDeletedTitle(_targetTitle);
+    addDeletedId(id);
     var removed = removeLocalStory(id);
 
-    // Also remove any duplicate variants of the same story (same title, different id
-    // like s_ draft + CUID) that the first remove didn't catch.
-    if (_targetTitle) {
+    // Duplicate + server cleanup — only when user explicitly deletes (NOT localOnly)
+    if (!_localOnly && _targetTitle) {
+      // Also remove ALL duplicate variants of the same story (same title, different id
+      // like s_ draft + CUID). Read RAW localStorage to bypass deleted filter.
       try {
-        var all = readLocalStories();
-        var _dupes = all.filter(function (s) {
+        var _raw2 = localStorage.getItem(_storiesKey());
+        var _all = _raw2 ? JSON.parse(_raw2) : [];
+        if (!Array.isArray(_all)) _all = [];
+        var _dupes = _all.filter(function (s) {
           return s && String(s.title || '').trim().toLowerCase() === _targetTitle && String(s.id) !== String(id);
         });
         _dupes.forEach(function (dup) {
           addDeletedId(dup.id);
           removeLocalStory(dup.id);
-          if (canUseApi() && dup.id && !String(dup.id).startsWith('s_')) {
-            _retryDelete(dup.id, 0);
-          }
+          _cleanupCoverForStory(dup.id);
+          _directDelete(dup.id);
           console.log('[stories-store] 🧹 Removed duplicate variant:', dup.id, 'for title:', _targetTitle);
         });
       } catch (e) {}
     }
 
-    // Backend DELETE with retry (Render free tier sleeps → cold start 30-60s)
-    if (canUseApi() && id && !String(id).startsWith('s_')) {
-      _retryDelete(id, 0);
+    // Clean up IndexedDB cover for the main story too
+    _cleanupCoverForStory(id);
+
+    // Backend DELETE — only when user explicitly deletes (NOT localOnly)
+    if (!_localOnly) {
+      _directDelete(id);
+
+      // Also delete by title from D1 — catches CUID variants that exist only
+      // in D1 but not in localStorage
+      if (_originalTitle) {
+        _cleanupByTitle(_originalTitle);
+      }
+
+      if (canUseApi() && id && !String(id).startsWith('s_')) {
+        _retryDelete(id, 0);
+      }
     }
     return removed;
+  }
+
+  function _cleanupCoverForStory(storyId) {
+    if (!storyId) return;
+    var keys = [storyId, 's_' + storyId, String(storyId).replace(/^s_/, '')];
+    keys.forEach(function (key) {
+      if (!key) return;
+      try {
+        var req = indexedDB.open('audiohub-media');
+        req.onsuccess = function () {
+          var db = req.result;
+          if (db.objectStoreNames.contains('storyCover')) {
+            var tx = db.transaction('storyCover', 'readwrite');
+            tx.objectStore('storyCover').delete(key);
+          }
+          if (db.objectStoreNames.contains('storyAudio')) {
+            var tx2 = db.transaction('storyAudio', 'readwrite');
+            tx2.objectStore('storyAudio').delete(key);
+          }
+        };
+      } catch (e) {}
+    });
+  }
+
+  // Title-based DELETE via server cleanup endpoint — removes ALL D1 stories with
+  // this title (including CUID variants not present in localStorage)
+  function _cleanupByTitle(title) {
+    if (!title) return;
+    var token = '';
+    try { token = localStorage.getItem('audiohub-auth-token') || ''; } catch (e) {}
+    fetch('/api/stories/cleanup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify({ titles: [title] })
+    }).then(function (res) {
+      return res.json();
+    }).then(function (data) {
+      console.log('[stories-store] ✅ Title cleanup succeeded for "' + title + '":', data);
+    }).catch(function (err) {
+      console.warn('[stories-store] ❌ Title cleanup failed for "' + title + '":', err);
+    });
+  }
+
+  // Direct DELETE to Cloudflare Pages /api — never uses AudioHubApi (which may
+  // be configured to point to a dead Render backend via audiohub-api-base)
+  var _directDeleted = {};
+  function _directDelete(id) {
+    if (!id || _directDeleted[id]) return;
+    _directDeleted[id] = true;
+    fetch('/api/stories/' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function (res) {
+        if (res.ok) {
+          console.log('[stories-store] ✅ Direct DELETE succeeded for', id);
+        } else {
+          console.warn('[stories-store] ⚠ Direct DELETE HTTP', res.status, 'for', id);
+          delete _directDeleted[id];
+        }
+      })
+      .catch(function (err) {
+        console.warn('[stories-store] ❌ Direct DELETE failed for', id, err);
+        delete _directDeleted[id];
+      });
   }
 
   // Retry DELETE with wake-up for sleeping Render backend
@@ -1502,10 +1756,12 @@
     upsert: upsertStory,
     getById: getStoryById,
     remove: removeStory,
+    deleteById: removeStory,
     sync: syncFromApi,
     trackListen: trackListen,
     clearListenHistory: clearListenHistory,
-    forceSyncAll: forceSyncAllToApi
+    forceSyncAll: forceSyncAllToApi,
+    clearDeletedTitle: clearDeletedTitle
   };
 
   // Auto-sync local s_ stories to backend (one-time per story)
@@ -1597,7 +1853,8 @@
 
           // ── Update playlist entries: replace old s_ ID with real CUID ──
           try {
-            var _plKey = 'audiohub-playlists-v1';
+            var _plUid2 = _getUserId();
+            var _plKey = _plUid2 ? 'audiohub-playlists-v1-' + _plUid2 : 'audiohub-playlists-v1';
             var _plRaw = localStorage.getItem(_plKey) || '';
             var _playlists = _plRaw ? JSON.parse(_plRaw) : [];
             if (Array.isArray(_playlists)) {
@@ -1628,11 +1885,15 @@
     });
   }
 
+  // Page-load cleanup: remove story variants matching deleted titles (from old deletes before fix)
+  _cleanupDeletedVariants();
   migrateAnonymousAuthors();
 
   // Fetch stories immediately (may run before auth is ready — user_id will be null)
   syncFromApi().then(function () {
     migrateAnonymousAuthors();
+    // After sync, verify non-draft stories against D1 — remove ghosts
+    _cleanupGhostStories(readLocalStories());
   });
 
   // Re-sync after auth completes — ensures stories are scoped to correct user

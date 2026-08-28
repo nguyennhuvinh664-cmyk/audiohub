@@ -32,7 +32,25 @@
   var AUTH_KEY = 'audiohub-auth-profile';
   var LIB_KEY = 'audiohub-library';
   var WALLET_KEY = 'audiohub-wallet-v1';
-  var PL_KEY = 'audiohub-playlists-v1';
+
+  // Per-user playlist key helper
+  function _getDevUserId() {
+    try {
+      var raw = localStorage.getItem(AUTH_KEY);
+      var parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || !parsed.isLoggedIn) return null;
+      var uid = (parsed.id && String(parsed.id).trim())
+        || (parsed.email && String(parsed.email).trim().toLowerCase())
+        || (parsed.name && String(parsed.name).trim().toLowerCase())
+        || null;
+      return uid ? String(uid).trim().toLowerCase() : null;
+    } catch (e) { return null; }
+  }
+  function _devPlaylistKey() {
+    var uid = _getDevUserId();
+    return uid ? 'audiohub-playlists-v1-' + uid : 'audiohub-playlists-v1';
+  }
+  var PL_KEY = _devPlaylistKey();
 
   var defaultProfiles = {
     visitor: null,

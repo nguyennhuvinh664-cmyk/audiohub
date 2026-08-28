@@ -34,10 +34,25 @@
     });
   }
 
+  // Track Supabase availability to avoid repeated 402/400 failures
+  var _lastFailTime = 0;
+  var _FAIL_COOLDOWN = 60000; // 1 minute cooldown after failure
+
+  function _markFailed() {
+    _lastFailTime = Date.now();
+  }
+
+  function _isHealthy() {
+    // If failed recently, skip
+    if (_lastFailTime && (Date.now() - _lastFailTime < _FAIL_COOLDOWN)) return false;
+    return true;
+  }
+
   /**
    * Fetch all public stories from Supabase
    */
   function fetchPublicStories() {
+    if (!_isHealthy()) return Promise.resolve([]);
     // Exclude cover_data (can be 8MB+ per story) — load covers separately
     return fetchWithTimeout(
       REST_URL + '/stories?visibility=eq.PUBLIC&order=created_at.desc&limit=100&select=id,title,author,genre,description,chapter_title,chapters,chapter_count,visibility,audio_status,status,is_completed,cover_key,audio_key,youtube_url,youtube_id,listen_count,listen_count2d,listen_count7d,created_at,updated_at,user_id',
@@ -45,7 +60,10 @@
       8000
     )
       .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) {
+          _markFailed();
+          throw new Error('HTTP ' + res.status);
+        }
         return res.json();
       })
       .then(function (rows) {
@@ -58,13 +76,17 @@
    */
   function fetchUserStories(userId) {
     if (!userId) return Promise.resolve([]);
+    if (!_isHealthy()) return Promise.resolve([]);
     return fetchWithTimeout(
       REST_URL + '/stories?user_id=eq.' + encodeURIComponent(userId) + '&order=created_at.desc&limit=100',
       { headers: authHeaders() },
       8000
     )
       .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) {
+          _markFailed();
+          throw new Error('HTTP ' + res.status);
+        }
         return res.json();
       })
       .then(function (rows) {
@@ -96,13 +118,24 @@
   }
 
   /**
-   * Delete a story from Supabase
+   * Delete a story from Supabase — throws on failure so callers know it failed
    */
   function deleteStory(storyId) {
+    if (!_isHealthy()) {
+      console.warn('[Supabase] deleteStory skipped — unavailable');
+      return Promise.resolve();
+    }
     return fetch(
       REST_URL + '/stories?id=eq.' + encodeURIComponent(storyId),
       { method: 'DELETE', headers: authHeaders() }
-    );
+    ).then(function (res) {
+      if (!res.ok) {
+        _markFailed();
+        console.warn('[Supabase] deleteStory HTTP ' + res.status + ' for', storyId);
+        throw new Error('Supabase delete failed: ' + res.status);
+      }
+      return res;
+    });
   }
 
   /**
@@ -241,7 +274,7 @@
     deleteStory: deleteStory,
     trackListen: trackListen,
     getUserId: getUserId,
-    isAvailable: function () { return true; }
+    isAvailable: function () { return _isHealthy(); }
   };
 
   console.log('[Supabase] Client initialized —', SUPABASE_URL);

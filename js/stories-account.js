@@ -189,13 +189,25 @@
     return text || fallback;
   }
 
-  // Read persistent deleted IDs from localStorage (set by AudioHubStories.remove → addDeletedId)
+  // Read persistent deleted IDs from localStorage (reads both global + per-user keys)
   function getPersistentDeletedIds() {
-    var uid = getMyUserId();
-    var key = uid ? 'audiohub-deleted-stories-' + uid : 'audiohub-deleted-stories';
+    var ids = [];
+    // Global key (written by deleteStoriesByIds)
     try {
-      return JSON.parse(localStorage.getItem(key) || '[]');
-    } catch (e) { return []; }
+      var raw = localStorage.getItem('audiohub-deleted-ids');
+      ids = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(ids)) ids = [];
+    } catch (e) { ids = []; }
+    // Per-user key (written by AudioHubStories.remove → addDeletedId)
+    try {
+      var uid = getMyUserId();
+      var key = uid ? 'audiohub-deleted-stories-' + uid : 'audiohub-deleted-stories';
+      var perUser = JSON.parse(localStorage.getItem(key) || '[]');
+      if (Array.isArray(perUser)) {
+        perUser.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+      }
+    } catch (e2) {}
+    return ids;
   }
 
   // Get current user's ID from auth profile (for API filtering)
@@ -937,21 +949,135 @@
     if (!window.AudioHubStories || typeof window.AudioHubStories.remove !== 'function') return;
     // Skip the background API re-fetch so deleted stories don't reappear from server
     skipNextApiFetch = true;
+
+    // Track deleted IDs globally so home page and other pages can filter them out
+    try {
+      var raw = localStorage.getItem('audiohub-deleted-ids');
+      var allDeleted = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(allDeleted)) allDeleted = [];
+      ids.forEach(function (id) { if (allDeleted.indexOf(id) === -1) allDeleted.push(id); });
+      if (allDeleted.length > 500) allDeleted = allDeleted.slice(-500);
+      localStorage.setItem('audiohub-deleted-ids', JSON.stringify(allDeleted));
+    } catch (e) { /* best effort */ }
+
+    // Clean up favorites & history in audiohub-library
+    try {
+      var libRaw = localStorage.getItem('audiohub-library');
+      if (libRaw) {
+        var lib = JSON.parse(libRaw);
+        var idSet = {};
+        ids.forEach(function (id) { idSet[id] = true; });
+        if (Array.isArray(lib.history)) {
+          lib.history = lib.history.filter(function (h) { return !h || !h.key || !idSet[h.key]; });
+        }
+        if (Array.isArray(lib.favorites)) {
+          lib.favorites = lib.favorites.filter(function (f) { return !f || !f.key || !idSet[f.key]; });
+        }
+        localStorage.setItem('audiohub-library', JSON.stringify(lib));
+        console.log('[account] Cleaned favorites & history for deleted stories');
+      }
+    } catch (e) { console.warn('[account] Failed to clean library:', e); }
+
+    // Clean up playlists: remove deleted story entries from all playlists
+    try {
+      var plKey = _playlistKey();
+      var plRaw = localStorage.getItem(plKey);
+      if (plRaw) {
+        var playlists = JSON.parse(plRaw);
+        if (Array.isArray(playlists)) {
+          var changed = false;
+          playlists.forEach(function (pl) {
+            if (!pl) return;
+            var entries = pl.entries || pl.items || [];
+            var before = entries.length;
+            var filtered = entries.filter(function (e) {
+              var eid = String(e.storyId || e.key || '');
+              return !ids.some(function (id) { return id === eid; });
+            });
+            if (filtered.length < before) {
+              if (Array.isArray(pl.entries)) pl.entries = filtered;
+              if (Array.isArray(pl.items)) pl.items = filtered;
+              changed = true;
+            }
+          });
+          if (changed) {
+            localStorage.setItem(plKey, JSON.stringify(playlists));
+            console.log('[account] Cleaned playlist entries for deleted stories');
+          }
+        }
+      }
+    } catch (e) { console.warn('[account] Failed to clean playlists:', e); }
+
+    // Clean up IndexedDB covers
     ids.forEach(function (id) {
-      // Track as deleted so background API re-fetch won't bring it back
+      try {
+        var req = indexedDB.open('audiohub-media');
+        req.onsuccess = function () {
+          var db = req.result;
+          if (db.objectStoreNames.contains('storyCover')) {
+            var tx = db.transaction('storyCover', 'readwrite');
+            tx.objectStore('storyCover').delete(id);
+            console.log('[account] Deleted IndexedDB cover for:', id);
+          }
+        };
+      } catch (e) { /* best effort */ }
+    });
+
+    // Remove from in-memory state + IndexedDB FIRST, then delete from servers
+    ids.forEach(function (id) {
       deletedStoryIds[id] = true;
       window.AudioHubStories.remove(id);
-      // Also delete from D1 database via API
-      fetch('/api/stories/' + encodeURIComponent(id), { method: 'DELETE' })
-        .then(function () { console.log('[account] Deleted story from D1:', id); })
-        .catch(function (e) { console.warn('[account] Failed to delete story from D1:', id, e); });
-      // Also delete from Supabase (home page loads from Supabase first)
-      if (window.AudioHubSupabase && typeof window.AudioHubSupabase.deleteStory === 'function') {
-        window.AudioHubSupabase.deleteStory(id)
-          .then(function () { console.log('[account] Deleted story from Supabase:', id); })
-          .catch(function (e) { console.warn('[account] Failed to delete story from Supabase:', id, e); });
-      }
     });
+
+    // Delete from D1 + R2 via Cloudflare Pages Functions (ALWAYS use direct fetch
+    // to /api — AudioHubApi may point to old Render backend via audiohub-api-base)
+    var deletePromises = ids.map(function (id) {
+      var promises = [];
+      // Direct DELETE to Cloudflare Pages /api (bypass AudioHubApi)
+      promises.push(
+        fetch('/api/stories/' + encodeURIComponent(id), {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        })
+          .then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            console.log('[account] ✅ Deleted story from D1 + R2:', id);
+          })
+          .catch(function (e) {
+            console.warn('[account] ❌ Failed to delete story from D1:', id, e);
+            // Retry once after 2s
+            return new Promise(function (resolve) {
+              setTimeout(function () {
+                fetch('/api/stories/' + encodeURIComponent(id), { method: 'DELETE' })
+                  .then(function (r) { console.log('[account] ✅ Retry delete succeeded for', id); resolve(); })
+                  .catch(function (e2) { console.warn('[account] ❌ Retry delete also failed for', id, e2); resolve(); });
+              }, 2000);
+            });
+          })
+      );
+      // Delete from Supabase (best effort, may fail if quota exceeded)
+      if (window.AudioHubSupabase && typeof window.AudioHubSupabase.deleteStory === 'function') {
+        promises.push(
+          window.AudioHubSupabase.deleteStory(id)
+            .then(function () { console.log('[account] Deleted story from Supabase:', id); })
+            .catch(function (e) { console.warn('[account] Failed to delete story from Supabase:', id, e); })
+        );
+      }
+      return Promise.all(promises);
+    });
+
+    // Wait for all deletes to complete, then re-render
+    Promise.all(deletePromises)
+      .then(function () {
+        console.log('[account] ✅ All server deletes completed for:', ids);
+        renderLibrarySections();
+        renderStoriesSection();
+      })
+      .catch(function () {
+        // Re-render anyway even if some deletes failed
+        renderLibrarySections();
+        renderStoriesSection();
+      });
   }
 
   function bindCollectionActions() {
@@ -1473,17 +1599,18 @@
               console.log('[account] ✅ Reconciled entries from localStorage for playlist:', pl.name);
               // Re-sync to D1 with all fields including state
               try {
-                fetch('/api/playlists', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    id: pl.id,
-                    name: pl.name,
-                    state: pl.state || localPl.state || 'ongoing',
-                    created_by: pl.createdBy || 'user',
-                    items: pl.entries
-                  })
-                }).catch(function () {});
+                if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+                  window.AudioHubApi.request('/playlists', {
+                    method: 'POST',
+                    body: {
+                      id: pl.id,
+                      name: pl.name,
+                      state: pl.state || localPl.state || 'ongoing',
+                      created_by: pl.createdBy || 'user',
+                      items: pl.entries
+                    }
+                  }).catch(function () {});
+                }
               } catch (e) {}
             }
           }
@@ -1531,11 +1658,12 @@
                     console.log('[account] ✅ Auto-populated playlist:', pl.name, '| entries:', pl.entries.length);
                     // Sync to D1
                     try {
-                      fetch('/api/playlists', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries) })
-                      }).catch(function () {});
+                      if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+                        window.AudioHubApi.request('/playlists', {
+                          method: 'POST',
+                          body: { id: pl.id, name: pl.name, items: pl.entries }
+                        }).catch(function () {});
+                      }
                     } catch (e) {}
                   }
                 }
@@ -1575,18 +1703,11 @@
           updated_at: new Date().toISOString(),
           items: pl.entries || pl.items || []
         };
-        // Use AudioHubApi.request to send auth token
+        // Use AudioHubApi.request to send auth token (D1 API requires auth now)
         if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
           window.AudioHubApi.request('/playlists', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(plForApi)
-          }).catch(function () {});
-        } else {
-          fetch('/api/playlists', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(plForApi)
+            body: plForApi
           }).catch(function () {});
         }
       });
@@ -1630,9 +1751,14 @@
       });
     }
     // Delete playlist from D1 and wait for completion
-    var deletePromise = fetch('/api/playlists/' + encodeURIComponent(id), {
-      method: 'DELETE'
-    }).catch(function () {});
+    var deletePromise;
+    if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+      deletePromise = window.AudioHubApi.request('/playlists/' + encodeURIComponent(id), {
+        method: 'DELETE'
+      }).catch(function () {});
+    } else {
+      deletePromise = Promise.resolve();
+    }
     // Remove from localStorage
     var newList = list.filter(function (p) { return p.id !== id; });
     writePlaylists(newList);

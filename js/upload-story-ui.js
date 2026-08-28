@@ -63,7 +63,6 @@
      2. STATE
      ═══════════════════════════════════════════════════════════════════ */
   var AUTH_KEY = 'audiohub-auth-profile';
-  var PLAYLIST_KEY = 'audiohub-playlists-v1';
 
   function getMyUserId() {
     try {
@@ -73,6 +72,11 @@
       return (p.id && String(p.id).trim()) || (p.email && String(p.email).trim().toLowerCase()) || null;
     } catch (e) { return null; }
   }
+  function _playlistKey() {
+    var uid = getMyUserId();
+    return uid ? 'audiohub-playlists-v1-' + uid : 'audiohub-playlists-v1';
+  }
+  var PLAYLIST_KEY = _playlistKey();
   // Read stories from user-scoped localStorage key (NOT the old unscoped 'audiohub-stories')
   function _readScopedStories() {
     try {
@@ -334,6 +338,32 @@
     var isAddingNew = false;
     var _uid = getMyUserId();
 
+    // Filter out globally deleted story IDs (reads both global + per-user keys)
+    function getDeletedIds() {
+      var ids = [];
+      try { var r = localStorage.getItem('audiohub-deleted-ids'); ids = r ? JSON.parse(r) : []; }
+      catch (e) { ids = []; }
+      if (!Array.isArray(ids)) ids = [];
+      // Also read per-user key (addDeletedId writes to audiohub-deleted-stories-{uid})
+      try {
+        var uid = getMyUserId();
+        if (uid) {
+          var r2 = localStorage.getItem('audiohub-deleted-stories-' + uid);
+          var perUser = r2 ? JSON.parse(r2) : [];
+          if (Array.isArray(perUser)) {
+            perUser.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+          }
+        }
+      } catch (e2) {}
+      return ids;
+    }
+    function filterDeleted(arr) {
+      var ids = getDeletedIds();
+      if (!ids.length) return arr;
+      var set = {}; ids.forEach(function (id) { set[id] = true; });
+      return arr.filter(function (s) { return !s || !s.id || !set[s.id]; });
+    }
+
     function fetchAllStories() {
       var plMap = {}, storyMap = {}, plOrder = [], storyOrder = [];
 
@@ -399,7 +429,7 @@
         .then(function (d1) {
           if (!Array.isArray(d1)) return;
           console.log('[upload] API stories for user ' + (_uid || 'NONE') + ':', d1.length, 'stories');
-          d1.forEach(function (s) {
+          filterDeleted(d1).forEach(function (s) {
             if (!s || !s.id || !s.title) return;
             var key = String(s.title || '').trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
             if (storyMap[key]) return;
@@ -413,7 +443,7 @@
       // Local stories — MERGE with API stories (preserves hashtags, coverData not in API)
       try {
         if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
-          (window.AudioHubStories.read() || []).forEach(function (s) {
+          filterDeleted(window.AudioHubStories.read() || []).forEach(function (s) {
             if (!s || !s.id || !s.title) return;
             // When logged in, only include stories belonging to this user
             if (_uid) {
@@ -810,14 +840,16 @@
       var raw = localStorage.getItem(PLAYLIST_KEY) || '';
       var playlists = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(playlists)) return;
+      var token = localStorage.getItem('audiohub-auth-token') || '';
       playlists.forEach(function (pl) {
         if (specificPlaylistId && pl.id !== specificPlaylistId) return;
+        if (!token) return; // not logged in — skip API sync
         fetch('/api/playlists', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: pl.id, name: pl.name, items: JSON.stringify(pl.entries || []) })
-        }).then(function (r) {
-          if (r.ok) console.log('[upload] Playlist synced:', pl.name);
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ id: pl.id, name: pl.name, items: pl.entries || [] })
+        }).then(function () {
+          console.log('[upload] Playlist synced:', pl.name);
         }).catch(function () {});
       });
     } catch (e) {}
@@ -1465,7 +1497,8 @@
 
     function doRedirect(realId) {
       var url = '/story-detail?id=' + encodeURIComponent(realId);
-      // Force full page reload (not SPA navigate) to ensure fresh code + cache bust
+      // Set flag so story-detail page knows to do delayed re-fetch (pick up fresh chapter data from D1)
+      try { sessionStorage.setItem('audiohub-just-uploaded', '1'); } catch (e) {}
       window.location.href = url;
     }
 
@@ -1761,12 +1794,16 @@
         if (current) {
           current.id = realId;
           window.AudioHubStories.upsert(current);
+          // Clear any deleted-title block so this title can appear again
+          // (a previous delete may have added the title to the deleted list)
+          try { if (window.AudioHubStories.clearDeletedTitle) window.AudioHubStories.clearDeletedTitle(current.title); } catch (e) {}
           // CRITICAL: Remove old s_ entry to prevent duplicates
           // Without this, next publish finds stale s_ entry → loses chapters
+          // Use localOnly:true so we DON'T tombstone/delete the CUID we just uploaded
           try {
             var allStories = window.AudioHubStories.read();
             var oldEntries = allStories.filter(function (s) { return s && s.id === story.id; });
-            oldEntries.forEach(function (s) { window.AudioHubStories.remove(s.id); });
+            oldEntries.forEach(function (s) { window.AudioHubStories.remove(s.id, { localOnly: true }); });
             if (oldEntries.length) console.log('[upload] ✅ Removed', oldEntries.length, 'old s_ entries from localStorage');
           } catch (e) {}
           console.log('[upload] ✅ Updated localStorage with CUID:', realId);
@@ -2109,9 +2146,9 @@
       });
       console.log('[upload] ✅ Added ' + newChapters.length + ' new chapter entries to playlist:', pl.name);
 
-      // Save playlists
+      // Save playlists to user-scoped key
       pl.entries = entries;
-      localStorage.setItem('audiohub-playlists', JSON.stringify(playlists));
+      localStorage.setItem(PLAYLIST_KEY, JSON.stringify(playlists));
       syncPlaylistsToStorage(pl.id);
     } catch (e) { console.warn('[upload] Playlist entry failed:', e); }
   }

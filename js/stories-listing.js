@@ -368,9 +368,27 @@
 
   var playlistsCache = { raw: null, parsed: [] };
 
+  // Per-user playlist key helper
+  function _getListingUserId() {
+    try {
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
+      var parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || !parsed.isLoggedIn) return null;
+      var uid = (parsed.id && String(parsed.id).trim())
+        || (parsed.email && String(parsed.email).trim().toLowerCase())
+        || (parsed.name && String(parsed.name).trim().toLowerCase())
+        || null;
+      return uid ? String(uid).trim().toLowerCase() : null;
+    } catch (e) { return null; }
+  }
+  function _listingPlaylistKey() {
+    var uid = _getListingUserId();
+    return uid ? 'audiohub-playlists-v1-' + uid : 'audiohub-playlists-v1';
+  }
+
   function readLocalPlaylistsCached() {
     try {
-      var raw = window.localStorage.getItem('audiohub-playlists-v1') || '';
+      var raw = window.localStorage.getItem(_listingPlaylistKey()) || '';
       if (playlistsCache.raw === raw) {
         return playlistsCache.parsed;
       }
@@ -418,6 +436,30 @@
     return !!(window.AudioHubApi && typeof window.AudioHubApi.request === 'function');
   }
 
+  // Filter out globally deleted story IDs (reads both global + per-user keys)
+  function filterDeleted(stories) {
+    try {
+      var ids = [];
+      var raw = localStorage.getItem('audiohub-deleted-ids');
+      ids = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(ids)) ids = [];
+      // Also read per-user key (addDeletedId writes to audiohub-deleted-stories-{uid})
+      try {
+        var uid = _getListingUserId();
+        if (uid) {
+          var raw2 = localStorage.getItem('audiohub-deleted-stories-' + uid);
+          var perUser = raw2 ? JSON.parse(raw2) : [];
+          if (Array.isArray(perUser)) {
+            perUser.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+          }
+        }
+      } catch (e2) {}
+      if (!ids.length) return stories;
+      var set = {}; ids.forEach(function (id) { set[id] = true; });
+      return stories.filter(function (s) { return !s || !s.id || !set[s.id]; });
+    } catch (e) { return stories; }
+  }
+
   function fetchPublicStories() {
     if (!canReadPublicStoriesApi()) {
       return Promise.resolve([]);
@@ -425,7 +467,7 @@
 
     return window.AudioHubApi.request('/stories/public', { method: 'GET' })
       .then(function (rows) {
-        return Array.isArray(rows) ? rows : [];
+        return filterDeleted(Array.isArray(rows) ? rows : []);
       })
       .catch(function () {
         return [];
@@ -488,7 +530,7 @@
   }
 
   function renderStories(sourceStories) {
-    var stories = Array.isArray(sourceStories) ? sourceStories : (window.AudioHubStories.read() || []);
+    var stories = filterDeleted(Array.isArray(sourceStories) ? sourceStories : (window.AudioHubStories.read() || []));
     if (!stories.length) {
       stories = readSeedStoriesFromCards();
     }
@@ -621,7 +663,7 @@
 
   function loadAndRenderStories() {
     // Render local stories first (instant feedback)
-    var localStories = window.AudioHubStories.read() || [];
+    var localStories = filterDeleted(window.AudioHubStories.read() || []);
     var localPublic = localStories.filter(function (story) {
       return isPublicVisibility(story);
     });

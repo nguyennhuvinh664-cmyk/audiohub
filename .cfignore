@@ -1,0 +1,39 @@
+# ── Không deploy các file thừa / dev / build ──
+node_modules/
+.wrangler/
+.netlify/
+.claude/
+.git/
+backend/
+migrate/
+
+# Dev / temp data
+*.json
+!package.json
+tmp*.json
+all_stories.json
+chapters_check.json
+stories_check.json
+story_check.json
+story_ythien.json
+tmp_sb.json
+
+# Dev scripts ở root
+build-spa.js
+fix-spa*.js
+final-verify.js
+high-analysis.js
+instrument-*.js
+migrate-covers.js
+production-audit.js
+regression-test.js
+bump-versions.js
+
+# Misc
+*.mp3
+*.log
+render.yaml
+wrangler.toml
+TEST-CHECKLIST.md
+.gitignore
+package-lock.json

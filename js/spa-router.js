@@ -9,7 +9,7 @@
 
   /* ── Config ─────────────────────────────────────────────────────────── */
   var SHELL_ID = 'page-content';
-  var ASSET_VERSION = '20260827-3'; // Deploy version — only bust cache on new deploy, NOT every navigation
+  var ASSET_VERSION = '20260828-1'; // Deploy version — only bust cache on new deploy, NOT every navigation
 
   /** Pages that live in /html/ directory */
   var HTML_PAGES = [
@@ -190,8 +190,9 @@
   }
 
   function loadCSS(href) {
-    // Add cache-busting version
-    var versionedHref = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'v=' + ASSET_VERSION;
+    // Add cache-busting version only if the URL doesn't already carry one
+    var hasVersion = /[?&]v=/.test(href);
+    var versionedHref = hasVersion ? href : href + (href.indexOf('?') >= 0 ? '&' : '?') + 'v=' + ASSET_VERSION;
     if (getLoadedHrefs().indexOf(href) >= 0) return Promise.resolve();
     return new Promise(function (resolve) {
       var link = document.createElement('link');

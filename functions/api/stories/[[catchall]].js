@@ -1,8 +1,8 @@
 // functions/api/stories/[[catchall]].js
 // Stories API - CRUD operations
 
-import { getStoryById, getPublicStories, getStoriesByUser, upsertStory, deleteStory, trackListen } from '../../lib/db.js';
-import { uploadAudio as r2UploadAudio } from '../../lib/r2.js';
+import { getStoryById, getStoryByIdVisible, getPublicStories, getStoriesByUser, upsertStory, deleteStory, trackListen, ensureDeletedTable, markStoryDeleted, clearStoryTombstone } from '../../lib/db.js';
+import { uploadAudio as r2UploadAudio, deleteCover, deleteAudio } from '../../lib/r2.js';
 
 export async function onRequest(context) {
   const { request, env, params } = context;
@@ -49,8 +49,10 @@ export async function onRequest(context) {
       const allowed = ['id', 'title', 'cover_data', 'cover_key', 'audio_key', 'genre', 'author', 'visibility', 'chapter_count', 'listen_count', 'is_completed'];
       const safeFields = fields.filter(f => allowed.includes(f));
       if (!safeFields.length) safeFields.push('id');
+      const hasTombstone = await ensureDeletedTable(env.DB);
+      const tombstoneFilter = hasTombstone ? ' AND id NOT IN (SELECT story_id FROM deleted_stories)' : '';
       const placeholders = ids.map(() => '?').join(',');
-      const query = `SELECT ${safeFields.join(', ')} FROM stories WHERE id IN (${placeholders})`;
+      const query = `SELECT ${safeFields.join(', ')} FROM stories WHERE id IN (${placeholders})${tombstoneFilter}`;
       const result = await env.DB.prepare(query).bind(...ids).all();
       return Response.json(result.results || [], { headers: corsHeaders });
     }
@@ -83,15 +85,42 @@ export async function onRequest(context) {
       return Response.json({ success: true, updated: result.meta?.changes || 0, user_id: tokenUserId }, { headers: corsHeaders });
     }
 
-    // POST /api/stories/cleanup - Delete orphaned stories (Truyện mới, etc.)
+    // POST /api/stories/cleanup - Delete orphaned stories by title (with tombstones + R2 cleanup)
     if (method === 'POST' && storyId === 'cleanup') {
       const body = await request.json().catch(() => ({}));
       const titles = body.titles || [];
       if (!titles.length) return Response.json({ error: 'titles array required' }, { status: 400, headers: corsHeaders });
+      const tokenUserId = extractUserIdFromToken();
+      const hasTombstone = await ensureDeletedTable(env.DB);
       let deleted = 0;
       for (const t of titles) {
-        const result = await env.DB.prepare('DELETE FROM stories WHERE title = ?').bind(t).run();
-        deleted += result.meta?.changes || 0;
+        // Find ALL stories with this title (may include CUID variants)
+        // SECURITY: Only delete stories belonging to the current user
+        let rows;
+        if (tokenUserId) {
+          rows = await env.DB.prepare('SELECT id FROM stories WHERE title = ? AND user_id = ?').bind(t, tokenUserId).all();
+        } else {
+          // No auth — only delete stories with no user_id (orphans)
+          rows = await env.DB.prepare('SELECT id FROM stories WHERE title = ? AND (user_id IS NULL OR user_id = \'\')').bind(t).all();
+        }
+        const storyIds = (rows.results || []).map(r => r.id);
+        // Tombstone each one so they never appear in GET responses
+        for (const sid of storyIds) {
+          if (hasTombstone) {
+            try { await env.DB.prepare('INSERT OR IGNORE INTO deleted_stories (story_id) VALUES (?)').bind(sid).run(); } catch (e) {}
+          }
+          // Also delete R2 assets (cover + audio) for each variant
+          try { await deleteCover(env, sid); } catch (e) {}
+          try { await deleteAudio(env, sid); } catch (e) {}
+        }
+        // Now DELETE all rows with this title
+        if (tokenUserId) {
+          const result = await env.DB.prepare('DELETE FROM stories WHERE title = ? AND user_id = ?').bind(t, tokenUserId).run();
+          deleted += result.meta?.changes || 0;
+        } else {
+          const result = await env.DB.prepare('DELETE FROM stories WHERE title = ? AND (user_id IS NULL OR user_id = \'\')').bind(t).run();
+          deleted += result.meta?.changes || 0;
+        }
       }
       return Response.json({ success: true, deleted }, { headers: corsHeaders });
     }
@@ -138,15 +167,15 @@ export async function onRequest(context) {
       const status = url.searchParams.get('status');
       const author = url.searchParams.get('author');
       const order = url.searchParams.get('order');
-      const limit = parseInt(url.searchParams.get('limit') || '50');
-      const offset = parseInt(url.searchParams.get('offset') || '0');
+      const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get('limit')) || 50));
+      const offset = Math.max(0, parseInt(url.searchParams.get('offset')) || 0);
       const stories = await getPublicStories(env.DB, { genre, status, author, limit, offset, order });
       return Response.json(stories, { headers: corsHeaders });
     }
 
     // GET /api/stories/public/:id - Single public story by ID
     if (method === 'GET' && storyId === 'public' && action) {
-      const story = await getStoryById(env.DB, action);
+      const story = await getStoryByIdVisible(env.DB, action);
       if (!story) {
         return Response.json({ error: 'Story not found' }, { status: 404, headers: corsHeaders });
       }
@@ -158,8 +187,8 @@ export async function onRequest(context) {
       const genre = url.searchParams.get('genre');
       const status = url.searchParams.get('status');
       const userId = url.searchParams.get('user_id');
-      const limit = parseInt(url.searchParams.get('limit') || '50');
-      const offset = parseInt(url.searchParams.get('offset') || '0');
+      const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get('limit')) || 50));
+      const offset = Math.max(0, parseInt(url.searchParams.get('offset')) || 0);
 
       let stories;
       if (userId) {
@@ -171,9 +200,9 @@ export async function onRequest(context) {
       return Response.json(stories, { headers: corsHeaders });
     }
 
-    // GET /api/stories/:id - Get story by ID
+    // GET /api/stories/:id - Get story by ID (exclude tombstoned stories)
     if (method === 'GET' && storyId) {
-      const story = await getStoryById(env.DB, storyId);
+      const story = await getStoryByIdVisible(env.DB, storyId);
       if (!story) {
         return Response.json({ error: 'Story not found' }, { status: 404, headers: corsHeaders });
       }
@@ -200,6 +229,8 @@ export async function onRequest(context) {
         const existing = await env.DB.prepare('SELECT id FROM stories WHERE id = ?').bind(clientId).first();
         if (existing && existing.id) {
           // Same CUID — this is a retry/update of the same story
+          // Clear any old tombstone so the story is visible again
+          await clearStoryTombstone(env.DB, clientId);
           story.updated_at = new Date().toISOString();
           await upsertStory(env.DB, story);
           const saved = await getStoryById(env.DB, story.id);
@@ -209,6 +240,8 @@ export async function onRequest(context) {
 
       // ALWAYS generate fresh CUID — each story gets a unique ID
       story.id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      // Clear any stale tombstone for the new ID (defensive — should not exist)
+      await clearStoryTombstone(env.DB, story.id);
 
       // Set timestamps
       if (!story.created_at) {
@@ -233,9 +266,15 @@ export async function onRequest(context) {
       return Response.json({ success: true }, { headers: corsHeaders });
     }
 
-    // DELETE /api/stories/:id - Delete story
+    // DELETE /api/stories/:id - Delete story + all associated R2 assets
     if (method === 'DELETE' && storyId) {
+      // TOMBSTONE FIRST: mark as deleted so it never appears in any GET response,
+      // even if the actual DELETE FROM stories fails below
+      try { await markStoryDeleted(env.DB, storyId); } catch (e) { console.warn('[stories] Tombstone failed (non-fatal):', e.message); }
       await deleteStory(env.DB, storyId);
+      // Also delete R2 cover image and audio file (best effort)
+      try { await deleteCover(env, storyId); } catch (e) { console.warn('[stories] R2 cover delete failed:', e.message); }
+      try { await deleteAudio(env, storyId); } catch (e) { console.warn('[stories] R2 audio delete failed:', e.message); }
       return Response.json({ success: true }, { headers: corsHeaders });
     }
 

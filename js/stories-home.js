@@ -55,31 +55,49 @@
   var SUPABASE_KEY = 'sb_publishable_BP2pN_2F9YOgC2K3yZPjIA_nDYxmGie';
   var COVER_CACHE_KEY = 'audiohub-cover-cache-v1';
   var PLAYLISTS_STORAGE_URL = SUPABASE_STORAGE_DIRECT + 'playlists/index.json';
-  var PLAYLISTS_LOCAL_KEY = 'audiohub-playlists-v1';
 
-  /** Fetch playlists from D1 (shared across all users) */
-  function fetchPlaylistsFromStorage() {
-    return fetch('/api/playlists')
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (data) {
-        return (Array.isArray(data) ? data : []).map(function (p) {
-          return { id: p.id, name: p.name, entries: p.items || [], state: p.state || 'ongoing' };
-        });
-      })
-      .catch(function () { return []; });
+  // Per-user playlist key helper
+  function _getUserId() {
+    try {
+      var raw = window.localStorage.getItem('audiohub-auth-profile');
+      var parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || !parsed.isLoggedIn) return null;
+      var uid = (parsed.id && String(parsed.id).trim())
+        || (parsed.email && String(parsed.email).trim().toLowerCase())
+        || (parsed.name && String(parsed.name).trim().toLowerCase())
+        || null;
+      return uid ? String(uid).trim().toLowerCase() : null;
+    } catch (e) { return null; }
+  }
+  function _playlistKey() {
+    var uid = _getUserId();
+    return uid ? 'audiohub-playlists-v1-' + uid : 'audiohub-playlists-v1';
   }
 
-  /** Load playlists: try Storage first, fallback to localStorage */
+  /** Fetch playlists from D1 (filtered by auth userId) */
+  function fetchPlaylistsFromStorage() {
+    var _uid = _getUserId();
+    var fetchPromise = (window.AudioHubApi && typeof window.AudioHubApi.request === 'function' && window.AudioHubApi.isEnabled && window.AudioHubApi.isEnabled())
+      ? window.AudioHubApi.request('/playlists', { method: 'GET' }).catch(function () { return []; })
+      : Promise.resolve([]);
+    return fetchPromise.then(function (data) {
+      return (Array.isArray(data) ? data : []).map(function (p) {
+        return { id: p.id, name: p.name, entries: p.items || [], state: p.state || 'ongoing', userId: p.user_id || p.userId || _uid || '' };
+      });
+    }).catch(function () { return []; });
+  }
+
+  /** Load playlists: try D1 first, fallback to localStorage */
   function loadPlaylists() {
     return fetchPlaylistsFromStorage().then(function (storagePlaylists) {
       if (storagePlaylists.length > 0) {
-        // Sync to localStorage for offline fallback
-        try { localStorage.setItem(PLAYLISTS_LOCAL_KEY, JSON.stringify(storagePlaylists)); } catch (e) {}
+        // Sync to per-user localStorage for offline fallback
+        try { localStorage.setItem(_playlistKey(), JSON.stringify(storagePlaylists)); } catch (e) {}
         return storagePlaylists;
       }
-      // Fallback to localStorage
+      // Fallback to per-user localStorage
       try {
-        var raw = localStorage.getItem(PLAYLISTS_LOCAL_KEY) || '';
+        var raw = localStorage.getItem(_playlistKey()) || '';
         var parsed = raw ? JSON.parse(raw) : [];
         return Array.isArray(parsed) ? parsed : [];
       } catch (e) { return []; }
@@ -472,35 +490,32 @@
   }
 
   /* ── public stories fetch ────────────────────────────── */
-  function fetchPublicStories() {
-    // Try Supabase first (direct, no Render dependency)
-    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
-      return window.AudioHubSupabase.fetchPublicStories()
-        .then(function (rows) {
-          // If Supabase is empty, fall back to localStorage
-          if (!rows || !rows.length) {
-            return fallbackToLocal();
+  // Filter out stories that were deleted on another page (cross-page safety)
+  // Reads BOTH global key + per-user key (written by AudioHubStories.remove)
+  function filterDeletedStories(stories) {
+    try {
+      var ids = [];
+      var raw = localStorage.getItem('audiohub-deleted-ids');
+      ids = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(ids)) ids = [];
+      // Also read per-user key (addDeletedId writes to audiohub-deleted-stories-{uid})
+      try {
+        var uid = _getUserId();
+        if (uid) {
+          var raw2 = localStorage.getItem('audiohub-deleted-stories-' + uid);
+          var perUser = raw2 ? JSON.parse(raw2) : [];
+          if (Array.isArray(perUser)) {
+            perUser.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
           }
-          return rows;
-        })
-        .catch(function (e) {
-          return fallbackToLocal();
-        });
+        }
+      } catch (e2) {}
+      if (!ids.length) return stories;
+      var deletedSet = {};
+      ids.forEach(function (id) { deletedSet[id] = true; });
+      return stories.filter(function (s) { return !s || !s.id || !deletedSet[s.id]; });
+    } catch (e) {
+      return stories;
     }
-    return fallbackToLocal();
-  }
-
-  function fallbackToLocal() {
-    // Try API first, then localStorage
-    return fetchPublicStoriesFallback().then(function (rows) {
-      if (rows && rows.length) return rows;
-      // Final fallback: read from localStorage (same browser only)
-      if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
-        var local = window.AudioHubStories.read();
-        return local;
-      }
-      return [];
-    });
   }
 
   function fetchPublicStoriesFallback() {
@@ -514,6 +529,50 @@
       .catch(function () {
         return [];
       });
+  }
+
+  function fetchPublicStories() {
+    // D1 API is the PRIMARY source — delete works reliably via D1 Pages Function
+    return fetchPublicStoriesFallback().then(function (d1Stories) {
+      d1Stories = filterDeletedStories(Array.isArray(d1Stories) ? d1Stories : []);
+
+      // Supplement with Supabase for cross-device stories not yet in D1
+      if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+        return window.AudioHubSupabase.fetchPublicStories()
+          .then(function (sbStories) {
+            sbStories = Array.isArray(sbStories) ? sbStories : [];
+            if (!sbStories.length) return d1Stories;
+            if (!d1Stories.length) return filterDeletedStories(sbStories);
+            // Merge: D1 is authoritative, add unique Supabase stories not in D1
+            var d1Ids = {};
+            d1Stories.forEach(function (s) { if (s && s.id) d1Ids[s.id] = true; });
+            var merged = d1Stories.slice();
+            filterDeletedStories(sbStories).forEach(function (s) {
+              if (s && s.id && !d1Ids[s.id]) merged.push(s);
+            });
+            return merged;
+          })
+          .catch(function () { return d1Stories; });
+      }
+
+      return d1Stories;
+    }).catch(function () {
+      // D1 failed — try Supabase, then localStorage
+      if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+        return window.AudioHubSupabase.fetchPublicStories()
+          .then(function (rows) { return filterDeletedStories(rows || []); })
+          .catch(function () { return fallbackToLocal(); });
+      }
+      return fallbackToLocal();
+    });
+  }
+
+  function fallbackToLocal() {
+    // Last resort: read from localStorage (same browser only)
+    if (window.AudioHubStories && typeof window.AudioHubStories.read === 'function') {
+      return Promise.resolve(filterDeletedStories(window.AudioHubStories.read()));
+    }
+    return Promise.resolve([]);
   }
 
   function isPublicVisibility(story) {
@@ -925,18 +984,24 @@
   }
 
   function fetchPublicStoriesWithPagination(offset, limit) {
-    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
-      return window.AudioHubSupabase.fetchPublicStories({ limit: limit, offset: offset })
+    // D1 API first (delete works reliably), Supabase as fallback
+    if (window.AudioHubApi && typeof window.AudioHubApi.request === 'function') {
+      return window.AudioHubApi.request('/stories/public', { method: 'GET' })
         .then(function (rows) {
-          if (!rows || !rows.length) {
-            // Supabase empty → localStorage fallback (pagination not needed, return all)
-            return fallbackToLocal();
+          rows = filterDeletedStories(Array.isArray(rows) ? rows : []);
+          if (!rows.length && window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+            return window.AudioHubSupabase.fetchPublicStories()
+              .then(function (sb) { return filterDeletedStories(sb || []); })
+              .catch(function () { return fallbackToLocal(); });
           }
           return rows;
         })
-        .catch(function () {
-          return fallbackToLocal();
-        });
+        .catch(function () { return fallbackToLocal(); });
+    }
+    if (window.AudioHubSupabase && window.AudioHubSupabase.isAvailable()) {
+      return window.AudioHubSupabase.fetchPublicStories()
+        .then(function (rows) { return filterDeletedStories(rows || []); })
+        .catch(function () { return fallbackToLocal(); });
     }
     return fallbackToLocal();
   }
@@ -945,7 +1010,7 @@
     if (!window.AudioHubApi || typeof window.AudioHubApi.request !== 'function') {
       return Promise.resolve([]);
     }
-    var url = '/stories/public?limit=' + limit + '&offset=' + offset;
+    var url = '/stories/public?limit=' + (limit || 50) + '&offset=' + (offset || 0);
     return window.AudioHubApi.request(url, { method: 'GET' })
       .then(function (rows) {
         return Array.isArray(rows) ? rows : [];

@@ -37,6 +37,23 @@
     } catch(e) { return null; }
   }
 
+  // Per-user playlist key helper
+  function _getUserId() {
+    try {
+      var parsed = getAuth();
+      if (!parsed || !parsed.isLoggedIn) return null;
+      var uid = (parsed.id && String(parsed.id).trim())
+        || (parsed.email && String(parsed.email).trim().toLowerCase())
+        || (parsed.name && String(parsed.name).trim().toLowerCase())
+        || null;
+      return uid ? String(uid).trim().toLowerCase() : null;
+    } catch (e) { return null; }
+  }
+  function _playlistKey() {
+    var uid = _getUserId();
+    return uid ? 'audiohub-playlists-v1-' + uid : 'audiohub-playlists-v1';
+  }
+
   function getAvatar() {
     try {
       return localStorage.getItem('audiohub-account-avatar-v1') || '';
@@ -63,7 +80,7 @@
 
   function getPlaylists() {
     try {
-      var raw = localStorage.getItem('audiohub-playlists-v1');
+      var raw = localStorage.getItem(_playlistKey());
       var list = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(list)) return [];
       // Migration: fix playlists with empty names (deep clone to detect changes)
@@ -77,7 +94,7 @@
       // Write back if any names were fixed
       var changed = migrated.some(function (pl, i) { return pl.name !== original[i].name; });
       if (changed) {
-        localStorage.setItem('audiohub-playlists-v1', JSON.stringify(migrated));
+        localStorage.setItem(_playlistKey(), JSON.stringify(migrated));
       }
       return migrated;
     } catch(e) { return []; }
@@ -706,9 +723,10 @@
         entries: [],
         state: 'ongoing',
         createdBy: 'user',
+        userId: _getUserId() || '',
         createdAt: new Date().toISOString()
       });
-      localStorage.setItem('audiohub-playlists-v1', JSON.stringify(playlists));
+      localStorage.setItem(_playlistKey(), JSON.stringify(playlists));
       input.value = '';
       if (form) form.hidden = true;
       renderPlaylists();

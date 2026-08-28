@@ -7,6 +7,24 @@
 if (window.__contentSearchLoaded) return;
 window.__contentSearchLoaded = true;
 
+// Per-user playlist key helper
+function _getSearchUserId() {
+  try {
+    var raw = window.localStorage.getItem('audiohub-auth-profile');
+    var parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || !parsed.isLoggedIn) return null;
+    var uid = (parsed.id && String(parsed.id).trim())
+      || (parsed.email && String(parsed.email).trim().toLowerCase())
+      || (parsed.name && String(parsed.name).trim().toLowerCase())
+      || null;
+    return uid ? String(uid).trim().toLowerCase() : null;
+  } catch (e) { return null; }
+}
+function _searchPlaylistKey() {
+  var uid = _getSearchUserId();
+  return uid ? 'audiohub-playlists-v1-' + uid : 'audiohub-playlists-v1';
+}
+
 var ContentSearch = class ContentSearch {
   constructor() {
     this.searchInputs = {};
@@ -288,7 +306,7 @@ var ContentSearch = class ContentSearch {
     // Read playlists from localStorage
     var playlists = [];
     try {
-      var rawPl = window.localStorage.getItem('audiohub-playlists-v1');
+      var rawPl = window.localStorage.getItem(_searchPlaylistKey());
       if (rawPl) {
         var parsed = JSON.parse(rawPl);
         playlists = Array.isArray(parsed) ? parsed.map(function(pl) {
@@ -308,7 +326,7 @@ var ContentSearch = class ContentSearch {
   refreshPlaylistData() {
     var playlists = [];
     try {
-      var rawPl = window.localStorage.getItem('audiohub-playlists-v1');
+      var rawPl = window.localStorage.getItem(_searchPlaylistKey());
       if (rawPl) {
         var parsed = JSON.parse(rawPl);
         playlists = Array.isArray(parsed) ? parsed.map(function(pl) {
