@@ -9,7 +9,7 @@
 
   /* ── Config ─────────────────────────────────────────────────────────── */
   var SHELL_ID = 'page-content';
-  var ASSET_VERSION = '20260828-1'; // Deploy version — only bust cache on new deploy, NOT every navigation
+  var ASSET_VERSION = '20260828-2'; // Deploy version — only bust cache on new deploy, NOT every navigation
 
   /** Pages that live in /html/ directory */
   var HTML_PAGES = [

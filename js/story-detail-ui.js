@@ -636,8 +636,40 @@
   function _getStoryOwnerId() {
     try {
       var _s = window.__currentStoryData || window.currentStory || null;
-      return (_s && _s.userId) ? String(_s.userId) : '';
+      if (!_s) return '';
+      return String(_s.userId || _s.user_id || '').trim();
     } catch (e) { return ''; }
+  }
+
+  // Check if the current logged-in user is the owner of the current story.
+  // Matches story.userId against the profile id (and email/name fallbacks),
+  // then falls back to author name / email comparison for stories saved without userId.
+  function _isCurrentStoryOwner() {
+    try {
+      var _s = window.__currentStoryData || window.currentStory || null;
+      if (!_s) return false;
+      var profile = _getProfile();
+      if (!profile || !profile.isLoggedIn) return false;
+
+      var ownerId = String(_s.userId || _s.user_id || '').trim().toLowerCase();
+      if (ownerId) {
+        // Compare against every identifier the profile may carry
+        var candidates = [profile.id, profile.email, profile.name, profile.displayName];
+        for (var _ci = 0; _ci < candidates.length; _ci++) {
+          var c = String(candidates[_ci] || '').trim().toLowerCase();
+          if (c && c === ownerId) return true;
+        }
+      }
+
+      // Fallback: compare author name / email (covers stories saved without userId)
+      var author = String(_s.author || '').trim().toLowerCase();
+      if (author) {
+        var pName = String(profile.name || profile.displayName || '').trim().toLowerCase();
+        var pEmail = String(profile.email || '').trim().toLowerCase();
+        if (author === pName || author === pEmail) return true;
+      }
+      return false;
+    } catch (e) { return false; }
   }
 
   // Fetch unlocked chapters for the current user from backend API
@@ -693,9 +725,7 @@
     if (!isMember()) return false;
 
     // 3) Story owner always has access
-    var ownerId = _getStoryOwnerId();
-    var profile = _getProfile();
-    if (ownerId && profile && profile.id && String(profile.id) === ownerId) return true;
+    if (_isCurrentStoryOwner()) return true;
 
     // 4) Check unlock cache
     if (_unlockedChaptersCache) {
@@ -2957,6 +2987,8 @@
     if (!story || !story.id) return;
     // RESET: Prevent stale guard from blocking re-render on SPA navigation
     window.__lastRenderedReadingText = '';
+    // Expose story data globally so access control can check story owner
+    window.__currentStoryData = story;
     trackStoryListen(story.id);
     var detailStoryNode = document.querySelector('[data-detail-story]');
 
@@ -3167,6 +3199,11 @@
           console.log('[story-detail] mergeAndRender apiStory:', apiStory.id, 'readingText:', apiReadingText ? apiReadingText.length + ' chars' : 'EMPTY', 'audioKey:', apiAudioKey || 'EMPTY', 'chapters:', Array.isArray(apiChapters) ? apiChapters.length : apiChapters);
           if (apiReadingText) merged.readingText = apiReadingText;
           if (apiAudioKey) merged.audioKey = apiAudioKey;
+          // Carry over owner id from API so access control can recognise the owner
+          var apiOwnerId = apiStory.userId || apiStory.user_id || '';
+          if (apiOwnerId && !merged.userId && !merged.user_id) {
+            merged.userId = String(apiOwnerId);
+          }
           if (Array.isArray(apiChapters) && apiChapters.length) {
             // FIX: Never overwrite local chapters with fewer API chapters
             var _localChCount = Array.isArray(merged.chapters) ? merged.chapters.length : 0;
