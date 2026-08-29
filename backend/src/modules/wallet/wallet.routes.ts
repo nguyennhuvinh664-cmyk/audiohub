@@ -112,12 +112,30 @@ router.post('/unlock', async (req: AuthRequest, res: Response) => {
     const existing = await prisma.unlockedChapter.findUnique({
       where: { userId_storyId_chapterIdx: { userId, storyId, chapterIdx } }
     });
-    if (existing) return fail(res, 'Chương đã được mở khóa');
+    if (existing) return ok(res, { alreadyUnlocked: true, balance: null });
 
     let wallet = await prisma.wallet.findUnique({ where: { userId } });
     if (!wallet || wallet.balance < cost) {
       return fail(res, 'Số dư không đủ');
     }
+
+
+    // Stories live in Cloudflare D1; the Postgres `stories` row may not exist yet.
+    // Ensure a stub story row so the unlocked_chapters FK does not reject the insert.
+    const stubTitle = (storyTitle || 'Story D1') + '';
+    const stubGenre = 'imported';
+    await prisma.story.upsert({
+      where: { id: storyId },
+      update: {},
+      create: {
+        id: storyId,
+        userId,
+        title: stubTitle,
+        author: 'Unknown',
+        genre: stubGenre,
+        description: ''
+      }
+    });
 
     const [updatedWallet] = await prisma.$transaction([
       prisma.wallet.update({
