@@ -90,10 +90,12 @@ router.get('/transactions', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/v1/wallet/unlock — unlock chapter (deduct balance)
+// Server-authoritative price: the client cannot set the cost.
+const CHAPTER_UNLOCK_COST = 2500; // Vân Thư per locked chapter
+
 const unlockSchema = z.object({
   storyId: z.string().min(1),
   chapterIdx: z.number().int().min(0),
-  cost: z.number().int().positive().max(50000),
   storyTitle: z.string().optional()
 });
 
@@ -103,7 +105,8 @@ router.post('/unlock', async (req: AuthRequest, res: Response) => {
     const parsed = unlockSchema.safeParse(req.body);
     if (!parsed.success) return fail(res, 'Dữ liệu không hợp lệ');
 
-    const { storyId, chapterIdx, cost, storyTitle } = parsed.data;
+    const { storyId, chapterIdx, storyTitle } = parsed.data;
+    const cost = CHAPTER_UNLOCK_COST;
 
     // Check if already unlocked
     const existing = await prisma.unlockedChapter.findUnique({

@@ -67,7 +67,10 @@ router.get('/check', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST /api/v1/chapters/unlock — unlock a chapter
+// POST /api/v1/chapters/unlock — (deprecated admin-free unlock WITHOUT payment)
+// NOTE: This endpoint unlocks a chapter WITHOUT deducting Vân Thư. It bypasses
+// the paid wallet/unlock flow. Keep only if intended for free/promo unlocks;
+// otherwise clients must use POST /api/v1/wallet/unlock (2.500 Vân Thư).
 const unlockSchema = z.object({
   storyId: z.string().min(1),
   chapterIdx: z.number().int().min(0)
